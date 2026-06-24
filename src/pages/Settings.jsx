@@ -1,5 +1,17 @@
 import { useState } from 'react';
 import { User, Sparkles, Mail, CheckCircle2, GraduationCap, Layers, Code, LogIn, LogOut } from 'lucide-react';
+import { 
+  getEnableEmailAlerts,
+  setEnableEmailAlerts,
+  getAlertSettings,
+  saveAlertSettings,
+  getSundayDigestTime,
+  setSundayDigestTime,
+  getNotificationHistory,
+  getDailyEmailLimit,
+  addNotificationHistoryLog
+} from '../utils/storage';
+import { triggerManualDigest } from '../utils/notifications';
 
 const GithubIcon = ({ size = 16, className = '' }) => (
   <svg
@@ -20,7 +32,9 @@ export default function Settings({
   onProfileSave, 
   isLoggedIn = false, 
   onLogout, 
-  onLogin 
+  onLogin,
+  accessToken = null,
+  assignments = []
 }) {
   const [name, setName] = useState(profile.name || '');
   const [studentId, setStudentId] = useState(profile.studentId || '');
@@ -30,6 +44,57 @@ export default function Settings({
   
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Scoped notifications states
+  const userEmail = profile.email || email || '';
+  
+  const [emailAlerts, setEmailAlerts] = useState(() => getEnableEmailAlerts(userEmail));
+  const [alertSettings, setAlertSettingsState] = useState(() => getAlertSettings(userEmail));
+  const [sundayTime, setSundayTimeState] = useState(() => getSundayDigestTime(userEmail));
+  const [historyLogs, setHistoryLogs] = useState(() => getNotificationHistory(userEmail));
+  const [dailyLimit, setDailyLimit] = useState(() => getDailyEmailLimit(userEmail));
+  
+  const [digestSending, setDigestSending] = useState(false);
+
+  const handleToggleAlerts = (val) => {
+    setEmailAlerts(val);
+    setEnableEmailAlerts(val, userEmail);
+    addNotificationHistoryLog({
+      title: val ? 'เปิดใช้งานระบบแจ้งเตือนทาง Gmail' : 'ปิดใช้งานระบบแจ้งเตือนทาง Gmail',
+      type: 'settings_change'
+    }, userEmail);
+    setHistoryLogs(getNotificationHistory(userEmail));
+  };
+
+  const handleToggleSetting = (field) => {
+    const updated = { ...alertSettings, [field]: !alertSettings[field] };
+    setAlertSettingsState(updated);
+    saveAlertSettings(updated, userEmail);
+  };
+
+  const handleTimeChange = (time) => {
+    setSundayTimeState(time);
+    setSundayDigestTime(time, userEmail);
+  };
+
+
+
+  const handleSendDigestNow = async () => {
+    if (!accessToken) {
+      alert('กรุณาเชื่อมต่อ Google Classroom ก่อนทำรายการ');
+      return;
+    }
+    setDigestSending(true);
+    try {
+      await triggerManualDigest(accessToken, userEmail, assignments);
+      setHistoryLogs(getNotificationHistory(userEmail));
+      setDailyLimit(getDailyEmailLimit(userEmail));
+    } catch (e) {
+      console.error(e);
+      alert(`ล้มเหลว: ${e.message}`);
+    } finally {
+      setDigestSending(false);
+    }
+  };
   const techStack = [
     { name: 'React 19', category: 'Frontend', color: 'emerald' },
     { name: 'Vite 8', category: 'Build Tool', color: 'purple' },
@@ -209,6 +274,155 @@ export default function Settings({
               )}
             </div>
           </div>
+
+          {/* Gmail Notifications Configuration Card */}
+          {isLoggedIn && (
+            <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 md:p-8 space-y-6 shadow-sm">
+              <div className="flex items-center justify-between pb-3 border-b border-dark-border/20">
+                <div className="flex items-center gap-3">
+                  <Mail size={16} className="text-brand-400" />
+                  <h3 className="font-semibold text-xs text-white uppercase tracking-wider">Gmail Notification System</h3>
+                </div>
+                
+                {/* Overall Switch */}
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={emailAlerts}
+                    onChange={(e) => handleToggleAlerts(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+                </label>
+              </div>
+
+              {emailAlerts ? (
+                <div className="space-y-5 animate-fade-in text-xs">
+                  {/* Daily Limit Tracker */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-brand-500/5 border border-brand-500/10">
+                    <span className="text-dark-muted font-medium">โควต้าส่งเมลวันนี้:</span>
+                    <span className="text-brand-400 font-bold">{dailyLimit.count} / 3 อีเมล (สูงสุด 3 ฉบับต่อวัน)</span>
+                  </div>
+
+                  {/* Settings Rules Checklist */}
+                  <div className="space-y-3.5">
+                    <span className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">เงื่อนไขการส่งแจ้งเตือน:</span>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={alertSettings.due3Days}
+                          onChange={() => handleToggleSetting('due3Days')}
+                          className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
+                        />
+                        <div className="space-y-0.5">
+                          <span className="font-semibold text-white">ก่อนครบกำหนด 3 วัน</span>
+                          <p className="text-[10px] text-dark-muted">เตือนเมื่ออีก 3 วันถึงกำหนดส่ง (นับตามวันปฏิทิน)</p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={alertSettings.due1Day}
+                          onChange={() => handleToggleSetting('due1Day')}
+                          className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
+                        />
+                        <div className="space-y-0.5">
+                          <span className="font-semibold text-white">ก่อนครบกำหนด 1 วัน</span>
+                          <p className="text-[10px] text-dark-muted">เตือนเมื่ออีก 1 วันถึงกำหนดส่ง</p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={alertSettings.dueToday}
+                          onChange={() => handleToggleSetting('dueToday')}
+                          className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
+                        />
+                        <div className="space-y-0.5">
+                          <span className="font-semibold text-white">วันครบกำหนดส่ง</span>
+                          <p className="text-[10px] text-dark-muted">เตือนเมื่อครบกำหนดส่งภายในวันนี้</p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={alertSettings.overdue1Day}
+                          onChange={() => handleToggleSetting('overdue1Day')}
+                          className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
+                        />
+                        <div className="space-y-0.5">
+                          <span className="font-semibold text-white">หลังเลยกำหนด 1 วัน (ครั้งเดียว)</span>
+                          <p className="text-[10px] text-dark-muted">ส่งเตือนงานค้างเลยกำหนดหลังผ่านไป 1 วันเพียงครั้งเดียว</p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer col-span-1 sm:col-span-2">
+                        <input 
+                          type="checkbox"
+                          checked={alertSettings.newPosts}
+                          onChange={() => handleToggleSetting('newPosts')}
+                          className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
+                        />
+                        <div className="space-y-0.5">
+                          <span className="font-semibold text-white">ตรวจพบงาน / ประกาศโพสต์ใหม่ (รวมเล่ม)</span>
+                          <p className="text-[10px] text-dark-muted">เมื่อกดซิงก์แล้วเจองานหรือประกาศใหม่ จะรวบรวมเมลส่งแจ้งเตือนทันทีฉบับเดียว ป้องกันการสแปม</p>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="border-t border-dark-border/20 pt-4 space-y-3">
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={alertSettings.sundayDigest}
+                          onChange={() => handleToggleSetting('sundayDigest')}
+                          className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
+                        />
+                        <div className="space-y-0.5">
+                          <span className="font-semibold text-white">แจ้งเตือนงานไม่มีกำหนดส่ง (Sunday Digest)</span>
+                          <p className="text-[10px] text-dark-muted font-medium">ตรวจสอบทุกครั้งที่เปิดแอป หากพลาด Sunday Digest ระบบจะส่งย้อนหลังอัตโนมัติ</p>
+                        </div>
+                      </label>
+
+                      {alertSettings.sundayDigest && (
+                        <div className="flex items-center gap-3 pl-6 animate-fade-in">
+                          <span className="text-[10px] text-dark-muted uppercase font-semibold">เวลาที่จะจัดส่ง:</span>
+                          <input 
+                            type="time" 
+                            value={sundayTime}
+                            onChange={(e) => handleTimeChange(e.target.value)}
+                            className="bg-dark-sidebar/40 border border-dark-border/40 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions buttons */}
+                  <div className="flex flex-wrap gap-3 pt-3 border-t border-dark-border/20">
+
+                    <button
+                      type="button"
+                      disabled={digestSending}
+                      onClick={handleSendDigestNow}
+                      className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold px-4.5 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {digestSending ? 'กำลังส่งสรุปงาน...' : 'ส่งสรุปงานค้างทั้งหมดเข้า Gmail ทันที'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center p-8 bg-dark-sidebar/20 rounded-xl border border-dashed border-dark-border/40 text-dark-muted text-xs">
+                  ระบบแจ้งเตือนทาง Gmail ถูกปิดใช้งานอยู่
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Section: Developer Bio & Project specs */}
@@ -289,6 +503,39 @@ export default function Settings({
               ))}
             </div>
           </div>
+
+          {/* Notification History Card */}
+          {isLoggedIn && emailAlerts && (
+            <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 space-y-4 shadow-sm animate-fade-in">
+              <div className="flex items-center gap-3 pb-2 border-b border-dark-border/20">
+                <Sparkles size={16} className="text-brand-400" />
+                <h3 className="font-semibold text-xs text-white uppercase tracking-wider">🔔 Notification History</h3>
+              </div>
+
+              <div className="max-h-[220px] overflow-y-auto pr-1 space-y-2.5 text-xs custom-scrollbar">
+                {historyLogs.length > 0 ? (
+                  historyLogs.map(log => {
+                    const formattedLogDate = new Date(log.sentAt).toLocaleDateString('th-TH', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+                    return (
+                      <div key={log.id} className="p-2.5 rounded-xl bg-dark-sidebar/30 border border-dark-border/25 flex flex-col gap-0.5">
+                        <span className="font-semibold text-white">{log.title}</span>
+                        <span className="text-[10px] text-dark-muted">{formattedLogDate}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-6 text-dark-muted text-[10px]">
+                    ยังไม่มีประวัติการส่งแจ้งเตือนในระบบ
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

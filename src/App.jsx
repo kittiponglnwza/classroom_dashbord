@@ -35,6 +35,7 @@ import {
   fetchGoogleProfile, 
   fetchGoogleClassroomData 
 } from './services/googleClassroom';
+import { evaluateNotifications, evaluateNewPostDigest } from './utils/notifications';
 
 export default function App() {
   // Application Data States
@@ -169,6 +170,13 @@ export default function App() {
       // 2. Fetch classroom subjects and assignments
       const classroomData = await fetchGoogleClassroomData(tokenToUse);
       
+      // Get previously cached IDs for new posts evaluation before updating
+      const prevAssignments = getAssignments(userEmail);
+      const prevResources = getResources(userEmail);
+      const cachedAssignmentIds = prevAssignments.map(a => a.id);
+      const cachedResourceIds = prevResources.map(r => r.id);
+      const lastSync = getLastSync(userEmail);
+
       // Sync assignments with local overrides, save courses and resources
       const syncedAssigns = syncClassroomAssignments(classroomData.assignments, userEmail);
       saveCourses(classroomData.courses, userEmail);
@@ -182,6 +190,31 @@ export default function App() {
       const now = new Date().toISOString();
       setLastSync(now, userEmail);
       setLastSyncTime(now);
+
+      // Trigger evaluations asynchronously to not block the UI sync state transitions
+      setTimeout(async () => {
+        try {
+          if (lastSync) {
+            await evaluateNewPostDigest(
+              tokenToUse,
+              userEmail,
+              classroomData.assignments,
+              classroomData.resources || [],
+              cachedAssignmentIds,
+              cachedResourceIds
+            );
+          }
+          await evaluateNotifications(
+            tokenToUse,
+            userEmail,
+            syncedAssigns,
+            classroomData.courses,
+            classroomData.resources || []
+          );
+        } catch (err) {
+          console.error("Error evaluating Gmail notifications during sync:", err);
+        }
+      }, 0);
 
     } catch (e) {
       console.error('Failed to sync Google Classroom data', e);
@@ -436,6 +469,8 @@ export default function App() {
                   isLoggedIn={isLoggedIn}
                   onLogout={handleLogout}
                   onLogin={handleLogin}
+                  accessToken={accessToken}
+                  assignments={assignments}
                 />
               } 
             />

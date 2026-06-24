@@ -8,6 +8,7 @@ export const CLIENT_SCOPES = [
   'https://www.googleapis.com/auth/classroom.coursework.students.readonly',
   'https://www.googleapis.com/auth/classroom.announcements.readonly',
   'https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly',
+  'https://www.googleapis.com/auth/gmail.send',
   'openid',
   'email',
   'profile'
@@ -304,4 +305,53 @@ export async function fetchGoogleClassroomData(accessToken) {
     assignments: flattenedAssignments,
     resources: flattenedResources
   };
+}
+
+/**
+ * Send Gmail Notification via Google REST API
+ * Constructs RFC 822 MIME message and base64url encodes it
+ */
+export async function sendGmailNotification(accessToken, toEmail, subject, htmlBody) {
+  // 1. Construct MIME RFC 822 raw message
+  // UTF-8 friendly Base64 subject encoding
+  const utf8Subject = `=?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
+  const emailLines = [
+    `To: ${toEmail}`,
+    `Subject: ${utf8Subject}`,
+    'Content-Type: text/html; charset=utf-8',
+    'MIME-Version: 1.0',
+    '',
+    htmlBody
+  ];
+  
+  const rawEmail = emailLines.join('\r\n');
+  
+  // 2. Base64Url encode the raw email content
+  const base64UrlEmail = btoa(unescape(encodeURIComponent(rawEmail)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  // 3. POST request to Gmail API send endpoint
+  const url = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      raw: base64UrlEmail
+    })
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('UNAUTHORIZED');
+    }
+    const errText = await response.text();
+    throw new Error(`Gmail API Error (${response.status}): ${errText}`);
+  }
+
+  return response.json();
 }

@@ -263,6 +263,13 @@ export const resetDatabase = (email) => {
     const syncKey = `${KEYS.LAST_SYNC}_${userEmail}`;
     const hiddenKey = `${KEYS.HIDDEN_COURSES}_${userEmail}`;
     
+    localStorage.removeItem(`classroom_hub_enable_email_alerts_${userEmail}`);
+    localStorage.removeItem(`classroom_hub_alert_settings_${userEmail}`);
+    localStorage.removeItem(`classroom_hub_sunday_digest_time_${userEmail}`);
+    localStorage.removeItem(`classroom_hub_sent_notifications_${userEmail}`);
+    localStorage.removeItem(`classroom_hub_daily_email_limit_${userEmail}`);
+    localStorage.removeItem(`classroom_hub_notification_history_${userEmail}`);
+    
     localStorage.removeItem(assignKey);
     localStorage.removeItem(coursesKey);
     localStorage.removeItem(profileKey);
@@ -292,4 +299,111 @@ export const getHiddenCourses = (email) => {
 export const saveHiddenCourses = (hiddenIds, email) => {
   const key = getScopedKey(KEYS.HIDDEN_COURSES, email);
   localStorage.setItem(key, JSON.stringify(hiddenIds));
+};
+
+/* Gmail Notifications Scoped Helpers */
+export const getEnableEmailAlerts = (email) => {
+  const key = getScopedKey('classroom_hub_enable_email_alerts', email);
+  const val = localStorage.getItem(key);
+  return val === null ? true : val === 'true';
+};
+
+export const setEnableEmailAlerts = (enabled, email) => {
+  const key = getScopedKey('classroom_hub_enable_email_alerts', email);
+  localStorage.setItem(key, String(enabled));
+};
+
+export const getAlertSettings = (email) => {
+  const key = getScopedKey('classroom_hub_alert_settings', email);
+  const stored = localStorage.getItem(key);
+  const defaults = {
+    due3Days: true,
+    due1Day: true,
+    dueToday: true,
+    overdue1Day: true,
+    newPosts: true,
+    sundayDigest: true
+  };
+  if (!stored) return defaults;
+  try {
+    return { ...defaults, ...JSON.parse(stored) };
+  } catch (e) {
+    return defaults;
+  }
+};
+
+export const saveAlertSettings = (settings, email) => {
+  const key = getScopedKey('classroom_hub_alert_settings', email);
+  localStorage.setItem(key, JSON.stringify(settings));
+};
+
+export const getSundayDigestTime = (email) => {
+  const key = getScopedKey('classroom_hub_sunday_digest_time', email);
+  return localStorage.getItem(key) || '18:00';
+};
+
+export const setSundayDigestTime = (time, email) => {
+  const key = getScopedKey('classroom_hub_sunday_digest_time', email);
+  localStorage.setItem(key, time);
+};
+
+export const getSentNotifications = (email) => {
+  const key = getScopedKey('classroom_hub_sent_notifications', email);
+  const stored = localStorage.getItem(key);
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    return [];
+  }
+};
+
+export const saveSentNotifications = (records, email) => {
+  const key = getScopedKey('classroom_hub_sent_notifications', email);
+  localStorage.setItem(key, JSON.stringify(records));
+};
+
+export const getDailyEmailLimit = (email) => {
+  const key = getScopedKey('classroom_hub_daily_email_limit', email);
+  const stored = localStorage.getItem(key);
+  const defaults = { lastSentDate: '', count: 0 };
+  if (!stored) return defaults;
+  try {
+    return { ...defaults, ...JSON.parse(stored) };
+  } catch (e) {
+    return defaults;
+  }
+};
+
+export const saveDailyEmailLimit = (limitData, email) => {
+  const key = getScopedKey('classroom_hub_daily_email_limit', email);
+  localStorage.setItem(key, JSON.stringify(limitData));
+};
+
+export const getNotificationHistory = (email) => {
+  const key = getScopedKey('classroom_hub_notification_history', email);
+  const stored = localStorage.getItem(key);
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    return [];
+  }
+};
+
+export const saveNotificationHistory = (logs, email) => {
+  const key = getScopedKey('classroom_hub_notification_history', email);
+  localStorage.setItem(key, JSON.stringify(logs));
+};
+
+export const addNotificationHistoryLog = (logEntry, email) => {
+  const logs = getNotificationHistory(email);
+  const newLog = {
+    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    sentAt: new Date().toISOString(),
+    ...logEntry
+  };
+  const updated = [newLog, ...logs].slice(0, 100); // Limit to last 100 entries
+  saveNotificationHistory(updated, email);
+  return updated;
 };
