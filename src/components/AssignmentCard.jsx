@@ -1,17 +1,18 @@
 import { Link } from 'react-router-dom';
 import { Calendar, Paperclip, AlertCircle } from 'lucide-react';
+import { t } from '../utils/i18n';
 
-export default function AssignmentCard({ assignment, onStatusChange }) {
+export default function AssignmentCard({ assignment, onStatusChange, lang = 'en' }) {
   const { id, title, course, dueDate, status, points, attachments, courseColor, googleLink } = assignment;
 
   // Calculate detailed due countdown
   const getDueStatus = () => {
     if (status === 'done') {
-      return { text: 'Completed', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', isOverdue: false };
+      return { text: t('completed', lang), class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', isOverdue: false };
     }
 
     if (!dueDate) {
-      return { text: 'No Due Date', class: 'bg-zinc-500/10 text-dark-muted border-dark-border', isOverdue: false };
+      return { text: t('noDueDate', lang), class: 'bg-zinc-500/10 text-dark-muted border-dark-border', isOverdue: false };
     }
 
     const now = new Date();
@@ -24,13 +25,13 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
       if (diffDays === 0) {
         const diffHrs = Math.abs(Math.floor(diffMs / (1000 * 60 * 60)));
         return { 
-          text: `🔴 Overdue (${diffHrs}h)`, 
+          text: t('overdueHrs', lang, { hrs: diffHrs }), 
           class: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold animate-pulse', 
           isOverdue: true 
         };
       }
       return { 
-        text: `🔴 Overdue (${diffDays}d)`, 
+        text: t('overdueDays', lang, { days: diffDays }), 
         class: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold animate-pulse', 
         isOverdue: true 
       };
@@ -42,13 +43,13 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
       if (diffHrs === 0) {
         const diffMins = Math.floor(diffMs / (1000 * 60));
         return { 
-          text: `⚠️ ${diffMins}m left (Today)`, 
+          text: t('minsLeftToday', lang, { mins: diffMins }), 
           class: 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold', 
           isOverdue: false 
         };
       }
       return { 
-        text: `⚠️ ${diffHrs}h left (Today)`, 
+        text: t('hrsLeftToday', lang, { hrs: diffHrs }), 
         class: 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold', 
         isOverdue: false 
       };
@@ -58,7 +59,7 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
     if (diffDays === 1) {
       return { 
-        text: '⚠️ Due Tomorrow', 
+        text: t('dueTomorrow', lang), 
         class: 'bg-amber-500/10 text-amber-400 border-amber-500/20 font-semibold', 
         isOverdue: false 
       };
@@ -66,7 +67,7 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
 
     // Normal countdown in days
     return { 
-      text: `${diffDays} days left`, 
+      text: t('daysLeft', lang, { days: diffDays }), 
       class: 'bg-zinc-500/10 text-dark-muted border-dark-border', 
       isOverdue: false 
     };
@@ -119,9 +120,9 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
                 status === 'doing' ? 'text-amber-400' : 'text-emerald-400'
               }`}
             >
-              <option value="todo">To Do</option>
-              <option value="doing">In Progress</option>
-              <option value="done">Completed</option>
+              <option value="todo">{t('todo', lang)}</option>
+              <option value="doing">{t('doing', lang)}</option>
+              <option value="done">{t('done', lang)}</option>
             </select>
           </div>
         </div>

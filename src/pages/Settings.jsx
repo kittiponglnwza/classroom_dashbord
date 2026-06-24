@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { User, Sparkles, Mail, CheckCircle2, GraduationCap, Layers, Code, LogIn, LogOut } from 'lucide-react';
+import { t } from '../utils/i18n';
 import { 
   getEnableEmailAlerts,
   setEnableEmailAlerts,
@@ -34,7 +35,8 @@ export default function Settings({
   onLogout, 
   onLogin,
   accessToken = null,
-  assignments = []
+  assignments = [],
+  lang = 'en'
 }) {
   const [name, setName] = useState(profile.name || '');
   const [studentId, setStudentId] = useState(profile.studentId || '');
@@ -59,7 +61,9 @@ export default function Settings({
     setEmailAlerts(val);
     setEnableEmailAlerts(val, userEmail);
     addNotificationHistoryLog({
-      title: val ? 'Enabled Gmail Notification System' : 'Disabled Gmail Notification System',
+      title: val 
+        ? (lang === 'en' ? 'Enabled Gmail Notification System' : 'เปิดใช้งานระบบแจ้งเตือนทาง Gmail')
+        : (lang === 'en' ? 'Disabled Gmail Notification System' : 'ปิดใช้งานระบบแจ้งเตือนทาง Gmail'),
       type: 'settings_change'
     }, userEmail);
     setHistoryLogs(getNotificationHistory(userEmail));
@@ -80,7 +84,7 @@ export default function Settings({
 
   const handleSendDigestNow = async () => {
     if (!accessToken) {
-      alert('Please connect to Google Classroom before performing this action.');
+      alert(lang === 'en' ? 'Please connect to Google Classroom before performing this action.' : 'กรุณาเชื่อมต่อ Google Classroom ก่อนทำรายการนี้');
       return;
     }
     setDigestSending(true);
@@ -90,7 +94,7 @@ export default function Settings({
       setDailyLimit(getDailyEmailLimit(userEmail));
     } catch (e) {
       console.error(e);
-      alert(`Failed: ${e.message}`);
+      alert((lang === 'en' ? 'Failed: ' : 'เกิดข้อผิดพลาด: ') + e.message);
     } finally {
       setDigestSending(false);
     }
@@ -142,15 +146,15 @@ export default function Settings({
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in py-2">
       {/* Minimal Header */}
       <div className="border-b border-dark-border/40 pb-5">
-        <h1 className="text-xl font-bold font-heading text-white">Hub Profile & Settings</h1>
-        <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">Manage your credentials, connect Classroom API integrations, and view developer bio details.</p>
+        <h1 className="text-xl font-bold font-heading text-white">{t('settingsTitle', lang)}</h1>
+        <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">{t('settingsDesc', lang)}</p>
       </div>
 
       {/* Success Alert */}
       {saveSuccess && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-4 py-3 rounded-xl flex items-center gap-2 animate-fade-in max-w-xl">
           <CheckCircle2 size={15} />
-          Profile settings updated successfully!
+          {t('profileSuccess', lang)}
         </div>
       )}
 
@@ -161,7 +165,7 @@ export default function Settings({
           <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 md:p-8 space-y-6 shadow-sm">
             <div className="flex items-center gap-3 pb-3">
               <User size={16} className="text-brand-400" />
-              <h3 className="font-semibold text-xs text-white uppercase tracking-wider">Student Profile Settings</h3>
+              <h3 className="font-semibold text-xs text-white uppercase tracking-wider">{t('profileSettingsHeader', lang)}</h3>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -174,7 +178,7 @@ export default function Settings({
                   />
                 </div>
                 <div className="flex-1 w-full space-y-1">
-                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">Avatar Image URL</label>
+                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">{t('avatarUrlLabel', lang)}</label>
                   <input
                     type="url"
                     value={avatarUrl}
@@ -187,7 +191,7 @@ export default function Settings({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">Full Name</label>
+                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">{t('studentNameLabel', lang)}</label>
                   <input
                     type="text"
                     required
@@ -197,7 +201,7 @@ export default function Settings({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">Student ID</label>
+                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">{t('studentIdLabel', lang)}</label>
                   <input
                     type="text"
                     required
@@ -206,11 +210,8 @@ export default function Settings({
                     className="w-full bg-dark-sidebar/40 border border-dark-border/40 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/20 transition-all duration-200"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">Email Address</label>
+                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">{t('studentEmailLabel', lang)}</label>
                   <input
                     type="email"
                     required
@@ -220,7 +221,7 @@ export default function Settings({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">Major / Department</label>
+                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">{t('studentMajorLabel', lang)}</label>
                   <input
                     type="text"
                     required
@@ -236,7 +237,7 @@ export default function Settings({
                   type="submit"
                   className="bg-brand-500 hover:bg-brand-600 text-white font-medium text-xs px-5 py-2.5 rounded-xl transition-all duration-200 shadow-md shadow-brand-500/10 hover:translate-x-0.5 cursor-pointer"
                 >
-                  Save Changes
+                  {lang === 'en' ? 'Save Changes' : 'บันทึกการเปลี่ยนแปลง'}
                 </button>
               </div>
             </form>
@@ -246,10 +247,12 @@ export default function Settings({
               <div className="space-y-1">
                 <h4 className="font-semibold text-xs text-white flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full ${isLoggedIn ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-500'}`} />
-                  Google Classroom Account
+                  {lang === 'en' ? 'Google Classroom Account' : 'บัญชี Google Classroom'}
                 </h4>
                 <p className="text-[11px] text-dark-muted">
-                  {isLoggedIn ? `Connected as ${profile.email || email}` : 'Link your school Google Account to import real coursework.'}
+                  {isLoggedIn 
+                    ? (lang === 'en' ? `Connected as ${profile.email || email}` : `เชื่อมต่อโดยอีเมล ${profile.email || email}`) 
+                    : (lang === 'en' ? 'Link your school Google Account to import real coursework.' : 'เชื่อมต่อบัญชี Google ของสถานบันเพื่อนำเข้าการบ้านจริง')}
                 </p>
               </div>
               
@@ -260,7 +263,7 @@ export default function Settings({
                   className="bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-400 border border-rose-500/20 text-xs font-semibold px-4.5 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   <LogOut size={12} />
-                  Disconnect
+                  {t('disconnectBtn', lang)}
                 </button>
               ) : (
                 <button
@@ -269,7 +272,7 @@ export default function Settings({
                   className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold px-4.5 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/15"
                 >
                   <LogIn size={12} />
-                  Connect Classroom
+                  {t('connectBtn', lang)}
                 </button>
               )}
             </div>
@@ -281,7 +284,7 @@ export default function Settings({
               <div className="flex items-center justify-between pb-3 border-b border-dark-border/20">
                 <div className="flex items-center gap-3">
                   <Mail size={16} className="text-brand-400" />
-                  <h3 className="font-semibold text-xs text-white uppercase tracking-wider">Gmail Notification System</h3>
+                  <h3 className="font-semibold text-xs text-white uppercase tracking-wider">{t('gmailSystemHeader', lang)}</h3>
                 </div>
                 
                 {/* Overall Switch */}
@@ -300,13 +303,13 @@ export default function Settings({
                 <div className="space-y-5 animate-fade-in text-xs">
                   {/* Daily Limit Tracker */}
                   <div className="flex items-center justify-between p-3 rounded-xl bg-brand-500/5 border border-brand-500/10">
-                    <span className="text-dark-muted font-medium">Daily email quota:</span>
-                    <span className="text-brand-400 font-bold">{dailyLimit.count} / 3 emails (Max 3 emails per day)</span>
+                    <span className="text-dark-muted font-medium">{t('quotaLabel', lang)}</span>
+                    <span className="text-brand-400 font-bold">{t('quotaDesc', lang, { count: dailyLimit.count })}</span>
                   </div>
 
                   {/* Settings Rules Checklist */}
                   <div className="space-y-3.5">
-                    <span className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">Notification Triggers:</span>
+                    <span className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">{t('triggersHeader', lang)}</span>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <label className="flex items-start gap-2.5 cursor-pointer">
@@ -317,8 +320,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">3 Days Before Due</span>
-                          <p className="text-[10px] text-dark-muted">Alert when exactly 3 calendar days remain before due date.</p>
+                          <span className="font-semibold text-white">{t('due3DaysLabel', lang)}</span>
+                          <p className="text-[10px] text-dark-muted">{t('due3DaysDesc', lang)}</p>
                         </div>
                       </label>
 
@@ -330,8 +333,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">1 Day Before Due</span>
-                          <p className="text-[10px] text-dark-muted">Alert when exactly 1 calendar day remains before due date.</p>
+                          <span className="font-semibold text-white">{t('due1DayLabel', lang)}</span>
+                          <p className="text-[10px] text-dark-muted">{t('due1DayDesc', lang)}</p>
                         </div>
                       </label>
 
@@ -343,8 +346,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">Due Today</span>
-                          <p className="text-[10px] text-dark-muted">Alert on the day of the deadline.</p>
+                          <span className="font-semibold text-white">{t('dueTodayLabel', lang)}</span>
+                          <p className="text-[10px] text-dark-muted">{t('dueTodayDesc', lang)}</p>
                         </div>
                       </label>
 
@@ -356,8 +359,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">1 Day Overdue (Once)</span>
-                          <p className="text-[10px] text-dark-muted">Alert once after the task is overdue by 1 day.</p>
+                          <span className="font-semibold text-white">{t('overdue1DayLabel', lang)}</span>
+                          <p className="text-[10px] text-dark-muted">{t('overdue1DayDesc', lang)}</p>
                         </div>
                       </label>
 
@@ -369,8 +372,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">New Post Alert (Consolidated)</span>
-                          <p className="text-[10px] text-dark-muted">Consolidate newly detected assignments/announcements on sync into a single digest email.</p>
+                          <span className="font-semibold text-white">{t('newPostsLabel', lang)}</span>
+                          <p className="text-[10px] text-dark-muted">{t('newPostsDesc', lang)}</p>
                         </div>
                       </label>
                     </div>
@@ -384,14 +387,14 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">Sunday Digest (No Due Date Tasks)</span>
-                          <p className="text-[10px] text-dark-muted font-medium">Check automatically on app startup. Missed digests will be sent retroactively.</p>
+                          <span className="font-semibold text-white">{t('sundayDigestLabel', lang)}</span>
+                          <p className="text-[10px] text-dark-muted font-medium">{t('sundayDigestDesc', lang)}</p>
                         </div>
                       </label>
 
                       {alertSettings.sundayDigest && (
                         <div className="flex items-center gap-3 pl-6 animate-fade-in">
-                          <span className="text-[10px] text-dark-muted uppercase font-semibold">Delivery Time:</span>
+                          <span className="text-[10px] text-dark-muted uppercase font-semibold">{t('deliveryTimeLabel', lang)}</span>
                           <input 
                             type="time" 
                             value={sundayTime}
@@ -412,13 +415,13 @@ export default function Settings({
                       onClick={handleSendDigestNow}
                       className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold px-4.5 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      {digestSending ? 'Sending task digest...' : 'Send Task Digest Now'}
+                      {digestSending ? t('sendingDigestBtn', lang) : t('sendDigestBtn', lang)}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center p-8 bg-dark-sidebar/20 rounded-xl border border-dashed border-dark-border/40 text-dark-muted text-xs">
-                  Gmail Notification System is disabled.
+                  {t('gmailDisabledMsg', lang)}
                 </div>
               )}
             </div>
@@ -431,7 +434,7 @@ export default function Settings({
           <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 space-y-5 shadow-sm">
             <div className="flex items-center gap-3 pb-2">
               <User size={16} className="text-brand-400" />
-              <h3 className="font-semibold text-xs text-white uppercase tracking-wider">Developer</h3>
+              <h3 className="font-semibold text-xs text-white uppercase tracking-wider">{t('developerHeader', lang)}</h3>
             </div>
 
             <div className="flex items-center gap-3.5">
@@ -480,11 +483,11 @@ export default function Settings({
           <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 space-y-4 shadow-sm">
             <div className="flex items-center gap-3 pb-1">
               <Code size={16} className="text-brand-400" />
-              <h3 className="font-semibold text-xs text-white uppercase tracking-wider">Project Details</h3>
+              <h3 className="font-semibold text-xs text-white uppercase tracking-wider">{t('projectDetailsHeader', lang)}</h3>
             </div>
 
             <p className="text-[11px] text-zinc-300 leading-relaxed leading-5">
-              <strong>Classroom Hub</strong> enhances student productivity by consolidating Google Classroom coursework, announcements, and materials into a unified, minimal, dark-mode dashboard.
+              {t('projectDesc', lang)}
             </p>
 
             <div className="grid grid-cols-2 gap-2 pt-1.5">
@@ -509,13 +512,13 @@ export default function Settings({
             <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 space-y-4 shadow-sm animate-fade-in">
               <div className="flex items-center gap-3 pb-2 border-b border-dark-border/20">
                 <Sparkles size={16} className="text-brand-400" />
-                <h3 className="font-semibold text-xs text-white uppercase tracking-wider">🔔 Notification History</h3>
+                <h3 className="font-semibold text-xs text-white uppercase tracking-wider">{t('notificationHistoryHeader', lang)}</h3>
               </div>
 
               <div className="max-h-[220px] overflow-y-auto pr-1 space-y-2.5 text-xs custom-scrollbar">
                 {historyLogs.length > 0 ? (
                   historyLogs.map(log => {
-                    const formattedLogDate = new Date(log.sentAt).toLocaleDateString('th-TH', {
+                    const formattedLogDate = new Date(log.sentAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
                       day: 'numeric',
                       month: 'short',
                       hour: '2-digit',
@@ -530,7 +533,7 @@ export default function Settings({
                   })
                 ) : (
                   <div className="text-center py-6 text-dark-muted text-[10px]">
-                    No notification logs found in history.
+                    {t('noHistoryLogs', lang)}
                   </div>
                 )}
               </div>

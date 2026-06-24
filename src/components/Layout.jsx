@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Sidebar from './Sidebar';
-import { Menu, X, Bell, RefreshCw, LogIn, LogOut, Award, AlertTriangle } from 'lucide-react';
+import { Menu, X, Bell, RefreshCw, LogIn, LogOut, Award, AlertTriangle, Globe } from 'lucide-react';
+import { t } from '../utils/i18n';
 
 export default function Layout({ 
   children, 
@@ -12,16 +13,18 @@ export default function Layout({
   onSync = null,
   onLogout = null,
   onLogin = null,
-  profile = {}
+  profile = {},
+  lang = 'en',
+  toggleLang = null
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Format Sync Time to user-friendly string
   const formatSyncTime = (timestamp) => {
-    if (!timestamp) return 'Never synced';
+    if (!timestamp) return t('neverSynced', lang);
     const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + 
-           date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    return date.toLocaleTimeString(lang === 'en' ? 'en-US' : 'th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + 
+           date.toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', { day: 'numeric', month: 'short' });
   };
 
   // Count active tasks
@@ -36,14 +39,14 @@ export default function Layout({
     <div className="flex h-screen w-screen overflow-hidden bg-dark-bg text-dark-text">
       {/* Desktop Sidebar */}
       <div className="hidden md:block h-full">
-        <Sidebar courses={courses} assignments={assignments} profile={profile} />
+        <Sidebar courses={courses} assignments={assignments} profile={profile} lang={lang} />
       </div>
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden bg-black/60 backdrop-blur-sm">
           <div className="h-full w-64 animate-fade-in">
-            <Sidebar courses={courses} assignments={assignments} profile={profile} onLinkClick={() => setMobileMenuOpen(false)} />
+            <Sidebar courses={courses} assignments={assignments} profile={profile} onLinkClick={() => setMobileMenuOpen(false)} lang={lang} />
           </div>
           <button 
             onClick={() => setMobileMenuOpen(false)}
@@ -66,14 +69,14 @@ export default function Layout({
               <Menu size={20} />
             </button>
             <div className="hidden sm:flex items-center gap-3">
-              <span className="text-xs text-dark-muted">Academic Term: 2026/Semester 2</span>
+              <span className="text-xs text-dark-muted">{t('academicTerm', lang)}</span>
               {isLoggedIn ? (
                 <span className="text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2 py-0.5 rounded-full">
-                  Google Classroom Connected
+                  {t('googleConnected', lang)}
                 </span>
               ) : (
                 <span className="text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                  Mock Database Active
+                  {t('mockActive', lang)}
                 </span>
               )}
             </div>
@@ -84,7 +87,7 @@ export default function Layout({
             {isLoggedIn && onSync && (
               <div className="flex items-center gap-3 text-xs pr-4 border-r border-dark-border">
                 <span className="text-dark-muted hidden lg:inline">
-                  Sync: <span className="text-white font-medium">{formatSyncTime(lastSyncTime)}</span>
+                  {t('lastSync', lang)} <span className="text-white font-medium">{formatSyncTime(lastSyncTime)}</span>
                 </span>
                 <button
                   onClick={onSync}
@@ -93,7 +96,7 @@ export default function Layout({
                   title="Sync Google Classroom data"
                 >
                   <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
-                  <span>{isSyncing ? 'Syncing...' : 'Sync'}</span>
+                  <span>{isSyncing ? t('syncing', lang) : t('sync', lang)}</span>
                 </button>
               </div>
             )}
@@ -101,18 +104,30 @@ export default function Layout({
             {/* Quick Stats Summary */}
             <div className="hidden lg:flex items-center gap-4 text-xs pr-4 mr-2 border-r border-dark-border">
               <div className="text-right">
-                <span className="text-dark-muted block">Tasks Pending</span>
-                <span className="font-semibold text-brand-400">{totalActive} assignments</span>
+                <span className="text-dark-muted block">{t('tasksPending', lang)}</span>
+                <span className="font-semibold text-brand-400">{totalActive} {totalActive === 1 ? t('taskPlural', lang) : t('tasksPlural', lang)}</span>
               </div>
               {overdueCount > 0 && (
                 <div className="text-right">
                   <span className="text-rose-400 block font-semibold flex items-center gap-1">
-                    <AlertTriangle size={11} /> Overdue
+                    <AlertTriangle size={11} /> {t('overdueHeader', lang)}
                   </span>
-                  <span className="font-bold text-rose-400">{overdueCount} task{overdueCount > 1 ? 's' : ''}</span>
+                  <span className="font-bold text-rose-400">{overdueCount} {overdueCount === 1 ? t('taskPlural', lang) : t('tasksPlural', lang)}</span>
                 </div>
               )}
             </div>
+
+            {/* Language Switcher */}
+            {toggleLang && (
+              <button
+                onClick={toggleLang}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-card hover:bg-dark-hover border border-dark-border text-xs font-semibold rounded-lg text-dark-muted hover:text-white transition-all shadow-sm cursor-pointer select-none active:scale-95 shrink-0"
+                title={lang === 'en' ? 'Switch to Thai' : 'เปลี่ยนเป็นภาษาอังกฤษ'}
+              >
+                <Globe size={13} className="text-dark-muted group-hover:text-white" />
+                <span>{lang === 'en' ? 'EN' : 'TH'}</span>
+              </button>
+            )}
 
             {/* Notification Bell */}
             <button className="p-2 text-dark-muted hover:text-white hover:bg-dark-hover rounded-lg transition-colors border border-transparent hover:border-dark-border relative">
@@ -138,7 +153,7 @@ export default function Layout({
                   {profile.name || 'Student'}
                 </span>
                 <span className="text-[9px] text-dark-muted truncate mt-0.5">
-                  {profile.email || 'connected'}
+                  {profile.email || t('connected', lang)}
                 </span>
               </div>
             </div>

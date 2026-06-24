@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import TaskStats from '../components/TaskStats';
 import AssignmentCard from '../components/AssignmentCard';
 import { Calendar, ArrowRight, BookOpen, Megaphone, Clock, Paperclip } from 'lucide-react';
+import { t } from '../utils/i18n';
 
 const courseColorStyles = {
   emerald: {
@@ -40,7 +41,8 @@ export default function Home({
   onStatusChange, 
   courses = [], 
   profile = {},
-  resources = [] 
+  resources = [],
+  lang = 'en'
 }) {
   // Filter out completed and get nearest due dates
   const upcomingAssignments = assignments
@@ -60,25 +62,25 @@ export default function Home({
       <div className="bg-gradient-to-r from-brand-900/40 via-brand-950/20 to-dark-card border border-brand-500/20 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold font-heading text-white mb-2">
-            Welcome back, {profile.name || 'Student'}! 👋
+            {t('welcomeBack', lang, { name: profile.name || 'Student' })}
           </h1>
-          <p className="text-dark-muted text-sm max-w-xl">
-            Here is your classroom hub summary. You have <span className="text-white font-semibold">{assignments.filter(a => a.status !== 'done').length} active assignments</span> waiting for your attention. Keep up the great work!
+          <p className="text-dark-muted text-sm max-w-xl max-w-xl">
+            {t('welcomeDesc', lang, { count: assignments.filter(a => a.status !== 'done').length })}
           </p>
         </div>
         <Link 
           to="/dashboard"
           className="flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium text-sm px-5 py-2.5 rounded-xl transition-all duration-300 shadow-md shadow-brand-500/20 self-start md:self-auto hover:translate-x-1"
         >
-          Go to Dashboard
+          {t('goDashboard', lang)}
           <ArrowRight size={16} />
         </Link>
       </div>
 
       {/* Task Statistics */}
       <section className="space-y-3">
-        <h2 className="text-lg font-bold font-heading text-white">Your Progress Overview</h2>
-        <TaskStats assignments={assignments} />
+        <h2 className="text-lg font-bold font-heading text-white">{t('progressOverview', lang)}</h2>
+        <TaskStats assignments={assignments} lang={lang} />
       </section>
 
       {/* Grid: Upcoming Tasks & Quick Quotes */}
@@ -88,11 +90,11 @@ export default function Home({
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
               <Calendar size={18} className="text-brand-400" />
-              Upcoming Deadlines
+              {t('upcomingDeadlines', lang)}
             </h2>
             {assignments.filter(a => a.status !== 'done').length > 3 && (
               <Link to="/dashboard" className="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors flex items-center gap-1">
-                View all
+                {t('viewAll', lang)}
                 <ArrowRight size={12} />
               </Link>
             )}
@@ -105,12 +107,13 @@ export default function Home({
                   key={assignment.id}
                   assignment={assignment}
                   onStatusChange={onStatusChange}
+                  lang={lang}
                 />
               ))}
             </div>
           ) : (
             <div className="bg-dark-card border border-dark-border border-dashed rounded-xl p-8 text-center">
-              <p className="text-dark-muted text-sm">🎉 Hooray! No upcoming deadlines. You're completely caught up!</p>
+              <p className="text-dark-muted text-sm">{t('noUpcoming', lang)}</p>
             </div>
           )}
         </div>
@@ -120,14 +123,14 @@ export default function Home({
           {/* Recent Announcements Widget */}
           <div className="bg-dark-card border border-dark-border rounded-xl p-5 space-y-4">
             <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
-              <span>Recent Announcements</span>
+              <span>{t('recentAnnouncements', lang)}</span>
               <Megaphone size={14} className="text-amber-400" />
             </h3>
             
             {recentAnnouncements.length > 0 ? (
               <div className="space-y-3">
                 {recentAnnouncements.map((ann) => {
-                  const formattedDate = new Date(ann.creationTime).toLocaleDateString('th-TH', {
+                  const formattedDate = new Date(ann.creationTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
                     day: 'numeric',
                     month: 'short',
                     hour: '2-digit',
@@ -159,7 +162,7 @@ export default function Home({
                         {ann.attachments && ann.attachments.length > 0 && (
                           <div className="flex items-center gap-1 text-[10px] text-dark-muted pt-1 border-t border-dark-border/20 mt-1 font-medium">
                             <Paperclip size={10} className="shrink-0" />
-                             <span>{ann.attachments.length} attachment{ann.attachments.length > 1 ? 's' : ''}</span>
+                             <span>{t(ann.attachments.length === 1 ? 'attachmentsCount' : 'attachmentsCountPlural', lang, { count: ann.attachments.length })}</span>
                           </div>
                         )}
                       </div>
@@ -168,14 +171,14 @@ export default function Home({
                 })}
               </div>
             ) : (
-              <p className="text-xs text-dark-muted text-center py-4">No recent announcements at the moment.</p>
+              <p className="text-xs text-dark-muted text-center py-4">{t('noAnnouncements', lang)}</p>
             )}
           </div>
 
           {/* Quick Course List */}
           <div className="bg-dark-card border border-dark-border rounded-xl p-5">
             <h3 className="text-xs font-semibold text-white uppercase tracking-wider mb-4 flex items-center justify-between">
-              <span>My Subjects</span>
+              <span>{t('mySubjects', lang)}</span>
               <BookOpen size={14} className="text-dark-muted" />
             </h3>
             <div className="space-y-3">
@@ -187,7 +190,7 @@ export default function Home({
                     <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${
                       count > 0 ? 'bg-brand-500/10 text-brand-400 border-brand-500/20' : 'bg-zinc-800 text-dark-muted border-zinc-700'
                     }`}>
-                      {count} active
+                      {t('activeCount', lang, { count })}
                     </span>
                   </div>
                 );
@@ -196,7 +199,7 @@ export default function Home({
                 to="/courses"
                 className="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors mt-2 block text-center border-t border-dark-border pt-3"
               >
-                Manage Courses
+                {t('manageCourses', lang)}
               </Link>
             </div>
           </div>

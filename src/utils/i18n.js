@@ -32,6 +32,13 @@ export const translations = {
     todo: 'To Do',
     doing: 'In Progress',
     done: 'Completed',
+    allAssignments: 'All Assignments',
+    completionProgress: 'Course Completion Progress',
+    doneStatus: 'done',
+    authInitError: 'Google Auth client is still initializing or missing Client ID in .env. Please check configuration.',
+    authAuthError: 'Failed to authorize Google Classroom Access.',
+    sessionExpired: 'Your Google Classroom authorization session expired. Please connect again.',
+    syncFailed: 'Failed to sync data from Google Classroom. Please verify your connection.',
     
     // Home Page
     welcomeBack: 'Welcome back, {name}! 👋',
@@ -188,6 +195,13 @@ export const translations = {
     todo: 'ยังไม่เริ่ม',
     doing: 'กำลังทำ',
     done: 'เสร็จแล้ว',
+    allAssignments: 'งานทั้งหมด',
+    completionProgress: 'ความคืบหน้าในการทำงาน',
+    doneStatus: 'เสร็จสิ้น',
+    authInitError: 'ระบบล็อกอิน Google ยังติดตั้งไม่เสร็จสิ้น หรือไม่ได้ใส่ Client ID ใน .env กรุณาตรวจสอบการตั้งค่า',
+    authAuthError: 'การอนุมัติสิทธิ์เข้าถึง Google Classroom ล้มเหลว',
+    sessionExpired: 'เซสชันการเชื่อมต่อ Google Classroom ของคุณหมดอายุแล้ว กรุณาเชื่อมต่อใหม่อีกครั้ง',
+    syncFailed: 'ไม่สามารถซิงก์ข้อมูลจาก Google Classroom ได้ กรุณาตรวจสอบการเชื่อมต่อของคุณ',
     
     // Home Page
     welcomeBack: 'ยินดีต้อนรับกลับมา, {name}! 👋',

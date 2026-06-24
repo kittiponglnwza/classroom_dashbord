@@ -13,8 +13,9 @@ import {
   Award,
   BookOpen
 } from 'lucide-react';
+import { t } from '../utils/i18n';
 
-export default function AssignmentDetail({ assignments = [], onStatusChange, onNotesChange }) {
+export default function AssignmentDetail({ assignments = [], onStatusChange, onNotesChange, lang = 'en' }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const assignment = assignments.find(a => a.id === id);
@@ -23,14 +24,14 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
   if (!assignment) {
     return (
       <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center max-w-lg mx-auto mt-10 space-y-4">
-        <h3 className="text-lg font-bold text-white font-heading">Assignment Not Found</h3>
-        <p className="text-dark-muted text-sm">The assignment you are looking for does not exist or has been deleted.</p>
+        <h3 className="text-lg font-bold text-white font-heading">{t('detailNotFound', lang)}</h3>
+        <p className="text-dark-muted text-sm">{t('detailNotFoundDesc', lang)}</p>
         <button
           onClick={() => navigate('/dashboard')}
           className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium text-xs px-4 py-2 rounded-lg transition-colors"
         >
           <ArrowLeft size={14} />
-          Back to Dashboard
+          {t('backDashboard', lang)}
         </button>
       </div>
     );
@@ -72,16 +73,16 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (status === 'done') {
-      return { text: 'Done', color: 'text-emerald-400' };
+      return { text: t('completed', lang), color: 'text-emerald-400' };
     }
     if (diffDays < 0) {
-      return { text: `Overdue by ${Math.abs(diffDays)} days`, color: 'text-rose-400' };
+      return { text: t('overdueDays', lang, { days: Math.abs(diffDays) }), color: 'text-rose-400' };
     } else if (diffDays === 0) {
-      return { text: 'Due today', color: 'text-amber-400 font-semibold' };
+      return { text: lang === 'en' ? 'Due today' : 'ส่งภายในวันนี้', color: 'text-amber-400 font-semibold' };
     } else if (diffDays === 1) {
-      return { text: 'Due tomorrow', color: 'text-amber-400' };
+      return { text: t('dueTomorrow', lang), color: 'text-amber-400' };
     } else {
-      return { text: `${diffDays} days remaining`, color: 'text-dark-muted' };
+      return { text: t('daysLeft', lang, { days: diffDays }), color: 'text-dark-muted' };
     }
   };
 
@@ -99,7 +100,7 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
         className="flex items-center gap-1.5 text-xs text-dark-muted hover:text-white transition-colors bg-dark-card border border-dark-border px-3.5 py-1.8 py-2 rounded-lg self-start"
       >
         <ArrowLeft size={14} />
-        Back to Dashboard
+        {t('backDashboard', lang)}
       </button>
 
       {/* Main Grid: Info card left, personal notes right */}
@@ -117,7 +118,7 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-dark-muted font-medium">Status:</span>
+                <span className="text-xs text-dark-muted font-medium">{t('statusLabel', lang)}</span>
                 <select
                   value={status}
                   onChange={(e) => onStatusChange(id, e.target.value)}
@@ -126,9 +127,9 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                     status === 'doing' ? 'text-amber-400' : 'text-emerald-400'
                   }`}
                 >
-                  <option value="todo">To Do</option>
-                  <option value="doing">In Progress</option>
-                  <option value="done">Completed</option>
+                  <option value="todo">{t('todo', lang)}</option>
+                  <option value="doing">{t('doing', lang)}</option>
+                  <option value="done">{t('done', lang)}</option>
                 </select>
               </div>
             </div>
@@ -146,7 +147,7 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                     <Calendar size={16} />
                   </div>
                   <div>
-                    <span className="text-[10px] text-dark-muted block font-semibold uppercase">Due Date</span>
+                    <span className="text-[10px] text-dark-muted block font-semibold uppercase">{t('dueDateLabel', lang)}</span>
                     <span className="text-xs font-medium text-zinc-200">{dueDate}</span>
                   </div>
                 </div>
@@ -157,8 +158,8 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                     <Award size={16} />
                   </div>
                   <div>
-                    <span className="text-[10px] text-dark-muted block font-semibold uppercase">Grade Weight</span>
-                    <span className="text-xs font-medium text-zinc-200">{points} Points</span>
+                    <span className="text-[10px] text-dark-muted block font-semibold uppercase">{t('gradeWeightLabel', lang)}</span>
+                    <span className="text-xs font-medium text-zinc-200">{points} {lang === 'en' ? 'Points' : 'คะแนน'}</span>
                   </div>
                 </div>
 
@@ -168,7 +169,7 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                     <Sparkles size={16} className={daysInfo.color} />
                   </div>
                   <div>
-                    <span className="text-[10px] text-dark-muted block font-semibold uppercase">Countdown</span>
+                    <span className="text-[10px] text-dark-muted block font-semibold uppercase">{t('countdownLabel', lang)}</span>
                     <span className={`text-xs font-semibold ${daysInfo.color}`}>{daysInfo.text}</span>
                   </div>
                 </div>
@@ -177,9 +178,9 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
 
             {/* Description */}
             <div className="space-y-3 pt-2">
-              <h3 className="text-xs font-semibold text-white uppercase tracking-wider">Assignment Description</h3>
+              <h3 className="text-xs font-semibold text-white uppercase tracking-wider">{t('descriptionHeader', lang)}</h3>
               <p className="text-sm text-dark-muted leading-relaxed whitespace-pre-line bg-dark-sidebar/40 border border-dark-border/40 rounded-xl p-5">
-                {description || "No description provided."}
+                {description || t('noDescription', lang)}
               </p>
             </div>
 
@@ -188,7 +189,7 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
               <div className="space-y-3 pt-2">
                 <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
                   <Paperclip size={13} className="text-dark-muted" />
-                  References & Attachments
+                  {t('attachmentsHeader', lang)}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {attachments.map((file, i) => (
@@ -207,7 +208,7 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                         </div>
                       </div>
                       <span className="text-[10px] font-semibold text-brand-400 border border-brand-500/20 bg-brand-500/5 px-2 py-0.5 rounded group-hover:bg-brand-500 group-hover:text-white transition-all">
-                        Download
+                        {t('downloadBtn', lang)}
                       </span>
                     </div>
                   ))}
@@ -224,10 +225,10 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
             <div className="space-y-4">
               <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
                 <FileText size={14} className="text-brand-400" />
-                Personal Notion Workspace
+                {t('workspaceHeader', lang)}
               </h3>
               <p className="text-[11px] text-dark-muted leading-relaxed">
-                Add checklists, drafts, research summaries, or subtasks below. Notes auto-save when clicking outside the field.
+                {t('workspaceDesc', lang)}
               </p>
               
               <div className="relative pt-2">
@@ -236,11 +237,7 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                   onChange={(e) => setNoteContent(e.target.value)}
                   onBlur={handleNotesBlur}
                   rows="14"
-                  placeholder="✍️ Draft sub-tasks, write down answers, links, or outlines here... 
-
-- [ ] Task 1
-- [ ] Task 2
-- [x] Task 3"
+                  placeholder={t('workspacePlaceholder', lang)}
                   className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-4 py-3.5 text-xs text-zinc-200 placeholder-dark-muted focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/10 transition-all font-mono resize-none leading-relaxed"
                 />
               </div>
@@ -249,7 +246,7 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
             <div className="border-t border-dark-border/60 pt-4 mt-6 text-center">
               <p className="text-[10px] text-dark-muted flex items-center justify-center gap-1">
                 <BookOpen size={10} />
-                Saved locally in LocalStorage
+                {t('savedLocally', lang)}
               </p>
             </div>
           </div>

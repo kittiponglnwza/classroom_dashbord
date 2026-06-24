@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock, ListTodo, ClipboardList } from 'lucide-react';
+import { t } from '../utils/i18n';
 
-export default function TaskStats({ assignments = [] }) {
+export default function TaskStats({ assignments = [], lang = 'en' }) {
   const total = assignments.length;
   const todo = assignments.filter(a => a.status === 'todo').length;
   const doing = assignments.filter(a => a.status === 'doing').length;
@@ -10,25 +11,25 @@ export default function TaskStats({ assignments = [] }) {
 
   const stats = [
     {
-      label: 'All Assignments',
+      label: t('allAssignments', lang),
       value: total,
       icon: ClipboardList,
       color: 'text-brand-400 bg-brand-500/10 border-brand-500/10'
     },
     {
-      label: 'To Do',
+      label: t('todo', lang),
       value: todo,
       icon: ListTodo,
       color: 'text-zinc-400 bg-zinc-500/10 border-zinc-500/10'
     },
     {
-      label: 'In Progress',
+      label: t('doing', lang),
       value: doing,
       icon: Clock,
       color: 'text-amber-400 bg-amber-500/10 border-amber-500/10'
     },
     {
-      label: 'Completed',
+      label: t('completed', lang),
       value: done,
       icon: CheckCircle2,
       color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/10'
@@ -60,8 +61,8 @@ export default function TaskStats({ assignments = [] }) {
       {/* Progress Bar Container */}
       <div className="bg-dark-card border border-dark-border rounded-xl p-5">
         <div className="flex items-center justify-between text-sm mb-2.5">
-          <span className="font-semibold text-white">Course Completion Progress</span>
-          <span className="font-bold text-brand-400">{percent}% ({done}/{total} done)</span>
+          <span className="font-semibold text-white">{t('completionProgress', lang)}</span>
+          <span className="font-bold text-brand-400">{percent}% ({done}/{total} {t('doneStatus', lang)})</span>
         </div>
         <div className="w-full bg-dark-sidebar border border-dark-border rounded-full h-3 overflow-hidden">
           <div 

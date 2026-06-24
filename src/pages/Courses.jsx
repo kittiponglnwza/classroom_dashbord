@@ -19,18 +19,20 @@ import {
   Trash2,
   Pin
 } from 'lucide-react';
+import { t } from '../utils/i18n';
 
 function ResourceCard({ 
   resource, 
   assignments = [], 
   onTrackAsAssignment, 
   onUntrackAssignment, 
-  courseColor 
+  courseColor,
+  lang = 'en'
 }) {
   const { id, title, description, type, creationTime, attachments, googleLink } = resource;
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const formattedDate = new Date(creationTime).toLocaleDateString('th-TH', {
+  const formattedDate = new Date(creationTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
     day: 'numeric',
     month: 'short',
     year: '2-digit',
@@ -41,13 +43,13 @@ function ResourceCard({
   const getResourceTypeStyles = () => {
     if (type === 'announcement') {
       return {
-        label: 'Announcement',
+        label: t('announcementType', lang),
         badge: 'text-amber-400 bg-amber-500/10 border border-amber-500/20',
         icon: <Megaphone size={14} className="text-amber-400" />
       };
     } else {
       return {
-        label: 'Material',
+        label: t('materialType', lang),
         badge: 'text-blue-400 bg-blue-500/10 border border-blue-500/20',
         icon: <FileText size={14} className="text-blue-400" />
       };
@@ -175,13 +177,13 @@ function ResourceCard({
             <>
               <Check size={11} className="group-hover:hidden text-emerald-400" />
               <Trash2 size={11} className="hidden group-hover:inline text-rose-400" />
-              <span className="group-hover:hidden">Tracked as Task</span>
-              <span className="hidden group-hover:inline">Untrack Task</span>
+              <span className="group-hover:hidden">{t('trackedAsTask', lang)}</span>
+              <span className="hidden group-hover:inline">{t('untrackTask', lang)}</span>
             </>
           ) : (
             <>
               <Pin size={11} />
-              <span>Track as Task</span>
+              <span>{t('trackAsTask', lang)}</span>
             </>
           )}
         </button>
@@ -193,7 +195,7 @@ function ResourceCard({
             rel="noopener noreferrer"
             className="text-[10px] text-brand-400 hover:text-brand-300 font-medium inline-flex items-center gap-1 shrink-0"
           >
-            View on Classroom <ExternalLink size={10} />
+            {t('viewOnClassroom', lang)} <ExternalLink size={10} />
           </a>
         )}
       </div>
@@ -210,7 +212,8 @@ export default function Courses({
   onToggleCourseVisibility,
   onToggleBulkCourses,
   onTrackAsAssignment,
-  onUntrackAssignment
+  onUntrackAssignment,
+  lang = 'en'
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCourseName = searchParams.get('selected');
@@ -290,7 +293,7 @@ export default function Courses({
             className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider text-dark-muted hover:text-white transition-colors bg-dark-card/30 border border-dark-border/40 px-4 py-2.5 rounded-xl cursor-pointer"
           >
             <ArrowLeft size={13} />
-            Back to All Courses
+            {lang === 'en' ? 'Back to All Courses' : 'กลับไปที่รายวิชาทั้งหมด'}
           </button>
 
           {/* Selected Course Banner - Minimal Style */}
@@ -311,7 +314,7 @@ export default function Courses({
                 </div>
                 <div className="flex items-center gap-2 text-xs text-zinc-300">
                   <User size={14} className={getCourseTextColor(courseObj.color)} />
-                  <span>Instructor: {courseObj.instructor}</span>
+                  <span>{t('instructorLabel', lang)} {courseObj.instructor}</span>
                 </div>
               </div>
             );
@@ -321,10 +324,14 @@ export default function Courses({
           <div className="flex bg-dark-sidebar/60 border border-dark-border/40 p-1 rounded-xl w-fit gap-1 select-none">
             <button
               onClick={() => setActiveTab('resources')}
+              className="px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer"
+              style={{
+                // Quick style hack to bypass the complex dynamic tab styling
+              }}
               className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'resources')}`}
             >
               <Megaphone size={13} />
-              <span>Announcements & Materials</span>
+              <span>{t('announcementsMaterialsTab', lang)}</span>
               <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'resources')}`}>
                 {courseResources.length}
               </span>
@@ -334,7 +341,7 @@ export default function Courses({
               className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'assignments')}`}
             >
               <BookOpen size={13} />
-              <span>Assignments</span>
+              <span>{t('assignmentsTab', lang)}</span>
               <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'assignments')}`}>
                 {courseAssignments.length}
               </span>
@@ -353,12 +360,13 @@ export default function Courses({
                         key={assignment.id}
                         assignment={assignment}
                         onStatusChange={onStatusChange}
+                        lang={lang}
                       />
                     ))}
                   </div>
                 ) : (
                   <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 text-center text-dark-muted text-xs">
-                    No tasks found for this subject. Feel free to create one!
+                    {t('noTasksCourse', lang)}
                   </div>
                 )}
               </div>
@@ -375,12 +383,13 @@ export default function Courses({
                         onTrackAsAssignment={onTrackAsAssignment}
                         onUntrackAssignment={onUntrackAssignment}
                         courseColor={themeColor}
+                        lang={lang}
                       />
                     ))}
                   </div>
                 ) : (
                   <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 text-center text-dark-muted text-xs">
-                    No announcements or materials found for this subject.
+                    {t('noAnnouncementsCourse', lang)}
                   </div>
                 )}
               </div>
@@ -392,8 +401,8 @@ export default function Courses({
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-border/40 pb-5">
             <div>
-              <h1 className="text-xl font-bold font-heading text-white">My Enrolled Courses</h1>
-              <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">Browse your academic subjects, course-specific tasks, and configure visible semesters.</p>
+              <h1 className="text-xl font-bold font-heading text-white">{t('enrolledCoursesTitle', lang)}</h1>
+              <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">{t('enrolledCoursesDesc', lang)}</p>
             </div>
             
             <button
@@ -405,7 +414,7 @@ export default function Courses({
               }`}
             >
               {isManageMode ? <EyeOff size={13} /> : <Eye size={13} />}
-              <span>{isManageMode ? 'Done' : 'Hide Multiple Courses'}</span>
+              <span>{isManageMode ? t('doneBtn', lang) : t('hideMultipleBtn', lang)}</span>
             </button>
           </div>
 
@@ -413,8 +422,8 @@ export default function Courses({
             <div className="bg-dark-card/10 border border-dark-border/40 rounded-2xl p-5 md:p-6 space-y-4 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-dark-border/20 pb-3 gap-3">
                 <div className="space-y-0.5">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Select Courses to Hide</h4>
-                  <p className="text-[10px] text-dark-muted">Check the courses you want to hide (hiding will exclude their assignments and notifications from other views).</p>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">{t('selectToHide', lang)}</h4>
+                  <p className="text-[10px] text-dark-muted">{t('selectToHideDesc', lang)}</p>
                 </div>
                 {/* Bulk Actions */}
                 <div className="flex gap-2">
@@ -425,7 +434,7 @@ export default function Courses({
                     }}
                     className="text-[10px] font-bold text-rose-400 hover:text-rose-300 cursor-pointer bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 px-2.5 py-1.5 rounded-lg transition-colors"
                   >
-                    Hide All
+                    {t('hideAll', lang)}
                   </button>
                   <button
                     onClick={() => {
@@ -433,7 +442,7 @@ export default function Courses({
                     }}
                     className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-colors"
                   >
-                    Show All
+                    {t('showAll', lang)}
                   </button>
                 </div>
               </div>
@@ -465,7 +474,7 @@ export default function Courses({
                       <span className={`text-[9px] uppercase font-bold shrink-0 px-1.5 py-0.5 rounded border ${
                         isHidden ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                       }`}>
-                        {isHidden ? 'Hidden' : 'Visible'}
+                        {isHidden ? t('hiddenLabel', lang) : t('visibleLabel', lang)}
                       </span>
                     </label>
                   );
@@ -499,7 +508,7 @@ export default function Courses({
                       <span className="tracking-wider uppercase">{course.code}</span>
                       <div>
                         {isHidden ? (
-                          <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2 py-0.5 rounded-md">Hidden</span>
+                          <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2 py-0.5 rounded-md">{t('hiddenLabel', lang)}</span>
                         ) : activeCount > 0 ? (
                           <span className={`px-2 py-0.5 rounded-md border ${
                             course.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
@@ -508,7 +517,7 @@ export default function Courses({
                             course.color === 'rose' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
                             'bg-purple-500/10 text-purple-400 border-purple-500/20'
                           }`}>
-                            {activeCount} active
+                            {t('activeCount', lang, { count: activeCount })}
                           </span>
                         ) : null}
                       </div>
@@ -519,9 +528,9 @@ export default function Courses({
                         {course.name}
                       </h3>
                       <div className="flex items-center gap-1.5 text-[10px] text-dark-muted font-medium">
-                        <span>{totalAssignments} assignments</span>
+                        <span>{t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
                         <span>•</span>
-                        <span>{totalResources} posts/materials</span>
+                        <span>{t('postsMaterialsCount', lang, { count: totalResources })}</span>
                       </div>
                     </div>
                   </div>
@@ -539,7 +548,7 @@ export default function Courses({
                         onToggleCourseVisibility(course.id);
                       }}
                       className="p-1.5 rounded-lg bg-dark-sidebar/40 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-all duration-200 cursor-pointer"
-                      title={isHidden ? "Show in Dashboard" : "Hide from Dashboard"}
+                      title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
                     >
                       {isHidden ? <EyeOff size={11} className="text-rose-400" /> : <Eye size={11} />}
                     </button>

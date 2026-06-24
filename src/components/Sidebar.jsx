@@ -10,8 +10,9 @@ import {
   CheckSquare, 
   Clock
 } from 'lucide-react';
+import { t } from '../utils/i18n';
 
-export default function Sidebar({ courses = [], assignments = [], profile = {}, onLinkClick = null }) {
+export default function Sidebar({ courses = [], assignments = [], profile = {}, onLinkClick = null, lang = 'en' }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Get active assignment count for each course code
@@ -22,9 +23,9 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
   const totalActive = assignments.filter(a => a.status !== 'done').length;
 
   const navItems = [
-    { name: 'Home', path: '/', icon: Home, count: null },
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, count: totalActive },
-    { name: 'Courses', path: '/courses', icon: BookOpen, count: null },
+    { name: 'Home', key: 'home', path: '/', icon: Home, count: null },
+    { name: 'Dashboard', key: 'dashboard', path: '/dashboard', icon: LayoutDashboard, count: totalActive },
+    { name: 'Courses', key: 'courses', path: '/courses', icon: BookOpen, count: null },
   ];
 
   // Helper function to map course colors to tailwind classes
@@ -88,7 +89,7 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
             >
               <div className="flex items-center gap-3">
                 <item.icon size={18} className="flex-shrink-0" />
-                {!isCollapsed && <span>{item.name}</span>}
+                {!isCollapsed && <span>{t(item.key, lang)}</span>}
               </div>
               {!isCollapsed && item.count !== null && item.count > 0 && (
                 <span className="bg-brand-500/20 text-brand-400 text-xs px-2 py-0.5 rounded-full font-semibold border border-brand-500/25">
@@ -106,7 +107,7 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
         {!isCollapsed && courses.length > 0 && (
           <div className="space-y-2">
             <h3 className="px-3 text-xs font-semibold text-dark-muted uppercase tracking-wider flex items-center justify-between">
-              <span>My Courses</span>
+              <span>{t('myCourses', lang)}</span>
               <BookOpen size={12} />
             </h3>
             <div className="space-y-0.5">
@@ -162,7 +163,7 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
                 {profile.name || 'Student'}
               </p>
               <p className="text-[10px] text-dark-muted truncate">
-                {profile.email || 'not connected'}
+                {profile.email || t('notConnected', lang)}
               </p>
             </div>
           )}

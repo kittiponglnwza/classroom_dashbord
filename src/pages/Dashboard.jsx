@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import AssignmentCard from '../components/AssignmentCard';
 import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { t } from '../utils/i18n';
 
 export default function Dashboard({ 
   assignments = [], 
@@ -9,7 +10,8 @@ export default function Dashboard({
   courses = [],
   isLoggedIn = false,
   isSyncing = false,
-  onSync = null
+  onSync = null,
+  lang = 'en'
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('all');
@@ -112,8 +114,8 @@ export default function Dashboard({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-heading text-white">Assignments</h1>
-          <p className="text-xs text-dark-muted">Manage, track, and submit all your coursework.</p>
+          <h1 className="text-2xl font-bold font-heading text-white">{t('assignmentsTitle', lang)}</h1>
+          <p className="text-xs text-dark-muted">{t('assignmentsDesc', lang)}</p>
         </div>
         <div className="flex items-center gap-3">
           {isLoggedIn && onSync && (
@@ -123,7 +125,7 @@ export default function Dashboard({
               className="flex items-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-semibold text-xs px-4 py-2.5 rounded-lg border border-dark-border transition-colors disabled:opacity-50"
             >
               <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-              Sync Classroom
+              {t('syncClassroom', lang)}
             </button>
           )}
           <button
@@ -131,7 +133,7 @@ export default function Dashboard({
             className="flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors shadow-md shadow-brand-500/10"
           >
             <Plus size={16} />
-            Create Task
+            {t('createTask', lang)}
           </button>
         </div>
       </div>
@@ -145,7 +147,7 @@ export default function Dashboard({
           </span>
           <input
             type="text"
-            placeholder="Search assignments or subjects..."
+            placeholder={t('searchPlaceholder', lang)}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-dark-sidebar border border-dark-border rounded-lg pl-9 pr-4 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all"
@@ -162,7 +164,7 @@ export default function Dashboard({
               onChange={(e) => setSelectedCourse(e.target.value)}
               className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer pr-1"
             >
-              <option value="all">All Subjects</option>
+              <option value="all">{t('allSubjects', lang)}</option>
               {courses.map(c => (
                 <option key={c.id} value={c.name}>{c.name}</option>
               ))}
@@ -177,10 +179,10 @@ export default function Dashboard({
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer"
               >
-                <option value="all">All Statuses</option>
-                <option value="todo">To Do</option>
-                <option value="doing">In Progress</option>
-                <option value="done">Completed</option>
+                <option value="all">{t('allStatuses', lang)}</option>
+                <option value="todo">{t('todo', lang)}</option>
+                <option value="doing">{t('doing', lang)}</option>
+                <option value="done">{t('done', lang)}</option>
               </select>
             </div>
           )}
@@ -193,9 +195,9 @@ export default function Dashboard({
               onChange={(e) => setSortBy(e.target.value)}
               className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer"
             >
-              <option value="due-asc">Due Date (Closest)</option>
-              <option value="due-desc">Due Date (Furthest)</option>
-              <option value="points-desc">Points (Highest)</option>
+              <option value="due-asc">{t('sortByDueAsc', lang)}</option>
+              <option value="due-desc">{t('sortByDueDesc', lang)}</option>
+              <option value="points-desc">{t('sortByPointsDesc', lang)}</option>
             </select>
           </div>
 
@@ -227,11 +229,11 @@ export default function Dashboard({
             <div className="space-y-3 bg-rose-500/5 border border-rose-500/10 rounded-2xl p-5">
               <h3 className="text-xs font-bold text-rose-400 flex items-center gap-2 uppercase tracking-wider">
                 <AlertTriangle size={15} className="animate-bounce" />
-                🔴 Overdue Assignments
+                {t('overdueTasksTitle', lang)}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {overdueTasks.map(task => (
-                  <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} />
+                  <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
                 ))}
               </div>
             </div>
@@ -242,11 +244,11 @@ export default function Dashboard({
             <div className="space-y-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl p-5">
               <h3 className="text-xs font-bold text-amber-400 flex items-center gap-2 uppercase tracking-wider">
                 <AlertTriangle size={15} />
-                ⚠️ Due Today
+                {t('dueTodayTitle', lang)}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {todayTasks.map(task => (
-                  <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} />
+                  <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
                 ))}
               </div>
             </div>
@@ -258,7 +260,7 @@ export default function Dashboard({
       {viewType === 'grid' && (
         <div className="space-y-3">
           <h3 className="text-xs font-semibold text-dark-muted uppercase tracking-wider">
-            All Course Assignments ({sortedAssignments.length})
+            {t('allCourseAssignments', lang, { count: sortedAssignments.length })}
           </h3>
           {sortedAssignments.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -267,12 +269,13 @@ export default function Dashboard({
                   key={assignment.id}
                   assignment={assignment}
                   onStatusChange={onStatusChange}
+                  lang={lang}
                 />
               ))}
             </div>
           ) : (
             <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center">
-              <p className="text-dark-muted text-sm">No assignments found matching your filters.</p>
+              <p className="text-dark-muted text-sm">{t('noAssignmentsFound', lang)}</p>
             </div>
           )}
         </div>
@@ -286,7 +289,7 @@ export default function Dashboard({
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" />
-                <span className="font-semibold text-sm text-white">To Do</span>
+                <span className="font-semibold text-sm text-white">{t('todo', lang)}</span>
               </div>
               <span className="bg-zinc-800 text-zinc-300 text-xs px-2 py-0.5 rounded-full font-bold">
                 {todoTasks.length}
@@ -294,11 +297,11 @@ export default function Dashboard({
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 max-h-[600px] pr-1">
               {todoTasks.map(task => (
-                <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} />
+                <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
               ))}
               {todoTasks.length === 0 && (
                 <div className="border border-dark-border/40 border-dashed rounded-lg p-5 text-center text-xs text-dark-muted py-8">
-                  Empty column
+                  {t('emptyColumn', lang)}
                 </div>
               )}
             </div>
@@ -309,7 +312,7 @@ export default function Dashboard({
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="font-semibold text-sm text-white">In Progress</span>
+                <span className="font-semibold text-sm text-white">{t('doing', lang)}</span>
               </div>
               <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-2 py-0.5 rounded-full font-bold">
                 {doingTasks.length}
@@ -317,11 +320,11 @@ export default function Dashboard({
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 max-h-[600px] pr-1">
               {doingTasks.map(task => (
-                <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} />
+                <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
               ))}
               {doingTasks.length === 0 && (
                 <div className="border border-dark-border/40 border-dashed rounded-lg p-5 text-center text-xs text-dark-muted py-8">
-                  Empty column
+                  {t('emptyColumn', lang)}
                 </div>
               )}
             </div>
@@ -332,7 +335,7 @@ export default function Dashboard({
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span className="font-semibold text-sm text-white">Completed</span>
+                <span className="font-semibold text-sm text-white">{t('completed', lang)}</span>
               </div>
               <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-2 py-0.5 rounded-full font-bold">
                 {doneTasks.length}
@@ -340,11 +343,11 @@ export default function Dashboard({
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 max-h-[600px] pr-1">
               {doneTasks.map(task => (
-                <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} />
+                <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
               ))}
               {doneTasks.length === 0 && (
                 <div className="border border-dark-border/40 border-dashed rounded-lg p-5 text-center text-xs text-dark-muted py-8">
-                  Empty column
+                  {t('emptyColumn', lang)}
                 </div>
               )}
             </div>
@@ -357,7 +360,7 @@ export default function Dashboard({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-dark-card border border-dark-border rounded-xl w-full max-w-lg overflow-hidden animate-fade-in relative shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-dark-border">
-              <h3 className="font-semibold font-heading text-lg text-white">Create New Assignment</h3>
+              <h3 className="font-semibold font-heading text-lg text-white">{t('createTaskTitle', lang)}</h3>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-dark-muted hover:text-white p-1 rounded-lg hover:bg-dark-hover transition-colors"
@@ -368,7 +371,7 @@ export default function Dashboard({
 
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">Title *</label>
+                <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Title *' : 'หัวข้อการบ้าน *'}</label>
                 <input
                   type="text"
                   required
@@ -381,7 +384,7 @@ export default function Dashboard({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">Subject *</label>
+                  <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Subject *' : 'วิชา *'}</label>
                   <select
                     value={newCourse}
                     onChange={(e) => setNewCourse(e.target.value)}
@@ -393,7 +396,7 @@ export default function Dashboard({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">Due Date *</label>
+                  <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Due Date *' : 'กำหนดส่ง *'}</label>
                   <input
                     type="date"
                     required
@@ -405,7 +408,7 @@ export default function Dashboard({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">Points</label>
+                <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Points' : 'คะแนนเต็ม'}</label>
                 <input
                   type="number"
                   min="0"
@@ -416,10 +419,10 @@ export default function Dashboard({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">Description</label>
+                <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Description' : 'คำอธิบาย'}</label>
                 <textarea
                   rows="3"
-                  placeholder="Describe details about this assignment..."
+                  placeholder={lang === 'en' ? 'Describe details about this assignment...' : 'อธิบายรายละเอียดของการบ้านนี้...'}
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   className="w-full bg-dark-sidebar border border-dark-border rounded-lg px-3.5 py-2 text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 resize-none"
@@ -432,13 +435,13 @@ export default function Dashboard({
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 rounded-lg text-xs font-medium text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
                 >
-                  Cancel
+                  {lang === 'en' ? 'Cancel' : 'ยกเลิก'}
                 </button>
                 <button
                   type="submit"
                   className="bg-brand-500 hover:bg-brand-600 text-white font-medium text-xs px-4 py-2 rounded-lg transition-colors shadow-md shadow-brand-500/10"
                 >
-                  Create
+                  {lang === 'en' ? 'Create' : 'สร้าง'}
                 </button>
               </div>
             </form>

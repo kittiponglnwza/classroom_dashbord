@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import AssignmentDetail from './pages/AssignmentDetail';
 import Settings from './pages/Settings';
+import { Globe } from 'lucide-react';
 import { 
   getAssignments, 
   updateAssignmentStatus, 
@@ -36,10 +37,18 @@ import {
   fetchGoogleClassroomData 
 } from './services/googleClassroom';
 import { evaluateNotifications, evaluateNewPostDigest } from './utils/notifications';
+import { t } from './utils/i18n';
 
 export default function App() {
   // Application Data States
   const [assignments, setAssignments] = useState([]);
+  const [lang, setLang] = useState(() => localStorage.getItem('classroom_hub_language') || 'en');
+
+  const toggleLang = () => {
+    const nextLang = lang === 'en' ? 'th' : 'en';
+    setLang(nextLang);
+    localStorage.setItem('classroom_hub_language', nextLang);
+  };
   const [courses, setCourses] = useState([]);
   const [profile, setProfile] = useState({});
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
@@ -108,7 +117,7 @@ export default function App() {
           },
           (err) => {
             console.error('Google authorization error:', err);
-            alert('Failed to authorize Google Classroom Access.');
+            alert(t('authAuthError', lang));
           }
         );
         setTokenClient(client);
@@ -116,20 +125,20 @@ export default function App() {
     }, 400);
 
     return () => clearInterval(checkGisLoaded);
-  }, []);
+  }, [lang]); // Reinitialize client if lang changes to update callback references if needed, though mostly static.
 
   // Handler for Google Login click
   const handleLogin = () => {
     if (tokenClient) {
       tokenClient.requestAccessToken();
     } else {
-      alert('Google Auth client is still initializing or missing Client ID in .env. Please check configuration.');
+      alert(t('authInitError', lang));
     }
   };
 
   // Handler for Google Logout/Disconnect
   const handleLogout = () => {
-    if (confirm('Are you sure you want to disconnect from Google Classroom? Your local settings, course visibility, and notes will be preserved.')) {
+    if (confirm(t('disconnectConfirm', lang))) {
       clearToken();
       setActiveEmail('');
       setAccessToken(null);
@@ -219,10 +228,10 @@ export default function App() {
     } catch (e) {
       console.error('Failed to sync Google Classroom data', e);
       if (e.message === 'UNAUTHORIZED') {
-        alert('Your Google Classroom authorization session expired. Please connect again.');
+        alert(t('sessionExpired', lang));
         handleLogout();
       } else {
-        alert('Failed to sync data from Google Classroom. Please verify your connection.');
+        alert(t('syncFailed', lang));
       }
     } finally {
       setIsSyncing(false);
@@ -344,7 +353,17 @@ export default function App() {
     <Router>
       <LoginRedirect isLoggedIn={isLoggedIn} />
       {!isLoggedIn ? (
-        <div className="min-h-screen w-screen flex items-center justify-center bg-dark-bg p-4 select-none">
+        <div className="min-h-screen w-screen flex items-center justify-center bg-dark-bg p-4 select-none relative">
+          {/* Top Right Lang Switcher on Login Screen */}
+          <div className="absolute top-4 right-4 z-50">
+            <button
+              onClick={toggleLang}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-card hover:bg-dark-hover border border-dark-border text-xs font-semibold rounded-lg text-dark-muted hover:text-white transition-all cursor-pointer select-none active:scale-95"
+            >
+              <Globe size={13} />
+              <span>{lang === 'en' ? 'EN' : 'TH'}</span>
+            </button>
+          </div>
           <div className="w-full max-w-sm bg-dark-card/20 border border-dark-border/30 rounded-3xl p-8 space-y-8 text-center shadow-lg relative overflow-hidden animate-fade-in">
             {/* Visual abstract gradient blob for premium feel */}
             <div className="absolute -top-16 -left-16 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -386,11 +405,11 @@ export default function App() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span>Connect Google Classroom</span>
+                <span>{t('connectGoogleBtn', lang)}</span>
               </button>
               
               <p className="text-[10px] text-dark-muted max-w-[280px] mx-auto leading-relaxed">
-                No registration required. Sign in securely using your KMUTNB or personal school Gmail account.
+                {t('loginFooterText', lang)}
               </p>
             </div>
           </div>
@@ -406,6 +425,8 @@ export default function App() {
           onLogin={handleLogin}
           onLogout={handleLogout}
           profile={profile}
+          lang={lang}
+          toggleLang={toggleLang}
         >
           <Routes>
             <Route 
@@ -417,6 +438,7 @@ export default function App() {
                   courses={visibleCourses} 
                   profile={profile}
                   resources={visibleResources}
+                  lang={lang}
                 />
               } 
             />
@@ -431,6 +453,7 @@ export default function App() {
                   isLoggedIn={isLoggedIn}
                   isSyncing={isSyncing}
                   onSync={() => handleGoogleSync()}
+                  lang={lang}
                 />
               } 
             />
@@ -447,6 +470,7 @@ export default function App() {
                   onToggleBulkCourses={handleToggleBulkCourses}
                   onTrackAsAssignment={handleTrackAsAssignment}
                   onUntrackAssignment={handleUntrackAssignment}
+                  lang={lang}
                 />
               } 
             />
@@ -457,6 +481,7 @@ export default function App() {
                   assignments={assignments} 
                   onStatusChange={handleStatusChange} 
                   onNotesChange={handleNotesChange}
+                  lang={lang}
                 />
               } 
             />
@@ -471,6 +496,7 @@ export default function App() {
                   onLogin={handleLogin}
                   accessToken={accessToken}
                   assignments={assignments}
+                  lang={lang}
                 />
               } 
             />
