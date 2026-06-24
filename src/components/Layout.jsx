@@ -1,18 +1,45 @@
 import { useState } from 'react';
 import Sidebar from './Sidebar';
-import { Menu, X, Bell, User } from 'lucide-react';
+import { Menu, X, Bell, RefreshCw, LogIn, LogOut, Award, AlertTriangle } from 'lucide-react';
 
-export default function Layout({ children, courses = [], assignments = [] }) {
+export default function Layout({ 
+  children, 
+  courses = [], 
+  assignments = [], 
+  isLoggedIn = false, 
+  isSyncing = false, 
+  lastSyncTime = null, 
+  onSync = null,
+  onLogout = null,
+  onLogin = null,
+  profile = {}
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Format Sync Time to user-friendly string
+  const formatSyncTime = (timestamp) => {
+    if (!timestamp) return 'Never synced';
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + 
+           date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  };
+
+  // Count active tasks
+  const totalActive = assignments.filter(a => a.status !== 'done').length;
+  // Count overdue tasks
+  const overdueCount = assignments.filter(a => {
+    if (a.status === 'done' || !a.dueDate) return false;
+    return new Date(a.dueDate) - new Date() < 0;
+  }).length;
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-dark-bg text-dark-text">
-      {/* Desktop Sidebar (hidden on mobile) */}
+      {/* Desktop Sidebar */}
       <div className="hidden md:block h-full">
         <Sidebar courses={courses} assignments={assignments} />
       </div>
 
-      {/* Mobile Drawer (visible on mobile when toggled) */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden bg-black/60 backdrop-blur-sm">
           <div className="h-full w-64 animate-fade-in">
@@ -38,38 +65,91 @@ export default function Layout({ children, courses = [], assignments = [] }) {
             >
               <Menu size={20} />
             </button>
-            <div className="hidden sm:block">
+            <div className="hidden sm:flex items-center gap-3">
               <span className="text-xs text-dark-muted">Academic Term: 2026/Semester 2</span>
+              {isLoggedIn ? (
+                <span className="text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2 py-0.5 rounded-full">
+                  Google Classroom Connected
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                  Mock Database Active
+                </span>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Sync classroom actions */}
+            {isLoggedIn && onSync && (
+              <div className="flex items-center gap-3 text-xs pr-4 border-r border-dark-border">
+                <span className="text-dark-muted hidden lg:inline">
+                  Sync: <span className="text-white font-medium">{formatSyncTime(lastSyncTime)}</span>
+                </span>
+                <button
+                  onClick={onSync}
+                  disabled={isSyncing}
+                  className="flex items-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-medium px-3.5 py-1.5 rounded-lg border border-dark-border transition-colors disabled:opacity-50"
+                  title="Sync Google Classroom data"
+                >
+                  <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
+                  <span>{isSyncing ? 'Syncing...' : 'Sync'}</span>
+                </button>
+              </div>
+            )}
+
             {/* Quick Stats Summary */}
-            <div className="hidden lg:flex items-center gap-4 text-xs border-r border-dark-border pr-4 mr-2">
+            <div className="hidden lg:flex items-center gap-4 text-xs pr-4 mr-2 border-r border-dark-border">
               <div className="text-right">
                 <span className="text-dark-muted block">Tasks Pending</span>
-                <span className="font-semibold text-brand-400">{assignments.filter(a => a.status !== 'done').length} assignments</span>
+                <span className="font-semibold text-brand-400">{totalActive} assignments</span>
               </div>
+              {overdueCount > 0 && (
+                <div className="text-right">
+                  <span className="text-rose-400 block font-semibold flex items-center gap-1">
+                    <AlertTriangle size={11} /> Overdue
+                  </span>
+                  <span className="font-bold text-rose-400">{overdueCount} task{overdueCount > 1 ? 's' : ''}</span>
+                </div>
+              )}
             </div>
 
             {/* Notification Bell */}
             <button className="p-2 text-dark-muted hover:text-white hover:bg-dark-hover rounded-lg transition-colors border border-transparent hover:border-dark-border relative">
               <Bell size={18} />
-              {assignments.filter(a => a.status === 'todo').length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full" />
+              {overdueCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-bounce" />
               )}
             </button>
 
-            {/* Profile Avatar Trigger */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-dark-border">
+            {/* Profile Avatar & Login/Logout Trigger */}
+            <div className="flex items-center gap-3 pl-2">
               <div className="w-8 h-8 rounded-full overflow-hidden bg-brand-500/10 border border-dark-border">
                 <img 
-                  src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200" 
+                  src={profile.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200"} 
                   alt="Student Avatar" 
                   className="w-full h-full object-cover"
                 />
               </div>
-              <span className="hidden sm:inline text-sm font-medium text-white truncate max-w-[100px]">Alex</span>
+              <div className="hidden sm:flex flex-col text-left max-w-[120px]">
+                <span className="text-xs font-semibold text-white truncate">
+                  {profile.name || 'Alex'}
+                </span>
+                <button
+                  onClick={isLoggedIn ? onLogout : onLogin}
+                  className="text-[10px] text-dark-muted hover:text-white flex items-center gap-0.5 transition-colors mt-0.5 cursor-pointer underline"
+                >
+                  {isLoggedIn ? (
+                    <>
+                      <LogOut size={10} /> Disconnect
+                    </>
+                  ) : (
+                    <>
+                      <LogIn size={10} /> Connect Google
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </header>

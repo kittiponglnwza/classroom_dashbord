@@ -1,31 +1,75 @@
 import { Link } from 'react-router-dom';
-import { Calendar, Paperclip, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { Calendar, Paperclip, AlertCircle } from 'lucide-react';
 
 export default function AssignmentCard({ assignment, onStatusChange }) {
-  const { id, title, course, dueDate, status, points, attachments, courseColor } = assignment;
+  const { id, title, course, dueDate, status, points, attachments, courseColor, googleLink } = assignment;
 
-  // Calculate days remaining
+  // Calculate detailed due countdown
   const getDueStatus = () => {
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const due = new Date(dueDate);
-    due.setHours(0,0,0,0);
-    const diffTime = due - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
     if (status === 'done') {
-      return { text: 'Completed', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+      return { text: 'เสร็จแล้ว', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', isOverdue: false };
     }
 
-    if (diffDays < 0) {
-      return { text: `Overdue by ${Math.abs(diffDays)}d`, class: 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse' };
-    } else if (diffDays === 0) {
-      return { text: 'Due today', class: 'bg-amber-500/10 text-amber-400 border-amber-500/20 font-bold' };
-    } else if (diffDays === 1) {
-      return { text: 'Due tomorrow', class: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
-    } else {
-      return { text: `Due in ${diffDays} days`, class: 'bg-zinc-500/10 text-dark-muted border-dark-border' };
+    if (!dueDate) {
+      return { text: 'ไม่มีกำหนดส่ง', class: 'bg-zinc-500/10 text-dark-muted border-dark-border', isOverdue: false };
     }
+
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffMs = due - now;
+
+    // Overdue
+    if (diffMs < 0) {
+      const diffDays = Math.abs(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+      if (diffDays === 0) {
+        const diffHrs = Math.abs(Math.floor(diffMs / (1000 * 60 * 60)));
+        return { 
+          text: `🔴 เลยกำหนด (${diffHrs} ชม.)`, 
+          class: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold animate-pulse', 
+          isOverdue: true 
+        };
+      }
+      return { 
+        text: `🔴 เลยกำหนด (${diffDays} วัน)`, 
+        class: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold animate-pulse', 
+        isOverdue: true 
+      };
+    }
+
+    // Less than 24 hours left (due today/hours countdown)
+    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+    if (diffHrs < 24) {
+      if (diffHrs === 0) {
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        return { 
+          text: `⚠️ เหลือ ${diffMins} นาที (ส่งวันนี้)`, 
+          class: 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold', 
+          isOverdue: false 
+        };
+      }
+      return { 
+        text: `⚠️ เหลือ ${diffHrs} ชม. (ส่งวันนี้)`, 
+        class: 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold', 
+        isOverdue: false 
+      };
+    }
+
+    // Due tomorrow
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) {
+      return { 
+        text: '⚠️ ส่งพรุ่งนี้', 
+        class: 'bg-amber-500/10 text-amber-400 border-amber-500/20 font-semibold', 
+        isOverdue: false 
+      };
+    }
+
+    // Normal countdown in days
+    return { 
+      text: `เหลืออีก ${diffDays} วัน`, 
+      class: 'bg-zinc-500/10 text-dark-muted border-dark-border', 
+      isOverdue: false 
+    };
   };
 
   const dueStatus = getDueStatus();
@@ -42,9 +86,13 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
     }
   };
 
-  // Border hover mapping
-  const getBorderColorHover = (color) => {
-    switch (color) {
+  // Border and background state mapping
+  const getCardStyles = () => {
+    if (dueStatus.isOverdue) {
+      return 'border-rose-500/30 bg-rose-950/5 hover:border-rose-500/60 shadow-lg shadow-rose-950/10';
+    }
+    
+    switch (courseColor) {
       case 'emerald': return 'hover:border-emerald-500/40';
       case 'blue': return 'hover:border-blue-500/40';
       case 'amber': return 'hover:border-amber-500/40';
@@ -55,9 +103,9 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
   };
 
   return (
-    <div className={`bg-dark-card border border-dark-border rounded-xl p-5 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group ${getBorderColorHover(courseColor)}`}>
+    <div className={`bg-dark-card border border-dark-border rounded-xl p-5 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group ${getCardStyles()}`}>
       <div>
-        {/* Header: Course Name & Status Tag */}
+        {/* Header: Course Name & Status Dropdown */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${getCourseBadgeColor(courseColor)}`}>
             {course}
@@ -92,18 +140,29 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
         {/* Due Date Indicator */}
         <div className="flex items-center gap-2">
           <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 ${dueStatus.class}`}>
-            <Calendar size={12} />
+            {dueStatus.isOverdue ? <AlertCircle size={12} /> : <Calendar size={12} />}
             {dueStatus.text}
           </span>
         </div>
 
-        {/* Points & Attachments Info */}
+        {/* Points & Source Link */}
         <div className="flex items-center gap-3 text-dark-muted">
           {attachments && attachments.length > 0 && (
             <span className="flex items-center gap-1 text-[11px]" title={`${attachments.length} attachments`}>
               <Paperclip size={11} />
               {attachments.length}
             </span>
+          )}
+          {googleLink && (
+            <a 
+              href={googleLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-brand-400 hover:text-brand-300 underline font-medium"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Classroom
+            </a>
           )}
           <span className="text-[11px] font-semibold bg-dark-sidebar border border-dark-border px-2 py-0.5 rounded-md text-zinc-300">
             {points} pts

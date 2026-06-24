@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import AssignmentCard from '../components/AssignmentCard';
-import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
-export default function Dashboard({ assignments = [], onStatusChange, onAddAssignment, courses = [] }) {
+export default function Dashboard({ 
+  assignments = [], 
+  onStatusChange, 
+  onAddAssignment, 
+  courses = [],
+  isLoggedIn = false,
+  isSyncing = false,
+  onSync = null
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -22,14 +30,16 @@ export default function Dashboard({ assignments = [], onStatusChange, onAddAssig
     e.preventDefault();
     if (!newTitle || !newCourse || !newDueDate) return;
 
-    // Find courseColor from courses list
     const courseObj = courses.find(c => c.name === newCourse);
     const color = courseObj ? courseObj.color : 'blue';
+
+    // Format newDueDate to date with end of day time
+    const formattedDueDate = `${newDueDate}T23:59:59`;
 
     onAddAssignment({
       title: newTitle,
       course: newCourse,
-      dueDate: newDueDate,
+      dueDate: formattedDueDate,
       status: 'todo',
       points: Number(newPoints),
       description: newDescription,
@@ -37,12 +47,27 @@ export default function Dashboard({ assignments = [], onStatusChange, onAddAssig
       courseColor: color
     });
 
-    // Reset Form & Close Modal
     setNewTitle('');
     setNewDueDate('');
     setNewPoints(100);
     setNewDescription('');
     setIsModalOpen(false);
+  };
+
+  // Helper: check if task is due today (local calendar day match)
+  const isDueToday = (dueDateStr) => {
+    if (!dueDateStr) return false;
+    const today = new Date();
+    const due = new Date(dueDateStr);
+    return today.getFullYear() === due.getFullYear() &&
+           today.getMonth() === due.getMonth() &&
+           today.getDate() === due.getDate();
+  };
+
+  // Helper: check if task is overdue
+  const isOverdue = (task) => {
+    if (task.status === 'done' || !task.dueDate) return false;
+    return new Date(task.dueDate) - new Date() < 0;
   };
 
   // Filter assignments
@@ -66,6 +91,17 @@ export default function Dashboard({ assignments = [], onStatusChange, onAddAssig
     return 0;
   });
 
+  // Extract critical groups (not filtered by general status filter to avoid missing overdue alerts)
+  const allFilteredAssignments = assignments.filter(a => {
+    const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          a.course.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCourse = selectedCourse === 'all' || a.course === selectedCourse;
+    return matchesSearch && matchesCourse;
+  });
+
+  const overdueTasks = allFilteredAssignments.filter(a => isOverdue(a));
+  const todayTasks = allFilteredAssignments.filter(a => isDueToday(a.dueDate) && a.status !== 'done');
+
   // Split assignments for Kanban columns
   const todoTasks = sortedAssignments.filter(a => a.status === 'todo');
   const doingTasks = sortedAssignments.filter(a => a.status === 'doing');
@@ -79,13 +115,25 @@ export default function Dashboard({ assignments = [], onStatusChange, onAddAssig
           <h1 className="text-2xl font-bold font-heading text-white">Assignments</h1>
           <p className="text-xs text-dark-muted">Manage, track, and submit all your coursework.</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-medium text-xs px-4 py-2.5 rounded-lg transition-colors shadow-md shadow-brand-500/10"
-        >
-          <Plus size={16} />
-          Create Task
-        </button>
+        <div className="flex items-center gap-3">
+          {isLoggedIn && onSync && (
+            <button
+              onClick={onSync}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-semibold text-xs px-4 py-2.5 rounded-lg border border-dark-border transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+              Sync Classroom
+            </button>
+          )}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors shadow-md shadow-brand-500/10"
+          >
+            <Plus size={16} />
+            Create Task
+          </button>
+        </div>
       </div>
 
       {/* Control Bar: Filters, Search, Views */}
@@ -121,7 +169,7 @@ export default function Dashboard({ assignments = [], onStatusChange, onAddAssig
             </select>
           </div>
 
-          {/* Status Filter (Hidden in Kanban mode since columns represent statuses) */}
+          {/* Status Filter */}
           {viewType !== 'kanban' && (
             <div className="flex items-center gap-1.5 bg-dark-sidebar border border-dark-border px-2.5 py-1.5 rounded-lg">
               <select
@@ -171,23 +219,63 @@ export default function Dashboard({ assignments = [], onStatusChange, onAddAssig
         </div>
       </div>
 
+      {/* Critical Rows (Only visible in Grid view to keep board columns clean) */}
+      {viewType === 'grid' && (
+        <>
+          {/* Overdue Section */}
+          {overdueTasks.length > 0 && (
+            <div className="space-y-3 bg-rose-500/5 border border-rose-500/10 rounded-2xl p-5">
+              <h3 className="text-xs font-bold text-rose-400 flex items-center gap-2 uppercase tracking-wider">
+                <AlertTriangle size={15} className="animate-bounce" />
+                🔴 Overdue Assignments (เลยกำหนดส่ง)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {overdueTasks.map(task => (
+                  <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Today View Section */}
+          {todayTasks.length > 0 && (
+            <div className="space-y-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl p-5">
+              <h3 className="text-xs font-bold text-amber-400 flex items-center gap-2 uppercase tracking-wider">
+                <AlertTriangle size={15} />
+                ⚠️ Due Today (ส่งภายในวันนี้)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {todayTasks.map(task => (
+                  <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Grid View */}
       {viewType === 'grid' && (
-        sortedAssignments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {sortedAssignments.map((assignment) => (
-              <AssignmentCard
-                key={assignment.id}
-                assignment={assignment}
-                onStatusChange={onStatusChange}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center">
-            <p className="text-dark-muted text-sm">No assignments found matching your filters.</p>
-          </div>
-        )
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold text-dark-muted uppercase tracking-wider">
+            All Course Assignments ({sortedAssignments.length})
+          </h3>
+          {sortedAssignments.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {sortedAssignments.map((assignment) => (
+                <AssignmentCard
+                  key={assignment.id}
+                  assignment={assignment}
+                  onStatusChange={onStatusChange}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center">
+              <p className="text-dark-muted text-sm">No assignments found matching your filters.</p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Kanban Board View */}
@@ -268,7 +356,6 @@ export default function Dashboard({ assignments = [], onStatusChange, onAddAssig
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-dark-card border border-dark-border rounded-xl w-full max-w-lg overflow-hidden animate-fade-in relative shadow-2xl">
-            {/* Modal Header */}
             <div className="flex items-center justify-between p-5 border-b border-dark-border">
               <h3 className="font-semibold font-heading text-lg text-white">Create New Assignment</h3>
               <button
@@ -279,7 +366,6 @@ export default function Dashboard({ assignments = [], onStatusChange, onAddAssig
               </button>
             </div>
 
-            {/* Modal Form */}
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">Title *</label>
@@ -340,7 +426,6 @@ export default function Dashboard({ assignments = [], onStatusChange, onAddAssig
                 />
               </div>
 
-              {/* Form Buttons */}
               <div className="flex justify-end gap-3 pt-3 border-t border-dark-border/40 mt-4">
                 <button
                   type="button"
