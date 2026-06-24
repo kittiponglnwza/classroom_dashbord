@@ -152,10 +152,26 @@ export const resetDatabase = () => {
   localStorage.setItem(KEYS.COURSES, JSON.stringify(initialCourses));
   localStorage.setItem(KEYS.PROFILE, JSON.stringify(defaultProfile));
   localStorage.removeItem(KEYS.LAST_SYNC);
+  localStorage.removeItem('classroom_hub_hidden_courses');
   clearToken();
   return {
     assignments: initialAssignments,
     courses: initialCourses,
     profile: defaultProfile
   };
+};
+
+/* Hidden Courses for controlling visibility of finished semesters */
+export const getHiddenCourses = () => {
+  const stored = localStorage.getItem('classroom_hub_hidden_courses');
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    return [];
+  }
+};
+
+export const saveHiddenCourses = (hiddenIds) => {
+  localStorage.setItem('classroom_hub_hidden_courses', JSON.stringify(hiddenIds));
 };

@@ -21,7 +21,9 @@ import {
   clearToken,
   getLastSync,
   setLastSync,
-  syncClassroomAssignments
+  syncClassroomAssignments,
+  getHiddenCourses,
+  saveHiddenCourses
 } from './utils/storage';
 import { 
   initGoogleClient, 
@@ -34,6 +36,7 @@ export default function App() {
   const [assignments, setAssignments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [profile, setProfile] = useState({});
+  const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
 
   // Auth States
   const [accessToken, setAccessToken] = useState(null);
@@ -51,6 +54,7 @@ export default function App() {
     setCourses(getCourses());
     setProfile(getProfile());
     setLastSyncTime(getLastSync());
+    setHiddenCourseIds(getHiddenCourses());
 
     // Recover session token if present
     const sessionToken = getToken();
@@ -109,6 +113,7 @@ export default function App() {
       setCourses(reset.courses);
       setProfile(reset.profile);
       setLastSyncTime(null);
+      setHiddenCourseIds([]);
     }
   };
 
@@ -152,6 +157,15 @@ export default function App() {
     }
   };
 
+  // Toggle visibility status of course
+  const handleToggleCourseVisibility = (courseId) => {
+    const updated = hiddenCourseIds.includes(courseId)
+      ? hiddenCourseIds.filter(id => id !== courseId)
+      : [...hiddenCourseIds, courseId];
+    setHiddenCourseIds(updated);
+    saveHiddenCourses(updated);
+  };
+
   // Local state alteration handlers
   const handleStatusChange = (id, newStatus) => {
     const updated = updateAssignmentStatus(id, newStatus);
@@ -181,13 +195,27 @@ export default function App() {
     setLastSyncTime(null);
     setIsLoggedIn(false);
     setAccessToken(null);
+    setHiddenCourseIds([]);
   };
+
+  // Dynamic filter sets based on hidden Course IDs
+  const visibleCourses = courses.filter(c => !hiddenCourseIds.includes(c.id));
+  const visibleAssignments = assignments.filter(a => {
+    if (a.courseId && hiddenCourseIds.includes(a.courseId)) {
+      return false;
+    }
+    const courseObj = courses.find(c => c.name === a.course);
+    if (courseObj && hiddenCourseIds.includes(courseObj.id)) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <Router>
       <Layout 
-        courses={courses} 
-        assignments={assignments}
+        courses={visibleCourses} 
+        assignments={visibleAssignments}
         isLoggedIn={isLoggedIn}
         isSyncing={isSyncing}
         lastSyncTime={lastSyncTime}
@@ -201,9 +229,9 @@ export default function App() {
             path="/" 
             element={
               <Home 
-                assignments={assignments} 
+                assignments={visibleAssignments} 
                 onStatusChange={handleStatusChange} 
-                courses={courses} 
+                courses={visibleCourses} 
               />
             } 
           />
@@ -211,10 +239,10 @@ export default function App() {
             path="/dashboard" 
             element={
               <Dashboard 
-                assignments={assignments} 
+                assignments={visibleAssignments} 
                 onStatusChange={handleStatusChange} 
                 onAddAssignment={handleAddAssignment}
-                courses={courses} 
+                courses={visibleCourses} 
                 isLoggedIn={isLoggedIn}
                 isSyncing={isSyncing}
                 onSync={() => handleGoogleSync()}
@@ -227,7 +255,9 @@ export default function App() {
               <Courses 
                 courses={courses} 
                 assignments={assignments} 
-                onStatusChange={handleStatusChange} 
+                onStatusChange={handleStatusChange}
+                hiddenCourseIds={hiddenCourseIds}
+                onToggleCourseVisibility={handleToggleCourseVisibility}
               />
             } 
           />
