@@ -353,7 +353,9 @@ export default function App() {
               <Settings 
                 profile={profile} 
                 onProfileSave={handleProfileSave} 
-                onResetDatabase={handleReset} 
+                isLoggedIn={isLoggedIn}
+                onLogout={handleLogout}
+                onLogin={handleLogin}
               />
             } 
           />
