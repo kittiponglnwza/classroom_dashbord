@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
@@ -26,7 +26,9 @@ import {
   saveHiddenCourses,
   getResources,
   saveResources,
-  saveAssignments
+  saveAssignments,
+  getActiveEmail,
+  setActiveEmail
 } from './utils/storage';
 import { 
   initGoogleClient, 
@@ -47,35 +49,44 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
-  const [theme, setTheme] = useState('dark');
   
   // Google GIS Token Client ref
   const [tokenClient, setTokenClient] = useState(null);
 
   // 1. Initial configuration mount
   useEffect(() => {
-    // Load local storage caches
-    setAssignments(getAssignments());
-    setCourses(getCourses());
-    setProfile(getProfile());
-    setLastSyncTime(getLastSync());
-    setHiddenCourseIds(getHiddenCourses());
-    setResources(getResources());
+    // Force dark theme as default
+    document.documentElement.classList.add('dark');
 
-    // Recover saved theme preference
-    const savedTheme = localStorage.getItem('classroom_hub_theme') || 'dark';
-    setTheme(savedTheme);
-    if (savedTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else {
-      document.documentElement.classList.add('dark');
-    }
-
-    // Recover session token if present
     const sessionToken = getToken();
-    if (sessionToken) {
+    const activeEmail = getActiveEmail();
+
+    if (sessionToken && activeEmail) {
       setAccessToken(sessionToken);
       setIsLoggedIn(true);
+      
+      // Load user-scoped caches
+      setAssignments(getAssignments(activeEmail));
+      setCourses(getCourses(activeEmail));
+      setProfile(getProfile(activeEmail));
+      setLastSyncTime(getLastSync(activeEmail));
+      setHiddenCourseIds(getHiddenCourses(activeEmail));
+      setResources(getResources(activeEmail));
+    } else {
+      // Load empty/default caches
+      setAssignments(getAssignments(''));
+      setCourses(getCourses(''));
+      setProfile(getProfile(''));
+      setLastSyncTime(getLastSync(''));
+      setHiddenCourseIds(getHiddenCourses(''));
+      setResources(getResources(''));
+      
+      if (sessionToken) {
+        clearToken();
+      }
+      setActiveEmail('');
+      setIsLoggedIn(false);
+      setAccessToken(null);
     }
   }, []);
 
@@ -117,19 +128,19 @@ export default function App() {
 
   // Handler for Google Logout/Disconnect
   const handleLogout = () => {
-    if (confirm('Disconnect from Google Classroom and restore local default view?')) {
+    if (confirm('Are you sure you want to disconnect from Google Classroom? Your local settings, course visibility, and notes will be preserved.')) {
       clearToken();
+      setActiveEmail('');
       setAccessToken(null);
       setIsLoggedIn(false);
+      setProfile({});
       
-      // Wipe cache and restore default profiles
-      const reset = resetDatabase();
-      setAssignments(reset.assignments);
-      setCourses(reset.courses);
-      setProfile(reset.profile);
-      setResources([]);
+      // Reset states back to default (no email)
+      setAssignments(getAssignments(''));
+      setCourses(getCourses(''));
       setLastSyncTime(null);
       setHiddenCourseIds([]);
+      setResources([]);
     }
   };
 
@@ -142,16 +153,26 @@ export default function App() {
     try {
       // 1. Fetch user email/avatar details
       const userProfile = await fetchGoogleProfile(tokenToUse);
-      saveProfile(userProfile);
+      const userEmail = userProfile.email;
+      
+      setActiveEmail(userEmail);
+      saveProfile(userProfile, userEmail);
       setProfile(userProfile);
+
+      // Pre-load user-scoped cached data from localStorage into states immediately
+      setAssignments(getAssignments(userEmail));
+      setCourses(getCourses(userEmail));
+      setResources(getResources(userEmail));
+      setHiddenCourseIds(getHiddenCourses(userEmail));
+      setLastSyncTime(getLastSync(userEmail));
 
       // 2. Fetch classroom subjects and assignments
       const classroomData = await fetchGoogleClassroomData(tokenToUse);
       
       // Sync assignments with local overrides, save courses and resources
-      const syncedAssigns = syncClassroomAssignments(classroomData.assignments);
-      saveCourses(classroomData.courses);
-      saveResources(classroomData.resources || []);
+      const syncedAssigns = syncClassroomAssignments(classroomData.assignments, userEmail);
+      saveCourses(classroomData.courses, userEmail);
+      saveResources(classroomData.resources || [], userEmail);
 
       // Update local states
       setAssignments(syncedAssigns);
@@ -159,7 +180,7 @@ export default function App() {
       setResources(classroomData.resources || []);
       
       const now = new Date().toISOString();
-      setLastSync(now);
+      setLastSync(now, userEmail);
       setLastSyncTime(now);
 
     } catch (e) {
@@ -177,38 +198,38 @@ export default function App() {
 
   // Toggle visibility status of course
   const handleToggleCourseVisibility = (courseId) => {
+    const email = getActiveEmail();
     const updated = hiddenCourseIds.includes(courseId)
       ? hiddenCourseIds.filter(id => id !== courseId)
       : [...hiddenCourseIds, courseId];
     setHiddenCourseIds(updated);
-    saveHiddenCourses(updated);
+    saveHiddenCourses(updated, email);
   };
 
-  // Switch dark/light theme
-  const handleToggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    localStorage.setItem('classroom_hub_theme', newTheme);
-    if (newTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else {
-      document.documentElement.classList.add('dark');
-    }
+  // Toggle visibility of courses in bulk
+  const handleToggleBulkCourses = (courseIds, shouldHideAll) => {
+    const email = getActiveEmail();
+    const updated = shouldHideAll ? [...courseIds] : [];
+    setHiddenCourseIds(updated);
+    saveHiddenCourses(updated, email);
   };
 
   // Local state alteration handlers
   const handleStatusChange = (id, newStatus) => {
-    const updated = updateAssignmentStatus(id, newStatus);
+    const email = getActiveEmail();
+    const updated = updateAssignmentStatus(id, newStatus, email);
     setAssignments(updated);
   };
 
   const handleNotesChange = (id, newNotes) => {
-    const updated = updateAssignmentNotes(id, newNotes);
+    const email = getActiveEmail();
+    const updated = updateAssignmentNotes(id, newNotes, email);
     setAssignments(updated);
   };
 
   const handleAddAssignment = (newAssign) => {
-    const updated = addAssignment(newAssign);
+    const email = getActiveEmail();
+    const updated = addAssignment(newAssign, email);
     setAssignments(updated);
   };
 
@@ -231,29 +252,35 @@ export default function App() {
   };
 
   const handleUntrackAssignment = (resourceId) => {
+    const email = getActiveEmail();
     const updated = assignments.filter(a => a.parentResourceId !== resourceId);
     setAssignments(updated);
-    saveAssignments(updated);
+    saveAssignments(updated, email);
   };
 
   const handleProfileSave = (updatedProfile) => {
-    saveProfile(updatedProfile);
+    const email = getActiveEmail();
+    saveProfile(updatedProfile, email);
     setProfile(updatedProfile);
   };
 
   const handleReset = () => {
-    const resetData = resetDatabase();
+    const email = getActiveEmail();
+    const resetData = resetDatabase(email);
     setAssignments(resetData.assignments);
     setCourses(resetData.courses);
     setProfile(resetData.profile);
     setResources([]);
     setLastSyncTime(null);
-    setIsLoggedIn(false);
-    setAccessToken(null);
     setHiddenCourseIds([]);
-    setTheme('dark');
+    
+    if (email) {
+      clearToken();
+      setActiveEmail('');
+      setIsLoggedIn(false);
+      setAccessToken(null);
+    }
     document.documentElement.classList.add('dark');
-    localStorage.setItem('classroom_hub_theme', 'dark');
   };
 
   // Dynamic filter sets based on hidden Course IDs
@@ -282,85 +309,153 @@ export default function App() {
 
   return (
     <Router>
-      <Layout 
-        courses={visibleCourses} 
-        assignments={visibleAssignments}
-        isLoggedIn={isLoggedIn}
-        isSyncing={isSyncing}
-        lastSyncTime={lastSyncTime}
-        onSync={() => handleGoogleSync()}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-        profile={profile}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
-      >
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              <Home 
-                assignments={visibleAssignments} 
-                onStatusChange={handleStatusChange} 
-                courses={visibleCourses} 
-                profile={profile}
-                resources={visibleResources}
-              />
-            } 
-          />
-          <Route 
-            path="/dashboard" 
-            element={
-              <Dashboard 
-                assignments={visibleAssignments} 
-                onStatusChange={handleStatusChange} 
-                onAddAssignment={handleAddAssignment}
-                courses={visibleCourses} 
-                isLoggedIn={isLoggedIn}
-                isSyncing={isSyncing}
-                onSync={() => handleGoogleSync()}
-              />
-            } 
-          />
-          <Route 
-            path="/courses" 
-            element={
-              <Courses 
-                courses={courses} 
-                assignments={assignments} 
-                resources={resources}
-                onStatusChange={handleStatusChange}
-                hiddenCourseIds={hiddenCourseIds}
-                onToggleCourseVisibility={handleToggleCourseVisibility}
-                onTrackAsAssignment={handleTrackAsAssignment}
-                onUntrackAssignment={handleUntrackAssignment}
-              />
-            } 
-          />
-          <Route 
-            path="/assignments/:id" 
-            element={
-              <AssignmentDetail 
-                assignments={assignments} 
-                onStatusChange={handleStatusChange} 
-                onNotesChange={handleNotesChange}
-              />
-            } 
-          />
-          <Route 
-            path="/settings" 
-            element={
-              <Settings 
-                profile={profile} 
-                onProfileSave={handleProfileSave} 
-                isLoggedIn={isLoggedIn}
-                onLogout={handleLogout}
-                onLogin={handleLogin}
-              />
-            } 
-          />
-        </Routes>
-      </Layout>
+      <LoginRedirect isLoggedIn={isLoggedIn} />
+      {!isLoggedIn ? (
+        <div className="min-h-screen w-screen flex items-center justify-center bg-dark-bg p-4 select-none">
+          <div className="w-full max-w-sm bg-dark-card/20 border border-dark-border/30 rounded-3xl p-8 space-y-8 text-center shadow-lg relative overflow-hidden animate-fade-in">
+            {/* Visual abstract gradient blob for premium feel */}
+            <div className="absolute -top-16 -left-16 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-16 -right-16 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Branding Logo */}
+            <div className="flex flex-col items-center space-y-2">
+              <div className="flex items-center gap-2.5 select-none">
+                <span className="font-heading font-extrabold text-white text-2xl">CH</span>
+                <h1 className="text-xl font-bold text-white font-heading tracking-wide">Classroom Hub</h1>
+              </div>
+              <p className="text-[7.5px] text-dark-muted font-bold tracking-[0.25em] uppercase leading-none">
+                Learning • Connection • Community
+              </p>
+            </div>
+
+            {/* Google Connect Action */}
+            <div className="space-y-4 pt-2">
+              <button
+                onClick={handleLogin}
+                className="w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-100 text-zinc-900 font-semibold text-xs py-3.5 px-5 rounded-2xl transition-all duration-200 hover:scale-[1.01] hover:shadow-md cursor-pointer active:scale-[0.99]"
+              >
+                {/* Google G logo SVG */}
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Connect Google Classroom</span>
+              </button>
+              
+              <p className="text-[10px] text-dark-muted max-w-[280px] mx-auto leading-relaxed">
+                No registration required. Sign in securely using your KMUTNB or personal school Gmail account.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <Layout 
+          courses={visibleCourses} 
+          assignments={visibleAssignments}
+          isLoggedIn={isLoggedIn}
+          isSyncing={isSyncing}
+          lastSyncTime={lastSyncTime}
+          onSync={() => handleGoogleSync()}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
+          profile={profile}
+        >
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <Home 
+                  assignments={visibleAssignments} 
+                  onStatusChange={handleStatusChange} 
+                  courses={visibleCourses} 
+                  profile={profile}
+                  resources={visibleResources}
+                />
+              } 
+            />
+            <Route 
+              path="/dashboard" 
+              element={
+                <Dashboard 
+                  assignments={visibleAssignments} 
+                  onStatusChange={handleStatusChange} 
+                  onAddAssignment={handleAddAssignment}
+                  courses={visibleCourses} 
+                  isLoggedIn={isLoggedIn}
+                  isSyncing={isSyncing}
+                  onSync={() => handleGoogleSync()}
+                />
+              } 
+            />
+            <Route 
+              path="/courses" 
+              element={
+                <Courses 
+                  courses={courses} 
+                  assignments={assignments} 
+                  resources={resources}
+                  onStatusChange={handleStatusChange}
+                  hiddenCourseIds={hiddenCourseIds}
+                  onToggleCourseVisibility={handleToggleCourseVisibility}
+                  onToggleBulkCourses={handleToggleBulkCourses}
+                  onTrackAsAssignment={handleTrackAsAssignment}
+                  onUntrackAssignment={handleUntrackAssignment}
+                />
+              } 
+            />
+            <Route 
+              path="/assignments/:id" 
+              element={
+                <AssignmentDetail 
+                  assignments={assignments} 
+                  onStatusChange={handleStatusChange} 
+                  onNotesChange={handleNotesChange}
+                />
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <Settings 
+                  profile={profile} 
+                  onProfileSave={handleProfileSave} 
+                  isLoggedIn={isLoggedIn}
+                  onLogout={handleLogout}
+                  onLogin={handleLogin}
+                />
+              } 
+            />
+          </Routes>
+        </Layout>
+      )}
     </Router>
   );
+}
+
+function LoginRedirect({ isLoggedIn }) {
+  const navigate = useNavigate();
+  const prevLoggedIn = useRef(isLoggedIn);
+
+  useEffect(() => {
+    if (isLoggedIn && !prevLoggedIn.current) {
+      navigate('/');
+    }
+    prevLoggedIn.current = isLoggedIn;
+  }, [isLoggedIn, navigate]);
+
+  return null;
 }

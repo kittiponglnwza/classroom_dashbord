@@ -208,28 +208,17 @@ export default function Courses({
   onStatusChange,
   hiddenCourseIds = [],
   onToggleCourseVisibility,
+  onToggleBulkCourses,
   onTrackAsAssignment,
   onUntrackAssignment
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCourseName = searchParams.get('selected');
   const [activeTab, setActiveTab] = useState('resources');
+  const [isManageMode, setIsManageMode] = useState(false);
   const selectedCourseObj = courses.find(c => c.name === selectedCourseName) || { color: 'blue' };
   const themeColor = selectedCourseObj.color || 'blue';
 
-  // Helper to map course color to gradient styles
-  const getBannerGradient = (color) => {
-    switch (color) {
-      case 'emerald': return 'from-emerald-950/40 to-emerald-900/10 border-emerald-500/20';
-      case 'blue': return 'from-blue-950/40 to-blue-900/10 border-blue-500/20';
-      case 'amber': return 'from-amber-950/40 to-amber-900/10 border-amber-500/20';
-      case 'rose': return 'from-rose-950/40 to-rose-900/10 border-rose-500/20';
-      case 'purple': return 'from-purple-950/40 to-purple-900/10 border-purple-500/20';
-      default: return 'from-zinc-900 to-zinc-950 border-dark-border';
-    }
-  };
-
-  // Helper to map active color text
   const getCourseTextColor = (color) => {
     switch (color) {
       case 'emerald': return 'text-emerald-400';
@@ -241,28 +230,38 @@ export default function Courses({
     }
   };
 
-  // Helper to map active tab styles
-  const getActiveTabStyles = (color, isActive) => {
-    if (!isActive) return 'text-dark-muted border-transparent hover:text-white';
+  const getCourseBorderTopColor = (color) => {
     switch (color) {
-      case 'emerald': return 'text-white border-emerald-500 font-semibold';
-      case 'blue': return 'text-white border-blue-500 font-semibold';
-      case 'amber': return 'text-white border-amber-500 font-semibold';
-      case 'rose': return 'text-white border-rose-500 font-semibold';
-      case 'purple': return 'text-white border-purple-500 font-semibold';
-      default: return 'text-white border-brand-500 font-semibold';
+      case 'emerald': return 'bg-emerald-500';
+      case 'blue': return 'bg-blue-500';
+      case 'amber': return 'bg-amber-500';
+      case 'rose': return 'bg-rose-500';
+      case 'purple': return 'bg-purple-500';
+      default: return 'bg-brand-500';
     }
   };
 
-  const getBadgeStyles = (color, isActive) => {
-    if (!isActive) return 'text-dark-muted border-dark-border';
+  const getTabStyles = (color, isActive) => {
+    if (!isActive) return 'text-dark-muted hover:text-white border border-transparent';
     switch (color) {
-      case 'emerald': return 'text-emerald-400 border-emerald-500/35 bg-emerald-500/5';
-      case 'blue': return 'text-blue-400 border-blue-500/35 bg-blue-500/5';
-      case 'amber': return 'text-amber-400 border-amber-500/35 bg-amber-500/5';
-      case 'rose': return 'text-rose-400 border-rose-500/35 bg-rose-500/5';
-      case 'purple': return 'text-purple-400 border-purple-500/35 bg-purple-500/5';
-      default: return 'text-brand-400 border-brand-500/35 bg-brand-500/5';
+      case 'emerald': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold';
+      case 'blue': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold';
+      case 'amber': return 'bg-amber-500/10 text-amber-400 border-amber-500/20 font-bold';
+      case 'rose': return 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold';
+      case 'purple': return 'bg-purple-500/10 text-purple-400 border-purple-500/20 font-bold';
+      default: return 'bg-brand-500 text-white border border-brand-500 font-bold';
+    }
+  };
+
+  const getTabBadgeStyles = (color, isActive) => {
+    if (!isActive) return 'border-dark-border bg-dark-sidebar/80 text-dark-muted';
+    switch (color) {
+      case 'emerald': return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400';
+      case 'blue': return 'border-blue-500/20 bg-blue-500/10 text-blue-400';
+      case 'amber': return 'border-amber-500/20 bg-amber-500/10 text-amber-400';
+      case 'rose': return 'border-rose-500/20 bg-rose-500/10 text-rose-400';
+      case 'purple': return 'border-purple-500/20 bg-purple-500/10 text-purple-400';
+      default: return 'border-brand-400/20 bg-brand-400/10 text-brand-300';
     }
   };
 
@@ -288,18 +287,20 @@ export default function Courses({
           {/* Back Button */}
           <button
             onClick={() => setSearchParams({})}
-            className="flex items-center gap-1.5 text-xs text-dark-muted hover:text-white transition-colors bg-dark-card border border-dark-border px-3.5 py-2 rounded-lg cursor-pointer"
+            className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider text-dark-muted hover:text-white transition-colors bg-dark-card/30 border border-dark-border/40 px-4 py-2.5 rounded-xl cursor-pointer"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={13} />
             Back to All Courses
           </button>
 
-          {/* Selected Course Banner */}
+          {/* Selected Course Banner - Minimal Style */}
           {(() => {
             const courseObj = courses.find(c => c.name === selectedCourseName);
             if (!courseObj) return null;
             return (
-              <div className={`bg-gradient-to-br ${getBannerGradient(courseObj.color)} border border-dark-border/60 rounded-2xl p-6 md:p-8 space-y-4 shadow-xl`}>
+              <div className={`border border-dark-border/40 bg-dark-card/20 rounded-2xl relative overflow-hidden p-6 md:p-8 space-y-4 shadow-sm`}>
+                {/* Visual Accent bar */}
+                <div className={`absolute top-0 left-0 right-0 h-1.5 ${getCourseBorderTopColor(courseObj.color)}`} />
                 <div className="space-y-1">
                   <span className={`text-[10px] font-bold tracking-widest uppercase ${getCourseTextColor(courseObj.color)}`}>
                     {courseObj.code}
@@ -316,31 +317,27 @@ export default function Courses({
             );
           })()}
 
-          {/* Tab Selector */}
-          <div className="flex border-b border-dark-border/40 gap-6 text-sm font-medium pt-2">
+          {/* Tab Selector - Pill shaped */}
+          <div className="flex bg-dark-sidebar/60 border border-dark-border/40 p-1 rounded-xl w-fit gap-1 select-none">
             <button
               onClick={() => setActiveTab('resources')}
-              className={`pb-3 px-1 border-b-2 transition-all duration-300 relative cursor-pointer font-semibold ${getActiveTabStyles(themeColor, activeTab === 'resources')}`}
+              className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'resources')}`}
             >
-              <div className="flex items-center gap-2">
-                <Megaphone size={16} />
-                <span>ประกาศและเอกสารเรียน</span>
-                <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold border transition-colors duration-300 ${getBadgeStyles(themeColor, activeTab === 'resources')}`}>
-                  {courseResources.length}
-                </span>
-              </div>
+              <Megaphone size={13} />
+              <span>ประกาศ & เอกสาร</span>
+              <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'resources')}`}>
+                {courseResources.length}
+              </span>
             </button>
             <button
               onClick={() => setActiveTab('assignments')}
-              className={`pb-3 px-1 border-b-2 transition-all duration-300 relative cursor-pointer font-semibold ${getActiveTabStyles(themeColor, activeTab === 'assignments')}`}
+              className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'assignments')}`}
             >
-              <div className="flex items-center gap-2">
-                <BookOpen size={16} />
-                <span>งานที่ต้องส่ง</span>
-                <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold border transition-colors duration-300 ${getBadgeStyles(themeColor, activeTab === 'assignments')}`}>
-                  {courseAssignments.length}
-                </span>
-              </div>
+              <BookOpen size={13} />
+              <span>งานที่ต้องส่ง</span>
+              <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'assignments')}`}>
+                {courseAssignments.length}
+              </span>
             </button>
           </div>
 
@@ -360,7 +357,7 @@ export default function Courses({
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center text-dark-muted text-sm">
+                  <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 text-center text-dark-muted text-xs">
                     No tasks found for this subject. Feel free to create one!
                   </div>
                 )}
@@ -382,7 +379,7 @@ export default function Courses({
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center text-dark-muted text-sm">
+                  <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 text-center text-dark-muted text-xs">
                     No announcements or materials found for this subject.
                   </div>
                 )}
@@ -391,88 +388,161 @@ export default function Courses({
           </div>
         </div>
       ) : (
-        /* 2. All Courses Grid View (หน้ารวมการ์ดวิชาทั้งหมด) */
+        /* 2. All Courses Grid View (หน้ารวมการ์ดวิชาทั้งหมด - Redesigned Minimal UI) */
         <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold font-heading text-white">My Enrolled Courses</h1>
-            <p className="text-xs text-dark-muted">Browse your academic subjects, course-specific tasks, and configure visible semesters.</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-border/40 pb-5">
+            <div>
+              <h1 className="text-xl font-bold font-heading text-white">My Enrolled Courses</h1>
+              <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">Browse your academic subjects, course-specific tasks, and configure visible semesters.</p>
+            </div>
+            
+            <button
+              onClick={() => setIsManageMode(!isManageMode)}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                isManageMode 
+                  ? 'bg-brand-500/10 text-brand-400 border-brand-500/20' 
+                  : 'bg-dark-card/30 border-dark-border/40 text-zinc-300 hover:text-white hover:border-dark-border/80'
+              }`}
+            >
+              {isManageMode ? <EyeOff size={13} /> : <Eye size={13} />}
+              <span>{isManageMode ? 'เสร็จสิ้นการตั้งค่า' : 'จัดการซ่อนหลายวิชา'}</span>
+            </button>
           </div>
+
+          {isManageMode && (
+            <div className="bg-dark-card/10 border border-dark-border/40 rounded-2xl p-5 md:p-6 space-y-4 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-dark-border/20 pb-3 gap-3">
+                <div className="space-y-0.5">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">เลือกวิชาที่ต้องการซ่อน</h4>
+                  <p className="text-[10px] text-dark-muted">ทำเครื่องหมายหน้าวิชาที่คุณต้องการซ่อน (การซ่อนจะปิดการแจ้งเตือนและการบ้านของวิชานั้นบนหน้าอื่นๆ)</p>
+                </div>
+                {/* Bulk Actions */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const allIds = courses.map(c => c.id);
+                      onToggleBulkCourses(allIds, true);
+                    }}
+                    className="text-[10px] font-bold text-rose-400 hover:text-rose-300 cursor-pointer bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 px-2.5 py-1.5 rounded-lg transition-colors"
+                  >
+                    ซ่อนทั้งหมด
+                  </button>
+                  <button
+                    onClick={() => {
+                      onToggleBulkCourses([], false);
+                    }}
+                    className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-colors"
+                  >
+                    แสดงทั้งหมด
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {courses.map((course) => {
+                  const isHidden = hiddenCourseIds.includes(course.id);
+                  return (
+                    <label 
+                      key={course.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
+                        isHidden 
+                          ? 'bg-rose-500/5 border-rose-500/10 text-rose-400/80 hover:bg-rose-500/10' 
+                          : 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={!isHidden}
+                          onChange={() => onToggleCourseVisibility(course.id)}
+                          className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0 focus:ring-offset-0"
+                        />
+                        <div className="truncate text-xs font-semibold text-white">
+                          <span className="block text-[8px] opacity-75 uppercase text-dark-muted">{course.code}</span>
+                          <span className="block truncate">{course.name}</span>
+                        </div>
+                      </div>
+                      <span className={`text-[9px] uppercase font-bold shrink-0 px-1.5 py-0.5 rounded border ${
+                        isHidden ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                      }`}>
+                        {isHidden ? 'ซ่อนอยู่' : 'แสดง'}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => {
               const activeCount = getActiveCount(course.name);
-              const isSelected = selectedCourseName === course.name;
               const isHidden = hiddenCourseIds.includes(course.id);
+              
+              const totalAssignments = assignments.filter(a => a.course === course.name).length;
+              const totalResources = resources.filter(r => r.course === course.name).length;
 
               return (
                 <div
                   key={course.id}
                   onClick={() => setSearchParams({ selected: course.name })}
-                  className={`bg-dark-card border rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl flex flex-col justify-between group ${
-                    isHidden ? 'opacity-40 hover:opacity-75 saturate-50' : ''
-                  } ${
-                    isSelected 
-                      ? `ring-2 ring-${course.color}-500/50 border-transparent bg-gradient-to-br ${getBannerGradient(course.color)}` 
-                      : `border-dark-border hover:border-dark-border/80 bg-gradient-to-br from-dark-card to-dark-sidebar`
+                  className={`bg-dark-card/20 border border-dark-border/40 rounded-2xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-md hover:translate-y-[-3px] ${
+                    isHidden ? 'opacity-45 saturate-50' : ''
                   }`}
                 >
-                  {/* Card Banner area */}
-                  <div className="p-5 flex-1">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="p-2.5 rounded-lg bg-dark-sidebar border border-dark-border text-zinc-300">
-                        <GraduationCap size={20} className={getCourseTextColor(course.color)} />
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {/* Hide/Show Toggle */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent selecting the course card
-                            onToggleCourseVisibility(course.id);
-                          }}
-                          className="p-1.5 rounded-md bg-dark-sidebar border border-dark-border text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
-                          title={isHidden ? "แสดงวิชานี้ในแดชบอร์ด" : "ซ่อนวิชานี้จากแดชบอร์ด"}
-                        >
-                          {isHidden ? <EyeOff size={14} className="text-rose-400" /> : <Eye size={14} />}
-                        </button>
-
+                  {/* Top Colored Border Strip */}
+                  <div className={`w-full h-1 ${getCourseBorderTopColor(course.color)}`} />
+                  
+                  {/* Card Body */}
+                  <div className="p-5 md:p-6 flex-1 space-y-4">
+                    <div className="flex items-center justify-between gap-3 text-[10px] font-bold text-dark-muted">
+                      <span className="tracking-wider uppercase">{course.code}</span>
+                      <div>
                         {isHidden ? (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-rose-500/10 text-rose-400 border-rose-500/20">
-                            ซ่อนอยู่
+                          <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2 py-0.5 rounded-md">ซ่อนอยู่</span>
+                        ) : activeCount > 0 ? (
+                          <span className={`px-2 py-0.5 rounded-md border ${
+                            course.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                            course.color === 'blue' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            course.color === 'amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                            course.color === 'rose' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                            'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                          }`}>
+                            {activeCount} งานต้องส่ง
                           </span>
-                        ) : (
-                          activeCount > 0 && (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              course.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                              course.color === 'blue' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                              course.color === 'amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                              course.color === 'rose' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                              'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                            }`}>
-                              {activeCount} active task{activeCount > 1 ? 's' : ''}
-                            </span>
-                          )
-                        )}
+                        ) : null}
                       </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-dark-muted font-bold tracking-widest uppercase">
-                        {course.code}
-                      </span>
-                      <h3 className="font-semibold text-[15px] font-heading text-white group-hover:text-brand-400 transition-colors">
+                    <div className="space-y-1.5">
+                      <h3 className="font-semibold text-sm md:text-base font-heading text-white group-hover:text-brand-400 transition-colors leading-snug">
                         {course.name}
                       </h3>
+                      <div className="flex items-center gap-1.5 text-[10px] text-dark-muted font-medium">
+                        <span>{totalAssignments} งานทั้งหมด</span>
+                        <span>•</span>
+                        <span>{totalResources} ประกาศ/เอกสาร</span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Card Footer */}
-                  <div className="px-5 py-3 border-t border-dark-border/50 bg-dark-sidebar/40 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs text-dark-muted">
-                      <User size={12} />
-                      <span>{course.instructor}</span>
+                  <div className="px-5 py-3 border-t border-dark-border/20 bg-dark-sidebar/20 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[10px] text-dark-muted min-w-0">
+                      <User size={12} className="shrink-0" />
+                      <span className="truncate">{course.instructor}</span>
                     </div>
-                    <ChevronRight size={14} className="text-dark-muted group-hover:text-white transition-colors" />
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent selecting the course card
+                        onToggleCourseVisibility(course.id);
+                      }}
+                      className="p-1.5 rounded-lg bg-dark-sidebar/40 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-all duration-200 cursor-pointer"
+                      title={isHidden ? "แสดงวิชานี้ในแดชบอร์ด" : "ซ่อนวิชานี้จากแดชบอร์ด"}
+                    >
+                      {isHidden ? <EyeOff size={11} className="text-rose-400" /> : <Eye size={11} />}
+                    </button>
                   </div>
                 </div>
               );

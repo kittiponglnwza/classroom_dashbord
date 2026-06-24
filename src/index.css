@@ -4,18 +4,6 @@
 @config "../tailwind.config.js";
 
 :root {
-  /* Minimalist Light Theme (โทนอุ่น ครีมมี่ มินิมอลสไตล์ Notion) */
-  --bg: #FAF9F5;          /* Warm alabaster cream background */
-  --sidebar: #F3EFE7;     /* Soft warm cream sidebar */
-  --card: #FFFFFF;        /* Crisp white cards */
-  --border: #E9E3D5;      /* Cozy cream border */
-  --hover: #ECE6D8;       /* Subtle hover grey-cream */
-  --text: #2E2D2A;        /* Dark grey text */
-  --muted: #7D7971;       /* Warm muted text */
-}
-
-/* Dark variant triggers when html has .dark class */
-.dark {
   /* Minimalist Dark Theme (โทนมืดถ่าน พรีเมียมมินิมอล) */
   --bg: #0E0E10;          /* Deep dark slate */
   --sidebar: #17171A;     /* Sidebar dark slate */

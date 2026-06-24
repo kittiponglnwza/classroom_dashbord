@@ -47,14 +47,19 @@ export default function Sidebar({ courses = [], assignments = [], profile = {} }
     >
       {/* Brand Header */}
       <div className="p-5 flex items-center justify-between border-b border-dark-border">
-        <Link to="/" className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center font-bold text-white shadow-md shadow-brand-500/20 flex-shrink-0">
+        <Link to="/" className="flex items-center gap-3 overflow-hidden select-none group">
+          <div className="font-heading font-extrabold text-base text-white flex-shrink-0 select-none">
             CH
           </div>
           {!isCollapsed && (
-            <span className="font-heading font-semibold text-lg text-white whitespace-nowrap bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              Classroom Hub
-            </span>
+            <div className="flex flex-col items-start min-w-0">
+              <span className="font-heading font-bold text-sm text-white tracking-wide leading-tight group-hover:text-brand-400 transition-colors">
+                Classroom Hub
+              </span>
+              <span className="text-[6.5px] font-bold text-dark-muted tracking-[0.14em] uppercase whitespace-nowrap mt-0.5">
+                Learning • Connection • Community
+              </span>
+            </div>
           )}
         </Link>
         <button 

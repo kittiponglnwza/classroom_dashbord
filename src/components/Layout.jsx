@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Sidebar from './Sidebar';
-import { Menu, X, Bell, RefreshCw, LogIn, LogOut, Award, AlertTriangle, Sun, Moon } from 'lucide-react';
+import { Menu, X, Bell, RefreshCw, LogIn, LogOut, Award, AlertTriangle } from 'lucide-react';
 
 export default function Layout({ 
   children, 
@@ -12,9 +12,7 @@ export default function Layout({
   onSync = null,
   onLogout = null,
   onLogin = null,
-  profile = {},
-  theme = 'dark',
-  onToggleTheme
+  profile = {}
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -124,14 +122,7 @@ export default function Layout({
               )}
             </button>
 
-            {/* Theme Toggle Button */}
-            <button 
-              onClick={onToggleTheme}
-              className="p-2 text-dark-muted hover:text-white hover:bg-dark-hover rounded-lg transition-all border border-transparent hover:border-dark-border relative cursor-pointer"
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            >
-              {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
-            </button>
+            {/* Theme toggle removed, locked to Dark Mode default */}
 
             {/* Profile Avatar & Login/Logout Trigger */}
             <div className="flex items-center gap-3 pl-2">
@@ -144,22 +135,11 @@ export default function Layout({
               </div>
               <div className="hidden sm:flex flex-col text-left max-w-[120px]">
                 <span className="text-xs font-semibold text-white truncate">
-                  {profile.name || 'Alex'}
+                  {profile.name || 'Student'}
                 </span>
-                <button
-                  onClick={isLoggedIn ? onLogout : onLogin}
-                  className="text-[10px] text-dark-muted hover:text-white flex items-center gap-0.5 transition-colors mt-0.5 cursor-pointer underline"
-                >
-                  {isLoggedIn ? (
-                    <>
-                      <LogOut size={10} /> Disconnect
-                    </>
-                  ) : (
-                    <>
-                      <LogIn size={10} /> Connect Google
-                    </>
-                  )}
-                </button>
+                <span className="text-[9px] text-dark-muted truncate mt-0.5">
+                  {profile.email || 'connected'}
+                </span>
               </div>
             </div>
           </div>
