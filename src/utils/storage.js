@@ -121,7 +121,7 @@ export const syncClassroomAssignments = (apiAssignments, email) => {
   
   const merged = apiAssignments.map(apiAssign => {
     // Find existing task by ID
-    const localAssign = localAssignments.find(la => la.id === apiAssign.id);
+    const localAssign = localAssignments.find(la => String(la.id) === String(apiAssign.id));
     
     if (localAssign) {
       return {
@@ -141,7 +141,9 @@ export const syncClassroomAssignments = (apiAssignments, email) => {
 
   // Also preserve manually created local tasks (exclude initial mock assignments)
   const mockIds = ['assign-1', 'assign-2', 'assign-3', 'assign-4', 'assign-5', 'assign-6', 'assign-7'];
-  const localManualTasks = localAssignments.filter(la => !la.courseId && !mockIds.includes(la.id));
+  const localManualTasks = localAssignments.filter(la => 
+    String(la.id).startsWith('assign-') && !mockIds.includes(la.id)
+  );
   const finalAssignments = [...localManualTasks, ...merged];
 
   saveAssignments(finalAssignments, email);
@@ -150,14 +152,14 @@ export const syncClassroomAssignments = (apiAssignments, email) => {
 
 export const updateAssignmentStatus = (id, status, email) => {
   const assignments = getAssignments(email);
-  const updated = assignments.map(a => a.id === id ? { ...a, status } : a);
+  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, status } : a);
   saveAssignments(updated, email);
   return updated;
 };
 
 export const updateAssignmentNotes = (id, notes, email) => {
   const assignments = getAssignments(email);
-  const updated = assignments.map(a => a.id === id ? { ...a, notes } : a);
+  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, notes } : a);
   saveAssignments(updated, email);
   return updated;
 };
