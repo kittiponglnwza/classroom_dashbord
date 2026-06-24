@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/exam-room",
+      "destination": "http://www.scibase.kmutnb.ac.th/examroom/datatrain.php"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

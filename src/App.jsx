@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import AssignmentDetail from './pages/AssignmentDetail';
 import Settings from './pages/Settings';
+import ExamRoom from './pages/ExamRoom';
 import { Globe } from 'lucide-react';
 import { 
   getAssignments, 
@@ -532,6 +533,15 @@ export default function App() {
                   accessToken={accessToken}
                   assignments={assignments}
                   lang={lang}
+                />
+              } 
+            />
+            <Route 
+              path="/exam-room" 
+              element={
+                <ExamRoom 
+                  profile={profile} 
+                  lang={lang} 
                 />
               } 
             />

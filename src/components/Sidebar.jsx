@@ -8,7 +8,8 @@ import {
   ChevronLeft, 
   ChevronRight, 
   CheckSquare, 
-  Clock
+  Clock,
+  ClipboardCheck
 } from 'lucide-react';
 import { t } from '../utils/i18n';
 
@@ -135,6 +136,24 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
             </div>
           </div>
         )}
+      </div>
+
+      {/* Exam Seating Shortcut Link */}
+      <div className="px-3 pb-2 border-t border-dark-border/20 pt-2 shrink-0">
+        <NavLink
+          to="/exam-room"
+          onClick={onLinkClick}
+          className={({ isActive }) => 
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group duration-200 ${
+              isActive 
+                ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' 
+                : 'text-dark-muted hover:text-white hover:bg-dark-hover border border-transparent'
+            }`
+          }
+        >
+          <ClipboardCheck size={18} className="flex-shrink-0" />
+          {!isCollapsed && <span>{t('examRoom', lang)}</span>}
+        </NavLink>
       </div>
 
       {/* Footer Info / Settings Button */}
