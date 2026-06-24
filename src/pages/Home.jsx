@@ -120,7 +120,7 @@ export default function Home({
           {/* Recent Announcements Widget */}
           <div className="bg-dark-card border border-dark-border rounded-xl p-5 space-y-4">
             <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
-              <span>ประกาศล่าสุด (Announcements)</span>
+              <span>Recent Announcements</span>
               <Megaphone size={14} className="text-amber-400" />
             </h3>
             
@@ -159,7 +159,7 @@ export default function Home({
                         {ann.attachments && ann.attachments.length > 0 && (
                           <div className="flex items-center gap-1 text-[10px] text-dark-muted pt-1 border-t border-dark-border/20 mt-1 font-medium">
                             <Paperclip size={10} className="shrink-0" />
-                            <span>{ann.attachments.length} ไฟล์แนบ</span>
+                             <span>{ann.attachments.length} attachment{ann.attachments.length > 1 ? 's' : ''}</span>
                           </div>
                         )}
                       </div>
@@ -168,7 +168,7 @@ export default function Home({
                 })}
               </div>
             ) : (
-              <p className="text-xs text-dark-muted text-center py-4">ไม่มีประกาศล่าสุดในขณะนี้</p>
+              <p className="text-xs text-dark-muted text-center py-4">No recent announcements at the moment.</p>
             )}
           </div>
 

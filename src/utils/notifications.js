@@ -159,8 +159,8 @@ const wrapHtmlEmail = (title, contentHtml) => {
         </div>
         
         <div class="footer">
-          อีเมลนี้ถูกส่งอัตโนมัติจากเบราว์เซอร์ของคุณผ่านระบบ Classroom Hub Integration<br>
-          หากต้องการเปลี่ยนแปลงการตั้งค่า โปรดไปที่หน้าตั้งค่าระบบในเว็บไซต์
+          This email was sent automatically from your browser via Classroom Hub Integration.<br>
+          To change your email settings, please visit the Settings page in the web app.
         </div>
       </div>
     </body>
@@ -194,7 +194,7 @@ const checkDailyLimitAndIncrement = (email) => {
  */
 export async function triggerTestEmail(accessToken, toEmail) {
   if (!checkDailyLimitAndIncrement(toEmail)) {
-    alert('ส่งอีเมลทดสอบล้มเหลว: คุณส่งอีเมลเกินขีดจำกัด 3 ฉบับต่อวันแล้ว');
+    alert('Failed to send test email: You have reached the daily limit of 3 emails.');
     return;
   }
 
@@ -204,17 +204,17 @@ export async function triggerTestEmail(accessToken, toEmail) {
   const body = `
     <h2 class="title" style="color: #10b981;">🎉 Gmail Integration Success</h2>
     <p class="desc">
-      ระบบเชื่อมต่อการแจ้งเตือนของ Classroom Hub กับบัญชี Gmail ของคุณเสร็จสมบูรณ์แล้ว! ต่อจากนี้คุณจะได้รับอีเมลแจ้งเตือนตามกฎที่คุณตั้งค่าไว้
+      The connection between Classroom Hub and your Gmail account has been successfully established! Going forward, you will receive notifications based on your settings.
     </p>
     <div style="border-top: 1px solid #1f2937; padding-top: 15px; margin-top: 15px;">
-      <h3 style="font-size: 13px; color: #ffffff; margin-top: 0;">สรุปการเปิดใช้งานกฎแจ้งเตือน:</h3>
+      <h3 style="font-size: 13px; color: #ffffff; margin-top: 0;">Active Trigger Summary:</h3>
       <ul style="font-size: 12px; color: #9ca3af; padding-left: 20px; line-height: 1.8;">
-        <li>ก่อนกำหนดส่ง 3 วัน: <strong>${alertSettings.due3Days ? '✓ เปิดใช้งาน' : '✗ ปิดใช้งาน'}</strong></li>
-        <li>ก่อนกำหนดส่ง 1 วัน: <strong>${alertSettings.due1Day ? '✓ เปิดใช้งาน' : '✗ ปิดใช้งาน'}</strong></li>
-        <li>วันกำหนดส่ง: <strong>${alertSettings.dueToday ? '✓ เปิดใช้งาน' : '✗ ปิดใช้งาน'}</strong></li>
-        <li>หลังเลยกำหนด 1 วัน (ครั้งเดียว): <strong>${alertSettings.overdue1Day ? '✓ เปิดใช้งาน' : '✗ ปิดใช้งาน'}</strong></li>
-        <li>งานโพสต์ใหม่ (ประกาศ/การบ้าน): <strong>${alertSettings.newPosts ? '✓ เปิดใช้งาน (รวมเล่ม)' : '✗ ปิดใช้งาน'}</strong></li>
-        <li>งานไม่มีกำหนดส่ง: <strong>${alertSettings.sundayDigest ? `✓ ทุกวันอาทิตย์ (เวลา ${time} น.)` : '✗ ปิดใช้งาน'}</strong></li>
+        <li>3 Days Before Due: <strong>${alertSettings.due3Days ? '✓ Enabled' : '✗ Disabled'}</strong></li>
+        <li>1 Day Before Due: <strong>${alertSettings.due1Day ? '✓ Enabled' : '✗ Disabled'}</strong></li>
+        <li>Due Today: <strong>${alertSettings.dueToday ? '✓ Enabled' : '✗ Disabled'}</strong></li>
+        <li>1 Day Overdue (Once): <strong>${alertSettings.overdue1Day ? '✓ Enabled' : '✗ Disabled'}</strong></li>
+        <li>New Posts (Consolidated): <strong>${alertSettings.newPosts ? '✓ Enabled' : '✗ Disabled'}</strong></li>
+        <li>Sunday Digest (No Due Date): <strong>${alertSettings.sundayDigest ? `✓ Every Sunday at ${time}` : '✗ Disabled'}</strong></li>
       </ul>
     </div>
   `;
@@ -223,7 +223,7 @@ export async function triggerTestEmail(accessToken, toEmail) {
   
   await sendGmailNotification(accessToken, toEmail, '🎉 Classroom Hub: Gmail Integration Success', html);
   addNotificationHistoryLog({
-    title: 'ส่งอีเมลทดสอบการเชื่อมต่อระบบสำเร็จ',
+    title: 'Sent connection test email successfully',
     type: 'test_email'
   }, toEmail);
 }
@@ -233,13 +233,13 @@ export async function triggerTestEmail(accessToken, toEmail) {
  */
 export async function triggerManualDigest(accessToken, toEmail, assignments) {
   if (!checkDailyLimitAndIncrement(toEmail)) {
-    alert('ส่งสรุปงานค้างล้มเหลว: คุณส่งอีเมลเกินขีดจำกัด 3 ฉบับต่อวันแล้ว');
+    alert('Failed to send task digest: You have reached the daily limit of 3 emails.');
     return;
   }
 
   const todoTasks = assignments.filter(a => a.status !== 'done');
   if (todoTasks.length === 0) {
-    alert('คุณไม่มีงานค้างอยู่ในระบบขณะนี้!');
+    alert('You have no pending assignments in the dashboard at the moment!');
     return;
   }
 
@@ -264,10 +264,10 @@ export async function triggerManualDigest(accessToken, toEmail, assignments) {
     `;
     
     list.forEach(t => {
-      const dueLabel = t.dueDate ? new Date(t.dueDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) : 'ไม่มีกำหนดส่ง';
+      const dueLabel = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'No Due Date';
       tasksHtml += `
         <div style="padding: 6px 0; border-bottom: 1px solid #374151;">
-          <strong>• ${t.title}</strong> <span style="font-size: 10px; color: #9ca3af; margin-left: 8px;">(ส่ง: ${dueLabel})</span>
+          <strong>• ${t.title}</strong> <span style="font-size: 10px; color: #9ca3af; margin-left: 8px;">(Due: ${dueLabel})</span>
         </div>
       `;
     });
@@ -276,22 +276,22 @@ export async function triggerManualDigest(accessToken, toEmail, assignments) {
   });
 
   const body = `
-    <h2 class="title">สรุปภารกิจและงานค้างทั้งหมด</h2>
+    <h2 class="title">Pending Assignments Digest</h2>
     <p class="desc">
-      สรุปรายการงานค้างที่ยังไม่เสร็จสิ้นทั้งหมดของคุณในระบบ Classroom Hub ณ ปัจจุบัน
+      Here is a summary of all your currently unfinished coursework in Classroom Hub.
     </p>
     ${tasksHtml}
   `;
 
-  const html = wrapHtmlEmail('สรุปภารกิจการบ้านสะสม', body);
-  await sendGmailNotification(accessToken, toEmail, '📝 สรุปรายการงานค้างทั้งหมด - Classroom Hub', html);
+  const html = wrapHtmlEmail('Pending Assignments Digest', body);
+  await sendGmailNotification(accessToken, toEmail, '📝 Pending Assignments Digest - Classroom Hub', html);
   
   addNotificationHistoryLog({
-    title: `ส่งสรุปงานค้างสำเร็จ (รวม ${todoTasks.length} รายการ)`,
+    title: `Sent pending assignments digest (Total ${todoTasks.length} items)`,
     type: 'manual_digest'
   }, toEmail);
   
-  alert('ส่งอีเมลสรุปงานค้างทั้งหมดเข้า Gmail เรียบร้อยแล้ว!');
+  alert('Sent pending assignments summary to your Gmail successfully!');
 }
 
 /**
@@ -338,24 +338,24 @@ export async function evaluateNotifications(accessToken, toEmail, assignments, c
 
     if (diffDays === 3 && alertSettings.due3Days) {
       triggerType = 'due_3_days';
-      subject = `[Classroom Hub] ⚠️ แจ้งเตือน: 3 วันก่อนส่งการบ้าน: ${task.title}`;
+      subject = `[Classroom Hub] ⚠️ Reminder: 3 Days Before Due: ${task.title}`;
       emoji = '⚠️';
-      warningLabel = 'มีกำหนดส่งอีก 3 วันข้างหน้า';
+      warningLabel = 'Due in 3 days';
     } else if (diffDays === 1 && alertSettings.due1Day) {
       triggerType = 'due_1_day';
-      subject = `[Classroom Hub] 🚨 ด่วนที่สุด: พรุ่งนี้ครบกำหนดส่ง: ${task.title}`;
+      subject = `[Classroom Hub] 🚨 Urgent: Due Tomorrow: ${task.title}`;
       emoji = '🚨';
-      warningLabel = 'ต้องส่งภายในวันพรุ่งนี้';
+      warningLabel = 'Due tomorrow';
     } else if (diffDays === 0 && alertSettings.dueToday) {
       triggerType = 'due_today';
-      subject = `[Classroom Hub] ⏱️ ครบกำหนดวันนี้: ${task.title}`;
+      subject = `[Classroom Hub] ⏱️ Due Today: ${task.title}`;
       emoji = '⏱️';
-      warningLabel = 'กำหนดส่งวันนี้แล้ว!';
+      warningLabel = 'Due today!';
     } else if (diffDays === -1 && alertSettings.overdue1Day) {
       triggerType = 'overdue_1_day';
-      subject = `[Classroom Hub] 🔴 งานเลยกำหนดส่ง: ${task.title}`;
+      subject = `[Classroom Hub] 🔴 Overdue: ${task.title}`;
       emoji = '🔴';
-      warningLabel = 'เลยกำหนดส่งมาแล้ว 1 วัน! รีบดำเนินการด่วน';
+      warningLabel = 'Overdue by 1 day! Action required';
     }
 
     if (triggerType && checkAndRecordSent(task.id, triggerType)) {
@@ -367,15 +367,15 @@ export async function evaluateNotifications(accessToken, toEmail, assignments, c
           <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #1f2937; border-radius: 8px; padding: 15px; margin-top: 15px;">
             <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">${task.courseCode} • ${task.course}</span>
             <h3 style="color: #ffffff; margin: 4px 0 10px 0; font-size: 15px;">${task.title}</h3>
-            <p style="font-size: 12px; color: #d1d5db; line-height: 1.6; margin: 0;">${task.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+            <p style="font-size: 12px; color: #d1d5db; line-height: 1.6; margin: 0;">${task.description || 'No description provided.'}</p>
           </div>
-          ${task.googleLink ? `<a href="${task.googleLink}" target="_blank" class="button">ดูรายละเอียดบน Google Classroom</a>` : ''}
+          ${task.googleLink ? `<a href="${task.googleLink}" target="_blank" class="button">View on Google Classroom</a>` : ''}
         `;
         const html = wrapHtmlEmail(subject, body);
         await sendGmailNotification(accessToken, toEmail, subject, html);
         
         addNotificationHistoryLog({
-          title: `ส่งเมลเตือน '${task.title}' (${warningLabel})`,
+          title: `Sent reminder for '${task.title}' (${warningLabel})`,
           type: triggerType
         }, toEmail);
         
@@ -437,14 +437,14 @@ export async function evaluateNotifications(accessToken, toEmail, assignments, c
           });
 
           const body = `
-            <h2 class="title" style="color: #6366f1;">📅 Sunday Digest: งานสะสมไม่มีกำหนดส่ง</h2>
+            <h2 class="title" style="color: #6366f1;">📅 Sunday Digest: Pending Tasks with No Due Date</h2>
             <p class="desc">
-              สรุปรายการการบ้านและงานที่อาจารย์ไม่ได้ระบุกำหนดส่ง เพื่อป้องกันคุณตกหล่นภารกิจเรียนในรายวิชาต่างๆ
+              Summary of all pending assignments and coursework without specific due dates to help you keep track.
             </p>
             ${itemsHtml}
           `;
 
-          const digestSubject = `[Classroom Hub] 📅 Sunday Digest: สรุปงานไม่มีกำหนดส่งประจำสัปดาห์`;
+          const digestSubject = `[Classroom Hub] 📅 Sunday Digest: Weekly tasks summary`;
           const html = wrapHtmlEmail(digestSubject, body);
           await sendGmailNotification(accessToken, toEmail, digestSubject, html);
           
@@ -455,7 +455,7 @@ export async function evaluateNotifications(accessToken, toEmail, assignments, c
           });
           
           addNotificationHistoryLog({
-            title: `ส่งเมลสรุป Sunday Digest (รวม ${noDueDateTasks.length} รายการ)`,
+            title: `Sent Sunday Digest email (Total ${noDueDateTasks.length} items)`,
             type: 'sunday_digest'
           }, toEmail);
           
@@ -511,7 +511,7 @@ export async function evaluateNewPostDigest(accessToken, toEmail, freshAssignmen
     `;
     
     if (group.assigns.length > 0) {
-      groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #a855f7; margin: 8px 0 4px 0;">📝 งานใหม่ (${group.assigns.length})</p>`;
+      groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #a855f7; margin: 8px 0 4px 0;">📝 New Assignments (${group.assigns.length})</p>`;
       group.assigns.forEach(t => {
         groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${t.title}</strong></div>`;
       });
@@ -522,14 +522,14 @@ export async function evaluateNewPostDigest(accessToken, toEmail, freshAssignmen
       const mats = group.resources.filter(r => r.type === 'material');
       
       if (anns.length > 0) {
-        groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #f59e0b; margin: 10px 0 4px 0;">📢 ประกาศใหม่ (${anns.length})</p>`;
+        groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #f59e0b; margin: 10px 0 4px 0;">📢 New Announcements (${anns.length})</p>`;
         anns.forEach(r => {
           groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${r.title}</strong></div>`;
         });
       }
       
       if (mats.length > 0) {
-        groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #3b82f6; margin: 10px 0 4px 0;">📖 เอกสารเรียนใหม่ (${mats.length})</p>`;
+        groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #3b82f6; margin: 10px 0 4px 0;">📖 New Course Materials (${mats.length})</p>`;
         mats.forEach(r => {
           groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${r.title}</strong></div>`;
         });
@@ -539,11 +539,11 @@ export async function evaluateNewPostDigest(accessToken, toEmail, freshAssignmen
     groupHtml += `</div>`;
   });
 
-  const subject = `[Classroom Hub] 🆕 พบ ${totalNew} รายการใหม่ในห้องเรียน`;
+  const subject = `[Classroom Hub] 🆕 Detected ${totalNew} new items in classroom`;
   const body = `
-    <h2 class="title" style="color: #6366f1;">🆕 ตรวจพบความเคลื่อนไหวในห้องเรียน</h2>
+    <h2 class="title" style="color: #6366f1;">🆕 New Classroom Activity Detected</h2>
     <p class="desc">
-      พบงาน ประกาศ หรือเอกสารประกอบการเรียนที่อาจารย์อัปโหลดลงบน Classroom ใหม่จำนวน ${totalNew} รายการ
+      Detected ${totalNew} new assignment(s), announcement(s), or material(s) uploaded by your instructors.
     </p>
     ${groupHtml}
   `;
@@ -552,7 +552,7 @@ export async function evaluateNewPostDigest(accessToken, toEmail, freshAssignmen
   await sendGmailNotification(accessToken, toEmail, subject, html);
   
   addNotificationHistoryLog({
-    title: `ตรวจพบและส่งเมลโพสต์ใหม่ (รวม ${totalNew} รายการ)`,
+    title: `Detected and sent new posts email (Total ${totalNew} items)`,
     type: 'new_posts_digest'
   }, toEmail);
 }

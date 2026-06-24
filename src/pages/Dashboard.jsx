@@ -178,9 +178,9 @@ export default function Dashboard({
                 className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer"
               >
                 <option value="all">All Statuses</option>
-                <option value="todo">ยังไม่เริ่ม (To Do)</option>
-                <option value="doing">กำลังทำ (In Progress)</option>
-                <option value="done">เสร็จแล้ว (Completed)</option>
+                <option value="todo">To Do</option>
+                <option value="doing">In Progress</option>
+                <option value="done">Completed</option>
               </select>
             </div>
           )}
@@ -227,7 +227,7 @@ export default function Dashboard({
             <div className="space-y-3 bg-rose-500/5 border border-rose-500/10 rounded-2xl p-5">
               <h3 className="text-xs font-bold text-rose-400 flex items-center gap-2 uppercase tracking-wider">
                 <AlertTriangle size={15} className="animate-bounce" />
-                🔴 Overdue Assignments (เลยกำหนดส่ง)
+                🔴 Overdue Assignments
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {overdueTasks.map(task => (
@@ -242,7 +242,7 @@ export default function Dashboard({
             <div className="space-y-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl p-5">
               <h3 className="text-xs font-bold text-amber-400 flex items-center gap-2 uppercase tracking-wider">
                 <AlertTriangle size={15} />
-                ⚠️ Due Today (ส่งภายในวันนี้)
+                ⚠️ Due Today
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {todayTasks.map(task => (
@@ -286,7 +286,7 @@ export default function Dashboard({
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" />
-                <span className="font-semibold text-sm text-white">ยังไม่เริ่ม (To Do)</span>
+                <span className="font-semibold text-sm text-white">To Do</span>
               </div>
               <span className="bg-zinc-800 text-zinc-300 text-xs px-2 py-0.5 rounded-full font-bold">
                 {todoTasks.length}
@@ -309,7 +309,7 @@ export default function Dashboard({
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="font-semibold text-sm text-white">กำลังทำ (In Progress)</span>
+                <span className="font-semibold text-sm text-white">In Progress</span>
               </div>
               <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-2 py-0.5 rounded-full font-bold">
                 {doingTasks.length}
@@ -332,7 +332,7 @@ export default function Dashboard({
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span className="font-semibold text-sm text-white">เสร็จแล้ว (Completed)</span>
+                <span className="font-semibold text-sm text-white">Completed</span>
               </div>
               <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-2 py-0.5 rounded-full font-bold">
                 {doneTasks.length}

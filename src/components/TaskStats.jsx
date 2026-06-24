@@ -16,19 +16,19 @@ export default function TaskStats({ assignments = [] }) {
       color: 'text-brand-400 bg-brand-500/10 border-brand-500/10'
     },
     {
-      label: 'To Do (ยังไม่เริ่ม)',
+      label: 'To Do',
       value: todo,
       icon: ListTodo,
       color: 'text-zinc-400 bg-zinc-500/10 border-zinc-500/10'
     },
     {
-      label: 'In Progress (กำลังทำ)',
+      label: 'In Progress',
       value: doing,
       icon: Clock,
       color: 'text-amber-400 bg-amber-500/10 border-amber-500/10'
     },
     {
-      label: 'Completed (เสร็จแล้ว)',
+      label: 'Completed',
       value: done,
       icon: CheckCircle2,
       color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/10'

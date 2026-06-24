@@ -59,7 +59,7 @@ export default function Settings({
     setEmailAlerts(val);
     setEnableEmailAlerts(val, userEmail);
     addNotificationHistoryLog({
-      title: val ? 'เปิดใช้งานระบบแจ้งเตือนทาง Gmail' : 'ปิดใช้งานระบบแจ้งเตือนทาง Gmail',
+      title: val ? 'Enabled Gmail Notification System' : 'Disabled Gmail Notification System',
       type: 'settings_change'
     }, userEmail);
     setHistoryLogs(getNotificationHistory(userEmail));
@@ -80,7 +80,7 @@ export default function Settings({
 
   const handleSendDigestNow = async () => {
     if (!accessToken) {
-      alert('กรุณาเชื่อมต่อ Google Classroom ก่อนทำรายการ');
+      alert('Please connect to Google Classroom before performing this action.');
       return;
     }
     setDigestSending(true);
@@ -90,7 +90,7 @@ export default function Settings({
       setDailyLimit(getDailyEmailLimit(userEmail));
     } catch (e) {
       console.error(e);
-      alert(`ล้มเหลว: ${e.message}`);
+      alert(`Failed: ${e.message}`);
     } finally {
       setDigestSending(false);
     }
@@ -300,13 +300,13 @@ export default function Settings({
                 <div className="space-y-5 animate-fade-in text-xs">
                   {/* Daily Limit Tracker */}
                   <div className="flex items-center justify-between p-3 rounded-xl bg-brand-500/5 border border-brand-500/10">
-                    <span className="text-dark-muted font-medium">โควต้าส่งเมลวันนี้:</span>
-                    <span className="text-brand-400 font-bold">{dailyLimit.count} / 3 อีเมล (สูงสุด 3 ฉบับต่อวัน)</span>
+                    <span className="text-dark-muted font-medium">Daily email quota:</span>
+                    <span className="text-brand-400 font-bold">{dailyLimit.count} / 3 emails (Max 3 emails per day)</span>
                   </div>
 
                   {/* Settings Rules Checklist */}
                   <div className="space-y-3.5">
-                    <span className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">เงื่อนไขการส่งแจ้งเตือน:</span>
+                    <span className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">Notification Triggers:</span>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <label className="flex items-start gap-2.5 cursor-pointer">
@@ -317,8 +317,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">ก่อนครบกำหนด 3 วัน</span>
-                          <p className="text-[10px] text-dark-muted">เตือนเมื่ออีก 3 วันถึงกำหนดส่ง (นับตามวันปฏิทิน)</p>
+                          <span className="font-semibold text-white">3 Days Before Due</span>
+                          <p className="text-[10px] text-dark-muted">Alert when exactly 3 calendar days remain before due date.</p>
                         </div>
                       </label>
 
@@ -330,8 +330,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">ก่อนครบกำหนด 1 วัน</span>
-                          <p className="text-[10px] text-dark-muted">เตือนเมื่ออีก 1 วันถึงกำหนดส่ง</p>
+                          <span className="font-semibold text-white">1 Day Before Due</span>
+                          <p className="text-[10px] text-dark-muted">Alert when exactly 1 calendar day remains before due date.</p>
                         </div>
                       </label>
 
@@ -343,8 +343,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">วันครบกำหนดส่ง</span>
-                          <p className="text-[10px] text-dark-muted">เตือนเมื่อครบกำหนดส่งภายในวันนี้</p>
+                          <span className="font-semibold text-white">Due Today</span>
+                          <p className="text-[10px] text-dark-muted">Alert on the day of the deadline.</p>
                         </div>
                       </label>
 
@@ -356,8 +356,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">หลังเลยกำหนด 1 วัน (ครั้งเดียว)</span>
-                          <p className="text-[10px] text-dark-muted">ส่งเตือนงานค้างเลยกำหนดหลังผ่านไป 1 วันเพียงครั้งเดียว</p>
+                          <span className="font-semibold text-white">1 Day Overdue (Once)</span>
+                          <p className="text-[10px] text-dark-muted">Alert once after the task is overdue by 1 day.</p>
                         </div>
                       </label>
 
@@ -369,8 +369,8 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">ตรวจพบงาน / ประกาศโพสต์ใหม่ (รวมเล่ม)</span>
-                          <p className="text-[10px] text-dark-muted">เมื่อกดซิงก์แล้วเจองานหรือประกาศใหม่ จะรวบรวมเมลส่งแจ้งเตือนทันทีฉบับเดียว ป้องกันการสแปม</p>
+                          <span className="font-semibold text-white">New Post Alert (Consolidated)</span>
+                          <p className="text-[10px] text-dark-muted">Consolidate newly detected assignments/announcements on sync into a single digest email.</p>
                         </div>
                       </label>
                     </div>
@@ -384,14 +384,14 @@ export default function Settings({
                           className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-semibold text-white">แจ้งเตือนงานไม่มีกำหนดส่ง (Sunday Digest)</span>
-                          <p className="text-[10px] text-dark-muted font-medium">ตรวจสอบทุกครั้งที่เปิดแอป หากพลาด Sunday Digest ระบบจะส่งย้อนหลังอัตโนมัติ</p>
+                          <span className="font-semibold text-white">Sunday Digest (No Due Date Tasks)</span>
+                          <p className="text-[10px] text-dark-muted font-medium">Check automatically on app startup. Missed digests will be sent retroactively.</p>
                         </div>
                       </label>
 
                       {alertSettings.sundayDigest && (
                         <div className="flex items-center gap-3 pl-6 animate-fade-in">
-                          <span className="text-[10px] text-dark-muted uppercase font-semibold">เวลาที่จะจัดส่ง:</span>
+                          <span className="text-[10px] text-dark-muted uppercase font-semibold">Delivery Time:</span>
                           <input 
                             type="time" 
                             value={sundayTime}
@@ -412,13 +412,13 @@ export default function Settings({
                       onClick={handleSendDigestNow}
                       className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold px-4.5 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      {digestSending ? 'กำลังส่งสรุปงาน...' : 'ส่งสรุปงานค้างทั้งหมดเข้า Gmail ทันที'}
+                      {digestSending ? 'Sending task digest...' : 'Send Task Digest Now'}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center p-8 bg-dark-sidebar/20 rounded-xl border border-dashed border-dark-border/40 text-dark-muted text-xs">
-                  ระบบแจ้งเตือนทาง Gmail ถูกปิดใช้งานอยู่
+                  Gmail Notification System is disabled.
                 </div>
               )}
             </div>
@@ -484,7 +484,7 @@ export default function Settings({
             </div>
 
             <p className="text-[11px] text-zinc-300 leading-relaxed leading-5">
-              <strong>Classroom Hub</strong> ยกระดับประสิทธิภาพการศึกษา ด้วยการรวมข้อมูลประกาศ งานที่ได้รับมอบหมาย และเอกสารประกอบการเรียนจาก Google Classroom มาแสดงผลในรูปแบบที่มินิมอลและถนอมสายตา
+              <strong>Classroom Hub</strong> enhances student productivity by consolidating Google Classroom coursework, announcements, and materials into a unified, minimal, dark-mode dashboard.
             </p>
 
             <div className="grid grid-cols-2 gap-2 pt-1.5">
@@ -530,7 +530,7 @@ export default function Settings({
                   })
                 ) : (
                   <div className="text-center py-6 text-dark-muted text-[10px]">
-                    ยังไม่มีประวัติการส่งแจ้งเตือนในระบบ
+                    No notification logs found in history.
                   </div>
                 )}
               </div>

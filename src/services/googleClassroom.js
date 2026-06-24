@@ -184,14 +184,14 @@ export async function fetchGoogleClassroomData(accessToken) {
             const cleanUrl = url.replace(/[.,;)]+$/, ''); // Clean trailing punctuation
             const lowerUrl = cleanUrl.toLowerCase().trim();
             if (!seenLinks.has(lowerUrl)) {
-              let name = 'ลิงก์เอกสารภายนอก';
+              let name = 'External Document Link';
               let size = 'External Link';
               
               if (lowerUrl.includes('drive.google.com')) {
-                name = 'เอกสาร Google Drive';
+                name = 'Google Drive Document';
                 size = 'Google Drive File';
               } else if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
-                name = 'วิดีโอ YouTube';
+                name = 'YouTube Video';
                 size = 'Video';
               }
               

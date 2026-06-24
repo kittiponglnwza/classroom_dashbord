@@ -41,13 +41,13 @@ function ResourceCard({
   const getResourceTypeStyles = () => {
     if (type === 'announcement') {
       return {
-        label: 'ประกาศ',
+        label: 'Announcement',
         badge: 'text-amber-400 bg-amber-500/10 border border-amber-500/20',
         icon: <Megaphone size={14} className="text-amber-400" />
       };
     } else {
       return {
-        label: 'เอกสารเรียน',
+        label: 'Material',
         badge: 'text-blue-400 bg-blue-500/10 border border-blue-500/20',
         icon: <FileText size={14} className="text-blue-400" />
       };
@@ -127,7 +127,7 @@ function ResourceCard({
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="text-[11px] text-brand-400 hover:text-brand-300 font-semibold focus:outline-none cursor-pointer mt-1"
               >
-                {isExpanded ? 'แสดงน้อยลง' : 'อ่านเพิ่มเติม'}
+                {isExpanded ? 'Show Less' : 'Read More'}
               </button>
             )}
           </div>
@@ -138,7 +138,7 @@ function ResourceCard({
       {attachments.length > 0 && (
         <div className="border-t border-dark-border/60 pt-4 mt-4 space-y-1.5">
           <span className="text-[10px] text-dark-muted font-semibold uppercase tracking-wider block mb-1">
-            ไฟล์แนบ ({attachments.length})
+            Attachments ({attachments.length})
           </span>
           <div className="space-y-1">
             {attachments.map((att, idx) => (
@@ -175,13 +175,13 @@ function ResourceCard({
             <>
               <Check size={11} className="group-hover:hidden text-emerald-400" />
               <Trash2 size={11} className="hidden group-hover:inline text-rose-400" />
-              <span className="group-hover:hidden">กำลังติดตามเป็นงาน</span>
-              <span className="hidden group-hover:inline">ยกเลิกการติดตาม</span>
+              <span className="group-hover:hidden">Tracked as Task</span>
+              <span className="hidden group-hover:inline">Untrack Task</span>
             </>
           ) : (
             <>
               <Pin size={11} />
-              <span>ย้ายไปที่ต้องส่ง</span>
+              <span>Track as Task</span>
             </>
           )}
         </button>
@@ -193,7 +193,7 @@ function ResourceCard({
             rel="noopener noreferrer"
             className="text-[10px] text-brand-400 hover:text-brand-300 font-medium inline-flex items-center gap-1 shrink-0"
           >
-            ดูบน Classroom <ExternalLink size={10} />
+            View on Classroom <ExternalLink size={10} />
           </a>
         )}
       </div>
@@ -324,7 +324,7 @@ export default function Courses({
               className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'resources')}`}
             >
               <Megaphone size={13} />
-              <span>ประกาศ & เอกสาร</span>
+              <span>Announcements & Materials</span>
               <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'resources')}`}>
                 {courseResources.length}
               </span>
@@ -334,7 +334,7 @@ export default function Courses({
               className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'assignments')}`}
             >
               <BookOpen size={13} />
-              <span>งานที่ต้องส่ง</span>
+              <span>Assignments</span>
               <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'assignments')}`}>
                 {courseAssignments.length}
               </span>
@@ -405,7 +405,7 @@ export default function Courses({
               }`}
             >
               {isManageMode ? <EyeOff size={13} /> : <Eye size={13} />}
-              <span>{isManageMode ? 'เสร็จสิ้นการตั้งค่า' : 'จัดการซ่อนหลายวิชา'}</span>
+              <span>{isManageMode ? 'Done' : 'Hide Multiple Courses'}</span>
             </button>
           </div>
 
@@ -413,8 +413,8 @@ export default function Courses({
             <div className="bg-dark-card/10 border border-dark-border/40 rounded-2xl p-5 md:p-6 space-y-4 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-dark-border/20 pb-3 gap-3">
                 <div className="space-y-0.5">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">เลือกวิชาที่ต้องการซ่อน</h4>
-                  <p className="text-[10px] text-dark-muted">ทำเครื่องหมายหน้าวิชาที่คุณต้องการซ่อน (การซ่อนจะปิดการแจ้งเตือนและการบ้านของวิชานั้นบนหน้าอื่นๆ)</p>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Select Courses to Hide</h4>
+                  <p className="text-[10px] text-dark-muted">Check the courses you want to hide (hiding will exclude their assignments and notifications from other views).</p>
                 </div>
                 {/* Bulk Actions */}
                 <div className="flex gap-2">
@@ -425,7 +425,7 @@ export default function Courses({
                     }}
                     className="text-[10px] font-bold text-rose-400 hover:text-rose-300 cursor-pointer bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 px-2.5 py-1.5 rounded-lg transition-colors"
                   >
-                    ซ่อนทั้งหมด
+                    Hide All
                   </button>
                   <button
                     onClick={() => {
@@ -433,7 +433,7 @@ export default function Courses({
                     }}
                     className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-colors"
                   >
-                    แสดงทั้งหมด
+                    Show All
                   </button>
                 </div>
               </div>
@@ -465,7 +465,7 @@ export default function Courses({
                       <span className={`text-[9px] uppercase font-bold shrink-0 px-1.5 py-0.5 rounded border ${
                         isHidden ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                       }`}>
-                        {isHidden ? 'ซ่อนอยู่' : 'แสดง'}
+                        {isHidden ? 'Hidden' : 'Visible'}
                       </span>
                     </label>
                   );
@@ -499,7 +499,7 @@ export default function Courses({
                       <span className="tracking-wider uppercase">{course.code}</span>
                       <div>
                         {isHidden ? (
-                          <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2 py-0.5 rounded-md">ซ่อนอยู่</span>
+                          <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2 py-0.5 rounded-md">Hidden</span>
                         ) : activeCount > 0 ? (
                           <span className={`px-2 py-0.5 rounded-md border ${
                             course.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
@@ -508,7 +508,7 @@ export default function Courses({
                             course.color === 'rose' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
                             'bg-purple-500/10 text-purple-400 border-purple-500/20'
                           }`}>
-                            {activeCount} งานต้องส่ง
+                            {activeCount} active
                           </span>
                         ) : null}
                       </div>
@@ -519,9 +519,9 @@ export default function Courses({
                         {course.name}
                       </h3>
                       <div className="flex items-center gap-1.5 text-[10px] text-dark-muted font-medium">
-                        <span>{totalAssignments} งานทั้งหมด</span>
+                        <span>{totalAssignments} assignments</span>
                         <span>•</span>
-                        <span>{totalResources} ประกาศ/เอกสาร</span>
+                        <span>{totalResources} posts/materials</span>
                       </div>
                     </div>
                   </div>
@@ -539,7 +539,7 @@ export default function Courses({
                         onToggleCourseVisibility(course.id);
                       }}
                       className="p-1.5 rounded-lg bg-dark-sidebar/40 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-all duration-200 cursor-pointer"
-                      title={isHidden ? "แสดงวิชานี้ในแดชบอร์ด" : "ซ่อนวิชานี้จากแดชบอร์ด"}
+                      title={isHidden ? "Show in Dashboard" : "Hide from Dashboard"}
                     >
                       {isHidden ? <EyeOff size={11} className="text-rose-400" /> : <Eye size={11} />}
                     </button>

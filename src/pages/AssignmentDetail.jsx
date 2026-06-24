@@ -126,9 +126,9 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                     status === 'doing' ? 'text-amber-400' : 'text-emerald-400'
                   }`}
                 >
-                  <option value="todo">ยังไม่เริ่ม (To Do)</option>
-                  <option value="doing">กำลังทำ (In Progress)</option>
-                  <option value="done">เสร็จแล้ว (Completed)</option>
+                  <option value="todo">To Do</option>
+                  <option value="doing">In Progress</option>
+                  <option value="done">Completed</option>
                 </select>
               </div>
             </div>

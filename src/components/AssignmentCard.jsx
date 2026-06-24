@@ -7,11 +7,11 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
   // Calculate detailed due countdown
   const getDueStatus = () => {
     if (status === 'done') {
-      return { text: 'เสร็จแล้ว', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', isOverdue: false };
+      return { text: 'Completed', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', isOverdue: false };
     }
 
     if (!dueDate) {
-      return { text: 'ไม่มีกำหนดส่ง', class: 'bg-zinc-500/10 text-dark-muted border-dark-border', isOverdue: false };
+      return { text: 'No Due Date', class: 'bg-zinc-500/10 text-dark-muted border-dark-border', isOverdue: false };
     }
 
     const now = new Date();
@@ -24,13 +24,13 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
       if (diffDays === 0) {
         const diffHrs = Math.abs(Math.floor(diffMs / (1000 * 60 * 60)));
         return { 
-          text: `🔴 เลยกำหนด (${diffHrs} ชม.)`, 
+          text: `🔴 Overdue (${diffHrs}h)`, 
           class: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold animate-pulse', 
           isOverdue: true 
         };
       }
       return { 
-        text: `🔴 เลยกำหนด (${diffDays} วัน)`, 
+        text: `🔴 Overdue (${diffDays}d)`, 
         class: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold animate-pulse', 
         isOverdue: true 
       };
@@ -42,13 +42,13 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
       if (diffHrs === 0) {
         const diffMins = Math.floor(diffMs / (1000 * 60));
         return { 
-          text: `⚠️ เหลือ ${diffMins} นาที (ส่งวันนี้)`, 
+          text: `⚠️ ${diffMins}m left (Today)`, 
           class: 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold', 
           isOverdue: false 
         };
       }
       return { 
-        text: `⚠️ เหลือ ${diffHrs} ชม. (ส่งวันนี้)`, 
+        text: `⚠️ ${diffHrs}h left (Today)`, 
         class: 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold', 
         isOverdue: false 
       };
@@ -58,7 +58,7 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
     if (diffDays === 1) {
       return { 
-        text: '⚠️ ส่งพรุ่งนี้', 
+        text: '⚠️ Due Tomorrow', 
         class: 'bg-amber-500/10 text-amber-400 border-amber-500/20 font-semibold', 
         isOverdue: false 
       };
@@ -66,7 +66,7 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
 
     // Normal countdown in days
     return { 
-      text: `เหลืออีก ${diffDays} วัน`, 
+      text: `${diffDays} days left`, 
       class: 'bg-zinc-500/10 text-dark-muted border-dark-border', 
       isOverdue: false 
     };
@@ -119,9 +119,9 @@ export default function AssignmentCard({ assignment, onStatusChange }) {
                 status === 'doing' ? 'text-amber-400' : 'text-emerald-400'
               }`}
             >
-              <option value="todo">ยังไม่เริ่ม</option>
-              <option value="doing">กำลังทำ</option>
-              <option value="done">เสร็จแล้ว</option>
+              <option value="todo">To Do</option>
+              <option value="doing">In Progress</option>
+              <option value="done">Completed</option>
             </select>
           </div>
         </div>
