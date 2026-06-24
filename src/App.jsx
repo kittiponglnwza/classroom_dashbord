@@ -48,6 +48,11 @@ export default function App() {
     const nextLang = lang === 'en' ? 'th' : 'en';
     setLang(nextLang);
     localStorage.setItem('classroom_hub_language', nextLang);
+
+    const email = getActiveEmail();
+    if (email) {
+      localStorage.setItem(`classroom_hub_${email}_language`, nextLang);
+    }
   };
   const [courses, setCourses] = useState([]);
   const [profile, setProfile] = useState({});
@@ -82,6 +87,14 @@ export default function App() {
       setLastSyncTime(getLastSync(activeEmail));
       setHiddenCourseIds(getHiddenCourses(activeEmail));
       setResources(getResources(activeEmail));
+
+      // Load user-scoped language preference if exists
+      const userLangKey = `classroom_hub_${activeEmail}_language`;
+      const savedUserLang = localStorage.getItem(userLangKey);
+      if (savedUserLang) {
+        setLang(savedUserLang);
+        localStorage.setItem('classroom_hub_language', savedUserLang);
+      }
     } else {
       // Load empty/default caches
       setAssignments(getAssignments(''));
@@ -166,8 +179,25 @@ export default function App() {
       const userEmail = userProfile.email;
       
       setActiveEmail(userEmail);
-      saveProfile(userProfile, userEmail);
-      setProfile(userProfile);
+
+      // Load user-scoped language preference if exists
+      const userLangKey = `classroom_hub_${userEmail}_language`;
+      const savedUserLang = localStorage.getItem(userLangKey);
+      if (savedUserLang) {
+        setLang(savedUserLang);
+        localStorage.setItem('classroom_hub_language', savedUserLang);
+      } else {
+        localStorage.setItem(userLangKey, lang);
+      }
+
+      // Merge with existing profile to preserve customized settings
+      const existingProfile = getProfile(userEmail);
+      const mergedProfile = existingProfile && existingProfile.isCustomized
+        ? { ...userProfile, ...existingProfile, email: userEmail }
+        : userProfile;
+
+      saveProfile(mergedProfile, userEmail);
+      setProfile(mergedProfile);
 
       // Pre-load user-scoped cached data from localStorage into states immediately
       setAssignments(getAssignments(userEmail));
@@ -302,8 +332,12 @@ export default function App() {
 
   const handleProfileSave = (updatedProfile) => {
     const email = getActiveEmail();
-    saveProfile(updatedProfile, email);
-    setProfile(updatedProfile);
+    const profileToSave = {
+      ...updatedProfile,
+      isCustomized: true
+    };
+    saveProfile(profileToSave, email);
+    setProfile(profileToSave);
   };
 
   const handleReset = () => {
@@ -489,6 +523,7 @@ export default function App() {
               path="/settings" 
               element={
                 <Settings 
+                  key={profile.email || 'guest'}
                   profile={profile} 
                   onProfileSave={handleProfileSave} 
                   isLoggedIn={isLoggedIn}
