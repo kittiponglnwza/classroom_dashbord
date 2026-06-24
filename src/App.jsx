@@ -23,7 +23,10 @@ import {
   setLastSync,
   syncClassroomAssignments,
   getHiddenCourses,
-  saveHiddenCourses
+  saveHiddenCourses,
+  getResources,
+  saveResources,
+  saveAssignments
 } from './utils/storage';
 import { 
   initGoogleClient, 
@@ -37,12 +40,14 @@ export default function App() {
   const [courses, setCourses] = useState([]);
   const [profile, setProfile] = useState({});
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
+  const [resources, setResources] = useState([]);
 
-  // Auth States
+  // Auth & Theme States
   const [accessToken, setAccessToken] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [theme, setTheme] = useState('dark');
   
   // Google GIS Token Client ref
   const [tokenClient, setTokenClient] = useState(null);
@@ -55,6 +60,16 @@ export default function App() {
     setProfile(getProfile());
     setLastSyncTime(getLastSync());
     setHiddenCourseIds(getHiddenCourses());
+    setResources(getResources());
+
+    // Recover saved theme preference
+    const savedTheme = localStorage.getItem('classroom_hub_theme') || 'dark';
+    setTheme(savedTheme);
+    if (savedTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
 
     // Recover session token if present
     const sessionToken = getToken();
@@ -112,6 +127,7 @@ export default function App() {
       setAssignments(reset.assignments);
       setCourses(reset.courses);
       setProfile(reset.profile);
+      setResources([]);
       setLastSyncTime(null);
       setHiddenCourseIds([]);
     }
@@ -132,13 +148,15 @@ export default function App() {
       // 2. Fetch classroom subjects and assignments
       const classroomData = await fetchGoogleClassroomData(tokenToUse);
       
-      // Sync assignments with local overrides, save courses
+      // Sync assignments with local overrides, save courses and resources
       const syncedAssigns = syncClassroomAssignments(classroomData.assignments);
       saveCourses(classroomData.courses);
+      saveResources(classroomData.resources || []);
 
       // Update local states
       setAssignments(syncedAssigns);
       setCourses(classroomData.courses);
+      setResources(classroomData.resources || []);
       
       const now = new Date().toISOString();
       setLastSync(now);
@@ -166,6 +184,18 @@ export default function App() {
     saveHiddenCourses(updated);
   };
 
+  // Switch dark/light theme
+  const handleToggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('classroom_hub_theme', newTheme);
+    if (newTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+  };
+
   // Local state alteration handlers
   const handleStatusChange = (id, newStatus) => {
     const updated = updateAssignmentStatus(id, newStatus);
@@ -182,6 +212,30 @@ export default function App() {
     setAssignments(updated);
   };
 
+  const handleTrackAsAssignment = (resource) => {
+    const newAssign = {
+      title: resource.title,
+      course: resource.course,
+      courseCode: resource.courseCode,
+      dueDate: '',
+      status: 'todo',
+      points: 100,
+      description: resource.description || '',
+      attachments: resource.attachments || [],
+      courseColor: resource.courseColor,
+      courseId: resource.courseId,
+      googleLink: resource.googleLink || '',
+      parentResourceId: resource.id
+    };
+    handleAddAssignment(newAssign);
+  };
+
+  const handleUntrackAssignment = (resourceId) => {
+    const updated = assignments.filter(a => a.parentResourceId !== resourceId);
+    setAssignments(updated);
+    saveAssignments(updated);
+  };
+
   const handleProfileSave = (updatedProfile) => {
     saveProfile(updatedProfile);
     setProfile(updatedProfile);
@@ -192,10 +246,14 @@ export default function App() {
     setAssignments(resetData.assignments);
     setCourses(resetData.courses);
     setProfile(resetData.profile);
+    setResources([]);
     setLastSyncTime(null);
     setIsLoggedIn(false);
     setAccessToken(null);
     setHiddenCourseIds([]);
+    setTheme('dark');
+    document.documentElement.classList.add('dark');
+    localStorage.setItem('classroom_hub_theme', 'dark');
   };
 
   // Dynamic filter sets based on hidden Course IDs
@@ -205,6 +263,17 @@ export default function App() {
       return false;
     }
     const courseObj = courses.find(c => c.name === a.course);
+    if (courseObj && hiddenCourseIds.includes(courseObj.id)) {
+      return false;
+    }
+    return true;
+  });
+
+  const visibleResources = resources.filter(r => {
+    if (r.courseId && hiddenCourseIds.includes(r.courseId)) {
+      return false;
+    }
+    const courseObj = courses.find(c => c.name === r.course);
     if (courseObj && hiddenCourseIds.includes(courseObj.id)) {
       return false;
     }
@@ -223,6 +292,8 @@ export default function App() {
         onLogin={handleLogin}
         onLogout={handleLogout}
         profile={profile}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       >
         <Routes>
           <Route 
@@ -232,6 +303,8 @@ export default function App() {
                 assignments={visibleAssignments} 
                 onStatusChange={handleStatusChange} 
                 courses={visibleCourses} 
+                profile={profile}
+                resources={visibleResources}
               />
             } 
           />
@@ -255,9 +328,12 @@ export default function App() {
               <Courses 
                 courses={courses} 
                 assignments={assignments} 
+                resources={resources}
                 onStatusChange={handleStatusChange}
                 hiddenCourseIds={hiddenCourseIds}
                 onToggleCourseVisibility={handleToggleCourseVisibility}
+                onTrackAsAssignment={handleTrackAsAssignment}
+                onUntrackAssignment={handleUntrackAssignment}
               />
             } 
           />

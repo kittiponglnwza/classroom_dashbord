@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Sidebar from './Sidebar';
-import { Menu, X, Bell, RefreshCw, LogIn, LogOut, Award, AlertTriangle } from 'lucide-react';
+import { Menu, X, Bell, RefreshCw, LogIn, LogOut, Award, AlertTriangle, Sun, Moon } from 'lucide-react';
 
 export default function Layout({ 
   children, 
@@ -12,7 +12,9 @@ export default function Layout({
   onSync = null,
   onLogout = null,
   onLogin = null,
-  profile = {}
+  profile = {},
+  theme = 'dark',
+  onToggleTheme
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -36,14 +38,14 @@ export default function Layout({
     <div className="flex h-screen w-screen overflow-hidden bg-dark-bg text-dark-text">
       {/* Desktop Sidebar */}
       <div className="hidden md:block h-full">
-        <Sidebar courses={courses} assignments={assignments} />
+        <Sidebar courses={courses} assignments={assignments} profile={profile} />
       </div>
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden bg-black/60 backdrop-blur-sm">
           <div className="h-full w-64 animate-fade-in">
-            <Sidebar courses={courses} assignments={assignments} />
+            <Sidebar courses={courses} assignments={assignments} profile={profile} />
           </div>
           <button 
             onClick={() => setMobileMenuOpen(false)}
@@ -120,6 +122,15 @@ export default function Layout({
               {overdueCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-bounce" />
               )}
+            </button>
+
+            {/* Theme Toggle Button */}
+            <button 
+              onClick={onToggleTheme}
+              className="p-2 text-dark-muted hover:text-white hover:bg-dark-hover rounded-lg transition-all border border-transparent hover:border-dark-border relative cursor-pointer"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
             </button>
 
             {/* Profile Avatar & Login/Logout Trigger */}

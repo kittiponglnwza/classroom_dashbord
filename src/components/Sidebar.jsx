@@ -11,7 +11,7 @@ import {
   Clock
 } from 'lucide-react';
 
-export default function Sidebar({ courses = [], assignments = [] }) {
+export default function Sidebar({ courses = [], assignments = [], profile = {} }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Get active assignment count for each course code
@@ -25,7 +25,6 @@ export default function Sidebar({ courses = [], assignments = [] }) {
     { name: 'Home', path: '/', icon: Home, count: null },
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, count: totalActive },
     { name: 'Courses', path: '/courses', icon: BookOpen, count: null },
-    { name: 'Settings', path: '/settings', icon: Settings, count: null },
   ];
 
   // Helper function to map course colors to tailwind classes
@@ -130,20 +129,40 @@ export default function Sidebar({ courses = [], assignments = [] }) {
         )}
       </div>
 
-      {/* Footer Info */}
-      <div className="p-4 border-t border-dark-border overflow-hidden">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 text-xs font-bold font-heading flex-shrink-0">
-            AM
+      {/* Footer Info / Settings Button */}
+      <NavLink
+        to="/settings"
+        className={({ isActive }) => 
+          `p-4 border-t border-dark-border overflow-hidden flex items-center justify-between hover:bg-dark-hover transition-colors duration-200 group cursor-pointer ${
+            isActive ? 'bg-brand-500/5' : ''
+          }`
+        }
+      >
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-brand-500/20 bg-brand-500/10 flex items-center justify-center flex-shrink-0">
+            {profile.avatarUrl ? (
+              <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-brand-400 text-xs font-bold font-heading">
+                {profile.name ? profile.name.charAt(0).toUpperCase() : 'S'}
+              </span>
+            )}
           </div>
           {!isCollapsed && (
-            <div className="text-left overflow-hidden">
-              <p className="text-xs font-medium text-white truncate">Alex Mercer</p>
-              <p className="text-[10px] text-dark-muted truncate">alex.m@university.edu</p>
+            <div className="text-left overflow-hidden col-span-2">
+              <p className="text-xs font-medium text-white truncate group-hover:text-brand-400 transition-colors">
+                {profile.name || 'Student'}
+              </p>
+              <p className="text-[10px] text-dark-muted truncate">
+                {profile.email || 'not connected'}
+              </p>
             </div>
           )}
         </div>
-      </div>
+        {!isCollapsed && (
+          <Settings size={14} className="text-dark-muted group-hover:text-white transition-colors flex-shrink-0 ml-1" />
+        )}
+      </NavLink>
     </aside>
   );
 }

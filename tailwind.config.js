@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class', // Support class-based theme toggling
   theme: {
     extend: {
       colors: {
@@ -13,7 +14,6 @@ export default {
           200: '#bcdbff',
           300: '#84beff',
           400: '#4597ff',
-          505: '#1a73e8', // Google Classroom Blue
           500: '#1a73e8',
           600: '#0b57d0',
           700: '#0845a7',
@@ -21,13 +21,13 @@ export default {
           900: '#0f3069',
         },
         dark: {
-          bg: '#0F0F11',       // Deep body bg
-          sidebar: '#18181C',  // Clean sidebar bg (Notion style)
-          card: '#1F1F24',     // Elegant card bg
-          border: '#2E2E35',   // Subtle borders
-          hover: '#2A2A30',    // Hover states
-          text: '#F3F4F6',     // Bright text
-          muted: '#9CA3AF'     // Dimmed text
+          bg: 'var(--bg)',
+          sidebar: 'var(--sidebar)',
+          card: 'var(--card)',
+          border: 'var(--border)',
+          hover: 'var(--hover)',
+          text: 'var(--text)',
+          muted: 'var(--muted)'
         }
       },
       fontFamily: {

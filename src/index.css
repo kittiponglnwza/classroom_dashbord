@@ -3,9 +3,32 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+:root {
+  /* Minimalist Light Theme (โทนอุ่น ครีมมี่ มินิมอลสไตล์ Notion) */
+  --bg: #FAF9F5;          /* Warm alabaster cream background */
+  --sidebar: #F3EFE7;     /* Soft warm cream sidebar */
+  --card: #FFFFFF;        /* Crisp white cards */
+  --border: #E9E3D5;      /* Cozy cream border */
+  --hover: #ECE6D8;       /* Subtle hover grey-cream */
+  --text: #2E2D2A;        /* Dark grey text */
+  --muted: #7D7971;       /* Warm muted text */
+}
+
+/* Dark variant triggers when html has .dark class */
+.dark {
+  /* Minimalist Dark Theme (โทนมืดถ่าน พรีเมียมมินิมอล) */
+  --bg: #0E0E10;          /* Deep dark slate */
+  --sidebar: #17171A;     /* Sidebar dark slate */
+  --card: #1E1E22;        /* Dark grey cards */
+  --border: #2B2B31;      /* Subtle dark border */
+  --hover: #26262B;       /* Dark hover background */
+  --text: #F3F4F6;        /* Off-white text */
+  --muted: #9CA3AF;       /* Muted grey text */
+}
+
 @layer base {
   body {
-    @apply bg-dark-bg text-dark-text font-sans antialiased selection:bg-brand-500/30 selection:text-brand-200 overflow-x-hidden;
+    @apply bg-dark-bg text-dark-text font-sans antialiased selection:bg-brand-500/30 selection:text-brand-200 overflow-x-hidden transition-colors duration-200;
     margin: 0;
     padding: 0;
   }
@@ -18,11 +41,11 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #18181C;
+  background: var(--sidebar);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2E2E35;
+  background: var(--border);
   border-radius: 3px;
 }
 
@@ -32,10 +55,10 @@
 
 /* Glassmorphism utility card styling */
 .glass-panel {
-  background: rgba(31, 31, 36, 0.7);
+  background: rgba(var(--card), 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(46, 46, 53, 0.6);
+  border: 1px solid var(--border);
 }
 
 /* Custom Animations */
@@ -52,4 +75,10 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Fix dropdown option contrast issues in Dark/Light themes */
+select option {
+  background-color: var(--sidebar) !important;
+  color: var(--text) !important;
 }

@@ -4,8 +4,10 @@ const USERINFO_BASE_URL = 'https://www.googleapis.com/oauth2/v3';
 // Scopes required for the app (Minimized scopes)
 export const CLIENT_SCOPES = [
   'https://www.googleapis.com/auth/classroom.courses.readonly',
-  'https://www.googleapis.com/auth/classroom.course-work.readonly',
-  'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly',
+  'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+  'https://www.googleapis.com/auth/classroom.coursework.students.readonly',
+  'https://www.googleapis.com/auth/classroom.announcements.readonly',
+  'https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly',
   'openid',
   'email',
   'profile'
@@ -105,20 +107,38 @@ export async function fetchGoogleClassroomData(accessToken) {
     courseMap[c.id] = c;
   });
 
-  // 2. Fetch assignments (courseWork) and student submissions for each course in parallel
+  // 2. Fetch assignments, submissions, announcements, and materials for each course in parallel
   const allAssignmentsPromises = activeCourses.map(async (course) => {
     try {
       const courseWorkUrl = `${CLASSROOM_BASE_URL}/courses/${course.id}/courseWork`;
       const submissionsUrl = `${CLASSROOM_BASE_URL}/courses/${course.id}/courseWork/-/studentSubmissions?userId=me`;
+      const announcementsUrl = `${CLASSROOM_BASE_URL}/courses/${course.id}/announcements`;
+      const materialsUrl = `${CLASSROOM_BASE_URL}/courses/${course.id}/courseWorkMaterials`;
 
-      // Fetch both coursework and submissions concurrently
-      const [cwResponse, subResponse] = await Promise.all([
-        fetchFromGoogle(courseWorkUrl, accessToken).catch(() => ({ courseWork: [] })),
-        fetchFromGoogle(submissionsUrl, accessToken).catch(() => ({ studentSubmissions: [] }))
+      // Fetch all concurrently
+      const [cwResponse, subResponse, annResponse, matResponse] = await Promise.all([
+        fetchFromGoogle(courseWorkUrl, accessToken).catch((err) => {
+          console.error(`Failed to fetch coursework for course ${course.name} (${course.id}):`, err);
+          return { courseWork: [] };
+        }),
+        fetchFromGoogle(submissionsUrl, accessToken).catch((err) => {
+          console.error(`Failed to fetch student submissions for course ${course.name} (${course.id}):`, err);
+          return { studentSubmissions: [] };
+        }),
+        fetchFromGoogle(announcementsUrl, accessToken).catch((err) => {
+          console.error(`Failed to fetch announcements for course ${course.name} (${course.id}):`, err);
+          return { announcements: [] };
+        }),
+        fetchFromGoogle(materialsUrl, accessToken).catch((err) => {
+          console.error(`Failed to fetch courseWorkMaterials for course ${course.name} (${course.id}):`, err);
+          return { courseWorkMaterial: [] };
+        })
       ]);
 
       const rawCourseWorks = cwResponse.courseWork || [];
       const rawSubmissions = subResponse.studentSubmissions || [];
+      const rawAnnouncements = annResponse.announcements || [];
+      const rawMaterials = matResponse.courseWorkMaterial || [];
 
       // Create a map of submissions keyed by courseWorkId
       const submissionMap = {};
@@ -126,8 +146,67 @@ export async function fetchGoogleClassroomData(accessToken) {
         submissionMap[sub.courseWorkId] = sub;
       });
 
+      // Helper to map materials/attachments to UI format and extract text links
+      const mapAttachments = (materials = [], textDescription = '') => {
+        const attachments = [];
+        const seenLinks = new Set();
+
+        materials.forEach(mat => {
+          let name = '';
+          let link = '';
+          let size = '';
+
+          if (mat.driveFile) {
+            name = mat.driveFile.driveFile.title;
+            link = mat.driveFile.driveFile.alternateLink;
+            size = 'Google Drive File';
+          } else if (mat.link) {
+            name = mat.link.title || 'Attachment Link';
+            link = mat.link.url;
+            size = 'External Link';
+          } else if (mat.youtubeVideo) {
+            name = mat.youtubeVideo.title || 'YouTube Video';
+            link = mat.youtubeVideo.alternateLink;
+            size = 'Video';
+          }
+
+          if (link) {
+            attachments.push({ name, link, size });
+            seenLinks.add(link.toLowerCase().trim());
+          }
+        });
+
+        if (textDescription) {
+          const urlRegex = /(https?:\/\/[^\s\n\r]+)/g;
+          const matches = textDescription.match(urlRegex) || [];
+          matches.forEach(url => {
+            const cleanUrl = url.replace(/[.,;)]+$/, ''); // Clean trailing punctuation
+            const lowerUrl = cleanUrl.toLowerCase().trim();
+            if (!seenLinks.has(lowerUrl)) {
+              let name = 'ลิงก์เอกสารภายนอก';
+              let size = 'External Link';
+              
+              if (lowerUrl.includes('drive.google.com')) {
+                name = 'เอกสาร Google Drive';
+                size = 'Google Drive File';
+              } else if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+                name = 'วิดีโอ YouTube';
+                size = 'Video';
+              }
+              
+              attachments.push({ name, link: cleanUrl, size });
+              seenLinks.add(lowerUrl);
+            }
+          });
+        }
+
+        return attachments;
+      };
+
+      const courseDetails = courseMap[course.id] || { name: course.name, color: 'blue', code: 'CLASSROOM' };
+
       // Map to UI Assignment format
-      return rawCourseWorks.map(cw => {
+      const mappedAssignments = rawCourseWorks.map(cw => {
         const submission = submissionMap[cw.id];
         
         // Determine status based on Google submission state
@@ -151,33 +230,6 @@ export async function fetchGoogleClassroomData(accessToken) {
           }
         }
 
-        // Map coursework materials to attachments
-        const materials = cw.materials || [];
-        const attachments = [];
-        materials.forEach(mat => {
-          if (mat.driveFile) {
-            attachments.push({ 
-              name: mat.driveFile.driveFile.title, 
-              link: mat.driveFile.driveFile.alternateLink, 
-              size: 'Google Drive File' 
-            });
-          } else if (mat.link) {
-            attachments.push({ 
-              name: mat.link.title || 'Attachment Link', 
-              link: mat.link.url, 
-              size: 'External Link' 
-            });
-          } else if (mat.youtubeVideo) {
-            attachments.push({ 
-              name: mat.youtubeVideo.title || 'YouTube Video', 
-              link: mat.youtubeVideo.alternateLink, 
-              size: 'Video' 
-            });
-          }
-        });
-
-        const courseDetails = courseMap[course.id] || { name: course.name, color: 'blue' };
-
         return {
           id: cw.id,
           title: cw.title,
@@ -187,24 +239,69 @@ export async function fetchGoogleClassroomData(accessToken) {
           status: apiStatus,
           points: cw.maxPoints || 100,
           description: cw.description || '',
-          attachments: attachments,
+          attachments: mapAttachments(cw.materials, cw.description),
           courseColor: courseDetails.color,
           courseId: course.id,
           googleLink: cw.alternateLink // Link directly to Google Classroom coursework
         };
       });
 
+      // Map to UI Announcements format
+      const mappedAnnouncements = rawAnnouncements.map(ann => {
+        const text = ann.text || '';
+        const firstLine = text.split('\n')[0].trim();
+        const title = firstLine.substring(0, 80) + (firstLine.length > 80 ? '...' : '') || 'Announcement';
+
+        return {
+          id: ann.id,
+          courseId: course.id,
+          course: courseDetails.name,
+          courseCode: courseDetails.code,
+          courseColor: courseDetails.color,
+          type: 'announcement',
+          title: title,
+          description: text,
+          creationTime: ann.creationTime || new Date().toISOString(),
+          attachments: mapAttachments(ann.materials, text),
+          googleLink: ann.alternateLink
+        };
+      });
+
+      // Map to UI Materials format
+      const mappedMaterials = rawMaterials.map(mat => {
+        return {
+          id: mat.id,
+          courseId: course.id,
+          course: courseDetails.name,
+          courseCode: courseDetails.code,
+          courseColor: courseDetails.color,
+          type: 'material',
+          title: mat.title || 'Course Material',
+          description: mat.description || '',
+          creationTime: mat.creationTime || new Date().toISOString(),
+          attachments: mapAttachments(mat.materials, mat.description),
+          googleLink: mat.alternateLink
+        };
+      });
+
+      return {
+        assignments: mappedAssignments,
+        resources: [...mappedAnnouncements, ...mappedMaterials]
+      };
+
     } catch (e) {
-      console.error(`Failed to fetch coursework for course ${course.name}`, e);
-      return [];
+      console.error(`Failed to fetch coursework/resources for course ${course.name}`, e);
+      return { assignments: [], resources: [] };
     }
   });
 
-  const assignmentsArray = await Promise.all(allAssignmentsPromises);
-  const flattenedAssignments = assignmentsArray.flat();
+  const results = await Promise.all(allAssignmentsPromises);
+  const flattenedAssignments = results.map(r => r.assignments || []).flat();
+  const flattenedResources = results.map(r => r.resources || []).flat();
 
   return {
     courses: mappedCourses,
-    assignments: flattenedAssignments
+    assignments: flattenedAssignments,
+    resources: flattenedResources
   };
 }

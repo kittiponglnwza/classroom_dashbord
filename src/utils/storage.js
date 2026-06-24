@@ -5,7 +5,8 @@ const KEYS = {
   COURSES: 'classroom_hub_courses',
   PROFILE: 'classroom_hub_profile',
   LAST_SYNC: 'classroom_hub_last_sync',
-  ACCESS_TOKEN: 'classroom_hub_access_token'
+  ACCESS_TOKEN: 'classroom_hub_access_token',
+  RESOURCES: 'classroom_hub_resources'
 };
 
 /* Token Handling via Secure Session Storage (Tab lifetime, immune to persistent storage leaks) */
@@ -78,8 +79,9 @@ export const syncClassroomAssignments = (apiAssignments) => {
     };
   });
 
-  // Also preserve manually created local tasks (tasks with no courseId, i.e. created from "Create Task" button)
-  const localManualTasks = localAssignments.filter(la => !la.courseId);
+  // Also preserve manually created local tasks (exclude initial mock assignments)
+  const mockIds = ['assign-1', 'assign-2', 'assign-3', 'assign-4', 'assign-5', 'assign-6', 'assign-7'];
+  const localManualTasks = localAssignments.filter(la => !la.courseId && !mockIds.includes(la.id));
   const finalAssignments = [...localManualTasks, ...merged];
 
   saveAssignments(finalAssignments);
@@ -147,10 +149,26 @@ export const saveProfile = (profile) => {
   localStorage.setItem(KEYS.PROFILE, JSON.stringify(profile));
 };
 
+export const getResources = () => {
+  const stored = localStorage.getItem(KEYS.RESOURCES);
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    console.error('Failed to parse resources from local storage', e);
+    return [];
+  }
+};
+
+export const saveResources = (resources) => {
+  localStorage.setItem(KEYS.RESOURCES, JSON.stringify(resources));
+};
+
 export const resetDatabase = () => {
   localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(initialAssignments));
   localStorage.setItem(KEYS.COURSES, JSON.stringify(initialCourses));
   localStorage.setItem(KEYS.PROFILE, JSON.stringify(defaultProfile));
+  localStorage.removeItem(KEYS.RESOURCES);
   localStorage.removeItem(KEYS.LAST_SYNC);
   localStorage.removeItem('classroom_hub_hidden_courses');
   clearToken();
