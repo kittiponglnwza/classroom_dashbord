@@ -43,7 +43,7 @@ export default function Layout({
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden bg-black/60 backdrop-blur-sm">
           <div className="h-full w-64 animate-fade-in">
-            <Sidebar courses={courses} assignments={assignments} profile={profile} />
+            <Sidebar courses={courses} assignments={assignments} profile={profile} onLinkClick={() => setMobileMenuOpen(false)} />
           </div>
           <button 
             onClick={() => setMobileMenuOpen(false)}

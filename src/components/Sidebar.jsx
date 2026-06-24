@@ -11,7 +11,7 @@ import {
   Clock
 } from 'lucide-react';
 
-export default function Sidebar({ courses = [], assignments = [], profile = {} }) {
+export default function Sidebar({ courses = [], assignments = [], profile = {}, onLinkClick = null }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Get active assignment count for each course code
@@ -47,7 +47,7 @@ export default function Sidebar({ courses = [], assignments = [], profile = {} }
     >
       {/* Brand Header */}
       <div className="p-5 flex items-center justify-between border-b border-dark-border">
-        <Link to="/" className="flex items-center gap-3 overflow-hidden select-none group">
+        <Link to="/" onClick={onLinkClick} className="flex items-center gap-3 overflow-hidden select-none group">
           <div className="font-heading font-extrabold text-base text-white flex-shrink-0 select-none">
             CH
           </div>
@@ -77,6 +77,7 @@ export default function Sidebar({ courses = [], assignments = [], profile = {} }
             <NavLink
               key={item.name}
               to={item.path}
+              onClick={onLinkClick}
               className={({ isActive }) => 
                 `flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all group duration-200 ${
                   isActive 
@@ -115,6 +116,7 @@ export default function Sidebar({ courses = [], assignments = [], profile = {} }
                   <Link
                     key={course.id}
                     to={`/courses?selected=${course.name}`}
+                    onClick={onLinkClick}
                     className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-dark-muted hover:text-white hover:bg-dark-hover transition-colors group"
                   >
                     <div className="flex items-center gap-2.5 overflow-hidden">
@@ -137,6 +139,7 @@ export default function Sidebar({ courses = [], assignments = [], profile = {} }
       {/* Footer Info / Settings Button */}
       <NavLink
         to="/settings"
+        onClick={onLinkClick}
         className={({ isActive }) => 
           `p-4 border-t border-dark-border overflow-hidden flex items-center justify-between hover:bg-dark-hover transition-colors duration-200 group cursor-pointer ${
             isActive ? 'bg-brand-500/5' : ''

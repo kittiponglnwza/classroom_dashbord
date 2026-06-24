@@ -137,7 +137,7 @@ export default function Dashboard({
       </div>
 
       {/* Control Bar: Filters, Search, Views */}
-      <div className="bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+      <div className="bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
         {/* Search */}
         <div className="relative flex-1">
           <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-dark-muted">
@@ -200,7 +200,7 @@ export default function Dashboard({
           </div>
 
           {/* View Toggles */}
-          <div className="flex items-center border border-dark-border rounded-lg p-0.5 bg-dark-sidebar ml-auto lg:ml-0">
+          <div className="flex items-center border border-dark-border rounded-lg p-0.5 bg-dark-sidebar ml-auto md:ml-0">
             <button
               onClick={() => setViewType('grid')}
               className={`p-1.5 rounded-md transition-colors ${viewType === 'grid' ? 'bg-dark-card text-brand-400' : 'text-dark-muted hover:text-white'}`}
@@ -280,7 +280,7 @@ export default function Dashboard({
 
       {/* Kanban Board View */}
       {viewType === 'kanban' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Column 1: To Do */}
           <div className="bg-dark-sidebar/40 border border-dark-border/60 rounded-xl p-4 flex flex-col h-full min-h-[500px]">
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
