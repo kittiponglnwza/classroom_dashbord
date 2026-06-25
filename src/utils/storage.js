@@ -324,7 +324,8 @@ export const getAlertSettings = (email) => {
     dueToday: true,
     overdue1Day: true,
     newPosts: true,
-    sundayDigest: true
+    sundayDigest: true,
+    includeExams: true
   };
   if (!stored) return defaults;
   try {

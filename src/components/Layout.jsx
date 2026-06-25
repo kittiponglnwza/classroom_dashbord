@@ -457,6 +457,19 @@ export default function Layout({
                                       />
                                     </div>
                                   )}
+
+                                  <label className="flex items-start gap-2.5 cursor-pointer border-t border-dark-border/10 pt-2.5">
+                                    <input 
+                                      type="checkbox"
+                                      checked={alertSettings.includeExams}
+                                      onChange={() => handleToggleSetting('includeExams')}
+                                      className="w-3.5 h-3.5 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0 mt-0.5 shrink-0"
+                                    />
+                                    <div className="space-y-0.5">
+                                      <span className="font-semibold text-zinc-200">{t('includeExamsLabel', lang)}</span>
+                                      <p className="text-[9px] text-dark-muted leading-tight">{t('includeExamsDesc', lang)}</p>
+                                    </div>
+                                  </label>
                                 </div>
                               </div>
 
