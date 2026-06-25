@@ -181,7 +181,6 @@ export default function Layout({
               <Menu size={20} />
             </button>
             <div className="hidden sm:flex items-center gap-3">
-              <span className="text-xs text-dark-muted">{t('academicTerm', lang)}</span>
               {isLoggedIn ? (
                 <span className="text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2 py-0.5 rounded-full">
                   {t('googleConnected', lang)}
