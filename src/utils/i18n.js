@@ -73,8 +73,9 @@ export const translations = {
     syncFailed: 'Failed to sync data from Google Classroom. Please verify your connection.',
     
     // Home Page
-    welcomeBack: 'Welcome back, {name}! 👋',
-    welcomeDesc: 'Here is your classroom hub summary. You have {count} active assignments waiting for your attention. Keep up the great work!',
+    welcomeBack: 'Hello, {name}! 👋',
+    welcomeDescZero: 'You have no pending assignments today. Perfect time to relax or preview study materials!',
+    welcomeDesc: 'You have {count} active assignments waiting for your attention. Let\'s make today productive!',
     goDashboard: 'Go to Dashboard',
     progressOverview: 'Your Progress Overview',
     upcomingDeadlines: 'Upcoming Deadlines',
@@ -268,8 +269,9 @@ export const translations = {
     syncFailed: 'ไม่สามารถซิงก์ข้อมูลจาก Google Classroom ได้ กรุณาตรวจสอบการเชื่อมต่อของคุณ',
     
     // Home Page
-    welcomeBack: 'ยินดีต้อนรับกลับมา, {name}! 👋',
-    welcomeDesc: 'นี่คือสรุปห้องเรียนของคุณ ขณะนี้คุณมีงานที่ยังไม่เสร็จสิ้น {count} รายการ กำลังรอให้คุณดำเนินการ สู้ๆ!',
+    welcomeBack: 'สวัสดี, {name}! 👋',
+    welcomeDescZero: 'ไม่มีงานค้างในระบบเลยในขณะนี้ พักผ่อนให้เต็มที่ หรือเข้าไปอ่านทบทวนวิชาเรียนได้เลย!',
+    welcomeDesc: 'คุณมีงานค้างรอการสะสางอยู่ {count} รายการ มาค่อยๆ จัดการงานของวันนี้กัน!',
     goDashboard: 'ไปยังแดชบอร์ด',
     progressOverview: 'ภาพรวมความก้าวหน้า',
     upcomingDeadlines: 'กำหนดส่งที่ใกล้เข้ามา',

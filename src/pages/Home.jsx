@@ -187,9 +187,16 @@ export default function Home({
           <h1 className="text-2xl md:text-3xl font-bold font-heading text-white mb-2">
             {t('welcomeBack', lang, { name: profile.name || 'Student' })}
           </h1>
-          <p className="text-dark-muted text-sm max-w-xl max-w-xl">
-            {t('welcomeDesc', lang, { count: assignments.filter(a => a.status !== 'done').length })}
-          </p>
+          {(() => {
+            const pendingCount = assignments.filter(a => a.status !== 'done').length;
+            return (
+              <p className="text-dark-muted text-sm max-w-xl">
+                {pendingCount === 0 
+                  ? t('welcomeDescZero', lang) 
+                  : t('welcomeDesc', lang, { count: pendingCount })}
+              </p>
+            );
+          })()}
         </div>
         <Link 
           to="/dashboard"
