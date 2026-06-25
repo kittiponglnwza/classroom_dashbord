@@ -462,6 +462,7 @@ export default function App() {
           profile={profile}
           lang={lang}
           toggleLang={toggleLang}
+          accessToken={accessToken}
         >
           <Routes>
             <Route 

@@ -192,26 +192,37 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                   {t('attachmentsHeader', lang)}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {attachments.map((file, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => handleSimulatedDownload(file.name)}
-                      className="bg-dark-sidebar border border-dark-border rounded-lg p-3.5 flex items-center justify-between hover:border-brand-500/40 hover:bg-dark-hover transition-all cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <FileCode size={18} className="text-brand-400 flex-shrink-0" />
-                        <div className="text-left overflow-hidden">
-                          <p className="text-xs font-medium text-zinc-200 truncate group-hover:text-brand-400 transition-colors">
-                            {file.name}
-                          </p>
-                          <p className="text-[10px] text-dark-muted">{file.size}</p>
+                  {attachments.map((file, i) => {
+                    const hasLink = file.link && file.link.trim() !== '';
+                    return (
+                      <a 
+                        key={i} 
+                        href={hasLink ? file.link : '#'}
+                        target={hasLink ? "_blank" : undefined}
+                        rel={hasLink ? "noopener noreferrer" : undefined}
+                        onClick={(e) => {
+                          if (!hasLink) {
+                            e.preventDefault();
+                            handleSimulatedDownload(file.name);
+                          }
+                        }}
+                        className="bg-dark-sidebar border border-dark-border rounded-lg p-3.5 flex items-center justify-between hover:border-brand-500/40 hover:bg-dark-hover transition-all cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <FileCode size={18} className="text-brand-400 flex-shrink-0" />
+                          <div className="text-left overflow-hidden">
+                            <p className="text-xs font-medium text-zinc-200 truncate group-hover:text-brand-400 transition-colors">
+                              {file.name}
+                            </p>
+                            <p className="text-[10px] text-dark-muted">{file.size}</p>
+                          </div>
                         </div>
-                      </div>
-                      <span className="text-[10px] font-semibold text-brand-400 border border-brand-500/20 bg-brand-500/5 px-2 py-0.5 rounded group-hover:bg-brand-500 group-hover:text-white transition-all">
-                        {t('downloadBtn', lang)}
-                      </span>
-                    </div>
-                  ))}
+                        <span className="text-[10px] font-semibold text-brand-400 border border-brand-500/20 bg-brand-500/5 px-2 py-0.5 rounded group-hover:bg-brand-500 group-hover:text-white transition-all">
+                          {t('downloadBtn', lang)}
+                        </span>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}
