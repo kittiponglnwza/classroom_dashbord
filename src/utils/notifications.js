@@ -55,104 +55,99 @@ const wrapHtmlEmail = (title, contentHtml) => {
     <head>
       <meta charset="utf-8">
       <title>${title}</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
       <style>
         body {
           margin: 0;
           padding: 0;
           background-color: #0b0f19;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-          color: #e5e7eb;
+          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          color: #e2e8f0;
+          -webkit-font-smoothing: antialiased;
         }
         .container {
           max-width: 600px;
           margin: 0 auto;
-          padding: 30px 15px;
+          padding: 40px 20px;
         }
         .header {
           text-align: center;
-          padding-bottom: 20px;
-          border-b: 1px solid #1f2937;
+          padding-bottom: 24px;
         }
-        .logo {
-          font-size: 24px;
+        .logo-badge {
+          display: inline-block;
+          padding: 6px 14px;
+          background-color: rgba(99, 102, 241, 0.1);
+          border: 1px solid rgba(99, 102, 241, 0.25);
+          border-radius: 99px;
+          margin-bottom: 12px;
+        }
+        .logo-text {
+          font-size: 11px;
           font-weight: 800;
-          color: #ffffff;
+          color: #818cf8;
+          text-transform: uppercase;
+          letter-spacing: 2px;
           margin: 0;
         }
         .tagline {
-          font-size: 8px;
-          color: #9ca3af;
+          font-size: 9px;
+          color: #64748b;
           text-transform: uppercase;
           letter-spacing: 2px;
-          margin-top: 4px;
+          margin-top: 6px;
         }
         .card {
-          background-color: #111827;
-          border: 1px solid #1f2937;
-          border-radius: 16px;
-          padding: 24px;
-          margin-top: 25px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          background-color: #0f172a;
+          border: 1px solid rgba(148, 163, 184, 0.1);
+          border-radius: 20px;
+          padding: 32px;
+          margin-top: 16px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
         }
         .title {
-          font-size: 18px;
-          font-weight: 700;
+          font-size: 20px;
+          font-weight: 800;
           color: #ffffff;
           margin-top: 0;
           margin-bottom: 12px;
+          letter-spacing: -0.5px;
         }
         .desc {
           font-size: 13px;
-          color: #9ca3af;
+          color: #94a3b8;
           line-height: 1.6;
-          margin-bottom: 20px;
-        }
-        .task-list {
-          margin: 15px 0;
-          padding: 0;
-          list-style: none;
-        }
-        .task-item {
-          border-left: 4px solid #6366f1;
-          background-color: #1f2937;
-          border-radius: 8px;
-          padding: 12px 15px;
-          margin-bottom: 10px;
-        }
-        .task-title {
-          font-weight: 600;
-          font-size: 13px;
-          color: #ffffff;
-          margin: 0;
-        }
-        .task-meta {
-          font-size: 10px;
-          color: #9ca3af;
-          margin-top: 4px;
+          margin-bottom: 24px;
         }
         .footer {
           text-align: center;
-          padding-top: 30px;
+          padding-top: 40px;
           font-size: 11px;
-          color: #6b7280;
+          color: #64748b;
+          line-height: 1.6;
         }
         .button {
           display: inline-block;
-          background-color: #ffffff;
-          color: #111827;
-          font-weight: 600;
-          font-size: 12px;
-          padding: 10px 20px;
-          border-radius: 8px;
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          color: #ffffff !important;
+          font-weight: 700;
+          font-size: 13px;
+          padding: 12px 24px;
+          border-radius: 10px;
           text-decoration: none;
-          margin-top: 15px;
+          margin-top: 20px;
+          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
         }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">CH Classroom Hub</div>
+          <div class="logo-badge">
+            <div class="logo-text">CH Classroom Hub</div>
+          </div>
           <div class="tagline">Learning • Connection • Community</div>
         </div>
         
@@ -427,16 +422,18 @@ export async function triggerManualDigest(accessToken, toEmail, assignments) {
       const borderHex = getHexColor(list[0].courseColor);
       
       tasksHtml += `
-        <div style="margin-top: 15px; border-left: 4px solid ${borderHex}; background-color: #1f2937; border-radius: 8px; padding: 12px 15px;">
-          <h4 style="color: #ffffff; margin: 0 0 8px 0; font-size: 13px;">📚 ${courseName}</h4>
-          <div style="font-size: 12px; color: #d1d5db; line-height: 1.6;">
+        <div style="margin-top: 16px; border: 1px solid rgba(148, 163, 184, 0.08); border-left: 4px solid ${borderHex}; background-color: #131b2e; border-radius: 12px; padding: 16px;">
+          <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">📚 ${courseName}</h4>
+          <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-top: 8px;">
       `;
       
       list.forEach(t => {
         const dueLabel = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'No Due Date';
         tasksHtml += `
-          <div style="padding: 6px 0; border-bottom: 1px solid #374151;">
-            <strong>• ${t.title}</strong> <span style="font-size: 10px; color: #9ca3af; margin-left: 8px;">(Due: ${dueLabel})</span>
+          <div style="padding: 10px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.08);">
+            <div style="font-weight: 600; color: #ffffff; display: inline-block; max-width: 70%; vertical-align: middle;">${t.title}</div>
+            <div style="display: inline-block; font-size: 10px; background-color: rgba(99, 102, 241, 0.12); color: #818cf8; padding: 2px 8px; border-radius: 99px; font-weight: 700; float: right; vertical-align: middle; margin-top: 2px;">${dueLabel}</div>
+            <div style="clear: both;"></div>
           </div>
         `;
       });
@@ -623,12 +620,16 @@ export async function evaluateNotifications(accessToken, toEmail, assignments, c
               const borderHex = getHexColor(list[0].courseColor);
               
               itemsHtml += `
-                <div style="margin-top: 15px; border-left: 4px solid ${borderHex}; background-color: #1f2937; border-radius: 8px; padding: 12px 15px;">
-                  <h4 style="color: #ffffff; margin: 0 0 8px 0; font-size: 13px;">📚 ${courseName}</h4>
-                  <div style="font-size: 12px; color: #d1d5db;">
+                <div style="margin-top: 16px; border: 1px solid rgba(148, 163, 184, 0.08); border-left: 4px solid ${borderHex}; background-color: #131b2e; border-radius: 12px; padding: 16px;">
+                  <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">📚 ${courseName}</h4>
+                  <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-top: 8px;">
               `;
               list.forEach(t => {
-                itemsHtml += `<div style="padding: 4px 0; border-bottom: 1px solid #374151;">• ${t.title}</div>`;
+                itemsHtml += `
+                  <div style="padding: 8px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.08); color: #ffffff; font-weight: 500;">
+                    • ${t.title}
+                  </div>
+                `;
               });
               itemsHtml += `</div></div>`;
             });
