@@ -9,6 +9,7 @@ export const CLIENT_SCOPES = [
   'https://www.googleapis.com/auth/classroom.announcements.readonly',
   'https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly',
   'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/drive.appdata',
   'openid',
   'email',
   'profile'

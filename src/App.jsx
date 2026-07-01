@@ -38,6 +38,7 @@ import {
   fetchGoogleClassroomData 
 } from './services/googleClassroom';
 import { evaluateNotifications, evaluateNewPostDigest } from './utils/notifications';
+import { syncSettingsWithDrive } from './services/driveSync';
 import { t } from './utils/i18n';
 
 export default function App() {
@@ -207,6 +208,24 @@ export default function App() {
       setHiddenCourseIds(getHiddenCourses(userEmail));
       setLastSyncTime(getLastSync(userEmail));
 
+      // 1.5 Sync settings with Google Drive first
+      const remoteSettingsApplied = await syncSettingsWithDrive(tokenToUse, userEmail);
+      
+      // If remote settings were applied, reload local caches before syncing with classroom
+      if (remoteSettingsApplied) {
+        console.log('[Classroom Hub] Applied remote settings. Reloading local cache...');
+        setAssignments(getAssignments(userEmail));
+        setCourses(getCourses(userEmail));
+        setResources(getResources(userEmail));
+        setHiddenCourseIds(getHiddenCourses(userEmail));
+        // Reload language preference
+        const savedUserLang = localStorage.getItem(`classroom_hub_${userEmail}_language`);
+        if (savedUserLang) {
+          setLang(savedUserLang);
+          localStorage.setItem('classroom_hub_language', savedUserLang);
+        }
+      }
+
       // 2. Fetch classroom subjects and assignments
       const classroomData = await fetchGoogleClassroomData(tokenToUse);
       
@@ -230,6 +249,9 @@ export default function App() {
       const now = new Date().toISOString();
       setLastSync(now, userEmail);
       setLastSyncTime(now);
+
+      // Sync local settings to drive if we modified them locally (e.g. fresh classroom data)
+      await syncSettingsWithDrive(tokenToUse, userEmail);
 
       // Trigger evaluations asynchronously to not block the UI sync state transitions
       setTimeout(async () => {

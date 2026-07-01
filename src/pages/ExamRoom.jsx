@@ -15,6 +15,7 @@ import {
   Plus
 } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { touchLocalSettingsTimestamp } from '../utils/storage';
 
 const cardColors = [
   {
@@ -158,6 +159,7 @@ export default function ExamRoom({ profile = {}, lang = 'en' }) {
               unlisted: null,
               timestamp: new Date().toISOString()
             }));
+            touchLocalSettingsTimestamp(activeEmail);
           }
         } catch (e) {
           console.error('Failed to update cache on empty student ID', e);
@@ -220,6 +222,7 @@ export default function ExamRoom({ profile = {}, lang = 'en' }) {
           unlisted: unlistedData,
           timestamp: new Date().toISOString()
         }));
+        touchLocalSettingsTimestamp(activeEmail);
       };
 
       // Parse Tables Robustly
@@ -363,6 +366,7 @@ export default function ExamRoom({ profile = {}, lang = 'en' }) {
             unlisted: null,
             timestamp: new Date().toISOString()
           }));
+          touchLocalSettingsTimestamp(activeEmail);
         } else {
           // Table exists but has no data - treat as unlisted
           handleUnlistedState(doc);
@@ -427,6 +431,7 @@ export default function ExamRoom({ profile = {}, lang = 'en' }) {
       unlisted: unlistedInfo,
       timestamp: new Date().toISOString()
     }));
+    touchLocalSettingsTimestamp(activeEmail);
 
     resetForm();
   };
@@ -455,6 +460,7 @@ export default function ExamRoom({ profile = {}, lang = 'en' }) {
       unlisted: unlistedInfo,
       timestamp: new Date().toISOString()
     }));
+    touchLocalSettingsTimestamp(activeEmail);
   };
 
   const handleEditClick = (exam) => {

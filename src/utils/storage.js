@@ -46,6 +46,13 @@ const getScopedKey = (baseKey, email) => {
   return active ? `${baseKey}_${active}` : baseKey;
 };
 
+export const touchLocalSettingsTimestamp = (email) => {
+  const active = (email || getActiveEmail() || '').toLowerCase().trim();
+  if (!active) return;
+  const key = `classroom_hub_settings_last_updated_${active}`;
+  localStorage.setItem(key, new Date().toISOString());
+};
+
 /* 
  * Helper to fetch item with auto-migration of uppercase/mixed-case keys to lowercase 
  */
@@ -111,6 +118,7 @@ export const getAssignments = (email) => {
 export const saveAssignments = (assignments, email) => {
   const key = getScopedKey(KEYS.ASSIGNMENTS, email);
   localStorage.setItem(key, JSON.stringify(assignments));
+  touchLocalSettingsTimestamp(email);
 };
 
 /* 
@@ -301,6 +309,7 @@ export const getHiddenCourses = (email) => {
 export const saveHiddenCourses = (hiddenIds, email) => {
   const key = getScopedKey(KEYS.HIDDEN_COURSES, email);
   localStorage.setItem(key, JSON.stringify(hiddenIds));
+  touchLocalSettingsTimestamp(email);
 };
 
 /* Gmail Notifications Scoped Helpers */
@@ -313,6 +322,7 @@ export const getEnableEmailAlerts = (email) => {
 export const setEnableEmailAlerts = (enabled, email) => {
   const key = getScopedKey('classroom_hub_enable_email_alerts', email);
   localStorage.setItem(key, String(enabled));
+  touchLocalSettingsTimestamp(email);
 };
 
 export const getAlertSettings = (email) => {
@@ -338,6 +348,7 @@ export const getAlertSettings = (email) => {
 export const saveAlertSettings = (settings, email) => {
   const key = getScopedKey('classroom_hub_alert_settings', email);
   localStorage.setItem(key, JSON.stringify(settings));
+  touchLocalSettingsTimestamp(email);
 };
 
 export const getSundayDigestTime = (email) => {
@@ -348,6 +359,7 @@ export const getSundayDigestTime = (email) => {
 export const setSundayDigestTime = (time, email) => {
   const key = getScopedKey('classroom_hub_sunday_digest_time', email);
   localStorage.setItem(key, time);
+  touchLocalSettingsTimestamp(email);
 };
 
 export const getSentNotifications = (email) => {
@@ -397,6 +409,7 @@ export const getNotificationHistory = (email) => {
 export const saveNotificationHistory = (logs, email) => {
   const key = getScopedKey('classroom_hub_notification_history', email);
   localStorage.setItem(key, JSON.stringify(logs));
+  touchLocalSettingsTimestamp(email);
 };
 
 export const addNotificationHistoryLog = (logEntry, email) => {
