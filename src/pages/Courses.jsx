@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AssignmentCard from '../components/AssignmentCard';
 import { 
@@ -17,7 +17,13 @@ import {
   Play,
   Check,
   Trash2,
-  Pin
+  Pin,
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { t } from '../utils/i18n';
 
@@ -203,6 +209,74 @@ function ResourceCard({
   );
 }
 
+/* ──────── Compact Course Row (List Mode) ──────── */
+function CourseRow({ course, activeCount, totalAssignments, totalResources, isHidden, onSelect, onToggleVisibility, lang }) {
+  const getColorDot = (color) => {
+    switch (color) {
+      case 'emerald': return 'bg-emerald-500';
+      case 'blue': return 'bg-blue-500';
+      case 'amber': return 'bg-amber-500';
+      case 'rose': return 'bg-rose-500';
+      case 'purple': return 'bg-purple-500';
+      default: return 'bg-brand-500';
+    }
+  };
+
+  return (
+    <div
+      onClick={onSelect}
+      className={`flex items-center gap-4 px-4 py-3.5 bg-dark-card/20 border border-dark-border/30 rounded-xl cursor-pointer transition-all duration-200 hover:border-dark-border/60 hover:bg-dark-card/40 group ${
+        isHidden ? 'opacity-40 saturate-50' : ''
+      }`}
+    >
+      {/* Color dot */}
+      <div className={`w-2 h-2 rounded-full shrink-0 ${getColorDot(course.color)}`} />
+      
+      {/* Course info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] font-bold uppercase tracking-wider text-dark-muted">{course.code}</span>
+          {activeCount > 0 && !isHidden && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              {activeCount} {lang === 'en' ? 'active' : 'งานค้าง'}
+            </span>
+          )}
+          {isHidden && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
+              {t('hiddenLabel', lang)}
+            </span>
+          )}
+        </div>
+        <p className="text-sm font-semibold text-white truncate group-hover:text-brand-400 transition-colors">{course.name}</p>
+      </div>
+
+      {/* Stats */}
+      <div className="hidden sm:flex items-center gap-4 text-[10px] text-dark-muted shrink-0">
+        <span className="flex items-center gap-1"><BookOpen size={11} /> {totalAssignments}</span>
+        <span className="flex items-center gap-1"><FileText size={11} /> {totalResources}</span>
+      </div>
+
+      {/* Instructor */}
+      <div className="hidden md:flex items-center gap-1.5 text-[10px] text-dark-muted shrink-0 max-w-[140px]">
+        <User size={11} className="shrink-0" />
+        <span className="truncate">{course.instructor}</span>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleVisibility(course.id); }}
+          className="p-1.5 rounded-lg text-dark-muted hover:text-white hover:bg-dark-hover transition-all cursor-pointer"
+          title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
+        >
+          {isHidden ? <EyeOff size={13} className="text-rose-400" /> : <Eye size={13} />}
+        </button>
+        <ChevronRight size={14} className="text-dark-muted group-hover:text-brand-400 transition-colors" />
+      </div>
+    </div>
+  );
+}
+
 export default function Courses({ 
   courses = [], 
   assignments = [], 
@@ -218,9 +292,40 @@ export default function Courses({
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCourseName = searchParams.get('selected');
   const [activeTab, setActiveTab] = useState('resources');
-  const [isManageMode, setIsManageMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+  const [showHidden, setShowHidden] = useState(false);
   const selectedCourseObj = courses.find(c => c.name === selectedCourseName) || { color: 'blue' };
   const themeColor = selectedCourseObj.color || 'blue';
+
+  // Derived data
+  const visibleCourses = useMemo(() => {
+    return courses.filter(c => !hiddenCourseIds.includes(c.id));
+  }, [courses, hiddenCourseIds]);
+
+  const hiddenCourses = useMemo(() => {
+    return courses.filter(c => hiddenCourseIds.includes(c.id));
+  }, [courses, hiddenCourseIds]);
+
+  const filteredVisible = useMemo(() => {
+    if (!searchQuery.trim()) return visibleCourses;
+    const q = searchQuery.toLowerCase();
+    return visibleCourses.filter(c => 
+      c.name.toLowerCase().includes(q) || 
+      c.code.toLowerCase().includes(q) ||
+      (c.instructor && c.instructor.toLowerCase().includes(q))
+    );
+  }, [visibleCourses, searchQuery]);
+
+  const filteredHidden = useMemo(() => {
+    if (!searchQuery.trim()) return hiddenCourses;
+    const q = searchQuery.toLowerCase();
+    return hiddenCourses.filter(c => 
+      c.name.toLowerCase().includes(q) || 
+      c.code.toLowerCase().includes(q) ||
+      (c.instructor && c.instructor.toLowerCase().includes(q))
+    );
+  }, [hiddenCourses, searchQuery]);
 
   const getCourseTextColor = (color) => {
     switch (color) {
@@ -282,10 +387,82 @@ export default function Courses({
     (resource) => resource.course === selectedCourseName
   );
 
+  /* ──────── Course Card Component (Grid Mode) ──────── */
+  const renderCourseCard = (course, isHidden) => {
+    const activeCount = getActiveCount(course.name);
+    const totalAssignments = assignments.filter(a => a.course === course.name).length;
+    const totalResources = resources.filter(r => r.course === course.name).length;
+
+    return (
+      <div
+        key={course.id}
+        onClick={() => setSearchParams({ selected: course.name })}
+        className={`bg-dark-card/20 border border-dark-border/40 rounded-2xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-md hover:translate-y-[-3px] ${
+          isHidden ? 'opacity-45 saturate-50' : ''
+        }`}
+      >
+        {/* Top Colored Border Strip */}
+        <div className={`w-full h-1 ${getCourseBorderTopColor(course.color)}`} />
+        
+        {/* Card Body */}
+        <div className="p-5 md:p-6 flex-1 space-y-4">
+          <div className="flex items-center justify-between gap-3 text-[10px] font-bold text-dark-muted">
+            <span className="tracking-wider uppercase">{course.code}</span>
+            <div>
+              {isHidden ? (
+                <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2 py-0.5 rounded-md">{t('hiddenLabel', lang)}</span>
+              ) : activeCount > 0 ? (
+                <span className={`px-2 py-0.5 rounded-md border ${
+                  course.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                  course.color === 'blue' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                  course.color === 'amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                  course.color === 'rose' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                  'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                }`}>
+                  {t('activeCount', lang, { count: activeCount })}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="font-semibold text-sm md:text-base font-heading text-white group-hover:text-brand-400 transition-colors leading-snug">
+              {course.name}
+            </h3>
+            <div className="flex items-center gap-1.5 text-[10px] text-dark-muted font-medium">
+              <span className="flex items-center gap-1"><BookOpen size={10} /> {t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1"><FileText size={10} /> {t('postsMaterialsCount', lang, { count: totalResources })}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card Footer */}
+        <div className="px-5 py-3 border-t border-dark-border/20 bg-dark-sidebar/20 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[10px] text-dark-muted min-w-0">
+            <User size={12} className="shrink-0" />
+            <span className="truncate">{course.instructor}</span>
+          </div>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCourseVisibility(course.id);
+            }}
+            className="p-1.5 rounded-lg bg-dark-sidebar/40 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-all duration-200 cursor-pointer"
+            title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
+          >
+            {isHidden ? <EyeOff size={11} className="text-rose-400" /> : <Eye size={11} />}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8">
       {selectedCourseName ? (
-        /* 1. Selected Course Detailed View (หน้าห้องเรียนเฉพาะวิชา) */
+        /* ══════ Selected Course Detailed View ══════ */
         <div className="space-y-6 animate-fade-in">
           {/* Back Button */}
           <button
@@ -296,13 +473,12 @@ export default function Courses({
             {lang === 'en' ? 'Back to All Courses' : 'กลับไปที่รายวิชาทั้งหมด'}
           </button>
 
-          {/* Selected Course Banner - Minimal Style */}
+          {/* Selected Course Banner */}
           {(() => {
             const courseObj = courses.find(c => c.name === selectedCourseName);
             if (!courseObj) return null;
             return (
               <div className={`border border-dark-border/40 bg-dark-card/20 rounded-2xl relative overflow-hidden p-6 md:p-8 space-y-4 shadow-sm`}>
-                {/* Visual Accent bar */}
                 <div className={`absolute top-0 left-0 right-0 h-1.5 ${getCourseBorderTopColor(courseObj.color)}`} />
                 <div className="space-y-1">
                   <span className={`text-[10px] font-bold tracking-widest uppercase ${getCourseTextColor(courseObj.color)}`}>
@@ -320,14 +496,10 @@ export default function Courses({
             );
           })()}
 
-          {/* Tab Selector - Pill shaped */}
+          {/* Tab Selector */}
           <div className="flex bg-dark-sidebar/60 border border-dark-border/40 p-1 rounded-xl w-fit gap-1 select-none">
             <button
               onClick={() => setActiveTab('resources')}
-              className="px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer"
-              style={{
-                // Quick style hack to bypass the complex dynamic tab styling
-              }}
               className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'resources')}`}
             >
               <Megaphone size={13} />
@@ -348,10 +520,9 @@ export default function Courses({
             </button>
           </div>
 
-          {/* Conditional Tab Rendering */}
+          {/* Tab Content */}
           <div className="animate-fade-in pt-2">
             {activeTab === 'assignments' ? (
-              /* Assignments list for this specific course */
               <div className="space-y-4">
                 {courseAssignments.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -371,7 +542,6 @@ export default function Courses({
                 )}
               </div>
             ) : (
-              /* Announcements & Resources list for this specific course */
               <div className="space-y-4">
                 {courseResources.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -397,166 +567,163 @@ export default function Courses({
           </div>
         </div>
       ) : (
-        /* 2. All Courses Grid View (หน้ารวมการ์ดวิชาทั้งหมด - Redesigned Minimal UI) */
+        /* ══════ All Courses Overview ══════ */
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-border/40 pb-5">
+          {/* Header */}
+          <div className="flex flex-col gap-4">
             <div>
               <h1 className="text-xl font-bold font-heading text-white">{t('enrolledCoursesTitle', lang)}</h1>
               <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">{t('enrolledCoursesDesc', lang)}</p>
             </div>
-            
-            <button
-              onClick={() => setIsManageMode(!isManageMode)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
-                isManageMode 
-                  ? 'bg-brand-500/10 text-brand-400 border-brand-500/20' 
-                  : 'bg-dark-card/30 border-dark-border/40 text-zinc-300 hover:text-white hover:border-dark-border/80'
-              }`}
-            >
-              {isManageMode ? <EyeOff size={13} /> : <Eye size={13} />}
-              <span>{isManageMode ? t('doneBtn', lang) : t('hideMultipleBtn', lang)}</span>
-            </button>
-          </div>
 
-          {isManageMode && (
-            <div className="bg-dark-card/10 border border-dark-border/40 rounded-2xl p-5 md:p-6 space-y-4 animate-fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-dark-border/20 pb-3 gap-3">
-                <div className="space-y-0.5">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">{t('selectToHide', lang)}</h4>
-                  <p className="text-[10px] text-dark-muted">{t('selectToHideDesc', lang)}</p>
-                </div>
-                {/* Bulk Actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      const allIds = courses.map(c => c.id);
-                      onToggleBulkCourses(allIds, true);
-                    }}
-                    className="text-[10px] font-bold text-rose-400 hover:text-rose-300 cursor-pointer bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 px-2.5 py-1.5 rounded-lg transition-colors"
-                  >
-                    {t('hideAll', lang)}
-                  </button>
-                  <button
-                    onClick={() => {
-                      onToggleBulkCourses([], false);
-                    }}
-                    className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-colors"
-                  >
-                    {t('showAll', lang)}
-                  </button>
-                </div>
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-muted" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={lang === 'en' ? 'Search courses by name, code, or instructor...' : 'ค้นหาวิชาจากชื่อ, รหัส หรือ อาจารย์...'}
+                  className="w-full pl-9 pr-4 py-2.5 bg-dark-card/30 border border-dark-border/40 rounded-xl text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/40 transition-colors"
+                />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {courses.map((course) => {
-                  const isHidden = hiddenCourseIds.includes(course.id);
-                  return (
-                    <label 
-                      key={course.id}
-                      className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
-                        isHidden 
-                          ? 'bg-rose-500/5 border-rose-500/10 text-rose-400/80 hover:bg-rose-500/10' 
-                          : 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <input
-                          type="checkbox"
-                          checked={!isHidden}
-                          onChange={() => onToggleCourseVisibility(course.id)}
-                          className="w-4 h-4 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0 focus:ring-offset-0"
-                        />
-                        <div className="truncate text-xs font-semibold text-white">
-                          <span className="block text-[8px] opacity-75 uppercase text-dark-muted">{course.code}</span>
-                          <span className="block truncate">{course.name}</span>
-                        </div>
-                      </div>
-                      <span className={`text-[9px] uppercase font-bold shrink-0 px-1.5 py-0.5 rounded border ${
-                        isHidden ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                      }`}>
-                        {isHidden ? t('hiddenLabel', lang) : t('visibleLabel', lang)}
-                      </span>
-                    </label>
-                  );
-                })}
+              {/* View Toggle */}
+              <div className="flex items-center gap-1 bg-dark-card/30 border border-dark-border/40 rounded-xl p-1 shrink-0">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-lg transition-all cursor-pointer ${
+                    viewMode === 'grid' ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' : 'text-dark-muted hover:text-white border border-transparent'
+                  }`}
+                  title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
+                >
+                  <LayoutGrid size={14} />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-lg transition-all cursor-pointer ${
+                    viewMode === 'list' ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' : 'text-dark-muted hover:text-white border border-transparent'
+                  }`}
+                  title={lang === 'en' ? 'List view' : 'แบบรายการ'}
+                >
+                  <List size={14} />
+                </button>
               </div>
             </div>
-          )}
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.map((course) => {
-              const activeCount = getActiveCount(course.name);
-              const isHidden = hiddenCourseIds.includes(course.id);
-              
-              const totalAssignments = assignments.filter(a => a.course === course.name).length;
-              const totalResources = resources.filter(r => r.course === course.name).length;
+          {/* ── Visible Courses Section ── */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <h2 className="text-xs font-bold text-white uppercase tracking-wider">
+                  {lang === 'en' ? 'Active Courses' : 'วิชาที่แสดง'}
+                </h2>
+                <span className="text-[10px] text-dark-muted font-medium">({filteredVisible.length})</span>
+              </div>
+            </div>
 
-              return (
-                <div
-                  key={course.id}
-                  onClick={() => setSearchParams({ selected: course.name })}
-                  className={`bg-dark-card/20 border border-dark-border/40 rounded-2xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-md hover:translate-y-[-3px] ${
-                    isHidden ? 'opacity-45 saturate-50' : ''
-                  }`}
-                >
-                  {/* Top Colored Border Strip */}
-                  <div className={`w-full h-1 ${getCourseBorderTopColor(course.color)}`} />
-                  
-                  {/* Card Body */}
-                  <div className="p-5 md:p-6 flex-1 space-y-4">
-                    <div className="flex items-center justify-between gap-3 text-[10px] font-bold text-dark-muted">
-                      <span className="tracking-wider uppercase">{course.code}</span>
-                      <div>
-                        {isHidden ? (
-                          <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2 py-0.5 rounded-md">{t('hiddenLabel', lang)}</span>
-                        ) : activeCount > 0 ? (
-                          <span className={`px-2 py-0.5 rounded-md border ${
-                            course.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                            course.color === 'blue' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                            course.color === 'amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                            course.color === 'rose' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                            'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                          }`}>
-                            {t('activeCount', lang, { count: activeCount })}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
+            {filteredVisible.length > 0 ? (
+              viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {filteredVisible.map((course) => renderCourseCard(course, false))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredVisible.map((course) => (
+                    <CourseRow
+                      key={course.id}
+                      course={course}
+                      activeCount={getActiveCount(course.name)}
+                      totalAssignments={assignments.filter(a => a.course === course.name).length}
+                      totalResources={resources.filter(r => r.course === course.name).length}
+                      isHidden={false}
+                      onSelect={() => setSearchParams({ selected: course.name })}
+                      onToggleVisibility={onToggleCourseVisibility}
+                      lang={lang}
+                    />
+                  ))}
+                </div>
+              )
+            ) : (
+              <div className="bg-dark-card/20 border border-dark-border/30 rounded-xl p-8 text-center text-dark-muted text-xs">
+                {searchQuery
+                  ? (lang === 'en' ? 'No courses match your search.' : 'ไม่พบวิชาที่ตรงกับคำค้นหา')
+                  : (lang === 'en' ? 'No active courses.' : 'ไม่มีวิชาที่แสดง')
+                }
+              </div>
+            )}
+          </div>
 
-                    <div className="space-y-1.5">
-                      <h3 className="font-semibold text-sm md:text-base font-heading text-white group-hover:text-brand-400 transition-colors leading-snug">
-                        {course.name}
-                      </h3>
-                      <div className="flex items-center gap-1.5 text-[10px] text-dark-muted font-medium">
-                        <span>{t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
-                        <span>•</span>
-                        <span>{t('postsMaterialsCount', lang, { count: totalResources })}</span>
-                      </div>
-                    </div>
-                  </div>
+          {/* ── Hidden Courses Section ── */}
+          {hiddenCourses.length > 0 && (
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowHidden(!showHidden)}
+                className="flex items-center gap-2 group cursor-pointer w-full"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                  <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider group-hover:text-zinc-400 transition-colors">
+                    {lang === 'en' ? 'Hidden Courses' : 'วิชาที่ซ่อน'}
+                  </h2>
+                  <span className="text-[10px] text-dark-muted font-medium">({filteredHidden.length})</span>
+                </div>
+                <div className="flex-1 h-px bg-dark-border/20" />
+                {showHidden ? (
+                  <ChevronUp size={14} className="text-zinc-500 group-hover:text-zinc-400 transition-colors shrink-0" />
+                ) : (
+                  <ChevronDown size={14} className="text-zinc-500 group-hover:text-zinc-400 transition-colors shrink-0" />
+                )}
+              </button>
 
-                  {/* Card Footer */}
-                  <div className="px-5 py-3 border-t border-dark-border/20 bg-dark-sidebar/20 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[10px] text-dark-muted min-w-0">
-                      <User size={12} className="shrink-0" />
-                      <span className="truncate">{course.instructor}</span>
-                    </div>
-                    
+              {showHidden && (
+                <div className="animate-fade-in space-y-4">
+                  {/* Bulk show all button */}
+                  <div className="flex justify-end">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent selecting the course card
-                        onToggleCourseVisibility(course.id);
-                      }}
-                      className="p-1.5 rounded-lg bg-dark-sidebar/40 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-all duration-200 cursor-pointer"
-                      title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
+                      onClick={() => onToggleBulkCourses([], false)}
+                      className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
                     >
-                      {isHidden ? <EyeOff size={11} className="text-rose-400" /> : <Eye size={11} />}
+                      <Eye size={11} />
+                      {t('showAll', lang)}
                     </button>
                   </div>
+
+                  {filteredHidden.length > 0 ? (
+                    viewMode === 'grid' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {filteredHidden.map((course) => renderCourseCard(course, true))}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredHidden.map((course) => (
+                          <CourseRow
+                            key={course.id}
+                            course={course}
+                            activeCount={getActiveCount(course.name)}
+                            totalAssignments={assignments.filter(a => a.course === course.name).length}
+                            totalResources={resources.filter(r => r.course === course.name).length}
+                            isHidden={true}
+                            onSelect={() => setSearchParams({ selected: course.name })}
+                            onToggleVisibility={onToggleCourseVisibility}
+                            lang={lang}
+                          />
+                        ))}
+                      </div>
+                    )
+                  ) : (
+                    <div className="bg-dark-card/20 border border-dark-border/30 rounded-xl p-6 text-center text-dark-muted text-xs">
+                      {lang === 'en' ? 'No hidden courses match your search.' : 'ไม่พบวิชาที่ซ่อนที่ตรงกับคำค้นหา'}
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
