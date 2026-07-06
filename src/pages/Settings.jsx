@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { User, GraduationCap, Code, LogIn, LogOut, Mail, CheckCircle2 } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const GithubIcon = ({ size = 16, className = '' }) => (
   <svg
@@ -16,16 +18,10 @@ const GithubIcon = ({ size = 16, className = '' }) => (
   </svg>
 );
 
-export default function Settings({ 
-  profile = {}, 
-  onProfileSave, 
-  isLoggedIn = false, 
-  onLogout, 
-  onLogin,
-  accessToken = null,
-  assignments = [],
-  lang = 'en'
-}) {
+export default function Settings() {
+  const { lang } = useSettings();
+  const { profile, isLoggedIn, handleProfileSave, handleLogin, handleLogout } = useAuth();
+  
   const [name, setName] = useState(profile.name || '');
   const [studentId, setStudentId] = useState(profile.studentId || '');
   const [email, setEmail] = useState(profile.email || '');
@@ -65,7 +61,7 @@ export default function Settings({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onProfileSave({
+    handleProfileSave({
       name,
       studentId,
       email,
@@ -78,13 +74,11 @@ export default function Settings({
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in py-2">
-      {/* Minimal Header */}
       <div className="border-b border-dark-border/40 pb-5">
         <h1 className="text-xl font-bold font-heading text-white">{t('settingsTitle', lang)}</h1>
         <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">{t('settingsDesc', lang)}</p>
       </div>
 
-      {/* Success Alert */}
       {saveSuccess && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-4 py-3 rounded-xl flex items-center gap-2 animate-fade-in max-w-xl">
           <CheckCircle2 size={15} />
@@ -92,9 +86,7 @@ export default function Settings({
         </div>
       )}
 
-      {/* Responsive Grid layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Section: Student Profile Settings Form */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 md:p-8 space-y-6 shadow-sm">
             <div className="flex items-center gap-3 pb-3">
@@ -176,7 +168,6 @@ export default function Settings({
               </div>
             </form>
 
-            {/* Google Classroom Integration Actions */}
             <div className="pt-5 border-t border-dark-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <h4 className="font-semibold text-xs text-white flex items-center gap-2">
@@ -193,7 +184,7 @@ export default function Settings({
               {isLoggedIn ? (
                 <button
                   type="button"
-                  onClick={onLogout}
+                  onClick={handleLogout}
                   className="bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-400 border border-rose-500/20 text-xs font-semibold px-4.5 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   <LogOut size={12} />
@@ -202,7 +193,7 @@ export default function Settings({
               ) : (
                 <button
                   type="button"
-                  onClick={onLogin}
+                  onClick={handleLogin}
                   className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold px-4.5 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/15"
                 >
                   <LogIn size={12} />
@@ -214,9 +205,7 @@ export default function Settings({
 
         </div>
 
-        {/* Right Section: Developer Bio & Project specs */}
         <div className="space-y-6">
-          {/* Developer Mini Profile */}
           <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 space-y-5 shadow-sm">
             <div className="flex items-center gap-3 pb-2">
               <User size={16} className="text-brand-400" />
@@ -265,7 +254,6 @@ export default function Settings({
             </a>
           </div>
 
-          {/* Project Details */}
           <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 space-y-4 shadow-sm">
             <div className="flex items-center gap-3 pb-1">
               <Code size={16} className="text-brand-400" />

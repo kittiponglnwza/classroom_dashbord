@@ -87,9 +87,13 @@ const formatDisplayDate = (isoDateStr, lang) => {
 };
 
 import { parseExamDate } from '../utils/examDate';
+import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 
-
-export default function ExamRoom({ profile = {}, lang = 'en' }) {
+export default function ExamRoom() {
+  const { profile } = useAuth();
+  const { lang } = useSettings();
+  
   const [studentId, setStudentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

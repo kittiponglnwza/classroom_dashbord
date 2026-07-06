@@ -3,58 +3,36 @@ import TaskStats from '../components/TaskStats';
 import AssignmentCard from '../components/AssignmentCard';
 import { Calendar, ArrowRight, BookOpen, Megaphone, Clock, Paperclip, ClipboardCheck, MapPin, AlertCircle } from 'lucide-react';
 import { t } from '../utils/i18n';
-
-const courseColorStyles = {
-  emerald: {
-    border: 'border-l-emerald-500',
-    text: 'text-emerald-400 dark:text-emerald-400',
-    badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  },
-  blue: {
-    border: 'border-l-blue-500',
-    text: 'text-blue-400 dark:text-blue-400',
-    badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  },
-  amber: {
-    border: 'border-l-amber-500',
-    text: 'text-amber-400 dark:text-amber-400',
-    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  },
-  rose: {
-    border: 'border-l-rose-500',
-    text: 'text-rose-400 dark:text-rose-400',
-    badge: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-  },
-  purple: {
-    border: 'border-l-purple-500',
-    text: 'text-purple-400 dark:text-purple-400',
-    badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  },
-};
-
-const getStyles = (color) => {
-  return courseColorStyles[color] || courseColorStyles.blue;
-};
-
 import { parseExamDate } from '../utils/examDate';
+import { getCourseBadgeColor } from '../utils/colors';
+import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
+import { useClassroom } from '../contexts/ClassroomContext';
 
+const getBorderLeftColor = (color) => {
+  switch(color) {
+    case 'emerald': return 'border-l-emerald-500';
+    case 'blue': return 'border-l-blue-500';
+    case 'amber': return 'border-l-amber-500';
+    case 'rose': return 'border-l-rose-500';
+    case 'purple': return 'border-l-purple-500';
+    default: return 'border-l-zinc-500';
+  }
+};
 
-export default function Home({ 
-  assignments = [], 
-  onStatusChange, 
-  courses = [], 
-  profile = {},
-  resources = [],
-  lang = 'en'
-}) {
+export default function Home() {
+  const { profile } = useAuth();
+  const { lang } = useSettings();
+  const { visibleAssignments, visibleCourses, visibleResources, handleStatusChange } = useClassroom();
+
   // Filter out completed and get nearest due dates
-  const upcomingAssignments = assignments
+  const upcomingAssignments = visibleAssignments
     .filter(a => a.status !== 'done')
     .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
     .slice(0, 3);
 
   // Get latest 3 announcements across all courses
-  const recentAnnouncements = resources
+  const recentAnnouncements = visibleResources
     .filter(r => r.type === 'announcement')
     .sort((a, b) => new Date(b.creationTime) - new Date(a.creationTime))
     .slice(0, 3);
@@ -86,7 +64,7 @@ export default function Home({
             {t('welcomeBack', lang, { name: profile.name || 'Student' })}
           </h1>
           {(() => {
-            const pendingCount = assignments.filter(a => a.status !== 'done').length;
+            const pendingCount = visibleAssignments.filter(a => a.status !== 'done').length;
             return (
               <p className="text-dark-muted text-sm max-w-xl">
                 {pendingCount === 0 
@@ -108,7 +86,7 @@ export default function Home({
       {/* Task Statistics */}
       <section className="space-y-3">
         <h2 className="text-lg font-bold font-heading text-white">{t('progressOverview', lang)}</h2>
-        <TaskStats assignments={assignments} lang={lang} exams={allExams} />
+        <TaskStats assignments={visibleAssignments} lang={lang} exams={allExams} />
       </section>
 
       {/* Grid: Upcoming Tasks & Quick Quotes */}
@@ -122,7 +100,7 @@ export default function Home({
                 <Calendar size={18} className="text-brand-400" />
                 {t('upcomingDeadlines', lang)}
               </h2>
-              {assignments.filter(a => a.status !== 'done').length > 3 && (
+              {visibleAssignments.filter(a => a.status !== 'done').length > 3 && (
                 <Link to="/dashboard" className="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors flex items-center gap-1">
                   {t('viewAll', lang)}
                   <ArrowRight size={12} />
@@ -136,7 +114,7 @@ export default function Home({
                   <AssignmentCard
                     key={assignment.id}
                     assignment={assignment}
-                    onStatusChange={onStatusChange}
+                    onStatusChange={handleStatusChange}
                     lang={lang}
                   />
                 ))}
@@ -166,18 +144,19 @@ export default function Home({
                     hour: '2-digit',
                     minute: '2-digit'
                   });
-                  const styles = getStyles(ann.courseColor);
+                  const borderLeft = getBorderLeftColor(ann.courseColor);
+                  const badgeClasses = getCourseBadgeColor(ann.courseColor);
 
                   return (
                     <Link
                       key={ann.id}
                       to={`/courses?selected=${encodeURIComponent(ann.course)}`}
-                      className={`block p-4 rounded-xl bg-dark-card/20 border border-dark-border/40 hover:bg-dark-hover/30 hover:border-dark-border transition-all duration-300 hover:translate-x-1 group border-l-4 ${styles.border} flex flex-col justify-between h-full`}
+                      className={`block p-4 rounded-xl bg-dark-card/20 border border-dark-border/40 hover:bg-dark-hover/30 hover:border-dark-border transition-all duration-300 hover:translate-x-1 group border-l-4 ${borderLeft} flex flex-col justify-between h-full`}
                     >
                       <div className="space-y-3 flex-1 flex flex-col justify-between">
                         <div className="space-y-2">
                           <div className="flex flex-col gap-1">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border truncate max-w-full self-start ${styles.badge}`} title={ann.course}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border truncate max-w-full self-start ${badgeClasses}`} title={ann.course}>
                               {ann.courseCode && ann.courseCode !== 'CLASSROOM' ? ann.courseCode : ann.course}
                             </span>
                             <span className="text-[9px] text-dark-muted font-medium flex items-center gap-1 shrink-0">
@@ -214,11 +193,6 @@ export default function Home({
         <div className="space-y-6">
           {/* Next Exam Widget */}
           {(() => {
-            const activeEmail = (profile.email || '').toLowerCase().trim();
-            const cacheKey = activeEmail ? `classroom_hub_exam_results_${activeEmail}` : 'classroom_hub_exam_results_';
-            const cachedData = localStorage.getItem(cacheKey);
-            const savedSearch = localStorage.getItem('lastExamSearch');
-            const hasSavedSearch = savedSearch && savedSearch.trim() !== '';
             let nextExam = null;
             let unlisted = null;
             let hasChecked = false;
@@ -256,7 +230,6 @@ export default function Home({
               }
             }
 
-            // Case 1: Has never checked exam seating
             if (!hasChecked) {
               return (
                 <div className="bg-dark-card border border-dark-border rounded-xl p-5 space-y-3 relative overflow-hidden group">
@@ -288,13 +261,10 @@ export default function Home({
               );
             }
 
-            // Case 2: Has upcoming exam
             if (nextExam) {
               return (
                 <div className="bg-dark-card border border-dark-border hover:border-brand-500/20 rounded-xl p-5 space-y-3 relative overflow-hidden group transition-all duration-300">
-                  {/* Subtle top indicator strip */}
                   <div className="absolute top-0 left-0 right-0 h-1 bg-brand-500/40" />
-                  
                   <div className="flex items-center justify-between border-b border-dark-border/40 pb-2.5">
                     <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
                       <ClipboardCheck size={14} className="text-brand-400" />
@@ -307,7 +277,6 @@ export default function Home({
                       {lang === 'en' ? 'View All' : 'ดูทั้งหมด'}
                     </Link>
                   </div>
-
                   <div className="space-y-3">
                     <div className="space-y-1">
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 uppercase tracking-wide">
@@ -317,7 +286,6 @@ export default function Home({
                         {nextExam.courseName}
                       </h4>
                     </div>
-
                     <div className="grid grid-cols-2 gap-2 text-[11px] border-t border-dark-border/30 pt-2.5">
                       <div className="space-y-0.5">
                         <span className="text-[8px] uppercase font-bold text-dark-muted tracking-wider block">{t('dateCol', lang)}</span>
@@ -328,7 +296,6 @@ export default function Home({
                         <span className="font-medium text-zinc-300 truncate block">{nextExam.time}</span>
                       </div>
                     </div>
-
                     <div className="border-t border-dark-border/30 pt-2.5 flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-[11px]">
                         <MapPin size={12} className="text-brand-400 shrink-0" />
@@ -344,7 +311,6 @@ export default function Home({
               );
             }
 
-            // Case 3: Unlisted / Petition status
             if (unlisted) {
               return (
                 <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-5 space-y-3 relative overflow-hidden">
@@ -375,7 +341,6 @@ export default function Home({
               );
             }
 
-            // Case 4: Has checked but no exams found at all
             return (
               <div className="bg-dark-card border border-dark-border rounded-xl p-5 space-y-3 relative overflow-hidden">
                 <div className="flex items-center justify-between border-b border-dark-border/40 pb-2.5">
@@ -398,8 +363,8 @@ export default function Home({
               <BookOpen size={14} className="text-dark-muted" />
             </h3>
             <div className="space-y-3">
-              {courses.slice(0, 4).map((c) => {
-                const count = assignments.filter(a => a.course === c.name && a.status !== 'done').length;
+              {visibleCourses.slice(0, 4).map((c) => {
+                const count = visibleAssignments.filter(a => a.course === c.name && a.status !== 'done').length;
                 return (
                   <div key={c.id} className="flex items-center justify-between text-xs">
                     <span className="text-zinc-300 font-medium">{c.name}</span>

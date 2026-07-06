@@ -1,44 +1,42 @@
 import { useState } from 'react';
 import AssignmentCard from '../components/AssignmentCard';
-import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { isDueToday, isOverdue } from '../utils/dateUtils';
+import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
+import { useClassroom } from '../contexts/ClassroomContext';
 
-export default function Dashboard({ 
-  assignments = [], 
-  onStatusChange, 
-  onAddAssignment, 
-  courses = [],
-  isLoggedIn = false,
-  isSyncing = false,
-  onSync = null,
-  lang = 'en'
-}) {
+export default function Dashboard() {
+  const { isLoggedIn } = useAuth();
+  const { lang } = useSettings();
+  const { visibleAssignments, visibleCourses, handleStatusChange, handleAddAssignment, isSyncing, syncClassroom } = useClassroom();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('due-asc'); // 'due-asc', 'due-desc', 'points-desc'
-  const [viewType, setViewType] = useState('grid'); // 'grid' or 'kanban'
+  const [sortBy, setSortBy] = useState('due-asc');
+  const [viewType, setViewType] = useState('grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State for new assignment
   const [newTitle, setNewTitle] = useState('');
-  const [newCourse, setNewCourse] = useState(courses[0]?.name || '');
+  const [newCourse, setNewCourse] = useState(visibleCourses[0]?.name || '');
   const [newDueDate, setNewDueDate] = useState('');
   const [newPoints, setNewPoints] = useState(100);
   const [newDescription, setNewDescription] = useState('');
 
-  // Handle adding new assignment
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!newTitle || !newCourse || !newDueDate) return;
 
-    const courseObj = courses.find(c => c.name === newCourse);
+    const courseObj = visibleCourses.find(c => c.name === newCourse);
     const color = courseObj ? courseObj.color : 'blue';
 
     // Format newDueDate to date with end of day time
     const formattedDueDate = `${newDueDate}T23:59:59`;
 
-    onAddAssignment({
+    handleAddAssignment({
       title: newTitle,
       course: newCourse,
       dueDate: formattedDueDate,
@@ -56,24 +54,8 @@ export default function Dashboard({
     setIsModalOpen(false);
   };
 
-  // Helper: check if task is due today (local calendar day match)
-  const isDueToday = (dueDateStr) => {
-    if (!dueDateStr) return false;
-    const today = new Date();
-    const due = new Date(dueDateStr);
-    return today.getFullYear() === due.getFullYear() &&
-           today.getMonth() === due.getMonth() &&
-           today.getDate() === due.getDate();
-  };
-
-  // Helper: check if task is overdue
-  const isOverdue = (task) => {
-    if (task.status === 'done' || !task.dueDate) return false;
-    return new Date(task.dueDate) - new Date() < 0;
-  };
-
   // Filter assignments
-  const filteredAssignments = assignments.filter(assignment => {
+  const filteredAssignments = visibleAssignments.filter(assignment => {
     const matchesSearch = assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           assignment.course.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCourse = selectedCourse === 'all' || assignment.course === selectedCourse;
@@ -94,14 +76,14 @@ export default function Dashboard({
   });
 
   // Extract critical groups (not filtered by general status filter to avoid missing overdue alerts)
-  const allFilteredAssignments = assignments.filter(a => {
+  const allFilteredAssignments = visibleAssignments.filter(a => {
     const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           a.course.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCourse = selectedCourse === 'all' || a.course === selectedCourse;
     return matchesSearch && matchesCourse;
   });
 
-  const overdueTasks = allFilteredAssignments.filter(a => isOverdue(a));
+  const overdueTasks = allFilteredAssignments.filter(a => isOverdue(a.dueDate) && a.status !== 'done');
   const todayTasks = allFilteredAssignments.filter(a => isDueToday(a.dueDate) && a.status !== 'done');
 
   // Split assignments for Kanban columns
@@ -118,9 +100,9 @@ export default function Dashboard({
           <p className="text-xs text-dark-muted">{t('assignmentsDesc', lang)}</p>
         </div>
         <div className="flex items-center gap-3">
-          {isLoggedIn && onSync && (
+          {isLoggedIn && (
             <button
-              onClick={onSync}
+              onClick={syncClassroom}
               disabled={isSyncing}
               className="flex items-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-semibold text-xs px-4 py-2.5 rounded-lg border border-dark-border transition-colors disabled:opacity-50"
             >
@@ -156,7 +138,6 @@ export default function Dashboard({
 
         {/* Filters and Sorting */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Course Filter */}
           <div className="flex items-center gap-1.5 bg-dark-sidebar border border-dark-border px-2.5 py-1.5 rounded-lg">
             <Filter size={13} className="text-dark-muted" />
             <select
@@ -165,13 +146,12 @@ export default function Dashboard({
               className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer pr-1"
             >
               <option value="all">{t('allSubjects', lang)}</option>
-              {courses.map(c => (
+              {visibleCourses.map(c => (
                 <option key={c.id} value={c.name}>{c.name}</option>
               ))}
             </select>
           </div>
 
-          {/* Status Filter */}
           {viewType !== 'kanban' && (
             <div className="flex items-center gap-1.5 bg-dark-sidebar border border-dark-border px-2.5 py-1.5 rounded-lg">
               <select
@@ -187,7 +167,6 @@ export default function Dashboard({
             </div>
           )}
 
-          {/* Sorting */}
           <div className="flex items-center gap-1.5 bg-dark-sidebar border border-dark-border px-2.5 py-1.5 rounded-lg">
             <ArrowUpDown size={13} className="text-dark-muted" />
             <select
@@ -201,7 +180,6 @@ export default function Dashboard({
             </select>
           </div>
 
-          {/* View Toggles */}
           <div className="flex items-center border border-dark-border rounded-lg p-0.5 bg-dark-sidebar ml-auto md:ml-0">
             <button
               onClick={() => setViewType('grid')}
@@ -224,7 +202,6 @@ export default function Dashboard({
       {/* Critical Rows (Only visible in Grid view to keep board columns clean) */}
       {viewType === 'grid' && (
         <>
-          {/* Overdue Section */}
           {overdueTasks.length > 0 && (
             <div className="space-y-3 bg-rose-500/5 border border-rose-500/10 rounded-2xl p-5">
               <h3 className="text-xs font-bold text-rose-400 flex items-center gap-2 uppercase tracking-wider">
@@ -233,13 +210,12 @@ export default function Dashboard({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {overdueTasks.map(task => (
-                  <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
+                  <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Today View Section */}
           {todayTasks.length > 0 && (
             <div className="space-y-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl p-5">
               <h3 className="text-xs font-bold text-amber-400 flex items-center gap-2 uppercase tracking-wider">
@@ -248,7 +224,7 @@ export default function Dashboard({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {todayTasks.map(task => (
-                  <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
+                  <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
                 ))}
               </div>
             </div>
@@ -268,7 +244,7 @@ export default function Dashboard({
                 <AssignmentCard
                   key={assignment.id}
                   assignment={assignment}
-                  onStatusChange={onStatusChange}
+                  onStatusChange={handleStatusChange}
                   lang={lang}
                 />
               ))}
@@ -284,7 +260,6 @@ export default function Dashboard({
       {/* Kanban Board View */}
       {viewType === 'kanban' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Column 1: To Do */}
           <div className="bg-dark-sidebar/40 border border-dark-border/60 rounded-xl p-4 flex flex-col h-full min-h-[500px]">
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
               <div className="flex items-center gap-2">
@@ -297,7 +272,7 @@ export default function Dashboard({
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 max-h-[600px] pr-1">
               {todoTasks.map(task => (
-                <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
+                <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
               ))}
               {todoTasks.length === 0 && (
                 <div className="border border-dark-border/40 border-dashed rounded-lg p-5 text-center text-xs text-dark-muted py-8">
@@ -307,7 +282,6 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* Column 2: In Progress */}
           <div className="bg-dark-sidebar/40 border border-dark-border/60 rounded-xl p-4 flex flex-col h-full min-h-[500px]">
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
               <div className="flex items-center gap-2">
@@ -320,7 +294,7 @@ export default function Dashboard({
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 max-h-[600px] pr-1">
               {doingTasks.map(task => (
-                <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
+                <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
               ))}
               {doingTasks.length === 0 && (
                 <div className="border border-dark-border/40 border-dashed rounded-lg p-5 text-center text-xs text-dark-muted py-8">
@@ -330,7 +304,6 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* Column 3: Completed */}
           <div className="bg-dark-sidebar/40 border border-dark-border/60 rounded-xl p-4 flex flex-col h-full min-h-[500px]">
             <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
               <div className="flex items-center gap-2">
@@ -343,7 +316,7 @@ export default function Dashboard({
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 max-h-[600px] pr-1">
               {doneTasks.map(task => (
-                <AssignmentCard key={task.id} assignment={task} onStatusChange={onStatusChange} lang={lang} />
+                <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
               ))}
               {doneTasks.length === 0 && (
                 <div className="border border-dark-border/40 border-dashed rounded-lg p-5 text-center text-xs text-dark-muted py-8">
@@ -390,7 +363,7 @@ export default function Dashboard({
                     onChange={(e) => setNewCourse(e.target.value)}
                     className="w-full bg-dark-sidebar border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500 cursor-pointer"
                   >
-                    {courses.map(c => (
+                    {visibleCourses.map(c => (
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
                   </select>

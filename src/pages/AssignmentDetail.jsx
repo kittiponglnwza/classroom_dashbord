@@ -1,26 +1,22 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, 
-  Calendar, 
-  Paperclip, 
-  FileText, 
-  Sparkles, 
-  Plus, 
-  CheckCircle,
-  Circle,
-  FileCode,
-  Award,
-  BookOpen
+  ArrowLeft, Calendar, Paperclip, FileText, Sparkles, 
+  FileCode, Award, BookOpen
 } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { getCourseTextColor } from '../utils/colors';
+import { useSettings } from '../contexts/SettingsContext';
+import { useClassroom } from '../contexts/ClassroomContext';
 
-export default function AssignmentDetail({ assignments = [], onStatusChange, onNotesChange, lang = 'en' }) {
+export default function AssignmentDetail() {
+  const { lang } = useSettings();
+  const { assignments, handleStatusChange, handleNotesChange } = useClassroom();
+  
   const { id } = useParams();
   const navigate = useNavigate();
   const assignment = assignments.find(a => a.id === id);
 
-  // If assignment is not found
   if (!assignment) {
     return (
       <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center max-w-lg mx-auto mt-10 space-y-4">
@@ -39,31 +35,16 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
 
   const { title, course, courseCode, dueDate, status, points, attachments, description, courseColor, notes = '' } = assignment;
   
-  // Note textarea state
   const [noteContent, setNoteContent] = useState(notes);
 
-  // Update note content in parent state/LocalStorage when modified
   useEffect(() => {
     setNoteContent(notes);
   }, [notes]);
 
   const handleNotesBlur = () => {
-    onNotesChange(id, noteContent);
+    handleNotesChange(id, noteContent);
   };
 
-  // Helper to map course color
-  const getCourseTextColor = (color) => {
-    switch (color) {
-      case 'emerald': return 'text-emerald-400';
-      case 'blue': return 'text-blue-400';
-      case 'amber': return 'text-amber-400';
-      case 'rose': return 'text-rose-400';
-      case 'purple': return 'text-purple-400';
-      default: return 'text-zinc-400';
-    }
-  };
-
-  // Calculate days remaining helper
   const getDaysLeft = () => {
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -94,7 +75,6 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
       <button
         onClick={() => navigate('/dashboard')}
         className="flex items-center gap-1.5 text-xs text-dark-muted hover:text-white transition-colors bg-dark-card border border-dark-border px-3.5 py-1.8 py-2 rounded-lg self-start"
@@ -103,14 +83,11 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
         {t('backDashboard', lang)}
       </button>
 
-      {/* Main Grid: Info card left, personal notes right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Side: Assignment Specs */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-dark-card border border-dark-border rounded-xl p-6 md:p-8 space-y-6">
             
-            {/* Header Meta */}
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-dark-border/60 pb-5">
               <div className="flex items-center gap-2">
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-md bg-dark-sidebar border border-dark-border ${getCourseTextColor(courseColor)}`}>
@@ -121,7 +98,7 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                 <span className="text-xs text-dark-muted font-medium">{t('statusLabel', lang)}</span>
                 <select
                   value={status}
-                  onChange={(e) => onStatusChange(id, e.target.value)}
+                  onChange={(e) => handleStatusChange(id, e.target.value)}
                   className={`text-xs px-3 py-1.5 rounded-lg bg-dark-sidebar border border-dark-border text-white cursor-pointer focus:outline-none focus:border-brand-500 font-semibold ${
                     status === 'todo' ? 'text-zinc-400' :
                     status === 'doing' ? 'text-amber-400' : 'text-emerald-400'
@@ -134,14 +111,12 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
               </div>
             </div>
 
-            {/* Title & Stats */}
             <div className="space-y-4">
               <h1 className="text-xl md:text-2xl font-bold font-heading text-white tracking-tight leading-snug">
                 {title}
               </h1>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {/* Due Date Stat */}
                 <div className="bg-dark-sidebar border border-dark-border rounded-lg p-3 flex items-center gap-3">
                   <div className="p-2 bg-dark-hover rounded-md text-brand-400">
                     <Calendar size={16} />
@@ -152,7 +127,6 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                   </div>
                 </div>
 
-                {/* Points Stat */}
                 <div className="bg-dark-sidebar border border-dark-border rounded-lg p-3 flex items-center gap-3">
                   <div className="p-2 bg-dark-hover rounded-md text-amber-400">
                     <Award size={16} />
@@ -163,7 +137,6 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
                   </div>
                 </div>
 
-                {/* Days Left Stat */}
                 <div className="bg-dark-sidebar border border-dark-border rounded-lg p-3 col-span-2 sm:col-span-1 flex items-center gap-3">
                   <div className="p-2 bg-dark-hover rounded-md text-zinc-400">
                     <Sparkles size={16} className={daysInfo.color} />
@@ -176,7 +149,6 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
               </div>
             </div>
 
-            {/* Description */}
             <div className="space-y-3 pt-2">
               <h3 className="text-xs font-semibold text-white uppercase tracking-wider">{t('descriptionHeader', lang)}</h3>
               <p className="text-sm text-dark-muted leading-relaxed whitespace-pre-line bg-dark-sidebar/40 border border-dark-border/40 rounded-xl p-5">
@@ -184,7 +156,6 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
               </p>
             </div>
 
-            {/* Attachments */}
             {attachments && attachments.length > 0 && (
               <div className="space-y-3 pt-2">
                 <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -230,7 +201,6 @@ export default function AssignmentDetail({ assignments = [], onStatusChange, onN
           </div>
         </div>
 
-        {/* Right Side: Notion Personal Workspace notes */}
         <div className="space-y-6">
           <div className="bg-dark-card border border-dark-border rounded-xl p-6 h-full flex flex-col justify-between">
             <div className="space-y-4">

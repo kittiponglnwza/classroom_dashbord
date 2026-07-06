@@ -1,27 +1,23 @@
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { 
-  Home, 
-  LayoutDashboard, 
-  BookOpen, 
-  Settings, 
-  ChevronLeft, 
-  ChevronRight, 
-  CheckSquare, 
-  Clock,
-  ClipboardCheck
-} from 'lucide-react';
+import { Home, LayoutDashboard, BookOpen, Settings, ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { getCourseBadgeColor } from '../utils/colors';
+import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
+import { useClassroom } from '../contexts/ClassroomContext';
 
-export default function Sidebar({ courses = [], assignments = [], profile = {}, onLinkClick = null, lang = 'en' }) {
+export default function Sidebar({ onLinkClick = null }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { profile } = useAuth();
+  const { lang } = useSettings();
+  const { visibleCourses, visibleAssignments } = useClassroom();
 
-  // Get active assignment count for each course code
   const getActiveCount = (courseName) => {
-    return assignments.filter(a => a.course === courseName && a.status !== 'done').length;
+    return visibleAssignments.filter(a => a.course === courseName && a.status !== 'done').length;
   };
 
-  const totalActive = assignments.filter(a => a.status !== 'done').length;
+  const totalActive = visibleAssignments.filter(a => a.status !== 'done').length;
 
   const navItems = [
     { name: 'Home', key: 'home', path: '/', icon: Home, count: null },
@@ -29,25 +25,12 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
     { name: 'Courses', key: 'courses', path: '/courses', icon: BookOpen, count: null },
   ];
 
-  // Helper function to map course colors to tailwind classes
-  const getBadgeColors = (color) => {
-    switch(color) {
-      case 'emerald': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      case 'blue': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-      case 'amber': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-      case 'rose': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-      case 'purple': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
-      default: return 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
-    }
-  };
-
   return (
     <aside 
       className={`bg-dark-sidebar border-r border-dark-border flex flex-col transition-all duration-300 relative h-screen ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
-      {/* Brand Header */}
       <div className="p-5 flex items-center justify-between border-b border-dark-border">
         <Link to="/" onClick={onLinkClick} className="flex items-center gap-3 overflow-hidden select-none group">
           <div className="font-heading font-extrabold text-base text-white flex-shrink-0 select-none">
@@ -72,7 +55,6 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
         </button>
       </div>
 
-      {/* Main Navigation */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-7">
         <div className="space-y-1">
           {navItems.map((item) => (
@@ -104,15 +86,14 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
           ))}
         </div>
 
-        {/* Courses Section */}
-        {!isCollapsed && courses.length > 0 && (
+        {!isCollapsed && visibleCourses.length > 0 && (
           <div className="space-y-2">
             <h3 className="px-3 text-xs font-semibold text-dark-muted uppercase tracking-wider flex items-center justify-between">
               <span>{t('myCourses', lang)}</span>
               <BookOpen size={12} />
             </h3>
             <div className="space-y-0.5">
-              {courses.map((course) => {
+              {visibleCourses.map((course) => {
                 const count = getActiveCount(course.name);
                 return (
                   <Link
@@ -126,7 +107,7 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
                       <span className="truncate text-xs font-medium">{course.name}</span>
                     </div>
                     {count > 0 && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${getBadgeColors(course.color)}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${getCourseBadgeColor(course.color)}`}>
                         {count}
                       </span>
                     )}
@@ -138,7 +119,6 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
         )}
       </div>
 
-      {/* Exam Seating Shortcut Link */}
       <div className="px-3 pb-2 border-t border-dark-border/20 pt-2 shrink-0">
         <NavLink
           to="/exam-room"
@@ -156,7 +136,6 @@ export default function Sidebar({ courses = [], assignments = [], profile = {}, 
         </NavLink>
       </div>
 
-      {/* Footer Info / Settings Button */}
       <NavLink
         to="/settings"
         onClick={onLinkClick}

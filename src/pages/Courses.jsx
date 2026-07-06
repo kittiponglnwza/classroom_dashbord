@@ -2,30 +2,18 @@ import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AssignmentCard from '../components/AssignmentCard';
 import { 
-  User, 
-  BookOpen, 
-  GraduationCap, 
-  ChevronRight, 
-  Eye, 
-  EyeOff, 
-  ArrowLeft, 
-  Megaphone, 
-  FileText, 
-  ExternalLink, 
-  Calendar, 
-  FileCode, 
-  Play,
-  Check,
-  Trash2,
-  Pin,
-  Search,
-  SlidersHorizontal,
-  ChevronDown,
-  ChevronUp,
-  LayoutGrid,
-  List
+  User, BookOpen, ChevronRight, Eye, EyeOff, ArrowLeft, 
+  Megaphone, FileText, ExternalLink, Calendar, 
+  Check, Trash2, Pin, Search, ChevronDown, ChevronUp, 
+  LayoutGrid, List
 } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { 
+  getCourseBorderTopColor, getCourseTextColor, getTabStyles, 
+  getTabBadgeStyles, getTrackButtonStyles, getCourseBadgeColor 
+} from '../utils/colors';
+import { useSettings } from '../contexts/SettingsContext';
+import { useClassroom } from '../contexts/ClassroomContext';
 
 function ResourceCard({ 
   resource, 
@@ -39,11 +27,7 @@ function ResourceCard({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const formattedDate = new Date(creationTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+    day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit'
   });
 
   const getResourceTypeStyles = () => {
@@ -64,7 +48,6 @@ function ResourceCard({
 
   const resourceType = getResourceTypeStyles();
 
-  // Helper to render high-fidelity brand icons
   const getAttachmentIcon = (size) => {
     if (size === 'Video') {
       return (
@@ -86,17 +69,6 @@ function ResourceCard({
     return <ExternalLink size={12} className="text-blue-400 shrink-0" />;
   };
 
-  const getTrackButtonStyles = (color) => {
-    switch (color) {
-      case 'emerald': return 'text-zinc-300 hover:text-emerald-400 border-dark-border hover:border-emerald-500/20 hover:bg-emerald-500/5';
-      case 'blue': return 'text-zinc-300 hover:text-blue-400 border-dark-border hover:border-blue-500/20 hover:bg-blue-500/5';
-      case 'amber': return 'text-zinc-300 hover:text-amber-400 border-dark-border hover:border-amber-500/20 hover:bg-amber-500/5';
-      case 'rose': return 'text-zinc-300 hover:text-rose-400 border-dark-border hover:border-rose-500/20 hover:bg-rose-500/5';
-      case 'purple': return 'text-zinc-300 hover:text-purple-400 border-dark-border hover:border-purple-500/20 hover:bg-purple-500/5';
-      default: return 'text-zinc-300 hover:text-brand-400 border-dark-border hover:border-brand-500/20 hover:bg-brand-500/5';
-    }
-  };
-
   const isTracked = assignments.some(a => a.parentResourceId === id);
 
   const shouldTruncate = description && description.length > 180;
@@ -107,7 +79,6 @@ function ResourceCard({
   return (
     <div className="bg-dark-card border border-dark-border rounded-xl p-5 hover:border-dark-border/80 transition-all duration-300 flex flex-col justify-between hover:shadow-lg">
       <div className="space-y-3">
-        {/* Header Tag and Date */}
         <div className="flex items-center justify-between gap-3 text-[11px] mb-2">
           <span className={`px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 ${resourceType.badge}`}>
             {resourceType.icon}
@@ -119,17 +90,11 @@ function ResourceCard({
           </span>
         </div>
 
-        {/* Title */}
-        <h3 className="text-white font-semibold text-[15px] leading-snug">
-          {title}
-        </h3>
+        <h3 className="text-white font-semibold text-[15px] leading-snug">{title}</h3>
 
-        {/* Description */}
         {description && description !== title && (
           <div className="space-y-1">
-            <p className="text-xs text-dark-muted whitespace-pre-line leading-relaxed">
-              {displayText}
-            </p>
+            <p className="text-xs text-dark-muted whitespace-pre-line leading-relaxed">{displayText}</p>
             {shouldTruncate && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -142,7 +107,6 @@ function ResourceCard({
         )}
       </div>
 
-      {/* Attachments Section */}
       {attachments.length > 0 && (
         <div className="border-t border-dark-border/60 pt-4 mt-4 space-y-1.5">
           <span className="text-[10px] text-dark-muted font-semibold uppercase tracking-wider block mb-1">
@@ -168,15 +132,13 @@ function ResourceCard({
         </div>
       )}
 
-      {/* Footer Actions */}
       <div className="border-t border-dark-border/60 pt-4 mt-4 flex items-center justify-between gap-4">
-        {/* Track/Untrack button */}
         <button
           onClick={() => isTracked ? onUntrackAssignment(id) : onTrackAsAssignment(resource)}
           className={`text-[10px] font-semibold px-3 py-1.5 rounded-lg border transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
             isTracked 
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 group' 
-              : getTrackButtonStyles(courseColor)
+              : getTrackButtonStyles(courseColor, isTracked)
           }`}
         >
           {isTracked ? (
@@ -209,7 +171,6 @@ function ResourceCard({
   );
 }
 
-/* ──────── Compact Course Row (List Mode) ──────── */
 function CourseRow({ course, activeCount, totalAssignments, totalResources, isHidden, onSelect, onToggleVisibility, lang }) {
   const getColorDot = (color) => {
     switch (color) {
@@ -229,10 +190,8 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
         isHidden ? 'opacity-40 saturate-50' : ''
       }`}
     >
-      {/* Color dot */}
       <div className={`w-2 h-2 rounded-full shrink-0 ${getColorDot(course.color)}`} />
       
-      {/* Course info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-[9px] font-bold uppercase tracking-wider text-dark-muted">{course.code}</span>
@@ -250,19 +209,16 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
         <p className="text-sm font-semibold text-white truncate group-hover:text-brand-400 transition-colors">{course.name}</p>
       </div>
 
-      {/* Stats */}
       <div className="hidden sm:flex items-center gap-4 text-[10px] text-dark-muted shrink-0">
         <span className="flex items-center gap-1"><BookOpen size={11} /> {totalAssignments}</span>
         <span className="flex items-center gap-1"><FileText size={11} /> {totalResources}</span>
       </div>
 
-      {/* Instructor */}
       <div className="hidden md:flex items-center gap-1.5 text-[10px] text-dark-muted shrink-0 max-w-[140px]">
         <User size={11} className="shrink-0" />
         <span className="truncate">{course.instructor}</span>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={(e) => { e.stopPropagation(); onToggleVisibility(course.id); }}
@@ -277,35 +233,25 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
   );
 }
 
-export default function Courses({ 
-  courses = [], 
-  assignments = [], 
-  resources = [],
-  onStatusChange,
-  hiddenCourseIds = [],
-  onToggleCourseVisibility,
-  onToggleBulkCourses,
-  onTrackAsAssignment,
-  onUntrackAssignment,
-  lang = 'en'
-}) {
+export default function Courses() {
+  const { lang } = useSettings();
+  const { 
+    courses, assignments, resources, hiddenCourseIds, 
+    handleStatusChange, handleTrackAsAssignment, handleUntrackAssignment,
+    handleToggleCourseVisibility, handleToggleBulkCourses
+  } = useClassroom();
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCourseName = searchParams.get('selected');
   const [activeTab, setActiveTab] = useState('resources');
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+  const [viewMode, setViewMode] = useState('grid');
   const [showHidden, setShowHidden] = useState(false);
   const selectedCourseObj = courses.find(c => c.name === selectedCourseName) || { color: 'blue' };
   const themeColor = selectedCourseObj.color || 'blue';
 
-  // Derived data
-  const visibleCourses = useMemo(() => {
-    return courses.filter(c => !hiddenCourseIds.includes(c.id));
-  }, [courses, hiddenCourseIds]);
-
-  const hiddenCourses = useMemo(() => {
-    return courses.filter(c => hiddenCourseIds.includes(c.id));
-  }, [courses, hiddenCourseIds]);
+  const visibleCourses = useMemo(() => courses.filter(c => !hiddenCourseIds.includes(c.id)), [courses, hiddenCourseIds]);
+  const hiddenCourses = useMemo(() => courses.filter(c => hiddenCourseIds.includes(c.id)), [courses, hiddenCourseIds]);
 
   const filteredVisible = useMemo(() => {
     if (!searchQuery.trim()) return visibleCourses;
@@ -327,67 +273,13 @@ export default function Courses({
     );
   }, [hiddenCourses, searchQuery]);
 
-  const getCourseTextColor = (color) => {
-    switch (color) {
-      case 'emerald': return 'text-emerald-400';
-      case 'blue': return 'text-blue-400';
-      case 'amber': return 'text-amber-400';
-      case 'rose': return 'text-rose-400';
-      case 'purple': return 'text-purple-400';
-      default: return 'text-zinc-400';
-    }
-  };
-
-  const getCourseBorderTopColor = (color) => {
-    switch (color) {
-      case 'emerald': return 'bg-emerald-500';
-      case 'blue': return 'bg-blue-500';
-      case 'amber': return 'bg-amber-500';
-      case 'rose': return 'bg-rose-500';
-      case 'purple': return 'bg-purple-500';
-      default: return 'bg-brand-500';
-    }
-  };
-
-  const getTabStyles = (color, isActive) => {
-    if (!isActive) return 'text-dark-muted hover:text-white border border-transparent';
-    switch (color) {
-      case 'emerald': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold';
-      case 'blue': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold';
-      case 'amber': return 'bg-amber-500/10 text-amber-400 border-amber-500/20 font-bold';
-      case 'rose': return 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold';
-      case 'purple': return 'bg-purple-500/10 text-purple-400 border-purple-500/20 font-bold';
-      default: return 'bg-brand-500 text-white border border-brand-500 font-bold';
-    }
-  };
-
-  const getTabBadgeStyles = (color, isActive) => {
-    if (!isActive) return 'border-dark-border bg-dark-sidebar/80 text-dark-muted';
-    switch (color) {
-      case 'emerald': return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400';
-      case 'blue': return 'border-blue-500/20 bg-blue-500/10 text-blue-400';
-      case 'amber': return 'border-amber-500/20 bg-amber-500/10 text-amber-400';
-      case 'rose': return 'border-rose-500/20 bg-rose-500/10 text-rose-400';
-      case 'purple': return 'border-purple-500/20 bg-purple-500/10 text-purple-400';
-      default: return 'border-brand-400/20 bg-brand-400/10 text-brand-300';
-    }
-  };
-
   const getActiveCount = (courseName) => {
     return assignments.filter(a => a.course === courseName && a.status !== 'done').length;
   };
 
-  // Get filtered assignments for the selected course
-  const courseAssignments = assignments.filter(
-    (assignment) => assignment.course === selectedCourseName
-  );
+  const courseAssignments = assignments.filter((assignment) => assignment.course === selectedCourseName);
+  const courseResources = resources.filter((resource) => resource.course === selectedCourseName);
 
-  // Get filtered resources (announcements / materials) for the selected course
-  const courseResources = resources.filter(
-    (resource) => resource.course === selectedCourseName
-  );
-
-  /* ──────── Course Card Component (Grid Mode) ──────── */
   const renderCourseCard = (course, isHidden) => {
     const activeCount = getActiveCount(course.name);
     const totalAssignments = assignments.filter(a => a.course === course.name).length;
@@ -401,10 +293,8 @@ export default function Courses({
           isHidden ? 'opacity-45 saturate-50' : ''
         }`}
       >
-        {/* Top Colored Border Strip */}
         <div className={`w-full h-1 ${getCourseBorderTopColor(course.color)}`} />
         
-        {/* Card Body */}
         <div className="p-5 md:p-6 flex-1 space-y-4">
           <div className="flex items-center justify-between gap-3 text-[10px] font-bold text-dark-muted">
             <span className="tracking-wider uppercase">{course.code}</span>
@@ -412,13 +302,7 @@ export default function Courses({
               {isHidden ? (
                 <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2 py-0.5 rounded-md">{t('hiddenLabel', lang)}</span>
               ) : activeCount > 0 ? (
-                <span className={`px-2 py-0.5 rounded-md border ${
-                  course.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                  course.color === 'blue' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                  course.color === 'amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                  course.color === 'rose' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                  'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                }`}>
+                <span className={`px-2 py-0.5 rounded-md border ${getCourseBadgeColor(course.color)}`}>
                   {t('activeCount', lang, { count: activeCount })}
                 </span>
               ) : null}
@@ -437,7 +321,6 @@ export default function Courses({
           </div>
         </div>
 
-        {/* Card Footer */}
         <div className="px-5 py-3 border-t border-dark-border/20 bg-dark-sidebar/20 flex items-center justify-between">
           <div className="flex items-center gap-2 text-[10px] text-dark-muted min-w-0">
             <User size={12} className="shrink-0" />
@@ -447,7 +330,7 @@ export default function Courses({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onToggleCourseVisibility(course.id);
+              handleToggleCourseVisibility(course.id);
             }}
             className="p-1.5 rounded-lg bg-dark-sidebar/40 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-all duration-200 cursor-pointer"
             title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
@@ -462,9 +345,7 @@ export default function Courses({
   return (
     <div className="space-y-8">
       {selectedCourseName ? (
-        /* ══════ Selected Course Detailed View ══════ */
         <div className="space-y-6 animate-fade-in">
-          {/* Back Button */}
           <button
             onClick={() => setSearchParams({})}
             className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider text-dark-muted hover:text-white transition-colors bg-dark-card/30 border border-dark-border/40 px-4 py-2.5 rounded-xl cursor-pointer"
@@ -473,30 +354,27 @@ export default function Courses({
             {lang === 'en' ? 'Back to All Courses' : 'กลับไปที่รายวิชาทั้งหมด'}
           </button>
 
-          {/* Selected Course Banner */}
           {(() => {
-            const courseObj = courses.find(c => c.name === selectedCourseName);
-            if (!courseObj) return null;
+            if (!selectedCourseObj) return null;
             return (
               <div className={`border border-dark-border/40 bg-dark-card/20 rounded-2xl relative overflow-hidden p-6 md:p-8 space-y-4 shadow-sm`}>
-                <div className={`absolute top-0 left-0 right-0 h-1.5 ${getCourseBorderTopColor(courseObj.color)}`} />
+                <div className={`absolute top-0 left-0 right-0 h-1.5 ${getCourseBorderTopColor(selectedCourseObj.color)}`} />
                 <div className="space-y-1">
-                  <span className={`text-[10px] font-bold tracking-widest uppercase ${getCourseTextColor(courseObj.color)}`}>
-                    {courseObj.code}
+                  <span className={`text-[10px] font-bold tracking-widest uppercase ${getCourseTextColor(selectedCourseObj.color)}`}>
+                    {selectedCourseObj.code}
                   </span>
                   <h1 className="text-xl md:text-2xl font-bold font-heading text-white">
-                    {courseObj.name}
+                    {selectedCourseObj.name}
                   </h1>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-zinc-300">
-                  <User size={14} className={getCourseTextColor(courseObj.color)} />
-                  <span>{t('instructorLabel', lang)} {courseObj.instructor}</span>
+                  <User size={14} className={getCourseTextColor(selectedCourseObj.color)} />
+                  <span>{t('instructorLabel', lang)} {selectedCourseObj.instructor}</span>
                 </div>
               </div>
             );
           })()}
 
-          {/* Tab Selector */}
           <div className="flex bg-dark-sidebar/60 border border-dark-border/40 p-1 rounded-xl w-fit gap-1 select-none">
             <button
               onClick={() => setActiveTab('resources')}
@@ -520,7 +398,6 @@ export default function Courses({
             </button>
           </div>
 
-          {/* Tab Content */}
           <div className="animate-fade-in pt-2">
             {activeTab === 'assignments' ? (
               <div className="space-y-4">
@@ -530,7 +407,7 @@ export default function Courses({
                       <AssignmentCard
                         key={assignment.id}
                         assignment={assignment}
-                        onStatusChange={onStatusChange}
+                        onStatusChange={handleStatusChange}
                         lang={lang}
                       />
                     ))}
@@ -550,8 +427,8 @@ export default function Courses({
                         key={resource.id}
                         resource={resource}
                         assignments={assignments}
-                        onTrackAsAssignment={onTrackAsAssignment}
-                        onUntrackAssignment={onUntrackAssignment}
+                        onTrackAsAssignment={handleTrackAsAssignment}
+                        onUntrackAssignment={handleUntrackAssignment}
                         courseColor={themeColor}
                         lang={lang}
                       />
@@ -567,18 +444,14 @@ export default function Courses({
           </div>
         </div>
       ) : (
-        /* ══════ All Courses Overview ══════ */
         <div className="space-y-6">
-          {/* Header */}
           <div className="flex flex-col gap-4">
             <div>
               <h1 className="text-xl font-bold font-heading text-white">{t('enrolledCoursesTitle', lang)}</h1>
               <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">{t('enrolledCoursesDesc', lang)}</p>
             </div>
 
-            {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search */}
               <div className="relative flex-1">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-muted" />
                 <input
@@ -590,7 +463,6 @@ export default function Courses({
                 />
               </div>
 
-              {/* View Toggle */}
               <div className="flex items-center gap-1 bg-dark-card/30 border border-dark-border/40 rounded-xl p-1 shrink-0">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -614,7 +486,6 @@ export default function Courses({
             </div>
           </div>
 
-          {/* ── Visible Courses Section ── */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -642,7 +513,7 @@ export default function Courses({
                       totalResources={resources.filter(r => r.course === course.name).length}
                       isHidden={false}
                       onSelect={() => setSearchParams({ selected: course.name })}
-                      onToggleVisibility={onToggleCourseVisibility}
+                      onToggleVisibility={handleToggleCourseVisibility}
                       lang={lang}
                     />
                   ))}
@@ -658,7 +529,6 @@ export default function Courses({
             )}
           </div>
 
-          {/* ── Hidden Courses Section ── */}
           {hiddenCourses.length > 0 && (
             <div className="space-y-3">
               <button
@@ -682,10 +552,9 @@ export default function Courses({
 
               {showHidden && (
                 <div className="animate-fade-in space-y-4">
-                  {/* Bulk show all button */}
                   <div className="flex justify-end">
                     <button
-                      onClick={() => onToggleBulkCourses([], false)}
+                      onClick={() => handleToggleBulkCourses([], false)}
                       className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
                     >
                       <Eye size={11} />
@@ -709,7 +578,7 @@ export default function Courses({
                             totalResources={resources.filter(r => r.course === course.name).length}
                             isHidden={true}
                             onSelect={() => setSearchParams({ selected: course.name })}
-                            onToggleVisibility={onToggleCourseVisibility}
+                            onToggleVisibility={handleToggleCourseVisibility}
                             lang={lang}
                           />
                         ))}
