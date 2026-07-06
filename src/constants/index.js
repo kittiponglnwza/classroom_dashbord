@@ -56,3 +56,48 @@ export const DEFAULT_ALERT_SETTINGS = {
 };
 
 export const COURSE_COLOR_PALETTE = ['emerald', 'blue', 'amber', 'rose', 'purple'];
+
+export const EXAM_CARD_COLORS = [
+  {
+    theme: 'blue',
+    strip: 'bg-blue-500/60',
+    glow: 'bg-blue-500/5',
+    badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    accentText: 'text-blue-400'
+  },
+  {
+    theme: 'purple',
+    strip: 'bg-purple-500/60',
+    glow: 'bg-purple-500/5',
+    badge: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    accentText: 'text-purple-400'
+  },
+  {
+    theme: 'emerald',
+    strip: 'bg-emerald-500/60',
+    glow: 'bg-emerald-500/5',
+    badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    accentText: 'text-emerald-400'
+  },
+  {
+    theme: 'amber',
+    strip: 'bg-amber-500/60',
+    glow: 'bg-amber-500/5',
+    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    accentText: 'text-amber-400'
+  },
+  {
+    theme: 'rose',
+    strip: 'bg-rose-500/60',
+    glow: 'bg-rose-500/5',
+    badge: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    accentText: 'text-rose-400'
+  },
+  {
+    theme: 'indigo',
+    strip: 'bg-indigo-500/60',
+    glow: 'bg-indigo-500/5',
+    badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+    accentText: 'text-indigo-400'
+  }
+];

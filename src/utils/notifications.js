@@ -10,6 +10,7 @@ import {
 } from './storage';
 import { sendGmailNotification } from '../services/googleClassroom';
 import { parseExamDate } from './examDate';
+import { escapeHtml } from './sanitize';
 
 
 /**
@@ -265,8 +266,8 @@ export function buildExamsHtml(toEmail, isWeeklyDigest = false) {
       tableRows += `
         <tr style="border-bottom: 1px solid #1f2937;">
           <td style="padding: 12px 8px; font-size: 12px; color: #ffffff;">
-            <strong>${exam.courseCode || ''}</strong><br/>
-            <span style="font-size: 11px; color: #9ca3af;">${exam.courseName || ''}</span>${isManualLabel ? '<br/>' + isManualLabel : ''}
+            <strong>${escapeHtml(exam.courseCode || '')}</strong><br/>
+            <span style="font-size: 11px; color: #9ca3af;">${escapeHtml(exam.courseName || '')}</span>${isManualLabel ? '<br/>' + isManualLabel : ''}
           </td>
           <td style="padding: 12px 8px; font-size: 12px; color: #e5e7eb; white-space: nowrap;">
             ${exam.date || '-'}<br/>
@@ -276,7 +277,7 @@ export function buildExamsHtml(toEmail, isWeeklyDigest = false) {
             ${remainingLabel}
           </td>
           <td style="padding: 12px 8px; font-size: 12px; color: #e5e7eb; text-align: center;">
-            ${exam.room || '-'}
+            ${escapeHtml(exam.room || '-')}
           </td>
           <td style="padding: 12px 8px; font-size: 12px; color: #10b981; font-weight: bold; text-align: center;">
             ${seatText}
@@ -431,7 +432,7 @@ export async function triggerManualDigest(accessToken, toEmail, assignments) {
         const dueLabel = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'No Due Date';
         tasksHtml += `
           <div style="padding: 10px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.08);">
-            <div style="font-weight: 600; color: #ffffff; display: inline-block; max-width: 70%; vertical-align: middle;">${t.title}</div>
+            <div style="font-weight: 600; color: #ffffff; display: inline-block; max-width: 70%; vertical-align: middle;">${escapeHtml(t.title)}</div>
             <div style="display: inline-block; font-size: 10px; background-color: rgba(99, 102, 241, 0.12); color: #818cf8; padding: 2px 8px; border-radius: 99px; font-weight: 700; float: right; vertical-align: middle; margin-top: 2px;">${dueLabel}</div>
             <div style="clear: both;"></div>
           </div>
@@ -536,9 +537,9 @@ export async function evaluateNotifications(accessToken, toEmail, assignments, c
             ${emoji} ${warningLabel}
           </h2>
           <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #1f2937; border-radius: 8px; padding: 15px; margin-top: 15px;">
-            <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">${task.courseCode} • ${task.course}</span>
-            <h3 style="color: #ffffff; margin: 4px 0 10px 0; font-size: 15px;">${task.title}</h3>
-            <p style="font-size: 12px; color: #d1d5db; line-height: 1.6; margin: 0;">${task.description || 'No description provided.'}</p>
+            <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">${escapeHtml(task.courseCode)} • ${escapeHtml(task.course)}</span>
+            <h3 style="color: #ffffff; margin: 4px 0 10px 0; font-size: 15px;">${escapeHtml(task.title)}</h3>
+            <p style="font-size: 12px; color: #d1d5db; line-height: 1.6; margin: 0;">${escapeHtml(task.description || 'No description provided.')}</p>
           </div>
           ${task.googleLink ? `<a href="${task.googleLink}" target="_blank" class="button">View on Google Classroom</a>` : ''}
         `;
@@ -627,7 +628,7 @@ export async function evaluateNotifications(accessToken, toEmail, assignments, c
               list.forEach(t => {
                 itemsHtml += `
                   <div style="padding: 8px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.08); color: #ffffff; font-weight: 500;">
-                    • ${t.title}
+                    • ${escapeHtml(t.title)}
                   </div>
                 `;
               });
@@ -711,13 +712,13 @@ export async function evaluateNewPostDigest(accessToken, toEmail, freshAssignmen
     
     groupHtml += `
       <div style="margin-top: 15px; border-left: 4px solid ${borderHex}; background-color: #1f2937; border-radius: 8px; padding: 12px 15px;">
-        <h4 style="color: #ffffff; margin: 0 0 8px 0; font-size: 13px;">📚 ${courseName}</h4>
+        <h4 style="color: #ffffff; margin: 0 0 8px 0; font-size: 13px;">📚 ${escapeHtml(courseName)}</h4>
     `;
     
     if (group.assigns.length > 0) {
       groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #a855f7; margin: 8px 0 4px 0;">📝 New Assignments (${group.assigns.length})</p>`;
       group.assigns.forEach(t => {
-        groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${t.title}</strong></div>`;
+        groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${escapeHtml(t.title)}</strong></div>`;
       });
     }
     
@@ -728,14 +729,14 @@ export async function evaluateNewPostDigest(accessToken, toEmail, freshAssignmen
       if (anns.length > 0) {
         groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #f59e0b; margin: 10px 0 4px 0;">📢 New Announcements (${anns.length})</p>`;
         anns.forEach(r => {
-          groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${r.title}</strong></div>`;
+          groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${escapeHtml(r.title)}</strong></div>`;
         });
       }
       
       if (mats.length > 0) {
         groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #3b82f6; margin: 10px 0 4px 0;">📖 New Course Materials (${mats.length})</p>`;
         mats.forEach(r => {
-          groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${r.title}</strong></div>`;
+          groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${escapeHtml(r.title)}</strong></div>`;
         });
       }
     }

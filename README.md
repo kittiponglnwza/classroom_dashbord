@@ -83,3 +83,32 @@ npm run build
 * **รหัสนักศึกษา**: 6704082611115
 * **สถาบัน**: มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ (KMUTNB)
 * **GitHub**: [https://github.com/kittiponglnwza](https://github.com/kittiponglnwza)
+
+---
+
+## 🧪 Testing & Code Quality Strategy (Phase 2)
+
+โปรเจกต์นี้ใช้แนวคิด **Test Pyramid** เพื่อรับประกันความเสถียรและความน่าเชื่อถือของระบบในระยะยาว โดยมีสัดส่วนของข้อสอบและแบบทดสอบดังนี้:
+
+1. **Unit Tests (80%)**: เน้นทดสอบ Pure Functions, Core Utility Modules (เช่น `sanitize.js`, `result.js`), และเครื่องมือตัวแกะข้อมูล Parser (เช่น `examParser.js`) ด้วย **Vitest**
+2. **Integration Tests (15%)**: เน้นทดสอบการมีปฏิสัมพันธ์ระหว่าง Hooks (เช่น `useExamRoom.js`), Repository Layers และ Context Providers ผ่าน **React Testing Library**
+3. **End-to-End (E2E) Tests (5%)**: เน้นจำลองพฤติกรรมจริงของผู้ใช้ตั้งแต่ล็อกอินจนถึงการซิงก์ข้อมูลข้ามระบบผ่าน **Playwright**
+
+### ⚙️ Command line สำหรับทดสอบ
+
+```bash
+# รัน Unit Tests ทั้งหมด
+npm run test
+
+# รันเพื่อตรวจสอบเปอร์เซ็นต์ความครอบคลุม (Coverage Gate Enforced >80% Lines/Stmts/Funcs, >55% Branches)
+npm run coverage
+```
+
+### 🔒 Quality Gate & Git Workflow (Husky & lint-staged)
+
+เราได้ติดตั้งระบบป้องกันการผลักดันโค้ดที่ไม่ได้คุณภาพขึ้น Production ดังนี้:
+* **Conventional Commits**: บังคับเขียน commit message ตามมาตรฐานอุตสาหกรรม (เช่น `feat:`, `fix:`, `refactor:`) ผ่าน `@commitlint`
+* **Husky (Pre-commit hook)**: ทำงานอัตโนมัติก่อนสั่ง `git commit` โดยจะสั่งให้ `lint-staged` ทำงาน
+* **lint-staged**: จะคัดกรองเฉพาะไฟล์ที่ถูกเปลี่ยนเท่านั้นเพื่อเอามาตรวจสอบ:
+  1. สั่งรัน `eslint --fix` เพื่อแก้ Syntax & Style 
+  2. สั่งรัน `vitest related --run` เพื่อเทสต์เฉพาะเทสต์ไฟล์ที่มีความเกี่ยวข้องกับโค้ดที่ถูกแก้ (หากเทสต์ไม่ผ่าน จะไม่อนุญาตให้ commit)

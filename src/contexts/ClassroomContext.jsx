@@ -180,27 +180,38 @@ export const ClassroomProvider = ({ children }) => {
     setHiddenCourseIds([]);
   };
 
-  const visibleCourses = courses.filter(c => !hiddenCourseIds.includes(c.id));
-  const visibleAssignments = assignments.filter(a => {
-    if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
-    const courseObj = courses.find(c => c.name === a.course);
-    if (courseObj && hiddenCourseIds.includes(courseObj.id)) return false;
-    return true;
-  });
-  const visibleResources = resources.filter(r => {
-    if (r.courseId && hiddenCourseIds.includes(r.courseId)) return false;
-    const courseObj = courses.find(c => c.name === r.course);
-    if (courseObj && hiddenCourseIds.includes(courseObj.id)) return false;
-    return true;
-  });
+  const visibleCourses = React.useMemo(() => 
+    courses.filter(c => !hiddenCourseIds.includes(c.id)),
+  [courses, hiddenCourseIds]);
 
-  const value = {
+  const visibleAssignments = React.useMemo(() => 
+    assignments.filter(a => {
+      if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
+      const courseObj = courses.find(c => c.name === a.course);
+      if (courseObj && hiddenCourseIds.includes(courseObj.id)) return false;
+      return true;
+    }),
+  [assignments, courses, hiddenCourseIds]);
+
+  const visibleResources = React.useMemo(() => 
+    resources.filter(r => {
+      if (r.courseId && hiddenCourseIds.includes(r.courseId)) return false;
+      const courseObj = courses.find(c => c.name === r.course);
+      if (courseObj && hiddenCourseIds.includes(courseObj.id)) return false;
+      return true;
+    }),
+  [resources, courses, hiddenCourseIds]);
+
+  const value = React.useMemo(() => ({
     assignments, courses, resources, hiddenCourseIds, isSyncing, lastSyncTime,
     visibleCourses, visibleAssignments, visibleResources,
     syncClassroom, handleStatusChange, handleNotesChange, handleAddAssignment,
     handleTrackAsAssignment, handleUntrackAssignment, handleToggleCourseVisibility,
     handleToggleBulkCourses, resetData
-  };
+  }), [
+    assignments, courses, resources, hiddenCourseIds, isSyncing, lastSyncTime,
+    visibleCourses, visibleAssignments, visibleResources
+  ]);
 
   return <ClassroomContext.Provider value={value}>{children}</ClassroomContext.Provider>;
 };

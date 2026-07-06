@@ -75,13 +75,13 @@ export const SettingsProvider = ({ children }) => {
     }
   };
 
-  const value = {
+  const value = React.useMemo(() => ({
     lang, toggleLang, setLang,
     emailAlerts, handleToggleAlerts,
     alertSettings, handleToggleSetting,
     sundayTime, handleTimeChange,
     historyLogs, dailyLimit, refreshNotificationData
-  };
+  }), [lang, emailAlerts, alertSettings, sundayTime, historyLogs, dailyLimit]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 };

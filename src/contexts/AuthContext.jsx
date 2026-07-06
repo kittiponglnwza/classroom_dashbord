@@ -89,10 +89,10 @@ export const AuthProvider = ({ children }) => {
     return userEmail;
   };
 
-  const value = {
+  const value = React.useMemo(() => ({
     accessToken, isLoggedIn, profile, login, logout, 
     handleProfileSave, updateProfileFromGoogle, initClient
-  };
+  }), [accessToken, isLoggedIn, profile, tokenClient]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
