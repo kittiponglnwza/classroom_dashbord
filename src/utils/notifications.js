@@ -6,7 +6,8 @@ import {
   saveSentNotifications,
   getDailyEmailLimit,
   saveDailyEmailLimit,
-  addNotificationHistoryLog
+  addNotificationHistoryLog,
+  getHiddenCourses
 } from './storage';
 import { sendGmailNotification } from '../services/googleClassroom';
 import { parseExamDate } from './examDate';
@@ -378,7 +379,12 @@ export async function triggerManualDigest(accessToken, toEmail, assignments) {
   }
 
   const alertSettings = getAlertSettings(toEmail);
-  const todoTasks = assignments.filter(a => a.status !== 'done');
+  const hiddenCourseIds = getHiddenCourses(toEmail);
+  const todoTasks = assignments.filter(a => {
+    if (a.status === 'done') return false;
+    if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
+    return true;
+  });
 
   // Check if we have upcoming exams cached
   const emailKey = toEmail.toLowerCase().trim();
@@ -492,7 +498,12 @@ export async function evaluateNotifications(accessToken, toEmail, assignments, c
     return true;
   };
 
-  const activeTodoAssignments = assignments.filter(a => a.status !== 'done');
+  const hiddenCourseIds = getHiddenCourses(toEmail);
+  const activeTodoAssignments = assignments.filter(a => {
+    if (a.status === 'done') return false;
+    if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
+    return true;
+  });
 
   // ==========================================
   // Milestone 1 / V1: Due date Reminders
@@ -683,9 +694,18 @@ export async function evaluateNewPostDigest(accessToken, toEmail, freshAssignmen
   const alertSettings = getAlertSettings(toEmail);
   if (!alertSettings.newPosts) return;
 
-  const newAssignments = freshAssignments.filter(a => !cachedAssignmentIds.includes(a.id));
+  const hiddenCourseIds = getHiddenCourses(toEmail);
+  const newAssignments = freshAssignments.filter(a => {
+    if (cachedAssignmentIds.includes(a.id)) return false;
+    if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
+    return true;
+  });
   // Filter new resources that are announcements or materials
-  const newResources = freshResources.filter(r => !cachedResourceIds.includes(r.id));
+  const newResources = freshResources.filter(r => {
+    if (cachedResourceIds.includes(r.id)) return false;
+    if (r.courseId && hiddenCourseIds.includes(r.courseId)) return false;
+    return true;
+  });
 
   const totalNew = newAssignments.length + newResources.length;
   if (totalNew === 0) return;
