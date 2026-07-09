@@ -3,7 +3,8 @@ import {
   getAssignments, updateAssignmentStatus, updateAssignmentNotes,
   addAssignment, getCourses, saveCourses, getLastSync, setLastSync,
   syncClassroomAssignments, getHiddenCourses, saveHiddenCourses,
-  getResources, saveResources, saveAssignments, getActiveEmail, resetDatabase
+  getResources, saveResources, saveAssignments, getActiveEmail, resetDatabase,
+  getSchedule, saveSchedule
 } from '../utils/storage';
 import { fetchGoogleClassroomData, fetchGoogleProfile } from '../services/googleClassroom';
 import { syncSettingsWithDrive } from '../services/driveSync';
@@ -22,6 +23,7 @@ export const ClassroomProvider = ({ children }) => {
   const [courses, setCourses] = useState([]);
   const [resources, setResources] = useState([]);
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
+  const [schedule, setSchedule] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
 
@@ -61,6 +63,7 @@ export const ClassroomProvider = ({ children }) => {
     setCourses(getCourses(email));
     setResources(getResources(email));
     setHiddenCourseIds(getHiddenCourses(email));
+    setSchedule(getSchedule(email));
     setLastSyncTime(getLastSync(email));
   };
 
@@ -228,6 +231,33 @@ export const ClassroomProvider = ({ children }) => {
     setResources([]);
     setLastSyncTime(null);
     setHiddenCourseIds([]);
+    setSchedule([]);
+  };
+
+  const handleSaveScheduleEntry = (entry) => {
+    const email = getActiveEmail();
+    const isEdit = schedule.some(s => s.id === entry.id);
+    const updated = isEdit
+      ? schedule.map(s => s.id === entry.id ? entry : s)
+      : [...schedule, { ...entry, id: entry.id || `sched-${Date.now()}` }];
+    setSchedule(updated);
+    saveSchedule(updated, email);
+    pushSettingsToDrive();
+  };
+
+  const handleDeleteScheduleEntry = (id) => {
+    const email = getActiveEmail();
+    const updated = schedule.filter(s => s.id !== id);
+    setSchedule(updated);
+    saveSchedule(updated, email);
+    pushSettingsToDrive();
+  };
+
+  const handleClearSchedule = () => {
+    const email = getActiveEmail();
+    setSchedule([]);
+    saveSchedule([], email);
+    pushSettingsToDrive();
   };
 
   const visibleCourses = React.useMemo(() => 
@@ -253,13 +283,14 @@ export const ClassroomProvider = ({ children }) => {
   [resources, courses, hiddenCourseIds]);
 
   const value = React.useMemo(() => ({
-    assignments, courses, resources, hiddenCourseIds, isSyncing, lastSyncTime,
+    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime,
     visibleCourses, visibleAssignments, visibleResources,
     syncClassroom, handleStatusChange, handleNotesChange, handleAddAssignment,
     handleTrackAsAssignment, handleUntrackAssignment, handleToggleCourseVisibility,
-    handleToggleBulkCourses, resetData
+    handleToggleBulkCourses, handleSaveScheduleEntry, handleDeleteScheduleEntry,
+    handleClearSchedule, resetData
   }), [
-    assignments, courses, resources, hiddenCourseIds, isSyncing, lastSyncTime,
+    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime,
     visibleCourses, visibleAssignments, visibleResources
   ]);
 

@@ -8,7 +8,8 @@ const KEYS = {
   ACCESS_TOKEN: 'classroom_hub_access_token',
   RESOURCES: 'classroom_hub_resources',
   HIDDEN_COURSES: 'classroom_hub_hidden_courses',
-  ACTIVE_EMAIL: 'classroom_hub_active_email'
+  ACTIVE_EMAIL: 'classroom_hub_active_email',
+  SCHEDULE: 'classroom_hub_schedule'
 };
 
 /* Token Handling via Secure Session Storage (Tab lifetime, immune to persistent storage leaks) */
@@ -231,6 +232,23 @@ export const saveProfile = (profile, email) => {
   const key = getScopedKey(KEYS.PROFILE, userEmail);
   localStorage.setItem(key, JSON.stringify(profile));
   touchLocalSettingsTimestamp(userEmail);
+};
+
+/* Schedule (Timetable) Helpers */
+export const getSchedule = (email) => {
+  const stored = getStoredItemWithMigration(KEYS.SCHEDULE, email);
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    return [];
+  }
+};
+
+export const saveSchedule = (schedule, email) => {
+  const key = getScopedKey(KEYS.SCHEDULE, email);
+  localStorage.setItem(key, JSON.stringify(schedule));
+  touchLocalSettingsTimestamp(email);
 };
 
 export const getResources = (email) => {

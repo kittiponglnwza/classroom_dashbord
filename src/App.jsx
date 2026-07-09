@@ -11,6 +11,7 @@ const Courses = lazy(() => import('./pages/Courses'));
 const AssignmentDetail = lazy(() => import('./pages/AssignmentDetail'));
 const Settings = lazy(() => import('./pages/Settings'));
 const ExamRoom = lazy(() => import('./pages/ExamRoom'));
+const Schedule = lazy(() => import('./pages/Schedule'));
 
 // Import Providers
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -118,6 +119,7 @@ function AppContent() {
             <Route path="/assignments/:id" element={<AssignmentDetail />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/exam-room" element={<ExamRoom />} />
+            <Route path="/schedule" element={<Schedule />} />
           </Routes>
         </Suspense>
       </Layout>

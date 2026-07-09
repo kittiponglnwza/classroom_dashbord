@@ -1,18 +1,55 @@
 import { Link } from 'react-router-dom';
-import { Calendar, Paperclip, AlertCircle } from 'lucide-react';
+import { Calendar, Paperclip, AlertCircle, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
 import { t } from '../utils/i18n';
+
+const COURSE_DOT_COLORS = {
+  emerald: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]',
+  blue: 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]',
+  amber: 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]',
+  rose: 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]',
+  purple: 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]',
+  zinc: 'bg-zinc-500'
+};
 
 export default function AssignmentCard({ assignment, onStatusChange, lang = 'en' }) {
   const { id, title, course, dueDate, status, points, attachments, courseColor, googleLink } = assignment;
 
-  // Calculate detailed due countdown
+  const getStatusDotColor = () => {
+    switch (status) {
+      case 'todo': return 'bg-zinc-400';
+      case 'doing': return 'bg-amber-400';
+      case 'done': return 'bg-emerald-400';
+      default: return 'bg-zinc-400';
+    }
+  };
+
+  const getStatusTextColor = () => {
+    switch (status) {
+      case 'todo': return 'text-zinc-400';
+      case 'doing': return 'text-amber-400';
+      case 'done': return 'text-emerald-400';
+      default: return 'text-zinc-400';
+    }
+  };
+
+  // Calculate detailed due status and display elements
   const getDueStatus = () => {
     if (status === 'done') {
-      return { text: t('completed', lang), class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', isOverdue: false };
+      return { 
+        text: t('completed', lang), 
+        colorClass: 'text-emerald-400 font-semibold', 
+        icon: <CheckCircle2 size={13} className="text-emerald-400" />,
+        isOverdue: false 
+      };
     }
 
     if (!dueDate) {
-      return { text: t('noDueDate', lang), class: 'bg-zinc-500/10 text-dark-muted border-dark-border', isOverdue: false };
+      return { 
+        text: t('noDueDate', lang), 
+        colorClass: 'text-dark-muted font-medium', 
+        icon: <Calendar size={13} className="text-dark-muted" />,
+        isOverdue: false 
+      };
     }
 
     const now = new Date();
@@ -22,35 +59,27 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
     // Overdue
     if (diffMs < 0) {
       const diffDays = Math.abs(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
-      if (diffDays === 0) {
-        const diffHrs = Math.abs(Math.floor(diffMs / (1000 * 60 * 60)));
-        return { 
-          text: t('overdueHrs', lang, { hrs: diffHrs }), 
-          class: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold animate-pulse', 
-          isOverdue: true 
-        };
-      }
+      const text = diffDays === 0 
+        ? t('overdueHrs', lang, { hrs: Math.abs(Math.floor(diffMs / (1000 * 60 * 60))) })
+        : t('overdueDays', lang, { days: diffDays });
       return { 
-        text: t('overdueDays', lang, { days: diffDays }), 
-        class: 'bg-rose-500/10 text-rose-400 border-rose-500/20 font-bold animate-pulse', 
+        text, 
+        colorClass: 'text-rose-400 font-extrabold animate-pulse', 
+        icon: <AlertCircle size={13} className="text-rose-400 shrink-0" />, 
         isOverdue: true 
       };
     }
 
-    // Less than 24 hours left (due today/hours countdown)
+    // Less than 24 hours left (due today)
     const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
     if (diffHrs < 24) {
-      if (diffHrs === 0) {
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-        return { 
-          text: t('minsLeftToday', lang, { mins: diffMins }), 
-          class: 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold', 
-          isOverdue: false 
-        };
-      }
+      const text = diffHrs === 0 
+        ? t('minsLeftToday', lang, { mins: Math.floor(diffMs / (1000 * 60)) })
+        : t('hrsLeftToday', lang, { hrs: diffHrs });
       return { 
-        text: t('hrsLeftToday', lang, { hrs: diffHrs }), 
-        class: 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold', 
+        text, 
+        colorClass: 'text-amber-400 font-bold', 
+        icon: <Clock size={13} className="text-amber-400" />, 
         isOverdue: false 
       };
     }
@@ -60,7 +89,8 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
     if (diffDays === 1) {
       return { 
         text: t('dueTomorrow', lang), 
-        class: 'bg-amber-500/10 text-amber-400 border-amber-500/20 font-semibold', 
+        colorClass: 'text-amber-400/90 font-semibold', 
+        icon: <Calendar size={13} className="text-amber-400/90" />, 
         isOverdue: false 
       };
     }
@@ -68,61 +98,56 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
     // Normal countdown in days
     return { 
       text: t('daysLeft', lang, { days: diffDays }), 
-      class: 'bg-zinc-500/10 text-dark-muted border-dark-border', 
+      colorClass: 'text-dark-muted font-medium', 
+      icon: <Calendar size={13} className="text-dark-muted" />, 
       isOverdue: false 
     };
   };
 
   const dueStatus = getDueStatus();
 
-  // Helper to map course color
-  const getCourseBadgeColor = (color) => {
-    switch (color) {
-      case 'emerald': return 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/25';
-      case 'blue': return 'text-blue-400 bg-blue-500/10 border border-blue-500/25';
-      case 'amber': return 'text-amber-400 bg-amber-500/10 border border-amber-500/25';
-      case 'rose': return 'text-rose-400 bg-rose-500/10 border border-rose-500/25';
-      case 'purple': return 'text-purple-400 bg-purple-500/10 border border-purple-500/25';
-      default: return 'text-zinc-400 bg-zinc-500/10 border border-zinc-500/25';
-    }
-  };
-
-  // Border and background state mapping
-  const getCardStyles = () => {
+  // Border and background shadow effects
+  const getCardBorderClass = () => {
     if (dueStatus.isOverdue) {
-      return 'border-rose-500/30 bg-rose-950/5 hover:border-rose-500/60 shadow-lg shadow-rose-950/10';
+      return 'border-rose-500/20 hover:border-rose-500/40 shadow-[0_4px_20px_rgba(239,68,68,0.04)]';
     }
     
     switch (courseColor) {
-      case 'emerald': return 'hover:border-emerald-500/40';
-      case 'blue': return 'hover:border-blue-500/40';
-      case 'amber': return 'hover:border-amber-500/40';
-      case 'rose': return 'hover:border-rose-500/40';
-      case 'purple': return 'hover:border-purple-500/40';
-      default: return 'hover:border-brand-500/40';
+      case 'emerald': return 'hover:border-emerald-500/35 hover:shadow-[0_4px_20px_rgba(16,185,129,0.04)]';
+      case 'blue': return 'hover:border-blue-500/35 hover:shadow-[0_4px_20px_rgba(59,130,246,0.04)]';
+      case 'amber': return 'hover:border-amber-500/35 hover:shadow-[0_4px_20px_rgba(245,158,11,0.04)]';
+      case 'rose': return 'hover:border-rose-500/35 hover:shadow-[0_4px_20px_rgba(244,63,94,0.04)]';
+      case 'purple': return 'hover:border-purple-500/35 hover:shadow-[0_4px_20px_rgba(168,85,247,0.04)]';
+      default: return 'hover:border-brand-500/35 hover:shadow-[0_4px_20px_rgba(99,102,241,0.04)]';
     }
   };
 
   return (
-    <div className={`bg-dark-card border border-dark-border rounded-xl p-5 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group ${getCardStyles()}`}>
-      <div>
+    <div className={`bg-dark-card/40 backdrop-blur-sm border border-dark-border/40 rounded-xl p-5 hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-all duration-300 flex flex-col justify-between group h-full ${getCardBorderClass()}`}>
+      <div className="space-y-4">
         {/* Header: Course Name & Status Dropdown */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${getCourseBadgeColor(courseColor)}`}>
-            {course}
-          </span>
-          <div className="relative">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${COURSE_DOT_COLORS[courseColor] || COURSE_DOT_COLORS.zinc}`} />
+            <span className="text-[11px] font-bold text-zinc-300 truncate" title={course}>
+              {course}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 bg-dark-sidebar/50 border border-dark-border/30 pl-2.5 pr-1 py-0.5 rounded-lg hover:border-dark-border/60 transition-colors shrink-0">
+            <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
             <select
               value={status}
               onChange={(e) => onStatusChange(id, e.target.value)}
-              className={`text-xs px-2.5 py-1 rounded-lg bg-dark-sidebar border border-dark-border text-white cursor-pointer focus:outline-none focus:border-brand-500 transition-colors font-medium ${
-                status === 'todo' ? 'text-zinc-400' :
-                status === 'doing' ? 'text-amber-400' : 'text-emerald-400'
-              }`}
+              className={`text-[10px] font-extrabold bg-transparent border-0 p-0 focus:outline-none focus:ring-0 cursor-pointer pr-4 select-none ${getStatusTextColor()}`}
+              style={{
+                backgroundImage: 'none',
+                paddingRight: '2px'
+              }}
             >
-              <option value="todo">{t('todo', lang)}</option>
-              <option value="doing">{t('doing', lang)}</option>
-              <option value="done">{t('done', lang)}</option>
+              <option value="todo" className="bg-dark-card text-zinc-400">{t('todo', lang)}</option>
+              <option value="doing" className="bg-dark-card text-amber-400">{t('doing', lang)}</option>
+              <option value="done" className="bg-dark-card text-emerald-400">{t('done', lang)}</option>
             </select>
           </div>
         </div>
@@ -130,43 +155,46 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
         {/* Title */}
         <Link 
           to={`/assignments/${id}`}
-          className="text-white hover:text-brand-400 transition-colors font-semibold text-[15px] leading-snug block mb-4 group-hover:translate-x-0.5 transform duration-200"
+          className="text-white/90 hover:text-brand-400 transition-colors font-semibold text-[14.5px] leading-snug block group-hover:translate-x-0.5 transform duration-200"
         >
           {title}
         </Link>
       </div>
 
       {/* Footer Info */}
-      <div className="border-t border-dark-border/60 pt-4 flex items-center justify-between mt-auto">
-        {/* Due Date Indicator */}
-        <div className="flex items-center gap-2">
-          <span className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 ${dueStatus.class}`}>
-            {dueStatus.isOverdue ? <AlertCircle size={12} /> : <Calendar size={12} />}
+      <div className="border-t border-dark-border/20 pt-4 flex items-center justify-between mt-5">
+        {/* Due Date Indicator (Borderless) */}
+        <div className="flex items-center gap-1.5 text-xs">
+          {dueStatus.icon}
+          <span className={`text-[11px] ${dueStatus.colorClass}`}>
             {dueStatus.text}
           </span>
         </div>
 
         {/* Points & Source Link */}
-        <div className="flex items-center gap-3 text-dark-muted">
+        <div className="flex items-center gap-3 text-dark-muted shrink-0">
           {attachments && attachments.length > 0 && (
-            <span className="flex items-center gap-1 text-[11px]" title={`${attachments.length} attachments`}>
-              <Paperclip size={11} />
+            <span className="flex items-center gap-1 text-[11.5px]" title={`${attachments.length} attachments`}>
+              <Paperclip size={11} className="text-dark-muted/80" />
               {attachments.length}
             </span>
           )}
+          
           {googleLink && (
             <a 
               href={googleLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-brand-400 hover:text-brand-300 underline font-medium"
+              className="text-[10.5px] text-brand-400 hover:text-brand-300 font-bold flex items-center gap-0.5 hover:underline transition-all"
               onClick={(e) => e.stopPropagation()}
             >
               Classroom
+              <ExternalLink size={8} />
             </a>
           )}
-          <span className="text-[11px] font-semibold bg-dark-sidebar border border-dark-border px-2 py-0.5 rounded-md text-zinc-300">
-            {points} pts
+          
+          <span className="text-[11px] font-bold text-zinc-400">
+            {points} {lang === 'en' ? 'pts' : 'คะแนน'}
           </span>
         </div>
       </div>

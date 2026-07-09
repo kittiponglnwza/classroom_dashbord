@@ -1,16 +1,22 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import AssignmentCard from '../components/AssignmentCard';
-import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle, CalendarDays, Clock, BookOpen } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { isDueToday, isOverdue } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
+import { examRepository } from '../repositories/examRepository';
+import { parseExamDate } from '../utils/examDate';
+
+// JS day index (0=Sun) → our day key
+const JS_DAY_MAP = [null, 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export default function Dashboard() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, profile } = useAuth();
   const { lang } = useSettings();
-  const { visibleAssignments, visibleCourses, handleStatusChange, handleAddAssignment, isSyncing, syncClassroom } = useClassroom();
+  const { visibleAssignments, visibleCourses, schedule, handleStatusChange, handleAddAssignment, isSyncing, syncClassroom } = useClassroom();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('all');
@@ -25,6 +31,106 @@ export default function Dashboard() {
   const [newDueDate, setNewDueDate] = useState('');
   const [newPoints, setNewPoints] = useState(100);
   const [newDescription, setNewDescription] = useState('');
+
+  // Compute today's schedule including one-off class overrides and exam integrations
+  const todayClasses = useMemo(() => {
+    const d = new Date().getDay(); // 0=Sun
+    const todayKey = d === 0 ? 'sun' : JS_DAY_MAP[d];
+    const todayDateStr = new Date().toISOString().split('T')[0];
+    const activeEmail = (profile?.email || '').toLowerCase().trim();
+
+    // 1. Load cached exams
+    let examEntries = [];
+    if (activeEmail) {
+      const cachedResult = examRepository.getCachedExams(activeEmail);
+      if (cachedResult.success && cachedResult.data) {
+        const examList = cachedResult.data.exams || [];
+        const manualExamList = cachedResult.data.manualExams || [];
+        const allExams = [...examList, ...manualExamList];
+
+        examEntries = allExams.map(ex => {
+          let startTime = '09:00';
+          let endTime = '12:00';
+          if (ex.time) {
+            const parts = ex.time.split('-').map(s => s.trim());
+            if (parts.length === 2) {
+              startTime = parts[0];
+              endTime = parts[1];
+            }
+          }
+
+          let dateVal = '';
+          if (ex.rawIsoDate) {
+            dateVal = ex.rawIsoDate.split('T')[0];
+          } else if (ex.date) {
+            const parsed = parseExamDate(ex.date);
+            if (parsed) {
+              dateVal = parsed.toISOString().split('T')[0];
+            }
+          }
+
+          if (!dateVal) return null;
+
+          const ed = new Date(dateVal);
+          const dayIndex = ed.getDay();
+          const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
+
+          return {
+            id: `exam-${ex.id}`,
+            title: ex.subjectName || ex.courseName || 'Exam',
+            courseCode: ex.subjectCode || ex.courseCode || '',
+            day: dayKey,
+            date: dateVal,
+            startTime,
+            endTime,
+            room: ex.room ? `${ex.room} ${ex.seat ? `(${ex.seat})` : ''}` : '',
+            color: '#ef4444', // Red for exams
+            notes: ex.seat ? `Seat/Row: ${ex.seat}` : '',
+            isExam: true
+          };
+        }).filter(Boolean);
+      }
+    }
+
+    // 2. Separate today's exams and today's classes
+    const todayExams = examEntries.filter(entry => entry.day === todayKey && entry.date === todayDateStr);
+    const todayRegular = (schedule || []).filter(entry => entry.day === todayKey && (!entry.date || entry.date === todayDateStr));
+
+    // 3. Override class if exam for the same course is today
+    const filteredRegular = todayRegular.filter(regEntry => {
+      const hasConflict = todayExams.some(exam => {
+        // 1. Match by code or title
+        const codeMatch = regEntry.courseCode && exam.courseCode && 
+          regEntry.courseCode.toLowerCase().trim() === exam.courseCode.toLowerCase().trim();
+          
+        const titleMatch = regEntry.title && exam.title && 
+          regEntry.title.toLowerCase().trim() === exam.title.toLowerCase().trim();
+          
+        if (codeMatch || titleMatch) return true;
+
+        // 2. Match by time overlap
+        const [regHStart, regMStart] = regEntry.startTime.split(':').map(Number);
+        const [regHEnd, regMEnd] = regEntry.endTime.split(':').map(Number);
+        const [examHStart, examMStart] = exam.startTime.split(':').map(Number);
+        const [examHEnd, examMEnd] = exam.endTime.split(':').map(Number);
+
+        const startReg = regHStart * 60 + regMStart;
+        const endReg = regHEnd * 60 + regMEnd;
+        const startExam = examHStart * 60 + examMStart;
+        const endExam = examHEnd * 60 + examMEnd;
+
+        return startReg < endExam && endReg > startExam;
+      });
+      return !hasConflict;
+    });
+
+    return [...filteredRegular, ...todayExams]
+      .sort((a, b) => {
+        const [aH, aM] = a.startTime.split(':').map(Number);
+        const [bH, bM] = b.startTime.split(':').map(Number);
+        return (aH * 60 + aM) - (bH * 60 + bM);
+      });
+  }, [schedule, profile]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -104,7 +210,7 @@ export default function Dashboard() {
             <button
               onClick={syncClassroom}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-semibold text-xs px-4 py-2.5 rounded-lg border border-dark-border transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-semibold text-xs px-4 py-2.5 rounded-lg border border-dark-border transition-colors disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
               {t('syncClassroom', lang)}
@@ -112,12 +218,66 @@ export default function Dashboard() {
           )}
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors shadow-md shadow-brand-500/10"
+            className="flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors shadow-md shadow-brand-500/10 cursor-pointer"
           >
             <Plus size={16} />
             {t('createTask', lang)}
           </button>
         </div>
+      </div>
+
+      {/* Today's Schedule Widget */}
+      <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-5 shadow-lg animate-fade-in relative overflow-hidden">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <CalendarDays size={16} className="text-brand-400" />
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">{t('todaySchedule', lang)}</h3>
+          </div>
+          <Link
+            to="/schedule"
+            className="text-[10px] font-bold text-brand-400 hover:text-brand-300 transition-colors uppercase tracking-wider"
+          >
+            {t('viewFullSchedule', lang)}
+          </Link>
+        </div>
+
+        {todayClasses.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {todayClasses.map(cls => (
+              <div
+                key={cls.id}
+                className="flex items-center justify-between bg-dark-sidebar/40 border border-dark-border/40 rounded-xl p-3 hover:border-brand-500/20 transition-all"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: cls.color }} />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-white truncate leading-tight">{cls.title}</p>
+                      {cls.date && (
+                        <span className="text-[7.5px] px-1 py-0.25 rounded font-extrabold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0 select-none">
+                          {lang === 'en' ? 'Once' : 'พิเศษ'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 text-[10px] text-dark-muted font-mono font-medium">
+                      <span className="flex items-center gap-1">
+                        <Clock size={10} />
+                        {cls.startTime} - {cls.endTime}
+                      </span>
+                      {cls.room && (
+                        <span className="bg-dark-bg/60 px-1 py-0.25 rounded">{cls.room}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-3 text-center bg-dark-sidebar/10 border border-dark-border/20 rounded-xl">
+            <p className="text-xs text-dark-muted font-semibold">{t('noClassesToday', lang)}</p>
+          </div>
+        )}
       </div>
 
       {/* Control Bar: Filters, Search, Views */}
