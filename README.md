@@ -2,113 +2,93 @@
 
 > **Live Application URL:** [https://classrooms-hub.vercel.app/](https://classrooms-hub.vercel.app/)
 
-**CH Classroom Hub** คือเว็บแอปพลิเคชันรูปแบบ Student Dashboard สไตล์ Notion ที่มีความมินิมอลและถนอมสายตา (Premium Dark-slate Theme) ออกแบบมาเพื่อรวบรวมข้อมูลรายวิชา งานที่ได้รับมอบหมาย (Coursework) ประกาศ (Announcements) และเอกสารประกอบการเรียน (Materials) จาก **Google Classroom** ของผู้ใช้มารวมไว้ในที่เดียวแบบเรียลไทม์
+**CH Classroom Hub** is a minimalistic, Notion-style student dashboard designed to consolidate courses, assignments, announcements, and study materials from **Google Classroom** into a single, real-time interface. It features a premium Dark-slate aesthetic to reduce eye strain during long study sessions.
 
 ---
 
-## 🚀 ฟีเจอร์หลัก (Key Features)
+## 🚀 Key Features
 
 1. **🔒 Secure Google Auth & Direct Connection**:
-   - ล็อกอินด้วยบัญชี Google (รองรับทั้งอีเมลสถาบันการศึกษาอย่าง `@email.kmutnb.ac.th` และอีเมลทั่วไป) ปลอดภัย 100% ด้วยการจัดการ Access Token ผ่าน Session Storage (หมดกังวลเรื่องการรั่วไหลผ่าน XSS)
+   - Login directly via your Google Account (supports institutional `@email.kmutnb.ac.th` and standard Gmail). 
+   - 100% secure: Access Tokens are managed purely in browser Session Storage.
 
-2. **💾 Scoped User Preferences (ระบบแยกบัญชี)**:
-   - จัดเก็บข้อมูลแยกตาม Google Account ใน LocalStorage โดยใช้ Email เป็นตัวกำหนดขอบเขตข้อมูล (Email-scoped Cache Keys) ป้องกันการปะปนข้อมูลเมื่อสลับบัญชีใช้งาน
+2. **💾 Scoped User Preferences**:
+   - Safely switch between multiple Google Accounts. All cached data in LocalStorage is strictly scoped by the user's email address to prevent data leakage.
 
-3. **👁️ Course Visibility Filters (จัดการซ่อนวิชาเรียนค้างปี)**:
-   - สามารถเลือกซ่อนวิชาที่เรียนจบแล้วหรือจบเทอมไปแล้วได้ทั้งแบบรายวิชา หรือแบบซ่อนหลายวิชาพร้อมกัน (Bulk Visibility Configuration) 
-   - งานค้างจากวิชาที่ถูกซ่อนจะถูกคัดกรองออกจากบอร์ดการบ้าน โดม และแดชบอร์ดโดยอัตโนมัติเพื่อลดความแอดอัดของสายตา
+3. **👁️ Course Visibility Filters**:
+   - Hide completed or past-semester courses individually or in bulk.
+   - Assignments from hidden courses are automatically purged from your dashboard, reducing visual clutter.
 
 4. **📅 Advanced Coursework Dashboard**:
-   - หน้าแดชบอร์ดหลักที่แบ่งออกเป็น "งานที่ต้องส่งวันนี้ (Due Today)" และ "งานที่เลยกำหนดส่ง (Overdue)"
-   - ระบบนับเวลาถอยหลัง (Countdown Heuristics) ที่ละเอียดเป็นนาที/ชั่วโมง หากส่งภายในวันนั้น
+   - View assignments categorized by "Due Today" and "Overdue".
+   - Precision Countdown Heuristics display due times down to the minute.
 
 5. **📝 Notion-style Notepad**:
-   - ระบบบันทึกข้อความหรือบันทึกความคืบหน้าของงานแต่ละชิ้นแบบส่วนตัว (Draft Workspace Notes) บันทึกลง LocalStorage ของผู้ใช้คนนั้นโดยอัตโนมัติ
+   - Draft notes or track assignment progress in a private, local workspace attached to each coursework item.
 
-6. **🔔 Gmail Notification System (ระบบแจ้งเตือนทาง Gmail)**:
-   - **ความแม่นยำสูง (Calendar-day accuracy)**: ตรวจสอบความต่างของวันปฏิทินเพื่อส่งอีเมลเตือนก่อนครบกำหนด 3 วัน, ก่อนครบกำหนด 1 วัน, วันครบกำหนดส่ง และส่งเตือนงานเลยกำหนดส่ง 1 วัน (ส่งเพียงครั้งเดียว)
-   - **Sunday Digest (งานสะสมไม่มีกำหนดส่ง)**: สำหรับอาจารย์ที่ไม่ระบุ Due Date ระบบจะรวบรวมส่งเป็นเมลสรุปทุกวันอาทิตย์ตามเวลาที่ผู้ใช้ตั้งไว้ พร้อมระบบส่งย้อนหลังอัตโนมัติ (Catch-up) เมื่อเปิดแอปหากผู้ใช้ปิดเครื่องในวันอาทิตย์
-   - **Anti-Spam New Post Digest**: รวบรวมงานและประกาศใหม่ที่ตรวจพบระหว่างการกดซิงก์ข้อมูล ส่งเมลสรุปรวมเป็นฉบับเดียวทันที เพื่อป้องกันการส่งอีเมลถี่เกินไป (Spam)
-   - **Safety Limits**: จำกัดการส่งอีเมลไม่เกิน 3 ฉบับต่อวัน ป้องกันการสแปม Google API และตรวจสอบสิทธิ์ผ่านระบบ Deduplication Registry
-   - **Notification History Log**: มีระบบบันทึกประวัติการส่งแจ้งเตือนในหน้าตั้งค่าเพื่อให้ผู้ใช้ย้อนดูประวัติการเตือนได้
+6. **🔔 Gmail Notification System (Apps Script)**:
+   - **Calendar-day accuracy**: Receive reminders 3 days before, 1 day before, and on the day an assignment is due.
+   - **Sunday Digest**: Weekly summary for assignments with no explicit due dates.
+   - **Anti-Spam**: New posts and announcements are batched into a single digest email.
 
 ---
 
-## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
+## 🛠️ Tech Stack
 
 * **Frontend Framework**: React 19 (Vite 8)
 * **Routing**: React Router 7 (SPA client-side navigation)
-* **Styling**: Vanilla CSS + Tailwind CSS v4 (Enforced Dark-slate premium aesthetic)
+* **Styling**: Vanilla CSS + Tailwind CSS v4 (Enforced Dark-slate aesthetic)
 * **Icons**: Lucide React
-* **Integration APIs**: Google GIS SDK (OAuth 2.0 Client-side implicit flow) + Google Classroom API + Gmail REST API
+* **Integration APIs**: Google Identity Services (OAuth 2.0 Implicit flow) + Google Classroom API + Google Drive API
 
 ---
 
-## ⚙️ ขั้นตอนการติดตั้งและการนำไปพัฒนาต่อ (Development Guide)
+## 📚 Documentation
 
-### 1. โคลนและติดตั้ง Package
+For a deep dive into the architecture, setup, and usage, please refer to the documents below:
+
+- **[Architecture (ARCHITECTURE.md)](./docs/ARCHITECTURE.md)**: System design and data flow.
+- **[API Reference (API_REFERENCE.md)](./docs/API_REFERENCE.md)**: Google API endpoints and error handling.
+- **[Security Policy (SECURITY.md)](./docs/SECURITY.md)**: OAuth flows, token storage, and XSS prevention.
+- **[Deployment Guide (DEPLOYMENT_GUIDE.md)](./docs/DEPLOYMENT_GUIDE.md)**: Instructions for deploying to Vercel and setting up Google Cloud Console.
+- **[User Manual (USER_MANUAL_TH.md)](./docs/USER_MANUAL_TH.md)**: Thai manual for end-users.
+- **[Contributing (CONTRIBUTING.md)](./docs/CONTRIBUTING.md)**: Guidelines for contributing to the repository.
+- **[Changelog (CHANGELOG.md)](./CHANGELOG.md)**: Version history.
+- **[ADRs](./docs/ADR/)**: Architecture Decision Records detailing core technical choices.
+
+---
+
+## ⚙️ Quick Start (Development)
+
+### 1. Clone & Install
 ```bash
-# โคลนคลังเก็บโค้ด
-git clone <repository-url>
-cd Classrooms
-
-# ติดตั้ง dependencies
+git clone https://github.com/kittiponglnwza/classroom-dashboard.git
+cd classroom-dashboard
 npm install
 ```
 
-### 2. ตั้งค่าไฟล์สภาพแวดล้อม (Environment Variables)
-สร้างไฟล์ `.env` ในโฟลเดอร์ Root ของโปรเจกต์ และเพิ่ม Google Client ID ของคุณ:
+### 2. Environment Variables
+Create a `.env` file in the root directory and add your Google Client ID:
 ```env
 VITE_GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
 ```
 
-### 3. รันโปรเจกต์ในเครื่อง (Local Dev)
+### 3. Run Development Server
 ```bash
 npm run dev
 ```
-แอปพลิเคชันจะรันบน [http://localhost:5173/](http://localhost:5173/) หรือ [http://localhost:5174/](http://localhost:5174/)
-
-### 4. คอมไพล์สำหรับการนำขึ้นเซิร์ฟเวอร์จริง (Production Build)
-```bash
-npm run build
-```
-ไฟล์พร้อม Deploy จะถูกสร้างไว้ในโฟลเดอร์ `dist/`
 
 ---
 
-## 👨‍💻 ข้อมูลนักพัฒนา (Developer Information)
+## 👨‍💻 Developer Information
 
-* **ชื่อ-นามสกุล**: กิตติพงศ์ ธีระศรี (Kittipong Teerasee)
-* **ชื่อเล่น**: Kittiponglnwza
-* **รหัสนักศึกษา**: 6704082611115
-* **สถาบัน**: มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ (KMUTNB)
-* **GitHub**: [https://github.com/kittiponglnwza](https://github.com/kittiponglnwza)
+* **Name**: Kittipong Teerasee
+* **Student ID**: 6704082611115
+* **Institution**: King Mongkut's University of Technology North Bangkok (KMUTNB)
+* **GitHub**: [kittiponglnwza](https://github.com/kittiponglnwza)
 
 ---
 
-## 🧪 Testing & Code Quality Strategy (Phase 2)
+## 📄 License
 
-โปรเจกต์นี้ใช้แนวคิด **Test Pyramid** เพื่อรับประกันความเสถียรและความน่าเชื่อถือของระบบในระยะยาว โดยมีสัดส่วนของข้อสอบและแบบทดสอบดังนี้:
-
-1. **Unit Tests (80%)**: เน้นทดสอบ Pure Functions, Core Utility Modules (เช่น `sanitize.js`, `result.js`), และเครื่องมือตัวแกะข้อมูล Parser (เช่น `examParser.js`) ด้วย **Vitest**
-2. **Integration Tests (15%)**: เน้นทดสอบการมีปฏิสัมพันธ์ระหว่าง Hooks (เช่น `useExamRoom.js`), Repository Layers และ Context Providers ผ่าน **React Testing Library**
-3. **End-to-End (E2E) Tests (5%)**: เน้นจำลองพฤติกรรมจริงของผู้ใช้ตั้งแต่ล็อกอินจนถึงการซิงก์ข้อมูลข้ามระบบผ่าน **Playwright**
-
-### ⚙️ Command line สำหรับทดสอบ
-
-```bash
-# รัน Unit Tests ทั้งหมด
-npm run test
-
-# รันเพื่อตรวจสอบเปอร์เซ็นต์ความครอบคลุม (Coverage Gate Enforced >80% Lines/Stmts/Funcs, >55% Branches)
-npm run coverage
-```
-
-### 🔒 Quality Gate & Git Workflow (Husky & lint-staged)
-
-เราได้ติดตั้งระบบป้องกันการผลักดันโค้ดที่ไม่ได้คุณภาพขึ้น Production ดังนี้:
-* **Conventional Commits**: บังคับเขียน commit message ตามมาตรฐานอุตสาหกรรม (เช่น `feat:`, `fix:`, `refactor:`) ผ่าน `@commitlint`
-* **Husky (Pre-commit hook)**: ทำงานอัตโนมัติก่อนสั่ง `git commit` โดยจะสั่งให้ `lint-staged` ทำงาน
-* **lint-staged**: จะคัดกรองเฉพาะไฟล์ที่ถูกเปลี่ยนเท่านั้นเพื่อเอามาตรวจสอบ:
-  1. สั่งรัน `eslint --fix` เพื่อแก้ Syntax & Style 
-  2. สั่งรัน `vitest related --run` เพื่อเทสต์เฉพาะเทสต์ไฟล์ที่มีความเกี่ยวข้องกับโค้ดที่ถูกแก้ (หากเทสต์ไม่ผ่าน จะไม่อนุญาตให้ commit)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
