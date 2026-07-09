@@ -218,7 +218,7 @@ export const ClassroomProvider = ({ children }) => {
     const email = getActiveEmail();
     const isEdit = schedule.some(s => s.id === entry.id);
     const updated = isEdit
-      ? schedule.map(s => s.id === entry.id ? entry : s)
+      ? schedule.map(s => s.id === entry.id ? { ...entry, updatedAt: new Date().toISOString() } : s)
       : [...schedule, { ...entry, id: entry.id || `sched-${Date.now()}`, updatedAt: new Date().toISOString() }];
     setSchedule(updated);
     saveSchedule(updated, email);
