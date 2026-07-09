@@ -1,14 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   getEnableEmailAlerts, setEnableEmailAlerts, getAlertSettings, 
   saveAlertSettings, getSundayDigestTime, setSundayDigestTime, 
   getNotificationHistory, getDailyEmailLimit, addNotificationHistoryLog,
-  getActiveEmail, touchLocalSettingsTimestamp
+  getActiveEmail
 } from '../utils/storage';
 import { useAuth } from './AuthContext';
-import { syncSettingsWithDrive } from '../services/driveSync';
+import { syncManager } from '../services/SyncManager';
 
-const SettingsContext = createContext(null);
+export const SettingsContext = createContext(null);
 
 export const SettingsProvider = ({ children }) => {
   const { isLoggedIn, accessToken } = useAuth();
@@ -22,37 +22,8 @@ export const SettingsProvider = ({ children }) => {
   const [historyLogs, setHistoryLogs] = useState([]);
   const [dailyLimit, setDailyLimit] = useState({ count: 0 });
 
-  // Debounce timer ref for Drive sync pushes
-  const pushTimerRef = useRef(null);
-
   /**
-   * Debounced push to Google Drive (1 second).
-   * Coalesces rapid changes into a single API call.
-   * Errors are caught silently so local UI is never blocked.
-   */
-  const pushSettingsToDrive = useCallback(() => {
-    if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
-    pushTimerRef.current = setTimeout(() => {
-      const token = accessToken;
-      const email = getActiveEmail();
-      if (token && email) {
-        syncSettingsWithDrive(token, email).catch(err => {
-          console.error('[Classroom Hub Settings] Failed to push settings to Drive:', err);
-        });
-      }
-    }, 1000);
-  }, [accessToken]);
-
-  // Cleanup debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
-    };
-  }, []);
-
-  /**
-   * Reloads all settings state from localStorage.
-   * Called after remote settings are applied so the UI reflects the latest values.
+   * Reloads all settings state from StorageRepository.
    */
   const reloadSettings = useCallback(() => {
     const email = getActiveEmail();
@@ -71,18 +42,9 @@ export const SettingsProvider = ({ children }) => {
 
   useEffect(() => {
     if (userEmail && isLoggedIn) {
-      const savedUserLang = localStorage.getItem(`classroom_hub_${userEmail}_language`);
-      if (savedUserLang) {
-        setLang(savedUserLang);
-        localStorage.setItem('classroom_hub_language', savedUserLang);
-      }
-      setEmailAlerts(getEnableEmailAlerts(userEmail));
-      setAlertSettingsState(getAlertSettings(userEmail));
-      setSundayTimeState(getSundayDigestTime(userEmail));
-      setHistoryLogs(getNotificationHistory(userEmail));
-      setDailyLimit(getDailyEmailLimit(userEmail));
+      reloadSettings();
     }
-  }, [userEmail, isLoggedIn]);
+  }, [userEmail, isLoggedIn, reloadSettings]);
 
   const toggleLang = () => {
     const nextLang = lang === 'en' ? 'th' : 'en';
@@ -90,8 +52,7 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('classroom_hub_language', nextLang);
     if (userEmail) {
       localStorage.setItem(`classroom_hub_${userEmail}_language`, nextLang);
-      touchLocalSettingsTimestamp(userEmail);
-      pushSettingsToDrive();
+      syncManager.queueSync(accessToken, userEmail);
     }
   };
 
@@ -105,20 +66,20 @@ export const SettingsProvider = ({ children }) => {
       type: 'settings_change'
     }, userEmail);
     setHistoryLogs(getNotificationHistory(userEmail));
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, userEmail);
   };
 
   const handleToggleSetting = (field) => {
     const updated = { ...alertSettings, [field]: !alertSettings[field] };
     setAlertSettingsState(updated);
     saveAlertSettings(updated, userEmail);
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, userEmail);
   };
 
   const handleTimeChange = (time) => {
     setSundayTimeState(time);
     setSundayDigestTime(time, userEmail);
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, userEmail);
   };
 
   const refreshNotificationData = () => {

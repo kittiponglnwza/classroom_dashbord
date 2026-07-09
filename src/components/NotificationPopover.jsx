@@ -33,18 +33,31 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [setIsNotificationsOpen, bellButtonRef]);
 
+  const [uiFeedback, setUiFeedback] = useState({ text: '', type: '' });
+
   const handleSendDigestNow = async () => {
+    setUiFeedback({ text: '', type: '' });
     if (!accessToken) {
-      alert(lang === 'en' ? 'Please connect to Google Classroom before performing this action.' : 'กรุณาเชื่อมต่อ Google Classroom ก่อนทำรายการนี้');
+      setUiFeedback({
+        text: lang === 'en' ? 'Please connect to Google Classroom before performing this action.' : 'กรุณาเชื่อมต่อ Google Classroom ก่อนทำรายการนี้',
+        type: 'error'
+      });
       return;
     }
     setDigestSending(true);
     try {
       await triggerManualDigest(accessToken, profile.email, assignments);
       refreshNotificationData();
+      setUiFeedback({
+        text: lang === 'en' ? 'Digest sent successfully!' : 'ส่งสรุปผลงานไปที่ Gmail เรียบร้อยแล้ว!',
+        type: 'success'
+      });
     } catch (e) {
       console.error(e);
-      alert((lang === 'en' ? 'Failed: ' : 'เกิดข้อผิดพลาด: ') + e.message);
+      setUiFeedback({
+        text: ((lang === 'en' ? 'Failed: ' : 'เกิดข้อผิดพลาด: ') + e.message),
+        type: 'error'
+      });
     } finally {
       setDigestSending(false);
     }
@@ -83,6 +96,14 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
 
       {isLoggedIn ? (
         <div className="space-y-4">
+          {uiFeedback.text && (
+            <div className={`p-2.5 rounded-xl border text-[10px] flex items-center justify-between transition-all ${
+              uiFeedback.type === 'error' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+            }`}>
+              <span>{uiFeedback.text}</span>
+              <button onClick={() => setUiFeedback({ text: '', type: '' })} className="text-[12px] hover:text-white font-extrabold ml-2 cursor-pointer">×</button>
+            </div>
+          )}
           <div className="flex bg-dark-sidebar/40 p-0.5 rounded-lg border border-dark-border/20">
             <button
               onClick={() => setActiveTab('history')}

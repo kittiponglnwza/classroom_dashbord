@@ -36,6 +36,7 @@ export default function AssignmentDetail() {
   const { title, course, courseCode, dueDate, status, points, attachments, description, courseColor, notes = '' } = assignment;
   
   const [noteContent, setNoteContent] = useState(notes);
+  const [downloadingFile, setDownloadingFile] = useState('');
 
   useEffect(() => {
     setNoteContent(notes);
@@ -70,11 +71,20 @@ export default function AssignmentDetail() {
   const daysInfo = getDaysLeft();
 
   const handleSimulatedDownload = (fileName) => {
-    alert(`⚡ Simulated download: Starting download for "${fileName}"`);
+    setDownloadingFile(fileName);
+    setTimeout(() => {
+      setDownloadingFile('');
+    }, 2500);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {downloadingFile && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold text-xs px-4.5 py-3 rounded-xl shadow-xl animate-fade-in">
+          <span className="animate-pulse">⚡</span>
+          <span>Simulating download: Starting download for "{downloadingFile}"</span>
+        </div>
+      )}
       <button
         onClick={() => navigate('/dashboard')}
         className="flex items-center gap-1.5 text-xs text-dark-muted hover:text-white transition-colors bg-dark-card border border-dark-border px-3.5 py-1.8 py-2 rounded-lg self-start"

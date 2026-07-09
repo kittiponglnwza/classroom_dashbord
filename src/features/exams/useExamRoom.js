@@ -1,6 +1,9 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { parseExamDate } from '../../utils/examDate';
 import { examRepository } from '../../repositories/examRepository';
+import { syncManager } from '../../services/SyncManager';
+import { getToken } from '../../utils/storage';
+import { logger } from '../../utils/logger';
 
 export const useExamRoom = (activeEmail, lang) => {
   const [prevEmail, setPrevEmail] = useState(activeEmail);
@@ -32,7 +35,7 @@ export const useExamRoom = (activeEmail, lang) => {
 
   const abortControllerRef = useRef(null);
 
-  // Adjust state when activeEmail prop changes (Modern React Pattern)
+  // Adjust state when activeEmail prop changes
   if (activeEmail !== prevEmail) {
     setPrevEmail(activeEmail);
     const digitsMatch = activeEmail.match(/\d{13}/);
@@ -50,7 +53,7 @@ export const useExamRoom = (activeEmail, lang) => {
     setError(null);
   }
 
-  // Adjust state when studentId changes (Modern React Pattern)
+  // Adjust state when studentId changes
   if (studentId !== prevStudentId) {
     setPrevStudentId(studentId);
     if (studentId.trim() === '') {
@@ -61,13 +64,18 @@ export const useExamRoom = (activeEmail, lang) => {
       setError(null);
       localStorage.removeItem('lastExamSearch');
       examRepository.clearExamsCache(activeEmail);
+      
+      // Sync deletion
+      const token = getToken();
+      if (token && activeEmail) {
+        syncManager.queueSync(token, activeEmail);
+      }
     }
   }
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     
-    // Abort previous request if exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -88,7 +96,6 @@ export const useExamRoom = (activeEmail, lang) => {
     const cleanId = validResult.data;
     localStorage.setItem('lastExamSearch', cleanId);
 
-    // Create new abort controller
     abortControllerRef.current = new AbortController();
 
     const result = await examRepository.fetchExams(cleanId, lang, abortControllerRef.current.signal);
@@ -98,6 +105,12 @@ export const useExamRoom = (activeEmail, lang) => {
       setUnlistedInfo(result.data.unlisted);
       examRepository.saveToCache(activeEmail, result.data.exams, manualExamList, result.data.unlisted);
       setStatus('success');
+      
+      // Trigger background sync for the new seating arrangements
+      const token = getToken();
+      if (token && activeEmail) {
+        syncManager.queueSync(token, activeEmail);
+      }
     } else {
       if (result.error.name === 'AbortError') {
         return;
@@ -112,26 +125,44 @@ export const useExamRoom = (activeEmail, lang) => {
     if (examData.id && examData.id !== 'new') {
       const idx = updatedManual.findIndex(ex => ex.id === examData.id);
       if (idx !== -1) {
-        updatedManual[idx] = examData;
+        updatedManual[idx] = {
+          ...examData,
+          updatedAt: new Date().toISOString()
+        };
       }
     } else {
       updatedManual.push({
         ...examData,
         id: `manual-exam-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        updatedAt: new Date().toISOString()
       });
     }
 
     setManualExamList(updatedManual);
     setSearchTriggered(true);
     examRepository.saveToCache(activeEmail, examList, updatedManual, unlistedInfo);
+
+    // Queue synchronization with Google Drive
+    const token = getToken();
+    if (token && activeEmail) {
+      syncManager.queueSync(token, activeEmail);
+    }
   }, [manualExamList, examList, unlistedInfo, activeEmail]);
 
   const handleDeleteManualExam = useCallback((id) => {
-    if (!window.confirm(lang === 'en' ? 'Are you sure you want to delete this exam schedule?' : 'คุณแน่ใจหรือไม่ว่าต้องการลบวิชาสอบนี้?')) return;
+    // We removed window.confirm to avoid blocking native popups in production.
+    // Component or custom UI modal can handle visual confirmations.
+    logger.info(`Deleting manual exam: ${id}`);
     const updatedManual = manualExamList.filter(ex => ex.id !== id);
     setManualExamList(updatedManual);
     examRepository.saveToCache(activeEmail, examList, updatedManual, unlistedInfo);
-  }, [manualExamList, examList, unlistedInfo, activeEmail, lang]);
+
+    // Queue synchronization with Google Drive
+    const token = getToken();
+    if (token && activeEmail) {
+      syncManager.queueSync(token, activeEmail);
+    }
+  }, [manualExamList, examList, unlistedInfo, activeEmail]);
 
   const sortedExams = useMemo(() => {
     const today = new Date();
@@ -154,7 +185,7 @@ export const useExamRoom = (activeEmail, lang) => {
   return {
     studentId,
     setStudentId,
-    status, // idle | loading | success | error
+    status,
     error,
     sortedExams,
     unlistedInfo,

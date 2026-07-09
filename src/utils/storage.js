@@ -1,125 +1,73 @@
 import { initialAssignments, initialCourses, defaultProfile } from '../data/mockData';
+import { StorageRepository } from '../repositories/StorageRepository';
+import { STORAGE_CONFIG } from '../config/storage';
 
-const KEYS = {
-  ASSIGNMENTS: 'classroom_hub_assignments',
-  COURSES: 'classroom_hub_courses',
-  PROFILE: 'classroom_hub_profile',
-  LAST_SYNC: 'classroom_hub_last_sync',
-  ACCESS_TOKEN: 'classroom_hub_access_token',
-  RESOURCES: 'classroom_hub_resources',
-  HIDDEN_COURSES: 'classroom_hub_hidden_courses',
-  ACTIVE_EMAIL: 'classroom_hub_active_email',
-  SCHEDULE: 'classroom_hub_schedule'
-};
+const KEYS = STORAGE_CONFIG.keys;
 
-/* Token Handling via Secure Session Storage (Tab lifetime, immune to persistent storage leaks) */
+/* Token Handling via Secure Session Storage */
 export const saveToken = (token) => {
   if (token) {
-    sessionStorage.setItem(KEYS.ACCESS_TOKEN, token);
+    sessionStorage.setItem(KEYS.accessToken, token);
   }
 };
 
 export const getToken = () => {
-  return sessionStorage.getItem(KEYS.ACCESS_TOKEN);
+  return sessionStorage.getItem(KEYS.accessToken);
 };
 
 export const clearToken = () => {
-  sessionStorage.removeItem(KEYS.ACCESS_TOKEN);
+  sessionStorage.removeItem(KEYS.accessToken);
 };
 
-/* Active User Email configuration (Always lowercased and trimmed) */
+/* Active User Email configuration */
 export const getActiveEmail = () => {
-  const email = localStorage.getItem(KEYS.ACTIVE_EMAIL);
+  const email = localStorage.getItem(KEYS.activeEmail);
   return email ? email.toLowerCase().trim() : '';
 };
 
 export const setActiveEmail = (email) => {
   if (email) {
-    localStorage.setItem(KEYS.ACTIVE_EMAIL, email.toLowerCase().trim());
+    localStorage.setItem(KEYS.activeEmail, email.toLowerCase().trim());
   } else {
-    localStorage.removeItem(KEYS.ACTIVE_EMAIL);
+    localStorage.removeItem(KEYS.activeEmail);
   }
-};
-
-/* Scoped key helper based on active user email (Always lowercased and trimmed) */
-const getScopedKey = (baseKey, email) => {
-  const active = (email || getActiveEmail() || '').toLowerCase().trim();
-  return active ? `${baseKey}_${active}` : baseKey;
 };
 
 export const touchLocalSettingsTimestamp = (email) => {
-  const active = (email || getActiveEmail() || '').toLowerCase().trim();
-  if (!active) return;
-  const key = `classroom_hub_settings_last_updated_${active}`;
-  localStorage.setItem(key, new Date().toISOString());
-};
-
-/* 
- * Helper to fetch item with auto-migration of uppercase/mixed-case keys to lowercase 
- */
-const getStoredItemWithMigration = (baseKey, email) => {
-  const activeLower = (email || getActiveEmail() || '').toLowerCase().trim();
-  if (!activeLower) {
-    return localStorage.getItem(baseKey);
-  }
-  
-  const keyLower = `${baseKey}_${activeLower}`;
-  const storedLower = localStorage.getItem(keyLower);
-  if (storedLower) {
-    return storedLower;
-  }
-  
-  // If lowercase key doesn't exist, check case-insensitive match for old capitalized keys
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.toLowerCase() === keyLower.toLowerCase()) {
-      const data = localStorage.getItem(key);
-      if (data) {
-        localStorage.setItem(keyLower, data); // Migrate data to lowercase key
-        localStorage.removeItem(key);         // Delete capitalized key
-        return data;
-      }
-    }
-  }
-  
-  return null;
+  if (!email) return;
+  const timeKey = `classroom_hub_settings_last_updated_${email.toLowerCase().trim()}`;
+  localStorage.setItem(timeKey, new Date().toISOString());
 };
 
 /* Caching Last Sync timestamps */
 export const setLastSync = (time, email) => {
-  const key = getScopedKey(KEYS.LAST_SYNC, email);
-  localStorage.setItem(key, time);
+  StorageRepository.set(KEYS.lastSync, time, email);
 };
 
 export const getLastSync = (email) => {
-  return getStoredItemWithMigration(KEYS.LAST_SYNC, email);
+  // Pass forceIgnoreTTL = true because lastSync is a timestamp metadata, not an expiring cache
+  return StorageRepository.get(KEYS.lastSync, email, true);
 };
 
 /* Scoped Assignments fetching */
 export const getAssignments = (email) => {
-  const stored = getStoredItemWithMigration(KEYS.ASSIGNMENTS, email);
+  // Pass forceIgnoreTTL = true for local rendering if required, or false for cache logic.
+  // Assignments list is managed by SyncManager/ClassroomService. Here we load what is currently stored.
+  const stored = StorageRepository.get(KEYS.assignments, email, true);
   if (!stored) {
-    const active = (email || getActiveEmail() || '').toLowerCase().trim();
+    const active = email || getActiveEmail();
     if (!active) {
-      // Default to mock assignments on first load before logging in
-      const defaultKey = KEYS.ASSIGNMENTS;
-      localStorage.setItem(defaultKey, JSON.stringify(initialAssignments));
+      // Default mock fallback
+      StorageRepository.set(KEYS.assignments, initialAssignments);
       return initialAssignments;
     }
     return [];
   }
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    console.error('Failed to parse assignments from local storage', e);
-    return [];
-  }
+  return stored;
 };
 
 export const saveAssignments = (assignments, email) => {
-  const key = getScopedKey(KEYS.ASSIGNMENTS, email);
-  localStorage.setItem(key, JSON.stringify(assignments));
-  touchLocalSettingsTimestamp(email);
+  StorageRepository.set(KEYS.assignments, assignments, email);
 };
 
 /* 
@@ -129,46 +77,44 @@ export const syncClassroomAssignments = (apiAssignments, email) => {
   const localAssignments = getAssignments(email);
   
   const merged = apiAssignments.map(apiAssign => {
-    // Find existing task by ID
     const localAssign = localAssignments.find(la => String(la.id) === String(apiAssign.id));
     
+    // Merge logic: preserve notes and status modifications
     if (localAssign) {
       return {
         ...apiAssign,
-        // Preserve user workspace notes
         notes: localAssign.notes || '',
-        // If the task was completed on Google, it stays 'done'.
-        // If it was marked completed/in-progress locally by the user, keep it.
-        status: apiAssign.status === 'done' ? 'done' : (localAssign.status || apiAssign.status)
+        status: apiAssign.status === 'done' ? 'done' : (localAssign.status || apiAssign.status),
+        updatedAt: localAssign.updatedAt || new Date().toISOString()
       };
     }
     return {
       ...apiAssign,
-      notes: ''
+      notes: '',
+      updatedAt: new Date().toISOString()
     };
   });
 
-  // Also preserve manually created local tasks (exclude initial mock assignments)
   const mockIds = ['assign-1', 'assign-2', 'assign-3', 'assign-4', 'assign-5', 'assign-6', 'assign-7'];
   const localManualTasks = localAssignments.filter(la => 
     String(la.id).startsWith('assign-') && !mockIds.includes(la.id)
   );
+  
   const finalAssignments = [...localManualTasks, ...merged];
-
   saveAssignments(finalAssignments, email);
   return finalAssignments;
 };
 
 export const updateAssignmentStatus = (id, status, email) => {
   const assignments = getAssignments(email);
-  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, status } : a);
+  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, status, updatedAt: new Date().toISOString() } : a);
   saveAssignments(updated, email);
   return updated;
 };
 
 export const updateAssignmentNotes = (id, notes, email) => {
   const assignments = getAssignments(email);
-  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, notes } : a);
+  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, notes, updatedAt: new Date().toISOString() } : a);
   saveAssignments(updated, email);
   return updated;
 };
@@ -177,6 +123,7 @@ export const addAssignment = (assignment, email) => {
   const assignments = getAssignments(email);
   const newAssignment = {
     id: `assign-${Date.now()}`,
+    updatedAt: new Date().toISOString(),
     ...assignment
   };
   const updated = [newAssignment, ...assignments];
@@ -185,98 +132,69 @@ export const addAssignment = (assignment, email) => {
 };
 
 export const getCourses = (email) => {
-  const stored = getStoredItemWithMigration(KEYS.COURSES, email);
+  const stored = StorageRepository.get(KEYS.courses, email, true);
   if (!stored) {
-    const active = (email || getActiveEmail() || '').toLowerCase().trim();
+    const active = email || getActiveEmail();
     if (!active) {
-      const defaultKey = KEYS.COURSES;
-      localStorage.setItem(defaultKey, JSON.stringify(initialCourses));
+      StorageRepository.set(KEYS.courses, initialCourses);
       return initialCourses;
     }
     return [];
   }
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    console.error('Failed to parse courses from local storage', e);
-    return [];
-  }
+  return stored;
 };
 
 export const saveCourses = (courses, email) => {
-  const key = getScopedKey(KEYS.COURSES, email);
-  localStorage.setItem(key, JSON.stringify(courses));
+  StorageRepository.set(KEYS.courses, courses, email);
 };
 
 export const getProfile = (email) => {
-  const stored = getStoredItemWithMigration(KEYS.PROFILE, email);
+  const stored = StorageRepository.get(KEYS.profile, email, true);
   if (!stored) {
-    const active = (email || getActiveEmail() || '').toLowerCase().trim();
+    const active = email || getActiveEmail();
     if (!active) {
-      const defaultKey = KEYS.PROFILE;
-      localStorage.setItem(defaultKey, JSON.stringify(defaultProfile));
+      StorageRepository.set(KEYS.profile, defaultProfile);
       return defaultProfile;
     }
     return {};
   }
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    console.error('Failed to parse profile from local storage', e);
-    return {};
-  }
+  return stored;
 };
 
 export const saveProfile = (profile, email) => {
   const userEmail = email || profile.email || getActiveEmail();
-  const key = getScopedKey(KEYS.PROFILE, userEmail);
-  localStorage.setItem(key, JSON.stringify(profile));
-  touchLocalSettingsTimestamp(userEmail);
+  StorageRepository.set(KEYS.profile, profile, userEmail);
 };
 
-/* Schedule (Timetable) Helpers */
+/* Schedule Helpers */
 export const getSchedule = (email) => {
-  const stored = getStoredItemWithMigration(KEYS.SCHEDULE, email);
-  if (!stored) return [];
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    return [];
-  }
+  const stored = StorageRepository.get(KEYS.schedule, email, true);
+  return stored || [];
 };
 
 export const saveSchedule = (schedule, email) => {
-  const key = getScopedKey(KEYS.SCHEDULE, email);
-  localStorage.setItem(key, JSON.stringify(schedule));
-  touchLocalSettingsTimestamp(email);
+  StorageRepository.set(KEYS.schedule, schedule, email);
 };
 
 export const getResources = (email) => {
-  const stored = getStoredItemWithMigration(KEYS.RESOURCES, email);
-  if (!stored) return [];
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    console.error('Failed to parse resources from local storage', e);
-    return [];
-  }
+  const stored = StorageRepository.get(KEYS.resources, email, true);
+  return stored || [];
 };
 
 export const saveResources = (resources, email) => {
-  const key = getScopedKey(KEYS.RESOURCES, email);
-  localStorage.setItem(key, JSON.stringify(resources));
+  StorageRepository.set(KEYS.resources, resources, email);
 };
 
 export const resetDatabase = (email) => {
   const userEmail = (email || getActiveEmail() || '').toLowerCase().trim();
   
   if (!userEmail) {
-    localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(initialAssignments));
-    localStorage.setItem(KEYS.COURSES, JSON.stringify(initialCourses));
-    localStorage.setItem(KEYS.PROFILE, JSON.stringify(defaultProfile));
-    localStorage.removeItem(KEYS.RESOURCES);
-    localStorage.removeItem(KEYS.LAST_SYNC);
-    localStorage.removeItem(KEYS.HIDDEN_COURSES);
+    StorageRepository.set(KEYS.assignments, initialAssignments);
+    StorageRepository.set(KEYS.courses, initialCourses);
+    StorageRepository.set(KEYS.profile, defaultProfile);
+    StorageRepository.remove(KEYS.resources);
+    StorageRepository.remove(KEYS.lastSync);
+    StorageRepository.remove(KEYS.hiddenCourses);
     clearToken();
     return {
       assignments: initialAssignments,
@@ -285,26 +203,21 @@ export const resetDatabase = (email) => {
     };
   } else {
     // Reset user-specific database keys
-    const assignKey = `${KEYS.ASSIGNMENTS}_${userEmail}`;
-    const coursesKey = `${KEYS.COURSES}_${userEmail}`;
-    const profileKey = `${KEYS.PROFILE}_${userEmail}`;
-    const resourcesKey = `${KEYS.RESOURCES}_${userEmail}`;
-    const syncKey = `${KEYS.LAST_SYNC}_${userEmail}`;
-    const hiddenKey = `${KEYS.HIDDEN_COURSES}_${userEmail}`;
+    StorageRepository.remove('classroom_hub_enable_email_alerts', userEmail);
+    StorageRepository.remove('classroom_hub_alert_settings', userEmail);
+    StorageRepository.remove('classroom_hub_sunday_digest_time', userEmail);
+    StorageRepository.remove('classroom_hub_sent_notifications', userEmail);
+    StorageRepository.remove('classroom_hub_daily_email_limit', userEmail);
+    StorageRepository.remove('classroom_hub_notification_history', userEmail);
     
-    localStorage.removeItem(`classroom_hub_enable_email_alerts_${userEmail}`);
-    localStorage.removeItem(`classroom_hub_alert_settings_${userEmail}`);
-    localStorage.removeItem(`classroom_hub_sunday_digest_time_${userEmail}`);
-    localStorage.removeItem(`classroom_hub_sent_notifications_${userEmail}`);
-    localStorage.removeItem(`classroom_hub_daily_email_limit_${userEmail}`);
-    localStorage.removeItem(`classroom_hub_notification_history_${userEmail}`);
-    
-    localStorage.removeItem(assignKey);
-    localStorage.removeItem(coursesKey);
-    localStorage.removeItem(profileKey);
-    localStorage.removeItem(resourcesKey);
-    localStorage.removeItem(syncKey);
-    localStorage.removeItem(hiddenKey);
+    StorageRepository.remove(KEYS.assignments, userEmail);
+    StorageRepository.remove(KEYS.courses, userEmail);
+    StorageRepository.remove(KEYS.profile, userEmail);
+    StorageRepository.remove(KEYS.resources, userEmail);
+    StorageRepository.remove(KEYS.lastSync, userEmail);
+    StorageRepository.remove(KEYS.hiddenCourses, userEmail);
+    StorageRepository.remove(KEYS.schedule, userEmail);
+    StorageRepository.remove(KEYS.exams, userEmail);
     
     return {
       assignments: [],
@@ -314,39 +227,30 @@ export const resetDatabase = (email) => {
   }
 };
 
-/* Hidden Courses for controlling visibility of finished semesters */
+/* Hidden Courses */
 export const getHiddenCourses = (email) => {
-  const stored = getStoredItemWithMigration(KEYS.HIDDEN_COURSES, email);
-  if (!stored) return [];
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    return [];
-  }
+  const stored = StorageRepository.get(KEYS.hiddenCourses, email, true);
+  return stored || [];
 };
 
 export const saveHiddenCourses = (hiddenIds, email) => {
-  const key = getScopedKey(KEYS.HIDDEN_COURSES, email);
-  localStorage.setItem(key, JSON.stringify(hiddenIds));
-  touchLocalSettingsTimestamp(email);
+  StorageRepository.set(KEYS.hiddenCourses, hiddenIds, email);
 };
 
 /* Gmail Notifications Scoped Helpers */
 export const getEnableEmailAlerts = (email) => {
-  const key = getScopedKey('classroom_hub_enable_email_alerts', email);
-  const val = localStorage.getItem(key);
-  return val === null ? true : val === 'true';
+  const key = 'classroom_hub_enable_email_alerts';
+  const val = StorageRepository.get(key, email, true);
+  return val === null ? true : val === true || val === 'true';
 };
 
 export const setEnableEmailAlerts = (enabled, email) => {
-  const key = getScopedKey('classroom_hub_enable_email_alerts', email);
-  localStorage.setItem(key, String(enabled));
-  touchLocalSettingsTimestamp(email);
+  StorageRepository.set('classroom_hub_enable_email_alerts', enabled, email);
 };
 
 export const getAlertSettings = (email) => {
-  const key = getScopedKey('classroom_hub_alert_settings', email);
-  const stored = localStorage.getItem(key);
+  const key = 'classroom_hub_alert_settings';
+  const stored = StorageRepository.get(key, email, true);
   const defaults = {
     due3Days: true,
     due1Day: true,
@@ -357,78 +261,50 @@ export const getAlertSettings = (email) => {
     includeExams: true
   };
   if (!stored) return defaults;
-  try {
-    return { ...defaults, ...JSON.parse(stored) };
-  } catch (e) {
-    return defaults;
-  }
+  return { ...defaults, ...stored };
 };
 
 export const saveAlertSettings = (settings, email) => {
-  const key = getScopedKey('classroom_hub_alert_settings', email);
-  localStorage.setItem(key, JSON.stringify(settings));
-  touchLocalSettingsTimestamp(email);
+  StorageRepository.set('classroom_hub_alert_settings', settings, email);
 };
 
 export const getSundayDigestTime = (email) => {
-  const key = getScopedKey('classroom_hub_sunday_digest_time', email);
-  return localStorage.getItem(key) || '18:00';
+  const key = 'classroom_hub_sunday_digest_time';
+  return StorageRepository.get(key, email, true) || '18:00';
 };
 
 export const setSundayDigestTime = (time, email) => {
-  const key = getScopedKey('classroom_hub_sunday_digest_time', email);
-  localStorage.setItem(key, time);
-  touchLocalSettingsTimestamp(email);
+  StorageRepository.set('classroom_hub_sunday_digest_time', time, email);
 };
 
 export const getSentNotifications = (email) => {
-  const key = getScopedKey('classroom_hub_sent_notifications', email);
-  const stored = localStorage.getItem(key);
-  if (!stored) return [];
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    return [];
-  }
+  const key = 'classroom_hub_sent_notifications';
+  return StorageRepository.get(key, email, true) || [];
 };
 
 export const saveSentNotifications = (records, email) => {
-  const key = getScopedKey('classroom_hub_sent_notifications', email);
-  localStorage.setItem(key, JSON.stringify(records));
+  StorageRepository.set('classroom_hub_sent_notifications', records, email);
 };
 
 export const getDailyEmailLimit = (email) => {
-  const key = getScopedKey('classroom_hub_daily_email_limit', email);
-  const stored = localStorage.getItem(key);
+  const key = 'classroom_hub_daily_email_limit';
+  const stored = StorageRepository.get(key, email, true);
   const defaults = { lastSentDate: '', count: 0 };
   if (!stored) return defaults;
-  try {
-    return { ...defaults, ...JSON.parse(stored) };
-  } catch (e) {
-    return defaults;
-  }
+  return { ...defaults, ...stored };
 };
 
 export const saveDailyEmailLimit = (limitData, email) => {
-  const key = getScopedKey('classroom_hub_daily_email_limit', email);
-  localStorage.setItem(key, JSON.stringify(limitData));
+  StorageRepository.set('classroom_hub_daily_email_limit', limitData, email);
 };
 
 export const getNotificationHistory = (email) => {
-  const key = getScopedKey('classroom_hub_notification_history', email);
-  const stored = localStorage.getItem(key);
-  if (!stored) return [];
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    return [];
-  }
+  const key = 'classroom_hub_notification_history';
+  return StorageRepository.get(key, email, true) || [];
 };
 
 export const saveNotificationHistory = (logs, email) => {
-  const key = getScopedKey('classroom_hub_notification_history', email);
-  localStorage.setItem(key, JSON.stringify(logs));
-  touchLocalSettingsTimestamp(email);
+  StorageRepository.set('classroom_hub_notification_history', logs, email);
 };
 
 export const addNotificationHistoryLog = (logEntry, email) => {
@@ -438,7 +314,7 @@ export const addNotificationHistoryLog = (logEntry, email) => {
     sentAt: new Date().toISOString(),
     ...logEntry
   };
-  const updated = [newLog, ...logs].slice(0, 100); // Limit to last 100 entries
+  const updated = [newLog, ...logs].slice(0, 100);
   saveNotificationHistory(updated, email);
   return updated;
 };

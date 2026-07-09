@@ -1,34 +1,40 @@
+import { httpClient } from '../utils/httpClient';
+import { STORAGE_CONFIG } from '../config/storage';
+import { logger } from '../utils/logger';
+
 const DRIVE_FILES_URL = 'https://www.googleapis.com/drive/v3/files';
 const DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 const SYNC_FILE_NAME = 'classroom_hub_sync_settings.json';
+
+const KEYS = STORAGE_CONFIG.keys;
 
 /**
  * Keys that follow the standard pattern: `${baseKey}_${email}`
  */
 const STANDARD_SCOPED_KEYS = [
-  'classroom_hub_assignments',
-  'classroom_hub_hidden_courses',
+  KEYS.assignments,
+  KEYS.hiddenCourses,
+  KEYS.resources,
+  KEYS.schedule,
+  KEYS.exams,
   'classroom_hub_enable_email_alerts',
   'classroom_hub_alert_settings',
   'classroom_hub_sunday_digest_time',
-  'classroom_hub_exam_results',
   'classroom_hub_notification_history',
   'classroom_hub_sent_notifications',
   'classroom_hub_daily_email_limit',
-  'classroom_hub_profile',
-  'classroom_hub_last_sync',
-  'classroom_hub_schedule'
+  KEYS.profile,
+  KEYS.lastSync
 ];
 
 /**
- * Collects all user-scoped localStorage data into a payload object.
- * Handles both standard keys (`baseKey_email`) and the special language key (`classroom_hub_email_language`).
+ * Collects all user-scoped localStorage raw string data into a payload object.
  */
 export const getLocalSettingsPayload = (email) => {
   const payload = {};
   const lowerEmail = email.toLowerCase().trim();
 
-  // 1. Standard scoped keys: baseKey_email
+  // 1. Standard scoped keys
   STANDARD_SCOPED_KEYS.forEach(baseKey => {
     const key = `${baseKey}_${lowerEmail}`;
     const value = localStorage.getItem(key);
@@ -37,7 +43,7 @@ export const getLocalSettingsPayload = (email) => {
     }
   });
 
-  // 2. Language key uses a different format: classroom_hub_email_language
+  // 2. Special language key
   const langKey = `classroom_hub_${lowerEmail}_language`;
   const langValue = localStorage.getItem(langKey);
   if (langValue !== null) {
@@ -49,9 +55,8 @@ export const getLocalSettingsPayload = (email) => {
 
 /**
  * Applies a remote settings payload to localStorage.
- * Keys in the payload are stored as-is (they already include the email).
  */
-export const applyRemoteSettingsPayload = (payload, email) => {
+export const applyRemoteSettingsPayload = (payload) => {
   if (!payload || typeof payload !== 'object') return;
   Object.keys(payload).forEach(fullKey => {
     localStorage.setItem(fullKey, payload[fullKey]);
@@ -59,37 +64,19 @@ export const applyRemoteSettingsPayload = (payload, email) => {
 };
 
 /**
- * Sets the last local modification timestamp for settings
- */
-export const touchLocalSettingsTimestamp = (email) => {
-  if (!email) return;
-  const key = `classroom_hub_settings_last_updated_${email.toLowerCase().trim()}`;
-  localStorage.setItem(key, new Date().toISOString());
-};
-
-/**
  * Checks Google Drive appDataFolder for the settings sync file.
- * Returns the file object ({ id, name }) or null if not found.
  */
 async function findSyncFile(accessToken) {
   const q = encodeURIComponent(`name='${SYNC_FILE_NAME}'`);
   const url = `${DRIVE_FILES_URL}?spaces=appDataFolder&q=${q}&fields=files(id,name)`;
-  const res = await fetch(url, {
-    headers: { 'Authorization': `Bearer ${accessToken}` }
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Drive query failed (${res.status}): ${body}`);
-  }
-
-  const data = await res.json();
+  
+  const headers = { 'Authorization': `Bearer ${accessToken}` };
+  const data = await httpClient.request(url, { headers });
   return (data.files && data.files.length > 0) ? data.files[0] : null;
 }
 
 /**
- * Creates the sync file in Google Drive appDataFolder and immediately uploads initial content.
- * Using multipart upload to create metadata + content in a single request.
+ * Creates the sync file in Google Drive appDataFolder and uploads content.
  */
 async function createSyncFileWithContent(accessToken, payload, timestamp) {
   const metadata = {
@@ -97,8 +84,7 @@ async function createSyncFileWithContent(accessToken, payload, timestamp) {
     parents: ['appDataFolder']
   };
 
-  const content = JSON.stringify({ version: 1, timestamp, payload });
-
+  const content = JSON.stringify({ version: STORAGE_CONFIG.schemaVersion, timestamp, payload });
   const boundary = '----ClassroomHubSyncBoundary';
   const body =
     `--${boundary}\r\n` +
@@ -109,7 +95,8 @@ async function createSyncFileWithContent(accessToken, payload, timestamp) {
     `${content}\r\n` +
     `--${boundary}--`;
 
-  const res = await fetch(`${DRIVE_UPLOAD_URL}?uploadType=multipart`, {
+  const url = `${DRIVE_UPLOAD_URL}?uploadType=multipart`;
+  return await httpClient.request(url, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -117,13 +104,6 @@ async function createSyncFileWithContent(accessToken, payload, timestamp) {
     },
     body
   });
-
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '');
-    throw new Error(`Drive create failed (${res.status}): ${errBody}`);
-  }
-
-  return await res.json();
 }
 
 /**
@@ -131,9 +111,9 @@ async function createSyncFileWithContent(accessToken, payload, timestamp) {
  */
 async function uploadSyncFileContent(accessToken, fileId, payload, timestamp) {
   const url = `${DRIVE_UPLOAD_URL}/${fileId}?uploadType=media`;
-  const content = { version: 1, timestamp, payload };
+  const content = { version: STORAGE_CONFIG.schemaVersion, timestamp, payload };
 
-  const res = await fetch(url, {
+  await httpClient.request(url, {
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -141,123 +121,101 @@ async function uploadSyncFileContent(accessToken, fileId, payload, timestamp) {
     },
     body: JSON.stringify(content)
   });
-
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '');
-    throw new Error(`Drive upload failed (${res.status}): ${errBody}`);
-  }
 }
 
 /**
  * Downloads the content of the sync file.
- * Returns null if file is empty or unparseable.
  */
 async function downloadSyncFileContent(accessToken, fileId) {
   const url = `${DRIVE_FILES_URL}/${fileId}?alt=media`;
-  const res = await fetch(url, {
+  // Use httpClient request with alternate media query
+  const response = await httpClient.fetchWithTimeout(url, {
     headers: { 'Authorization': `Bearer ${accessToken}` }
   });
 
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '');
-    throw new Error(`Drive download failed (${res.status}): ${errBody}`);
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    throw new Error(`Drive download failed (${response.status}): ${errBody}`);
   }
 
-  const text = await res.text();
+  const text = await response.text();
   if (!text || text.trim().length === 0) {
-    return null; // Empty file (newly created without content)
+    return null;
   }
 
   try {
     return JSON.parse(text);
   } catch (e) {
-    console.warn('[Classroom Hub Sync] Failed to parse remote settings file, treating as empty.', e);
+    logger.warn('[Drive Sync] Failed to parse remote settings file, treating as empty.', e);
     return null;
   }
 }
 
 /**
  * Synchronizes local settings with Google Drive appDataFolder.
- * Returns true if remote settings were applied locally (indicating UI needs reload).
+ * Integrates merge-based conflict resolution.
  */
-export async function syncSettingsWithDrive(accessToken, email) {
+export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
   if (!accessToken || !email) return false;
 
   const lowerEmail = email.toLowerCase().trim();
   const timeKey = `classroom_hub_settings_last_updated_${lowerEmail}`;
 
   try {
-    console.log('[Classroom Hub Sync] Starting settings sync with Google Drive...');
-
-    // Step 1: Look for existing sync file
+    logger.info('[Drive Sync] Querying sync file on Google Drive...');
     let file = await findSyncFile(accessToken);
+    const localPayload = getLocalSettingsPayload(lowerEmail);
 
     if (!file) {
-      // No file exists yet — create one with current local settings
-      console.log('[Classroom Hub Sync] No sync file found. Creating initial sync file...');
-      const localPayload = getLocalSettingsPayload(lowerEmail);
+      logger.info('[Drive Sync] Sync file not found. Creating new sync file...');
       const now = new Date().toISOString();
       await createSyncFileWithContent(accessToken, localPayload, now);
       localStorage.setItem(timeKey, now);
-      console.log('[Classroom Hub Sync] ✅ Initial settings uploaded to Google Drive.');
+      logger.info('[Drive Sync] Initial settings pushed successfully.');
       return false;
     }
 
-    // Step 2: Download existing remote content
-    console.log('[Classroom Hub Sync] Sync file found. Downloading...');
+    logger.info('[Drive Sync] Sync file found. Downloading remote state...');
     const remoteData = await downloadSyncFileContent(accessToken, file.id);
 
-    // Handle empty or corrupted remote file
     if (!remoteData || !remoteData.payload) {
-      console.log('[Classroom Hub Sync] Remote file is empty. Uploading current local settings...');
-      const localPayload = getLocalSettingsPayload(lowerEmail);
+      logger.info('[Drive Sync] Remote sync file was empty. Uploading current state...');
       const now = new Date().toISOString();
       await uploadSyncFileContent(accessToken, file.id, localPayload, now);
       localStorage.setItem(timeKey, now);
-      console.log('[Classroom Hub Sync] ✅ Local settings pushed to empty remote file.');
       return false;
     }
 
-    // Step 3: Compare timestamps
-    // Read localTime NOW (not earlier) so any changes made during network calls are captured
-    const localTime = localStorage.getItem(timeKey) || new Date(0).toISOString();
-    const remoteTime = remoteData.timestamp;
-    console.log(`[Classroom Hub Sync] Local: ${localTime} | Remote: ${remoteTime}`);
+    // Perform fine-grained merge using conflict resolution callback
+    const mergedPayload = mergeCallback(localPayload, remoteData.payload, lowerEmail);
 
-    const localDate = new Date(localTime);
-    const remoteDate = new Date(remoteTime);
+    const localSerialized = JSON.stringify(localPayload);
+    const remoteSerialized = JSON.stringify(remoteData.payload);
+    const mergedSerialized = JSON.stringify(mergedPayload);
 
-    if (remoteDate > localDate) {
-      // Remote is newer → pull
-      console.log('[Classroom Hub Sync] ⬇️ Remote is newer. Applying remote settings locally...');
-      applyRemoteSettingsPayload(remoteData.payload, lowerEmail);
-      localStorage.setItem(timeKey, remoteTime);
-      console.log('[Classroom Hub Sync] ✅ Remote settings applied.');
-      return true;
-    } else if (localDate > remoteDate) {
-      // Local is newer → push
-      console.log('[Classroom Hub Sync] ⬆️ Local is newer. Uploading to Google Drive...');
-      const localPayload = getLocalSettingsPayload(lowerEmail);
-      await uploadSyncFileContent(accessToken, file.id, localPayload, localTime);
-      console.log('[Classroom Hub Sync] ✅ Local settings pushed to Google Drive.');
-      return false;
+    const localIsOutOfSync = localSerialized !== mergedSerialized;
+    const remoteIsOutOfSync = remoteSerialized !== mergedSerialized;
+
+    let appliedRemote = false;
+
+    if (localIsOutOfSync) {
+      logger.info('[Drive Sync] Local data is out of sync. Applying merged data to local storage...');
+      applyRemoteSettingsPayload(mergedPayload);
+      appliedRemote = true;
+    }
+
+    if (remoteIsOutOfSync || localIsOutOfSync) {
+      logger.info('[Drive Sync] Remote data requires update. Uploading merged state to Google Drive...');
+      const now = new Date().toISOString();
+      await uploadSyncFileContent(accessToken, file.id, mergedPayload, now);
+      localStorage.setItem(timeKey, now);
     } else {
-      console.log('[Classroom Hub Sync] ✅ Settings are already in sync.');
-      return false;
+      logger.info('[Drive Sync] Local and remote data are fully in sync.');
     }
+
+    return appliedRemote;
   } catch (err) {
-    // Log the full error for debugging but don't break the main sync flow
-    console.error('[Classroom Hub Sync] ❌ Settings sync failed:', err.message || err);
-    
-    // If the error is a 403/404 on Drive API, it likely means Drive API isn't enabled
-    // or the scope wasn't granted. Log a helpful hint.
-    if (err.message && (err.message.includes('403') || err.message.includes('404'))) {
-      console.warn(
-        '[Classroom Hub Sync] 💡 Hint: Make sure Google Drive API is enabled in your ' +
-        'Google Cloud Console project and the user has granted the drive.appdata scope. ' +
-        'The user may need to log out and log back in to grant the new permission.'
-      );
-    }
+    logger.error('[Drive Sync] Synchronization process failed:', err.message || err);
     return false;
   }
 }

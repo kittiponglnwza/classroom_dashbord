@@ -190,7 +190,7 @@ export default function Dashboard() {
   });
 
   const overdueTasks = allFilteredAssignments.filter(a => isOverdue(a.dueDate) && a.status !== 'done');
-  const todayTasks = allFilteredAssignments.filter(a => isDueToday(a.dueDate) && a.status !== 'done');
+  const todayTasks = allFilteredAssignments.filter(a => isDueToday(a.dueDate) && !isOverdue(a.dueDate) && a.status !== 'done');
 
   // Split assignments for Kanban columns
   const todoTasks = sortedAssignments.filter(a => a.status === 'todo');

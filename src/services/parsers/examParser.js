@@ -1,5 +1,6 @@
-import { Result } from '../../utils/result';
-import '../../types/index';
+import { Result, ParserError } from '../../utils/result';
+import { EXAM_CONFIG } from '../../config/exam';
+import { logger } from '../../utils/logger';
 
 /**
  * Parses the raw HTML text from KMUTNB exam system into structured Exam objects.
@@ -51,11 +52,11 @@ export const parseExamHtml = (htmlText, lang) => {
         if (cells.length === 0) return;
 
         let dateText = colIndexes.date !== -1 ? cells[colIndexes.date] : '';
-        if (dateText.includes('มี.ค.')) {
-          dateText = dateText.replace('มี.ค.', 'ก.ค.');
-        } else if (dateText.toLowerCase().includes('mar')) {
-          dateText = dateText.replace(/mar(ch)?/i, 'July');
-        }
+        
+        // Apply generic month replacements from configuration if defined
+        EXAM_CONFIG.monthReplacements.forEach(({ pattern, replacement }) => {
+          dateText = dateText.replace(pattern, replacement);
+        });
         
         const timeText = colIndexes.time !== -1 ? cells[colIndexes.time] : '';
         const codeVal = colIndexes.subjectCode !== -1 ? cells[colIndexes.subjectCode] : '';
@@ -110,10 +111,10 @@ export const parseExamHtml = (htmlText, lang) => {
       }
     }
 
-    // Handle Unlisted State
+    // Handle Unlisted State with configuration-driven fallbacks
     const links = doc.querySelectorAll('a');
-    let pdfLink = 'https://drive.google.com/file/d/16iviW6ZcL0G0VK8lQFPJ2cNEmiPrxBnj/view?usp=sharing';
-    let formLink = 'https://forms.gle/ddH1GnaBQzaa57xV9';
+    let pdfLink = EXAM_CONFIG.fallbackPdfLink;
+    let formLink = EXAM_CONFIG.fallbackFormLink;
 
     links.forEach(a => {
       const href = a.getAttribute('href') || '';
@@ -127,6 +128,7 @@ export const parseExamHtml = (htmlText, lang) => {
     return Result.ok({ exams: [], unlisted: { pdfLink, formLink } });
     
   } catch (error) {
+    logger.error('Failed parsing exam HTML', error);
     return Result.fail(error);
   }
 };

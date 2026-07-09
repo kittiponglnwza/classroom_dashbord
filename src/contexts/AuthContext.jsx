@@ -4,16 +4,31 @@ import {
   getProfile, saveProfile
 } from '../utils/storage';
 import { initGoogleClient } from '../services/googleClassroom';
-import { syncSettingsWithDrive } from '../services/driveSync';
-import { t } from '../utils/i18n';
+import { StorageRepository } from '../repositories/StorageRepository';
+import { httpClient } from '../utils/httpClient';
+import { logger } from '../utils/logger';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [profile, setProfile] = useState({});
   const [tokenClient, setTokenClient] = useState(null);
+
+  // Setup httpClient callbacks to handle 401s and logouts centrally
+  useEffect(() => {
+    httpClient.registerCallbacks(
+      async () => {
+        logger.info('[Auth] Interceptor triggered silent refresh.');
+        return await handleSilentRefresh();
+      },
+      () => {
+        logger.warn('[Auth] Interceptor triggered force logout.');
+        handleForceLogout();
+      }
+    );
+  }, [tokenClient]);
 
   useEffect(() => {
     const sessionToken = getToken();
@@ -30,6 +45,51 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const handleSilentRefresh = () => {
+    return new Promise((resolve, reject) => {
+      if (!tokenClient) {
+        reject(new Error('Google Token Client is not initialized yet.'));
+        return;
+      }
+
+      // Intercept the token client callback to resolve this promise
+      const originalCallback = tokenClient.callback;
+      tokenClient.callback = (tokenResponse) => {
+        // Restore the original OAuth client callback
+        tokenClient.callback = originalCallback;
+
+        if (tokenResponse.error) {
+          logger.error('[Auth] Silent token refresh failed:', tokenResponse.error);
+          reject(new Error(`Silent OAuth refresh error: ${tokenResponse.error}`));
+        } else {
+          const token = tokenResponse.access_token;
+          logger.info('[Auth] Silent token refresh succeeded.');
+          setAccessToken(token);
+          saveToken(token);
+          setIsLoggedIn(true);
+          resolve(token);
+        }
+      };
+
+      try {
+        // requestAccessToken with prompt 'none' silently fetches new access tokens
+        tokenClient.requestAccessToken({ prompt: 'none' });
+      } catch (err) {
+        tokenClient.callback = originalCallback;
+        reject(err);
+      }
+    });
+  };
+
+  const handleForceLogout = () => {
+    clearToken();
+    setActiveEmail('');
+    setAccessToken(null);
+    setIsLoggedIn(false);
+    setProfile({});
+    StorageRepository.clearMemoryCache();
+  };
+
   const initClient = (lang, onTokenSuccess) => {
     const checkGisLoaded = setInterval(() => {
       if (window.google?.accounts?.oauth2) {
@@ -43,8 +103,7 @@ export const AuthProvider = ({ children }) => {
             if (onTokenSuccess) onTokenSuccess(token);
           },
           (err) => {
-            console.error('Google authorization error:', err);
-            alert(t('authAuthError', lang));
+            logger.error('Google authorization failed:', err);
           }
         );
         setTokenClient(client);
@@ -53,22 +112,17 @@ export const AuthProvider = ({ children }) => {
     return () => clearInterval(checkGisLoaded);
   };
 
-  const login = (lang) => {
+  const login = () => {
     if (tokenClient) {
       tokenClient.requestAccessToken();
     } else {
-      alert(t('authInitError', lang));
+      logger.error('Google OAuth client not initialized.');
     }
   };
 
-  const logout = (lang) => {
-    if (confirm(t('disconnectConfirm', lang))) {
-      clearToken();
-      setActiveEmail('');
-      setAccessToken(null);
-      setIsLoggedIn(false);
-      setProfile({});
-    }
+  const logout = () => {
+    // Normal logout cleans tokens and state directly
+    handleForceLogout();
   };
 
   const handleProfileSave = (updatedProfile) => {
@@ -76,12 +130,6 @@ export const AuthProvider = ({ children }) => {
     const profileToSave = { ...updatedProfile, isCustomized: true };
     saveProfile(profileToSave, email);
     setProfile(profileToSave);
-    // Push to Drive in background — don't block UI on failure
-    if (accessToken && email) {
-      syncSettingsWithDrive(accessToken, email).catch(err => {
-        console.error('[Classroom Hub] Failed to push profile to Drive:', err);
-      });
-    }
   };
 
   const updateProfileFromGoogle = (userProfile) => {
@@ -98,7 +146,8 @@ export const AuthProvider = ({ children }) => {
 
   const value = React.useMemo(() => ({
     accessToken, isLoggedIn, profile, login, logout, 
-    handleProfileSave, updateProfileFromGoogle, initClient
+    handleProfileSave, updateProfileFromGoogle, initClient,
+    handleSilentRefresh
   }), [accessToken, isLoggedIn, profile, tokenClient]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

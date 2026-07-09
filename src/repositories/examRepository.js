@@ -1,20 +1,16 @@
 import { Result, ValidationError } from '../utils/result';
 import { fetchExamHtml } from '../services/api/examApi';
 import { parseExamHtml } from '../services/parsers/examParser';
-import { touchLocalSettingsTimestamp } from '../utils/storage';
+import { StorageRepository } from './StorageRepository';
+import { STORAGE_CONFIG } from '../config/storage';
+import { logger } from '../utils/logger';
 import '../types/index';
 
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-
-const getCacheKey = (email) => 
-  email ? `classroom_hub_exam_results_${email}` : 'classroom_hub_exam_results_';
+const KEYS = STORAGE_CONFIG.keys;
 
 export const examRepository = {
   /**
    * Validates student ID
-   * @param {string} studentId 
-   * @param {string} lang 
-   * @returns {import('../utils/result').Result<string>} Cleaned ID or Error
    */
   validateStudentId(studentId, lang) {
     const cleanId = studentId.replace(/\D/g, '').trim();
@@ -26,16 +22,12 @@ export const examRepository = {
 
   /**
    * Fetches exams (network + parse)
-   * @param {string} cleanId 
-   * @param {string} lang 
-   * @param {AbortSignal} signal 
-   * @returns {Promise<import('../utils/result').Result<{exams: Exam[], unlisted: UnlistedInfo|null}>>}
    */
   async fetchExams(cleanId, lang, signal) {
     const htmlResult = await fetchExamHtml(cleanId, signal);
     
     if (!htmlResult.success) {
-      return htmlResult; // pass through the error (ApiError/NetworkError/AbortError)
+      return htmlResult;
     }
 
     return parseExamHtml(htmlResult.data, lang);
@@ -45,26 +37,33 @@ export const examRepository = {
    * Gets cached exams, checking TTL
    */
   getCachedExams(activeEmail) {
-    const cached = localStorage.getItem(getCacheKey(activeEmail));
-    if (!cached) return Result.ok(null);
-
     try {
-      const parsed = JSON.parse(cached);
-      
-      // Check TTL (if timestamp exists)
-      if (parsed.timestamp) {
-        const cacheTime = new Date(parsed.timestamp).getTime();
-        const now = Date.now();
-        if (now - cacheTime > CACHE_TTL_MS) {
-          // Cache expired, wipe strictly exams part (keep manual exams)
-          parsed.exams = [];
-          parsed.unlisted = null;
-          // Note: we don't return null because we still want to load manualExams
-        }
+      // 1. Try to load cached exams within TTL
+      const data = StorageRepository.get(KEYS.exams, activeEmail, false);
+      if (data) {
+        return Result.ok(data);
       }
 
-      return Result.ok(parsed);
+      // 2. If expired, load raw cache without TTL check to recover manualExams
+      const rawData = StorageRepository.get(KEYS.exams, activeEmail, true);
+      if (!rawData) {
+        return Result.ok({ exams: [], manualExams: [], unlisted: null });
+      }
+
+      // 3. TTL has expired, so wipe external exams but preserve manual exams
+      logger.info(`Exam cache expired for ${activeEmail}. Clearing external exams while preserving manual exams.`);
+      const updatedCache = {
+        exams: [],
+        manualExams: rawData.manualExams || [],
+        unlisted: null
+      };
+
+      // Save the cleaned structure back to storage
+      StorageRepository.set(KEYS.exams, updatedCache, activeEmail);
+      return Result.ok(updatedCache);
+
     } catch (e) {
+      logger.error('Failed reading exam cache', e);
       return Result.fail(e);
     }
   },
@@ -74,15 +73,15 @@ export const examRepository = {
    */
   saveToCache(activeEmail, exams, manualExams, unlisted) {
     try {
-      localStorage.setItem(getCacheKey(activeEmail), JSON.stringify({
+      const cacheData = {
         exams,
         manualExams,
-        unlisted,
-        timestamp: new Date().toISOString()
-      }));
-      touchLocalSettingsTimestamp(activeEmail);
+        unlisted
+      };
+      StorageRepository.set(KEYS.exams, cacheData, activeEmail);
       return Result.ok(true);
     } catch (e) {
+      logger.error('Failed writing exam cache', e);
       return Result.fail(e);
     }
   },

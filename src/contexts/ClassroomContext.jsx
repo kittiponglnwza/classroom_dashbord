@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   getAssignments, updateAssignmentStatus, updateAssignmentNotes,
   addAssignment, getCourses, saveCourses, getLastSync, setLastSync,
@@ -6,14 +6,14 @@ import {
   getResources, saveResources, saveAssignments, getActiveEmail, resetDatabase,
   getSchedule, saveSchedule
 } from '../utils/storage';
-import { fetchGoogleClassroomData, fetchGoogleProfile } from '../services/googleClassroom';
-import { syncSettingsWithDrive } from '../services/driveSync';
-import { evaluateNotifications, evaluateNewPostDigest } from '../utils/notifications';
+import { ClassroomService } from '../services/ClassroomService';
+import { syncManager } from '../services/SyncManager';
+import { NotificationService } from '../services/NotificationService';
 import { useAuth } from './AuthContext';
 import { useSettings } from './SettingsContext';
-import { t } from '../utils/i18n';
+import { logger } from '../utils/logger';
 
-const ClassroomContext = createContext(null);
+export const ClassroomContext = createContext(null);
 
 export const ClassroomProvider = ({ children }) => {
   const { accessToken, isLoggedIn, updateProfileFromGoogle, logout: authLogout } = useAuth();
@@ -24,39 +24,26 @@ export const ClassroomProvider = ({ children }) => {
   const [resources, setResources] = useState([]);
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
   const [schedule, setSchedule] = useState([]);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
-
-  // --- Concurrency & Auto-sync Guards ---
-  const syncInProgressRef = useRef(false);
+  
+  // SyncManager State integration
+  const [syncState, setSyncState] = useState('idle');
   const autoSyncedRef = useRef(false);
-  const pushTimerRef = useRef(null);
 
-  /**
-   * Debounced push to Google Drive (1 second).
-   * Skips if a full sync is currently in progress (it will push at end).
-   * Errors are caught silently so local UI is never blocked.
-   */
-  const pushSettingsToDrive = useCallback(() => {
-    if (syncInProgressRef.current) return; // sync will push at end
-    if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
-    pushTimerRef.current = setTimeout(() => {
-      const token = accessToken;
-      const email = getActiveEmail();
-      if (token && email) {
-        syncSettingsWithDrive(token, email).catch(err => {
-          console.error('[Classroom Hub] Failed to push settings to Drive:', err);
-        });
-      }
-    }, 1000);
-  }, [accessToken]);
-
-  // Cleanup debounce timer on unmount
+  // Subscribe to SyncManager State Machine
   useEffect(() => {
-    return () => {
-      if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
-    };
-  }, []);
+    return syncManager.subscribe((newState) => {
+      setSyncState(newState);
+      // Reload local data if sync succeeded to reflect merged updates in the UI
+      if (newState === 'success') {
+        const activeEmail = getActiveEmail();
+        if (activeEmail) {
+          loadLocalData(activeEmail);
+          reloadSettings();
+        }
+      }
+    });
+  }, [reloadSettings]);
 
   const loadLocalData = (email = '') => {
     setAssignments(getAssignments(email));
@@ -73,12 +60,11 @@ export const ClassroomProvider = ({ children }) => {
       loadLocalData(activeEmail);
     } else {
       loadLocalData('');
-      // Reset auto-sync guard on logout so next login triggers sync
       autoSyncedRef.current = false;
     }
   }, [isLoggedIn]);
 
-  // --- Auto-sync on login/load ---
+  // Auto-sync on active session login
   useEffect(() => {
     if (isLoggedIn && accessToken && !autoSyncedRef.current) {
       autoSyncedRef.current = true;
@@ -90,13 +76,12 @@ export const ClassroomProvider = ({ children }) => {
     const tokenToUse = forcedToken || accessToken;
     if (!tokenToUse) return;
 
-    setIsSyncing(true);
-    syncInProgressRef.current = true;
     try {
-      const userProfile = await fetchGoogleProfile(tokenToUse);
+      logger.info('[Sync] Loading profile and classroom updates...');
+      const userProfile = await ClassroomService.fetchProfile(tokenToUse);
       const userEmail = updateProfileFromGoogle(userProfile);
 
-      // Reload settings if needed
+      // Restore language settings
       const savedUserLang = localStorage.getItem(`classroom_hub_${userEmail}_language`);
       if (savedUserLang) {
         setLang(savedUserLang);
@@ -107,18 +92,13 @@ export const ClassroomProvider = ({ children }) => {
 
       loadLocalData(userEmail);
 
-      const remoteSettingsApplied = await syncSettingsWithDrive(tokenToUse, userEmail);
-      if (remoteSettingsApplied) {
-        loadLocalData(userEmail);
-        reloadSettings();
-        const updatedLang = localStorage.getItem(`classroom_hub_${userEmail}_language`);
-        if (updatedLang) {
-          setLang(updatedLang);
-          localStorage.setItem('classroom_hub_language', updatedLang);
-        }
-      }
+      // Perform a blocking, immediate settings synchronization on first load
+      await syncManager.executeSync(tokenToUse, userEmail);
+      loadLocalData(userEmail);
+      reloadSettings();
 
-      const classroomData = await fetchGoogleClassroomData(tokenToUse);
+      // Fetch fresh classroom data from Google Classroom API
+      const classroomData = await ClassroomService.fetchClassroomData(tokenToUse);
       
       const prevAssignments = getAssignments(userEmail);
       const prevResources = getResources(userEmail);
@@ -126,6 +106,7 @@ export const ClassroomProvider = ({ children }) => {
       const cachedResourceIds = prevResources.map(r => r.id);
       const lastSync = getLastSync(userEmail);
 
+      // Merge & save local data
       const syncedAssigns = syncClassroomAssignments(classroomData.assignments, userEmail);
       saveCourses(classroomData.courses, userEmail);
       saveResources(classroomData.resources || [], userEmail);
@@ -138,54 +119,51 @@ export const ClassroomProvider = ({ children }) => {
       setLastSync(now, userEmail);
       setLastSyncTime(now);
 
-      await syncSettingsWithDrive(tokenToUse, userEmail);
+      // Push final merged data to Drive
+      syncManager.queueSync(tokenToUse, userEmail);
 
+      // Evaluate email alerts asynchronously
       setTimeout(async () => {
         try {
           if (lastSync) {
-            await evaluateNewPostDigest(
+            await NotificationService.evaluateNewPostDigest(
               tokenToUse, userEmail, classroomData.assignments, 
               classroomData.resources || [], cachedAssignmentIds, cachedResourceIds
             );
           }
-          await evaluateNotifications(
+          await NotificationService.evaluateNotifications(
             tokenToUse, userEmail, syncedAssigns, 
             classroomData.courses, classroomData.resources || []
           );
         } catch (err) {
-          console.error("Error evaluating Gmail notifications during sync:", err);
+          logger.error('Error processing digest alerts during sync:', err);
         }
       }, 0);
+
     } catch (e) {
-      console.error('Failed to sync Google Classroom data', e);
-      if (e.message === 'UNAUTHORIZED') {
-        alert(t('sessionExpired', lang));
-        authLogout(lang);
-      } else {
-        alert(t('syncFailed', lang));
+      logger.error('Failed to sync Google Classroom data', e);
+      if (e.message === 'UNAUTHORIZED' || e.code === 401) {
+        authLogout();
       }
-    } finally {
-      syncInProgressRef.current = false;
-      setIsSyncing(false);
     }
   };
 
   const handleStatusChange = (id, newStatus) => {
     const email = getActiveEmail();
     setAssignments(updateAssignmentStatus(id, newStatus, email));
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, email);
   };
 
   const handleNotesChange = (id, newNotes) => {
     const email = getActiveEmail();
     setAssignments(updateAssignmentNotes(id, newNotes, email));
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, email);
   };
 
   const handleAddAssignment = (newAssign) => {
     const email = getActiveEmail();
     setAssignments(addAssignment(newAssign, email));
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, email);
   };
 
   const handleTrackAsAssignment = (resource) => {
@@ -202,7 +180,7 @@ export const ClassroomProvider = ({ children }) => {
     const updated = assignments.filter(a => a.parentResourceId !== resourceId);
     setAssignments(updated);
     saveAssignments(updated, email);
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, email);
   };
 
   const handleToggleCourseVisibility = (courseId) => {
@@ -212,7 +190,7 @@ export const ClassroomProvider = ({ children }) => {
       : [...hiddenCourseIds, courseId];
     setHiddenCourseIds(updated);
     saveHiddenCourses(updated, email);
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, email);
   };
 
   const handleToggleBulkCourses = (courseIds, shouldHideAll) => {
@@ -220,7 +198,7 @@ export const ClassroomProvider = ({ children }) => {
     const updated = shouldHideAll ? [...courseIds] : [];
     setHiddenCourseIds(updated);
     saveHiddenCourses(updated, email);
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, email);
   };
 
   const resetData = () => {
@@ -239,10 +217,10 @@ export const ClassroomProvider = ({ children }) => {
     const isEdit = schedule.some(s => s.id === entry.id);
     const updated = isEdit
       ? schedule.map(s => s.id === entry.id ? entry : s)
-      : [...schedule, { ...entry, id: entry.id || `sched-${Date.now()}` }];
+      : [...schedule, { ...entry, id: entry.id || `sched-${Date.now()}`, updatedAt: new Date().toISOString() }];
     setSchedule(updated);
     saveSchedule(updated, email);
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, email);
   };
 
   const handleDeleteScheduleEntry = (id) => {
@@ -250,15 +228,19 @@ export const ClassroomProvider = ({ children }) => {
     const updated = schedule.filter(s => s.id !== id);
     setSchedule(updated);
     saveSchedule(updated, email);
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, email);
   };
 
   const handleClearSchedule = () => {
     const email = getActiveEmail();
     setSchedule([]);
     saveSchedule([], email);
-    pushSettingsToDrive();
+    syncManager.queueSync(accessToken, email);
   };
+
+  // Pre-computed maps for fast O(1) rendering lookups
+  const courseMap = React.useMemo(() => new Map(courses.map(c => [c.id, c])), [courses]);
+  const courseNameMap = React.useMemo(() => new Map(courses.map(c => [c.name, c])), [courses]);
 
   const visibleCourses = React.useMemo(() => 
     courses.filter(c => !hiddenCourseIds.includes(c.id)),
@@ -267,30 +249,32 @@ export const ClassroomProvider = ({ children }) => {
   const visibleAssignments = React.useMemo(() => 
     assignments.filter(a => {
       if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
-      const courseObj = courses.find(c => c.name === a.course);
+      const courseObj = courseNameMap.get(a.course);
       if (courseObj && hiddenCourseIds.includes(courseObj.id)) return false;
       return true;
     }),
-  [assignments, courses, hiddenCourseIds]);
+  [assignments, courseNameMap, hiddenCourseIds]);
 
   const visibleResources = React.useMemo(() => 
     resources.filter(r => {
       if (r.courseId && hiddenCourseIds.includes(r.courseId)) return false;
-      const courseObj = courses.find(c => c.name === r.course);
+      const courseObj = courseNameMap.get(r.course);
       if (courseObj && hiddenCourseIds.includes(courseObj.id)) return false;
       return true;
     }),
-  [resources, courses, hiddenCourseIds]);
+  [resources, courseNameMap, hiddenCourseIds]);
+
+  const isSyncing = syncState === 'uploading' || syncState === 'queued';
 
   const value = React.useMemo(() => ({
-    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime,
+    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime, syncState,
     visibleCourses, visibleAssignments, visibleResources,
     syncClassroom, handleStatusChange, handleNotesChange, handleAddAssignment,
     handleTrackAsAssignment, handleUntrackAssignment, handleToggleCourseVisibility,
     handleToggleBulkCourses, handleSaveScheduleEntry, handleDeleteScheduleEntry,
     handleClearSchedule, resetData
   }), [
-    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime,
+    assignments, courses, resources, hiddenCourseIds, schedule, syncState, lastSyncTime,
     visibleCourses, visibleAssignments, visibleResources
   ]);
 

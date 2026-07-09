@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">82.6% </span>
+                <span class="strong">82.41% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>76/92</span>
+                <span class='fraction'>75/91</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">56.25% </span>
+                <span class="strong">56.52% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>54/96</span>
+                <span class='fraction'>52/92</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">87.5% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>7/7</span>
+                <span class='fraction'>7/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">83.78% </span>
+                <span class="strong">83.56% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>62/74</span>
+                <span class='fraction'>61/73</span>
             </div>
         
             
@@ -195,7 +195,10 @@
 <a name='L130'></a><a href='#L130'>130</a>
 <a name='L131'></a><a href='#L131'>131</a>
 <a name='L132'></a><a href='#L132'>132</a>
-<a name='L133'></a><a href='#L133'>133</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -248,8 +251,8 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -325,10 +328,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Result } from '../../utils/result';
-import '../../types/index';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Result, ParserError } from '../../utils/result';
+import { EXAM_CONFIG } from '../../config/exam';
+import { logger } from '../../utils/logger';
 &nbsp;
 /**
  * Parses the raw HTML text from KMUTNB exam system into structured Exam objects.
@@ -380,11 +385,11 @@ export const parseExamHtml = (htmlText, lang) =&gt; {
         <span class="missing-if-branch" title="if path not taken" >I</span>if (cells.length === 0) <span class="cstat-no" title="statement not covered" >return;</span>
 &nbsp;
         let dateText = colIndexes.date !== -1 ? cells[colIndexes.date] : <span class="branch-1 cbranch-no" title="branch not covered" >'';</span>
-        <span class="missing-if-branch" title="if path not taken" >I</span>if (dateText.includes('มี.ค.')) {
-<span class="cstat-no" title="statement not covered" >          dateText = dateText.replace('มี.ค.', 'ก.ค.');</span>
-        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (dateText.toLowerCase().includes('mar')) {
-<span class="cstat-no" title="statement not covered" >          dateText = dateText.replace(/mar(ch)?/i, 'July');</span>
-        }
+        
+        // Apply generic month replacements from configuration if defined
+        EXAM_CONFIG.monthReplacements.<span class="fstat-no" title="function not covered" >forEach(({</span> pattern, replacement }) =&gt; {
+<span class="cstat-no" title="statement not covered" >          dateText = dateText.replace(pattern, replacement);</span>
+        });
         
         const timeText = colIndexes.time !== -1 ? cells[colIndexes.time] : <span class="branch-1 cbranch-no" title="branch not covered" >'';</span>
         const codeVal = colIndexes.subjectCode !== -1 ? cells[colIndexes.subjectCode] : <span class="branch-1 cbranch-no" title="branch not covered" >'';</span>
@@ -439,10 +444,10 @@ export const parseExamHtml = (htmlText, lang) =&gt; {
       }
     }
 &nbsp;
-    // Handle Unlisted State
+    // Handle Unlisted State with configuration-driven fallbacks
     const links = doc.querySelectorAll('a');
-    let pdfLink = 'https://drive.google.com/file/d/16iviW6ZcL0G0VK8lQFPJ2cNEmiPrxBnj/view?usp=sharing';
-    let formLink = 'https://forms.gle/ddH1GnaBQzaa57xV9';
+    let pdfLink = EXAM_CONFIG.fallbackPdfLink;
+    let formLink = EXAM_CONFIG.fallbackFormLink;
 &nbsp;
     links.forEach(a =&gt; {
       const href = a.getAttribute('href') || <span class="branch-1 cbranch-no" title="branch not covered" >'';</span>
@@ -456,6 +461,7 @@ export const parseExamHtml = (htmlText, lang) =&gt; {
     return Result.ok({ exams: [], unlisted: { pdfLink, formLink } });
     
   } catch (error) {
+<span class="cstat-no" title="statement not covered" >    logger.error('Failed parsing exam HTML', error);</span>
 <span class="cstat-no" title="statement not covered" >    return Result.fail(error);</span>
   }
 };
@@ -466,7 +472,7 @@ export const parseExamHtml = (htmlText, lang) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-06T09:47:52.717Z
+                at 2026-07-09T10:40:16.086Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

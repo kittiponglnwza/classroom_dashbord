@@ -896,6 +896,7 @@ export default function Schedule() {
   const [editingEntry, setEditingEntry] = useState(null);
   const [prefillData, setPrefillData] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [warningMessage, setWarningMessage] = useState('');
   
   const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next week, -1 = previous week
   const [currentMinutes, setCurrentMinutes] = useState(() => {
@@ -999,7 +1000,7 @@ export default function Schedule() {
 
   const openEditModal = useCallback((entry) => {
     if (entry.isExam) {
-      alert(lang === 'th' 
+      setWarningMessage(lang === 'th' 
         ? `วิชาสอบนี้ถูกดึงมาจากระบบค้นหาห้องสอบโดยอัตโนมัติ\nต้องการแก้ไขหรือลบ กรุณาไปที่เมนู "ตารางสอบ/ค้นหาห้องสอบ"` 
         : `This exam is automatically loaded from the Exam Seating room.\nTo edit or delete it, please go to the "Exam Seating" menu.`
       );
@@ -1210,6 +1211,29 @@ export default function Schedule() {
             setShowClearConfirm(false);
           }}
         />
+      )}
+
+      {/* Warning Modal */}
+      {warningMessage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-dark-card border border-dark-border rounded-xl w-full max-w-sm overflow-hidden p-6 space-y-4 text-center">
+            <div className="flex justify-center text-amber-400">
+              <AlertTriangle size={36} />
+            </div>
+            <h3 className="font-bold text-sm text-white">
+              {lang === 'th' ? 'การแจ้งเตือนระบบ' : 'System Notification'}
+            </h3>
+            <p className="text-xs text-dark-muted leading-relaxed whitespace-pre-line">
+              {warningMessage}
+            </p>
+            <button
+              onClick={() => setWarningMessage('')}
+              className="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              {lang === 'th' ? 'ตกลง' : 'OK'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
