@@ -157,7 +157,7 @@ export class ClassroomService {
           });
 
           // 2. Process Announcements
-          const mappedAnnouncements = rawAnnouncements.map(ann => {
+          const mappedAnnouncements = rawAnn.map(ann => {
             const text = ann.text || '';
             const firstLine = text.split('\n')[0].trim();
             const title = firstLine.substring(0, 80) + (firstLine.length > 80 ? '...' : '') || 'Announcement';
