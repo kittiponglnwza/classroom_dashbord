@@ -230,6 +230,7 @@ export const saveProfile = (profile, email) => {
   const userEmail = email || profile.email || getActiveEmail();
   const key = getScopedKey(KEYS.PROFILE, userEmail);
   localStorage.setItem(key, JSON.stringify(profile));
+  touchLocalSettingsTimestamp(userEmail);
 };
 
 export const getResources = (email) => {

@@ -1,16 +1,17 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { 
   getEnableEmailAlerts, setEnableEmailAlerts, getAlertSettings, 
   saveAlertSettings, getSundayDigestTime, setSundayDigestTime, 
   getNotificationHistory, getDailyEmailLimit, addNotificationHistoryLog,
-  getActiveEmail
+  getActiveEmail, touchLocalSettingsTimestamp
 } from '../utils/storage';
 import { useAuth } from './AuthContext';
+import { syncSettingsWithDrive } from '../services/driveSync';
 
 const SettingsContext = createContext(null);
 
 export const SettingsProvider = ({ children }) => {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, accessToken } = useAuth();
   const [lang, setLang] = useState(() => localStorage.getItem('classroom_hub_language') || 'en');
   const userEmail = getActiveEmail();
 
@@ -20,6 +21,53 @@ export const SettingsProvider = ({ children }) => {
   const [sundayTime, setSundayTimeState] = useState('18:00');
   const [historyLogs, setHistoryLogs] = useState([]);
   const [dailyLimit, setDailyLimit] = useState({ count: 0 });
+
+  // Debounce timer ref for Drive sync pushes
+  const pushTimerRef = useRef(null);
+
+  /**
+   * Debounced push to Google Drive (1 second).
+   * Coalesces rapid changes into a single API call.
+   * Errors are caught silently so local UI is never blocked.
+   */
+  const pushSettingsToDrive = useCallback(() => {
+    if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+    pushTimerRef.current = setTimeout(() => {
+      const token = accessToken;
+      const email = getActiveEmail();
+      if (token && email) {
+        syncSettingsWithDrive(token, email).catch(err => {
+          console.error('[Classroom Hub Settings] Failed to push settings to Drive:', err);
+        });
+      }
+    }, 1000);
+  }, [accessToken]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+    };
+  }, []);
+
+  /**
+   * Reloads all settings state from localStorage.
+   * Called after remote settings are applied so the UI reflects the latest values.
+   */
+  const reloadSettings = useCallback(() => {
+    const email = getActiveEmail();
+    if (!email) return;
+    const savedUserLang = localStorage.getItem(`classroom_hub_${email}_language`);
+    if (savedUserLang) {
+      setLang(savedUserLang);
+      localStorage.setItem('classroom_hub_language', savedUserLang);
+    }
+    setEmailAlerts(getEnableEmailAlerts(email));
+    setAlertSettingsState(getAlertSettings(email));
+    setSundayTimeState(getSundayDigestTime(email));
+    setHistoryLogs(getNotificationHistory(email));
+    setDailyLimit(getDailyEmailLimit(email));
+  }, []);
 
   useEffect(() => {
     if (userEmail && isLoggedIn) {
@@ -42,6 +90,8 @@ export const SettingsProvider = ({ children }) => {
     localStorage.setItem('classroom_hub_language', nextLang);
     if (userEmail) {
       localStorage.setItem(`classroom_hub_${userEmail}_language`, nextLang);
+      touchLocalSettingsTimestamp(userEmail);
+      pushSettingsToDrive();
     }
   };
 
@@ -55,17 +105,20 @@ export const SettingsProvider = ({ children }) => {
       type: 'settings_change'
     }, userEmail);
     setHistoryLogs(getNotificationHistory(userEmail));
+    pushSettingsToDrive();
   };
 
   const handleToggleSetting = (field) => {
     const updated = { ...alertSettings, [field]: !alertSettings[field] };
     setAlertSettingsState(updated);
     saveAlertSettings(updated, userEmail);
+    pushSettingsToDrive();
   };
 
   const handleTimeChange = (time) => {
     setSundayTimeState(time);
     setSundayDigestTime(time, userEmail);
+    pushSettingsToDrive();
   };
 
   const refreshNotificationData = () => {
@@ -80,8 +133,9 @@ export const SettingsProvider = ({ children }) => {
     emailAlerts, handleToggleAlerts,
     alertSettings, handleToggleSetting,
     sundayTime, handleTimeChange,
-    historyLogs, dailyLimit, refreshNotificationData
-  }), [lang, emailAlerts, alertSettings, sundayTime, historyLogs, dailyLimit]);
+    historyLogs, dailyLimit, refreshNotificationData,
+    reloadSettings
+  }), [lang, emailAlerts, alertSettings, sundayTime, historyLogs, dailyLimit, reloadSettings]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 };

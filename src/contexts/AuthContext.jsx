@@ -4,6 +4,7 @@ import {
   getProfile, saveProfile
 } from '../utils/storage';
 import { initGoogleClient } from '../services/googleClassroom';
+import { syncSettingsWithDrive } from '../services/driveSync';
 import { t } from '../utils/i18n';
 
 const AuthContext = createContext(null);
@@ -75,6 +76,12 @@ export const AuthProvider = ({ children }) => {
     const profileToSave = { ...updatedProfile, isCustomized: true };
     saveProfile(profileToSave, email);
     setProfile(profileToSave);
+    // Push to Drive in background — don't block UI on failure
+    if (accessToken && email) {
+      syncSettingsWithDrive(accessToken, email).catch(err => {
+        console.error('[Classroom Hub] Failed to push profile to Drive:', err);
+      });
+    }
   };
 
   const updateProfileFromGoogle = (userProfile) => {

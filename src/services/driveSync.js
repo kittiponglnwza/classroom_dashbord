@@ -184,7 +184,6 @@ export async function syncSettingsWithDrive(accessToken, email) {
 
   const lowerEmail = email.toLowerCase().trim();
   const timeKey = `classroom_hub_settings_last_updated_${lowerEmail}`;
-  const localTime = localStorage.getItem(timeKey) || new Date(0).toISOString();
 
   try {
     console.log('[Classroom Hub Sync] Starting settings sync with Google Drive...');
@@ -219,6 +218,8 @@ export async function syncSettingsWithDrive(accessToken, email) {
     }
 
     // Step 3: Compare timestamps
+    // Read localTime NOW (not earlier) so any changes made during network calls are captured
+    const localTime = localStorage.getItem(timeKey) || new Date(0).toISOString();
     const remoteTime = remoteData.timestamp;
     console.log(`[Classroom Hub Sync] Local: ${localTime} | Remote: ${remoteTime}`);
 
