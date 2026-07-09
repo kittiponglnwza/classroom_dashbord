@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { parseExamDate } from '../../utils/examDate';
 import { examRepository } from '../../repositories/examRepository';
 import { syncManager } from '../../services/SyncManager';
+import { calendarSyncManager } from '../../services/CalendarSyncManager';
 import { getToken } from '../../utils/storage';
 import { logger } from '../../utils/logger';
 
@@ -110,6 +111,7 @@ export const useExamRoom = (activeEmail, lang) => {
       const token = getToken();
       if (token && activeEmail) {
         syncManager.queueSync(token, activeEmail);
+        calendarSyncManager.queueSync(token, activeEmail);
       }
     } else {
       if (result.error.name === 'AbortError') {
@@ -146,6 +148,7 @@ export const useExamRoom = (activeEmail, lang) => {
     const token = getToken();
     if (token && activeEmail) {
       syncManager.queueSync(token, activeEmail);
+      calendarSyncManager.queueSync(token, activeEmail);
     }
   }, [manualExamList, examList, unlistedInfo, activeEmail]);
 
@@ -161,6 +164,7 @@ export const useExamRoom = (activeEmail, lang) => {
     const token = getToken();
     if (token && activeEmail) {
       syncManager.queueSync(token, activeEmail);
+      calendarSyncManager.queueSync(token, activeEmail);
     }
   }, [manualExamList, examList, unlistedInfo, activeEmail]);
 

@@ -8,6 +8,7 @@ import {
 } from '../utils/storage';
 import { ClassroomService } from '../services/ClassroomService';
 import { syncManager } from '../services/SyncManager';
+import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { NotificationService } from '../services/NotificationService';
 import { useAuth } from './AuthContext';
 import { useSettings } from './SettingsContext';
@@ -122,6 +123,9 @@ export const ClassroomProvider = ({ children }) => {
       // Push final merged data to Drive
       syncManager.queueSync(tokenToUse, userEmail);
 
+      // Push schedule/assignments/exams to Google Calendar
+      calendarSyncManager.queueSync(tokenToUse, userEmail);
+
       // Evaluate email alerts asynchronously
       setTimeout(async () => {
         try {
@@ -164,6 +168,7 @@ export const ClassroomProvider = ({ children }) => {
     const email = getActiveEmail();
     setAssignments(addAssignment(newAssign, email));
     syncManager.queueSync(accessToken, email);
+    calendarSyncManager.queueSync(accessToken, email);
   };
 
   const handleTrackAsAssignment = (resource) => {
@@ -181,6 +186,7 @@ export const ClassroomProvider = ({ children }) => {
     setAssignments(updated);
     saveAssignments(updated, email);
     syncManager.queueSync(accessToken, email);
+    calendarSyncManager.queueSync(accessToken, email);
   };
 
   const handleToggleCourseVisibility = (courseId) => {
@@ -221,6 +227,7 @@ export const ClassroomProvider = ({ children }) => {
     setSchedule(updated);
     saveSchedule(updated, email);
     syncManager.queueSync(accessToken, email);
+    calendarSyncManager.queueSync(accessToken, email);
   };
 
   const handleDeleteScheduleEntry = (id) => {
@@ -229,6 +236,7 @@ export const ClassroomProvider = ({ children }) => {
     setSchedule(updated);
     saveSchedule(updated, email);
     syncManager.queueSync(accessToken, email);
+    calendarSyncManager.queueSync(accessToken, email);
   };
 
   const handleClearSchedule = () => {
@@ -236,6 +244,7 @@ export const ClassroomProvider = ({ children }) => {
     setSchedule([]);
     saveSchedule([], email);
     syncManager.queueSync(accessToken, email);
+    calendarSyncManager.queueSync(accessToken, email);
   };
 
   // Pre-computed maps for fast O(1) rendering lookups
