@@ -22,7 +22,7 @@ const GithubIcon = ({ size = 16, className = '' }) => (
 
 export default function Settings() {
   const { lang } = useSettings();
-  const { profile, isLoggedIn, handleProfileSave, handleLogin, handleLogout } = useAuth();
+  const { profile, isLoggedIn, handleProfileSave, login, logout } = useAuth();
   const { hiddenCourseIds } = useClassroom();
   
   const [name, setName] = useState(profile.name || '');
@@ -195,7 +195,7 @@ export default function Settings() {
               {isLoggedIn ? (
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={logout}
                   className="bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-400 border border-rose-500/20 text-xs font-semibold px-4.5 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   <LogOut size={12} />
@@ -204,7 +204,7 @@ export default function Settings() {
               ) : (
                 <button
                   type="button"
-                  onClick={handleLogin}
+                  onClick={login}
                   className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold px-4.5 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/15"
                 >
                   <LogIn size={12} />
