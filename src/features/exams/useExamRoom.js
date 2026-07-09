@@ -179,10 +179,6 @@ export const useExamRoom = (activeEmail, lang) => {
     };
 
     return [...examList, ...manualExamList]
-      .filter(exam => {
-        const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
-        return parsedDate ? parsedDate >= today : true;
-      })
       .sort((a, b) => parseDateForSort(a) - parseDateForSort(b));
   }, [examList, manualExamList]);
 
