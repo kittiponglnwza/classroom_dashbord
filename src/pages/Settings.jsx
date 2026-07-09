@@ -3,7 +3,8 @@ import { User, GraduationCap, Code, LogIn, LogOut, Mail, CheckCircle2, Clipboard
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { APPS_SCRIPT_TEMPLATE } from '../utils/appsScriptTemplate';
+import { useClassroom } from '../contexts/ClassroomContext';
+import { getAppsScriptTemplate } from '../utils/appsScriptTemplate';
 
 const GithubIcon = ({ size = 16, className = '' }) => (
   <svg
@@ -22,6 +23,7 @@ const GithubIcon = ({ size = 16, className = '' }) => (
 export default function Settings() {
   const { lang } = useSettings();
   const { profile, isLoggedIn, handleProfileSave, handleLogin, handleLogout } = useAuth();
+  const { hiddenCourseIds } = useClassroom();
   
   const [name, setName] = useState(profile.name || '');
   const [studentId, setStudentId] = useState(profile.studentId || '');
@@ -33,7 +35,7 @@ export default function Settings() {
   const [copied, setCopied] = useState(false);
 
   const handleCopyScript = () => {
-    navigator.clipboard.writeText(APPS_SCRIPT_TEMPLATE);
+    navigator.clipboard.writeText(getAppsScriptTemplate(hiddenCourseIds));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -294,7 +296,7 @@ export default function Settings() {
                     <div className="mt-3 relative bg-dark-sidebar/45 rounded-xl border border-dark-border/40 overflow-hidden">
                       <div className="absolute top-2.5 right-2.5 z-10 text-[9px] font-bold text-dark-muted select-none pointer-events-none uppercase">Code.gs</div>
                       <pre className="p-4 max-h-[160px] overflow-y-auto text-[10px] font-mono text-zinc-400 leading-relaxed scrollbar-thin">
-                        {APPS_SCRIPT_TEMPLATE}
+                        {getAppsScriptTemplate(hiddenCourseIds)}
                       </pre>
                     </div>
                   </div>

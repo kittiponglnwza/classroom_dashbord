@@ -1,4 +1,6 @@
-export const APPS_SCRIPT_TEMPLATE = `/**
+export function getAppsScriptTemplate(hiddenCourseIds = []) {
+  const hiddenArrayStr = JSON.stringify(hiddenCourseIds);
+  return `/**
  * Classroom Hub: Personal Auto Notification Script
  * 
  * Instructions:
@@ -22,6 +24,8 @@ function sendClassroomDigest() {
       return;
     }
 
+    var hiddenCourseIds = ${hiddenArrayStr};
+
     var response = Classroom.Courses.list({courseStates: ["ACTIVE"]});
     var courses = response.courses || [];
     if (courses.length === 0) {
@@ -34,6 +38,13 @@ function sendClassroomDigest() {
 
     for (var i = 0; i < courses.length; i++) {
       var course = courses[i];
+      
+      // Skip if course is hidden in settings
+      if (hiddenCourseIds.indexOf(course.id) !== -1) {
+        Logger.log("Skipping hidden course: " + course.name + " (" + course.id + ")");
+        continue;
+      }
+
       var courseWorkResponse;
       try {
         courseWorkResponse = Classroom.Courses.CourseWork.list(course.id);
@@ -132,3 +143,4 @@ function sendClassroomDigest() {
   }
 }
 `;
+}
