@@ -182,6 +182,17 @@ export const useExamRoom = (activeEmail, lang) => {
       .sort((a, b) => parseDateForSort(a) - parseDateForSort(b));
   }, [examList, manualExamList]);
 
+  const isOutdatedData = useMemo(() => {
+    if (examList.length === 0) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return examList.every(exam => {
+      const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
+      return parsedDate ? parsedDate < today : false;
+    });
+  }, [examList]);
+
   return {
     studentId,
     setStudentId,
@@ -190,6 +201,7 @@ export const useExamRoom = (activeEmail, lang) => {
     sortedExams,
     unlistedInfo,
     searchTriggered,
+    isOutdatedData,
     handleSearch,
     handleSaveManualExam,
     handleDeleteManualExam

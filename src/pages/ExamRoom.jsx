@@ -25,6 +25,7 @@ export default function ExamRoom() {
     sortedExams,
     unlistedInfo,
     searchTriggered,
+    isOutdatedData,
     handleSearch,
     handleSaveManualExam,
     handleDeleteManualExam
@@ -106,6 +107,19 @@ export default function ExamRoom() {
       {/* Search Results */}
       {((studentId.trim() !== "" && searchTriggered) || sortedExams.length > 0) && !loading && (
         <div className="space-y-6 animate-fade-in">
+          
+          {/* Outdated Data Warning */}
+          {isOutdatedData && (
+            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs px-4 py-4 rounded-xl flex items-start gap-3 animate-fade-in">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                {lang === 'en' 
+                  ? 'The system currently shows exam schedules from the previous semester. It seems the university has not updated the exam database for the new semester yet.' 
+                  : 'ข้อมูลตารางสอบที่แสดงผลอาจเป็นของภาคการศึกษาที่แล้ว เนื่องจากฐานข้อมูลของมหาวิทยาลัยยังไม่มีการอัปเดตข้อมูลสำหรับภาคการศึกษาใหม่'}
+              </p>
+            </div>
+          )}
+
           {/* Seating Cards Grid */}
           {sortedExams.length > 0 && (
             <div className="space-y-4">
