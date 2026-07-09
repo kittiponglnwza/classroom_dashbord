@@ -1,4 +1,4 @@
-import { Result, ParserError } from '../../utils/result';
+import { Result } from '../../utils/result';
 import { EXAM_CONFIG } from '../../config/exam';
 import { logger } from '../../utils/logger';
 
