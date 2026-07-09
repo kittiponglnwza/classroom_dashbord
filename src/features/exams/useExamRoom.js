@@ -10,7 +10,7 @@ export const useExamRoom = (activeEmail, lang) => {
   const [studentId, setStudentId] = useState(() => {
     const digitsMatch = activeEmail.match(/\d{13}/);
     if (digitsMatch) return digitsMatch[0];
-    return localStorage.getItem('lastExamSearch') || '';
+    return sessionStorage.getItem('lastExamSearch') || '';
   });
   
   const [prevStudentId, setPrevStudentId] = useState(studentId);
@@ -39,7 +39,7 @@ export const useExamRoom = (activeEmail, lang) => {
   if (activeEmail !== prevEmail) {
     setPrevEmail(activeEmail);
     const digitsMatch = activeEmail.match(/\d{13}/);
-    const nextStudentId = digitsMatch ? digitsMatch[0] : (localStorage.getItem('lastExamSearch') || '');
+    const nextStudentId = digitsMatch ? digitsMatch[0] : (sessionStorage.getItem('lastExamSearch') || '');
     setStudentId(nextStudentId);
     setPrevStudentId(nextStudentId);
 
@@ -62,7 +62,7 @@ export const useExamRoom = (activeEmail, lang) => {
       setSearchTriggered(false);
       setStatus('idle');
       setError(null);
-      localStorage.removeItem('lastExamSearch');
+      sessionStorage.removeItem('lastExamSearch');
       examRepository.clearExamsCache(activeEmail);
       
       // Sync deletion
@@ -94,7 +94,7 @@ export const useExamRoom = (activeEmail, lang) => {
     setSearchTriggered(true);
 
     const cleanId = validResult.data;
-    localStorage.setItem('lastExamSearch', cleanId);
+    sessionStorage.setItem('lastExamSearch', cleanId);
 
     abortControllerRef.current = new AbortController();
 
