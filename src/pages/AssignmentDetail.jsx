@@ -17,6 +17,16 @@ export default function AssignmentDetail() {
   const navigate = useNavigate();
   const assignment = assignments.find(a => a.id === id);
 
+  const [noteContent, setNoteContent] = useState(assignment?.notes || '');
+  const [downloadingFile, setDownloadingFile] = useState('');
+
+  useEffect(() => {
+    if (assignment) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNoteContent(assignment.notes || '');
+    }
+  }, [assignment?.notes, assignment]);
+
   if (!assignment) {
     return (
       <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center max-w-lg mx-auto mt-10 space-y-4">
@@ -33,14 +43,7 @@ export default function AssignmentDetail() {
     );
   }
 
-  const { title, course, courseCode, dueDate, status, points, attachments, description, courseColor, notes = '' } = assignment;
-  
-  const [noteContent, setNoteContent] = useState(notes);
-  const [downloadingFile, setDownloadingFile] = useState('');
-
-  useEffect(() => {
-    setNoteContent(notes);
-  }, [notes]);
+  const { title, course, courseCode, dueDate, status, points, attachments, description, courseColor } = assignment;
 
   const handleNotesBlur = () => {
     handleNotesChange(id, noteContent);

@@ -49,7 +49,7 @@ export const parseExamDate = (dateStr) => {
       year = new Date().getFullYear();
     }
   } else {
-    const dateParts = cleanStr.match(/(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{2,4})/);
+    const dateParts = cleanStr.match(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/);
     if (dateParts) {
       day = parseInt(dateParts[1], 10);
       month = parseInt(dateParts[2], 10);

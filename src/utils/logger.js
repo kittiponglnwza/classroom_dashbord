@@ -48,6 +48,7 @@ class Logger {
     }
   }
 
+  // eslint-disable-next-line no-unused-vars
   logToRemote(message, args) {
     if (this.isRemoteEnabled) {
       // Mock remote logger endpoint

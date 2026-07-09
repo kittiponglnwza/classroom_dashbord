@@ -444,6 +444,7 @@ export class NotificationService {
   /**
    * Main evaluator to scan deadlines and trigger email alerts.
    */
+  // eslint-disable-next-line no-unused-vars
   static async evaluateNotifications(accessToken, toEmail, assignments, courses, resources) {
     const isEnabled = getEnableEmailAlerts(toEmail);
     if (!isEnabled) return;

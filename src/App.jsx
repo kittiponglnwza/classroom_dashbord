@@ -48,7 +48,7 @@ function AppContent() {
 
   // Initialize Google Auth Client
   useEffect(() => {
-    const cleanup = initClient(lang, (token) => {
+    const cleanup = initClient(lang, () => {
       // Auto-sync could be dispatched here or managed by ClassroomContext.
       // Currently ClassroomContext watches for isLoggedIn to become true.
     });

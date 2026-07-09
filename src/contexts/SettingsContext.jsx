@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components, react-hooks/exhaustive-deps */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   getEnableEmailAlerts, setEnableEmailAlerts, getAlertSettings, 
@@ -42,6 +43,7 @@ export const SettingsProvider = ({ children }) => {
 
   useEffect(() => {
     if (userEmail && isLoggedIn) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       reloadSettings();
     }
   }, [userEmail, isLoggedIn, reloadSettings]);
@@ -88,6 +90,7 @@ export const SettingsProvider = ({ children }) => {
       setDailyLimit(getDailyEmailLimit(userEmail));
     }
   };
+
 
   const value = React.useMemo(() => ({
     lang, toggleLang, setLang,

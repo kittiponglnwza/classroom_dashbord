@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components, react-hooks/exhaustive-deps */
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   getToken, saveToken, clearToken, getActiveEmail, setActiveEmail, 
   getProfile, saveProfile
@@ -16,36 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState({});
   const [tokenClient, setTokenClient] = useState(null);
 
-  // Setup httpClient callbacks to handle 401s and logouts centrally
-  useEffect(() => {
-    httpClient.registerCallbacks(
-      async () => {
-        logger.info('[Auth] Interceptor triggered silent refresh.');
-        return await handleSilentRefresh();
-      },
-      () => {
-        logger.warn('[Auth] Interceptor triggered force logout.');
-        handleForceLogout();
-      }
-    );
-  }, [tokenClient]);
-
-  useEffect(() => {
-    const sessionToken = getToken();
-    const activeEmail = getActiveEmail();
-    if (sessionToken && activeEmail) {
-      setAccessToken(sessionToken);
-      setIsLoggedIn(true);
-      setProfile(getProfile(activeEmail));
-    } else {
-      if (sessionToken) clearToken();
-      setActiveEmail('');
-      setIsLoggedIn(false);
-      setAccessToken(null);
-    }
-  }, []);
-
-  const handleSilentRefresh = () => {
+  const handleSilentRefresh = useCallback(() => {
     return new Promise((resolve, reject) => {
       if (!tokenClient) {
         reject(new Error('Google Token Client is not initialized yet.'));
@@ -79,16 +51,46 @@ export const AuthProvider = ({ children }) => {
         reject(err);
       }
     });
-  };
+  }, [tokenClient]);
 
-  const handleForceLogout = () => {
+  const handleForceLogout = useCallback(() => {
     clearToken();
     setActiveEmail('');
     setAccessToken(null);
     setIsLoggedIn(false);
     setProfile({});
     StorageRepository.clearMemoryCache();
-  };
+  }, []);
+
+  // Setup httpClient callbacks to handle 401s and logouts centrally
+  useEffect(() => {
+    httpClient.registerCallbacks(
+      async () => {
+        logger.info('[Auth] Interceptor triggered silent refresh.');
+        return await handleSilentRefresh();
+      },
+      () => {
+        logger.warn('[Auth] Interceptor triggered force logout.');
+        handleForceLogout();
+      }
+    );
+  }, [handleSilentRefresh, handleForceLogout]);
+
+  useEffect(() => {
+    const sessionToken = getToken();
+    const activeEmail = getActiveEmail();
+    if (sessionToken && activeEmail) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAccessToken(sessionToken);
+      setIsLoggedIn(true);
+      setProfile(getProfile(activeEmail));
+    } else {
+      if (sessionToken) clearToken();
+      setActiveEmail('');
+      setIsLoggedIn(false);
+      setAccessToken(null);
+    }
+  }, []);
 
   const initClient = (lang, onTokenSuccess) => {
     const checkGisLoaded = setInterval(() => {

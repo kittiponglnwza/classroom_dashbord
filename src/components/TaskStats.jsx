@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, ListTodo, ClipboardList, Timer } from 'lucide-react';
+import { CheckCircle2, ListTodo, ClipboardList, Timer } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { parseExamDate } from '../utils/examDate';
 

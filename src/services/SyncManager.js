@@ -1,5 +1,4 @@
 import { syncSettingsWithDrive } from './driveSync';
-import { StorageRepository } from '../repositories/StorageRepository';
 import { STORAGE_CONFIG } from '../config/storage';
 import { SYNC_CONFIG } from '../config/sync';
 import { logger } from '../utils/logger';

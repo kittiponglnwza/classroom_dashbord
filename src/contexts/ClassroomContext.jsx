@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+/* eslint-disable react-refresh/only-export-components, react-hooks/exhaustive-deps */
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { 
   getAssignments, updateAssignmentStatus, updateAssignmentNotes,
   addAssignment, getCourses, saveCourses, getLastSync, setLastSync,
@@ -31,6 +32,15 @@ export const ClassroomProvider = ({ children }) => {
   const [syncState, setSyncState] = useState('idle');
   const autoSyncedRef = useRef(false);
 
+  const loadLocalData = useCallback((email = '') => {
+    setAssignments(getAssignments(email));
+    setCourses(getCourses(email));
+    setResources(getResources(email));
+    setHiddenCourseIds(getHiddenCourses(email));
+    setSchedule(getSchedule(email));
+    setLastSyncTime(getLastSync(email));
+  }, []);
+
   // Subscribe to SyncManager State Machine
   useEffect(() => {
     return syncManager.subscribe((newState) => {
@@ -44,34 +54,20 @@ export const ClassroomProvider = ({ children }) => {
         }
       }
     });
-  }, [reloadSettings]);
-
-  const loadLocalData = (email = '') => {
-    setAssignments(getAssignments(email));
-    setCourses(getCourses(email));
-    setResources(getResources(email));
-    setHiddenCourseIds(getHiddenCourses(email));
-    setSchedule(getSchedule(email));
-    setLastSyncTime(getLastSync(email));
-  };
+  }, [reloadSettings, loadLocalData]);
 
   useEffect(() => {
     const activeEmail = getActiveEmail();
     if (isLoggedIn && activeEmail) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadLocalData(activeEmail);
     } else {
       loadLocalData('');
       autoSyncedRef.current = false;
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, loadLocalData]);
 
-  // Auto-sync on active session login
-  useEffect(() => {
-    if (isLoggedIn && accessToken && !autoSyncedRef.current) {
-      autoSyncedRef.current = true;
-      syncClassroom(accessToken);
-    }
-  }, [isLoggedIn, accessToken]);
+
 
   const syncClassroom = async (forcedToken = null) => {
     const tokenToUse = forcedToken || accessToken;
@@ -248,7 +244,7 @@ export const ClassroomProvider = ({ children }) => {
   };
 
   // Pre-computed maps for fast O(1) rendering lookups
-  const courseMap = React.useMemo(() => new Map(courses.map(c => [c.id, c])), [courses]);
+
   const courseNameMap = React.useMemo(() => new Map(courses.map(c => [c.name, c])), [courses]);
 
   const visibleCourses = React.useMemo(() => 
@@ -275,16 +271,26 @@ export const ClassroomProvider = ({ children }) => {
 
   const isSyncing = syncState === 'uploading' || syncState === 'queued';
 
+  // Auto-sync on active session login
+  useEffect(() => {
+    if (isLoggedIn && accessToken && !autoSyncedRef.current) {
+      autoSyncedRef.current = true;
+      syncClassroom(accessToken);
+    }
+  }, [isLoggedIn, accessToken, syncClassroom]);
+
   const value = React.useMemo(() => ({
     assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime, syncState,
     visibleCourses, visibleAssignments, visibleResources,
     syncClassroom, handleStatusChange, handleNotesChange, handleAddAssignment,
-    handleTrackAsAssignment, handleUntrackAssignment, handleToggleCourseVisibility,
-    handleToggleBulkCourses, handleSaveScheduleEntry, handleDeleteScheduleEntry,
-    handleClearSchedule, resetData
+    handleDeleteScheduleEntry, handleSaveScheduleEntry, handleClearSchedule,
+    handleToggleCourseVisibility, handleToggleBulkCourses, handleTrackAsAssignment, handleUntrackAssignment, resetData
   }), [
-    assignments, courses, resources, hiddenCourseIds, schedule, syncState, lastSyncTime,
-    visibleCourses, visibleAssignments, visibleResources
+    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime, syncState,
+    visibleCourses, visibleAssignments, visibleResources,
+    syncClassroom, handleStatusChange, handleNotesChange, handleAddAssignment,
+    handleDeleteScheduleEntry, handleSaveScheduleEntry, handleClearSchedule,
+    handleToggleCourseVisibility, handleToggleBulkCourses, handleTrackAsAssignment, handleUntrackAssignment, resetData
   ]);
 
   return <ClassroomContext.Provider value={value}>{children}</ClassroomContext.Provider>;

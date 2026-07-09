@@ -22,8 +22,6 @@ const PRESET_COLORS = [
 ];
 const START_HOUR = 6;
 const END_HOUR = 22;
-const TOTAL_SLOTS = (END_HOUR - START_HOUR) * 2; // 32 half-hour slots
-const SLOT_HEIGHT = 45; // slightly taller slot for better visibility and readability
 const JS_DAY_MAP = [null, 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 const TRADITIONAL_DAY_COLORS = {
@@ -74,9 +72,6 @@ function timeToMinutes(t) {
   return h * 60 + m;
 }
 
-function minutesToSlotOffset(minutes) {
-  return ((minutes - START_HOUR * 60) / 30) * SLOT_HEIGHT;
-}
 
 function formatTimeRange(start, end) {
   return `${start} – ${end}`;
@@ -231,7 +226,7 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
             <div className="p-3 text-center text-[10px] font-extrabold uppercase tracking-widest text-dark-muted flex items-center justify-center border-r border-dark-border/40 select-none">
               {lang === 'en' ? 'Day / Time' : 'วัน / เวลา'}
             </div>
-            {timeLabels.map((label, idx) => (
+            {timeLabels.map((label) => (
               <div
                 key={label}
                 className="p-3 text-center border-l border-dark-border/40 flex items-center justify-center min-w-0 select-none"
@@ -575,7 +570,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
     if (!formData.startTime || !formData.endTime) return false;
     if (timeToMinutes(formData.endTime) <= timeToMinutes(formData.startTime)) return false;
     return hasConflict(formData, schedule, entry?.id);
-  }, [formData.day, formData.date, formData.startTime, formData.endTime, schedule, entry?.id]);
+  }, [formData, schedule, entry?.id]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

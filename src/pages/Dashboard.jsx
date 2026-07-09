@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import AssignmentCard from '../components/AssignmentCard';
-import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle, CalendarDays, Clock, BookOpen } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle, CalendarDays, Clock } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { isDueToday, isOverdue } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
