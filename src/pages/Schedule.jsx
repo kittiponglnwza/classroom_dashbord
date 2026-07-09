@@ -971,6 +971,11 @@ export default function Schedule() {
     return getWeekDates(weekOffset, lang);
   }, [weekOffset, lang]);
 
+  const weekRangeStr = useMemo(() => {
+    if (!weekDates || !weekDates.mon || !weekDates.sun) return '';
+    return `${weekDates.mon.formatted} – ${weekDates.sun.formatted}`;
+  }, [weekDates]);
+
   // Update current time indicator position every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -1116,35 +1121,42 @@ export default function Schedule() {
       </div>
 
       {/* Week Navigation controls */}
-      <div className="flex items-center justify-between bg-dark-card/10 border border-dark-border/30 rounded-xl px-4 py-2.5">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between bg-dark-card/25 backdrop-blur-sm border border-dark-border/40 rounded-xl px-4 py-2 hover:border-dark-border/60 transition-colors">
+        {/* Grouped Navigator Buttons (cohesive look matching view toggle) */}
+        <div className="flex items-center border border-dark-border/60 rounded-lg p-0.5 bg-dark-sidebar shrink-0">
           <button
             onClick={() => setWeekOffset(prev => prev - 1)}
-            className="p-1 rounded-lg text-dark-muted hover:text-white hover:bg-dark-hover transition-colors cursor-pointer"
+            className="p-1.5 rounded-md text-dark-muted hover:text-white hover:bg-dark-card transition-all cursor-pointer"
             title={t('prevWeek', lang)}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={15} />
           </button>
           <button
             onClick={() => setWeekOffset(0)}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+            className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
               weekOffset === 0 
-                ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' 
-                : 'text-dark-muted hover:text-white hover:bg-dark-hover border border-transparent'
+                ? 'bg-dark-card text-brand-400 font-black shadow-sm' 
+                : 'text-dark-muted hover:text-white'
             }`}
           >
             {t('thisWeek', lang)}
           </button>
           <button
             onClick={() => setWeekOffset(prev => prev + 1)}
-            className="p-1 rounded-lg text-dark-muted hover:text-white hover:bg-dark-hover transition-colors cursor-pointer"
+            className="p-1.5 rounded-md text-dark-muted hover:text-white hover:bg-dark-card transition-all cursor-pointer"
             title={t('nextWeek', lang)}
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={15} />
           </button>
         </div>
 
-        <div className="text-[11px] font-extrabold uppercase tracking-widest text-brand-400 font-heading">
+        {/* Center: Dynamic date range representation */}
+        <div className="text-xs font-bold text-white/90 font-mono tracking-wide px-3 py-1.5 bg-dark-sidebar/45 rounded-lg border border-dark-border/20 shadow-inner select-none hidden sm:block">
+          {weekRangeStr}
+        </div>
+
+        {/* Right: Relative Week Indicator Label (styled pill) */}
+        <div className="bg-brand-500/10 border border-brand-500/20 px-3 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-widest text-brand-400 shadow-[0_0_12px_rgba(99,102,241,0.05)] select-none shrink-0">
           {weekOffset === 0 
             ? (lang === 'en' ? 'Current Week' : 'สัปดาห์ปัจจุบัน')
             : weekOffset === 1 
