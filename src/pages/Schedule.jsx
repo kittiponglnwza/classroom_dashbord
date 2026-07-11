@@ -883,7 +883,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 export default function Schedule() {
   const { lang } = useSettings();
   const { profile } = useAuth();
-  const { schedule, visibleCourses, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule } = useClassroom();
+  const { schedule, assignments, visibleCourses, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule } = useClassroom();
 
   const [viewType, setViewType] = useState('weekly');
   const [selectedDay, setSelectedDay] = useState(getTodayKey());
@@ -957,10 +957,56 @@ export default function Schedule() {
     }).filter(Boolean);
   }, [activeEmail]);
 
-  // Combine standard schedule and auto-loaded exams
+  // Load assignments and map to schedule entries
+  const assignmentScheduleEntries = useMemo(() => {
+    if (!assignments) return [];
+    return assignments.map(a => {
+      if (!a.dueDate) return null;
+      let dateVal = '';
+      let startTime = '23:00';
+      let endTime = '23:59';
+      
+      const hasTime = a.dueDate.includes('T');
+      if (hasTime) {
+        const [d, t] = a.dueDate.split('T');
+        dateVal = d;
+        const timePart = t.split('.')[0].substring(0, 5); // get HH:mm
+        startTime = timePart;
+        
+        // Add 1 hour for end time
+        const [h, m] = timePart.split(':').map(Number);
+        const endH = (h + 1) % 24;
+        endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      } else {
+        dateVal = a.dueDate;
+      }
+      
+      if (!dateVal) return null;
+
+      const d = new Date(dateVal);
+      const dayIndex = d.getDay();
+      const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
+
+      return {
+        id: `assignment-${a.id}`,
+        title: `📌 ${a.title}`,
+        courseCode: a.course || '',
+        day: dayKey,
+        date: dateVal,
+        startTime,
+        endTime,
+        room: '',
+        color: a.courseColor || '#a855f7',
+        notes: a.description || '',
+        isAssignment: true
+      };
+    }).filter(Boolean);
+  }, [assignments]);
+
+  // Combine standard schedule, auto-loaded exams, and assignments
   const combinedSchedule = useMemo(() => {
-    return [...schedule, ...examScheduleEntries];
-  }, [schedule, examScheduleEntries]);
+    return [...schedule, ...examScheduleEntries, ...assignmentScheduleEntries];
+  }, [schedule, examScheduleEntries, assignmentScheduleEntries]);
 
   // Dynamic week offset dates mapping
   const weekDates = useMemo(() => {
@@ -998,6 +1044,13 @@ export default function Schedule() {
       setWarningMessage(lang === 'th' 
         ? `วิชาสอบนี้ถูกดึงมาจากระบบค้นหาห้องสอบโดยอัตโนมัติ\nต้องการแก้ไขหรือลบ กรุณาไปที่เมนู "ตารางสอบ/ค้นหาห้องสอบ"` 
         : `This exam is automatically loaded from the Exam Seating room.\nTo edit or delete it, please go to the "Exam Seating" menu.`
+      );
+      return;
+    }
+    if (entry.isAssignment) {
+      setWarningMessage(lang === 'th' 
+        ? `งานนี้ถูกดึงมาจาก Google Classroom โดยอัตโนมัติ\nไม่สามารถแก้ไขหรือลบจากที่นี่ได้ครับ` 
+        : `This assignment is automatically loaded from Google Classroom.\nIt cannot be edited or deleted from here.`
       );
       return;
     }
