@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, GraduationCap, Code, LogIn, LogOut, Mail, CheckCircle2, ChevronRight, Settings2, Sparkles, Layers, BookOpen } from 'lucide-react';
+import { GraduationCap, Code, Mail, CheckCircle2, ChevronRight, Settings2, Sparkles, Layers } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -36,23 +36,7 @@ export default function Settings() {
   const [major, setMajor] = useState(profile.major || '');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const techStack = [
-    { name: 'React 19', category: 'Frontend', color: 'emerald' },
-    { name: 'Vite 8', category: 'Build Tool', color: 'purple' },
-    { name: 'React Router 7', category: 'Routing', color: 'rose' },
-    { name: 'Tailwind CSS v4', category: 'Styling', color: 'blue' },
-    { name: 'Classroom API', category: 'Integrations', color: 'brand' },
-  ];
 
-  const getPillColor = (color) => {
-    switch (color) {
-      case 'emerald': return 'bg-emerald-500/5 text-emerald-400 border-emerald-500/10 hover:border-emerald-500/30 hover:bg-emerald-500/10';
-      case 'purple': return 'bg-purple-500/5 text-purple-400 border-purple-500/10 hover:border-purple-500/30 hover:bg-purple-500/10';
-      case 'rose': return 'bg-rose-500/5 text-rose-400 border-rose-500/10 hover:border-rose-500/30 hover:bg-rose-500/10';
-      case 'blue': return 'bg-blue-500/5 text-blue-400 border-blue-500/10 hover:border-blue-500/30 hover:bg-blue-500/10';
-      default: return 'bg-brand-500/5 text-brand-400 border-brand-500/10 hover:border-brand-500/30 hover:bg-brand-500/10';
-    }
-  };
 
   const devInfo = {
     name: 'KITTIPONG TEERASEE',

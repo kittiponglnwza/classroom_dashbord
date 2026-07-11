@@ -449,6 +449,7 @@ export default function Courses() {
             )}
           </div>
         </div>
+      ) : (
         <div className="space-y-8 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
           <div className="flex flex-col gap-6">
             <div>

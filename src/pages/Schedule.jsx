@@ -993,9 +993,9 @@ export default function Schedule() {
     return assignments
       .filter(a => a.status !== 'done' && a.dueDate)
       .map(a => {
-        let dateVal = '';
-        let startTime = '23:00';
-        let endTime = '23:59';
+        let dateVal;
+        let startTime;
+        let endTime;
         
         const hasTime = a.dueDate.includes('T');
         if (hasTime) {
