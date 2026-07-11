@@ -218,25 +218,7 @@ export default function Settings() {
             </a>
           </div>
 
-          {/* Tech Stack Cloud */}
-          <div className="bg-dark-card/20 backdrop-blur-md border border-white/5 rounded-3xl p-8 opacity-0 animate-fade-in" style={{ animationDelay: '450ms' }}>
-            <h4 className="font-bold text-white text-sm mb-5 flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-brand-500/10 flex items-center justify-center">
-                <BookOpen size={12} className="text-brand-400" />
-              </div>
-              {t('projectDetailsHeader', lang)}
-            </h4>
-            <div className="flex flex-wrap gap-2.5">
-              {techStack.map(tech => (
-                <div 
-                  key={tech.name} 
-                  className={`px-4 py-2 rounded-xl border text-[10px] font-bold tracking-wide transition-all duration-300 cursor-default shadow-sm ${getPillColor(tech.color)}`}
-                >
-                  {tech.name}
-                </div>
-              ))}
-            </div>
-          </div>
+
           
         </div>
       </div>

@@ -172,8 +172,8 @@ export const translations = {
     sendDigestBtn: 'Send Task Digest Now',
     sendingDigestBtn: 'Sending task digest...',
     gmailDisabledMsg: 'Gmail Notification System is disabled.',
-    disconnectBtn: 'Disconnect Google Classroom',
-    connectBtn: 'Connect Google Classroom',
+    disconnectBtn: 'Log Out',
+    connectBtn: 'Log In',
     
     // Login Screen
     connectGoogleBtn: 'Connect Google Classroom',
@@ -416,8 +416,8 @@ export const translations = {
     sendDigestBtn: 'ส่งสรุปงานค้างทั้งหมดเข้า Gmail ทันที',
     sendingDigestBtn: 'กำลังส่งสรุปงาน...',
     gmailDisabledMsg: 'ระบบแจ้งเตือนทาง Gmail ถูกปิดใช้งานอยู่',
-    disconnectBtn: 'ยกเลิกการเชื่อมต่อ Google Classroom',
-    connectBtn: 'เชื่อมต่อ Google Classroom',
+    disconnectBtn: 'ล็อกเอาต์',
+    connectBtn: 'ล็อกอิน',
     
     // Login Screen
     connectGoogleBtn: 'เชื่อมต่อ Google Classroom',
