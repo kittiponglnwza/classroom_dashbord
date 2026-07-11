@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GraduationCap, Code, Mail, CheckCircle2, ChevronRight, Settings2, Sparkles, Layers } from 'lucide-react';
+import { GraduationCap, Code, Mail, CheckCircle2, ChevronRight, Settings2, Sparkles, Layers, Instagram } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -41,9 +41,10 @@ export default function Settings() {
   const devInfo = {
     name: 'KITTIPONG TEERASEE',
     nickname: 'Kittiponglnwza',
-    email: 's6704082611115@email.kmutnb.ac.th',
+    email: 'kitipongzaza566@gmail.com',
     university: 'King Mongkut\'s University of Technology North Bangkok',
     github: 'https://github.com/kittiponglnwza',
+    instagram: 'https://www.instagram.com/kt_k1tt1111/',
     bio: 'Student Developer crafting minimalist, high-performance tools and web applications.'
   };
 
@@ -189,17 +190,31 @@ export default function Settings() {
               </div>
             </div>
             
-            <a 
-              href={devInfo.github} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="flex items-center justify-between w-full bg-white/5 hover:bg-white/10 border border-white/5 p-4 rounded-2xl transition-all duration-300 group/btn"
-            >
-              <div className="flex items-center gap-3 text-xs font-bold text-white">
-                <GithubIcon size={16} /> GitHub Profile
-              </div>
-              <ChevronRight size={16} className="text-dark-muted group-hover/btn:text-white group-hover/btn:translate-x-1 transition-all" />
-            </a>
+            <div className="space-y-3">
+              <a 
+                href={devInfo.github} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex items-center justify-between w-full bg-white/5 hover:bg-white/10 border border-white/5 p-4 rounded-2xl transition-all duration-300 group/btn"
+              >
+                <div className="flex items-center gap-3 text-xs font-bold text-white">
+                  <GithubIcon size={16} /> GitHub Profile
+                </div>
+                <ChevronRight size={14} className="text-zinc-600 group-hover/btn:text-white transition-colors" />
+              </a>
+
+              <a 
+                href={devInfo.instagram} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex items-center justify-between w-full bg-white/5 hover:bg-white/10 border border-white/5 p-4 rounded-2xl transition-all duration-300 group/btn"
+              >
+                <div className="flex items-center gap-3 text-xs font-bold text-white">
+                  <Instagram size={16} className="text-pink-500" /> Instagram Profile
+                </div>
+                <ChevronRight size={14} className="text-zinc-600 group-hover/btn:text-white transition-colors" />
+              </a>
+            </div>
           </div>
 
 
