@@ -21,7 +21,7 @@ const PRESET_COLORS = [
   '#fb923c', '#38bdf8', '#f87171', '#4ade80', '#c084fc',
 ];
 const START_HOUR = 6;
-const END_HOUR = 22;
+const END_HOUR = 24;
 const JS_DAY_MAP = [null, 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 const TRADITIONAL_DAY_COLORS = {
@@ -222,7 +222,7 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
         <div className="min-w-[1250px] relative">
           
           {/* Time headers row */}
-          <div className="grid grid-cols-[120px_repeat(16,1fr)] border-b border-dark-border/60 bg-dark-sidebar/40">
+          <div className="grid grid-cols-[120px_repeat(18,1fr)] border-b border-dark-border/60 bg-dark-sidebar/40">
             <div className="p-3 text-center text-[10px] font-extrabold uppercase tracking-widest text-dark-muted flex items-center justify-center border-r border-dark-border/40 select-none">
               {lang === 'en' ? 'Day / Time' : 'วัน / เวลา'}
             </div>
@@ -268,8 +268,8 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                     onClick={(e) => handleRowClick(day, e)}
                   >
                     {/* Hour grid vertical lines */}
-                    <div className="absolute inset-0 grid grid-cols-16 pointer-events-none">
-                      {Array.from({ length: 16 }).map((_, idx) => (
+                    <div className="absolute inset-0 grid grid-cols-[repeat(18,1fr)] pointer-events-none">
+                      {Array.from({ length: 18 }).map((_, idx) => (
                         <div
                           key={idx}
                           className="border-l border-dark-border/40 h-full"
@@ -282,39 +282,68 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                       const startPercent = timeToPercent(entry.startTime);
                       const endPercent = timeToPercent(entry.endTime);
                       const left = startPercent;
-                      const width = Math.max(endPercent - startPercent, 1.5); // minimum width for very short entries
+                      const width = Math.max(endPercent - startPercent, 1.5);
+
+                      const isAssign = entry.isAssignment;
+                      const isAllDay = isAssign && entry.startTime === '06:00' && entry.endTime === '24:00';
 
                       return (
                         <div
                           key={entry.id}
                           data-schedule-block
                           onClick={(e) => { e.stopPropagation(); onClickBlock(entry); }}
-                          className="absolute rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/30 hover:scale-[1.01] shadow-md transition-all group z-10 flex flex-col justify-center"
+                          className={`absolute rounded-lg overflow-hidden cursor-pointer shadow-md transition-all group flex flex-col justify-center ${
+                            isAssign 
+                              ? 'hover:ring-2 hover:ring-white/40 hover:scale-[1.02] hover:z-30' 
+                              : 'hover:ring-2 hover:ring-white/30 hover:scale-[1.01] z-10'
+                          }`}
                           style={{
                             left: `${left}%`,
                             width: `${width}%`,
-                            top: '10%',
-                            bottom: '10%',
-                            backgroundColor: `${resolveHexColor(entry.color)}35`,
-                            borderLeft: `4px solid ${resolveHexColor(entry.color)}`,
-                            borderTop: `1px solid ${resolveHexColor(entry.color)}60`,
-                            borderRight: `1px solid ${resolveHexColor(entry.color)}60`,
-                            borderBottom: `1px solid ${resolveHexColor(entry.color)}60`,
-                            boxShadow: `inset 0 0 12px 0 ${resolveHexColor(entry.color)}15, 0 3px 5px -1px rgba(0,0,0,0.25)`
+                            top: isAllDay ? '4%' : (isAssign ? '15%' : '10%'),
+                            bottom: isAllDay ? 'auto' : (isAssign ? '15%' : '10%'),
+                            height: isAllDay ? '24px' : undefined,
+                            backgroundColor: isAssign ? `${resolveHexColor(entry.color)}20` : `${resolveHexColor(entry.color)}35`,
+                            border: isAssign ? `1px solid ${resolveHexColor(entry.color)}80` : undefined,
+                            borderLeft: isAssign ? `1px solid ${resolveHexColor(entry.color)}80` : `4px solid ${resolveHexColor(entry.color)}`,
+                            borderTop: isAssign ? undefined : `1px solid ${resolveHexColor(entry.color)}60`,
+                            borderRight: isAssign ? undefined : `1px solid ${resolveHexColor(entry.color)}60`,
+                            borderBottom: isAssign ? undefined : `1px solid ${resolveHexColor(entry.color)}60`,
+                            boxShadow: isAssign 
+                              ? `0 4px 12px ${resolveHexColor(entry.color)}30, inset 0 0 20px ${resolveHexColor(entry.color)}10` 
+                              : `inset 0 0 12px 0 ${resolveHexColor(entry.color)}15, 0 3px 5px -1px rgba(0,0,0,0.25)`,
+                            backdropFilter: isAssign ? 'blur(6px)' : undefined,
+                            zIndex: isAssign ? 20 : 10,
                           }}
                         >
-                          <div className="p-1.5 h-full flex flex-col justify-center text-center overflow-hidden">
-                            <div className="flex items-center justify-center gap-1 min-w-0">
-                              <span className="text-[10.5px] font-bold text-white leading-tight truncate group-hover:text-brand-300 transition-colors">
-                                {entry.courseCode ? `${entry.courseCode} (${entry.title})` : entry.title}
+                          <div className={`p-1 h-full flex flex-col justify-center ${isAssign && !isAllDay ? 'items-start px-2' : (isAllDay ? 'flex-row items-center justify-start px-3' : 'text-center')} overflow-hidden relative`}>
+                            {isAssign && (
+                              <div className="absolute inset-0 opacity-30 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/40 via-transparent to-transparent pointer-events-none" />
+                            )}
+                            <div className="flex items-center justify-center gap-1.5 min-w-0 z-10">
+                              {isAssign && (
+                                <span className="flex h-2 w-2 relative shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: resolveHexColor(entry.color) }}></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: resolveHexColor(entry.color) }}></span>
+                                </span>
+                              )}
+                              <span className={`font-bold text-white leading-tight truncate group-hover:text-brand-300 transition-colors ${isAssign ? 'text-[11px]' : 'text-[10.5px]'}`}>
+                                {entry.courseCode ? `${entry.courseCode} ${isAssign ? '' : `(${entry.title})`}` : entry.title}
                               </span>
-                              {entry.date && (
+                              {entry.date && !isAssign && (
                                 <span className="text-[7.5px] px-1 py-0.25 rounded font-extrabold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0 select-none">
                                   {lang === 'en' ? 'Once' : 'พิเศษ'}
                                 </span>
                               )}
                             </div>
-                            {entry.room && (
+                            
+                            {isAssign && !isAllDay && (
+                              <span className="text-[8.5px] text-white/90 font-mono font-medium mt-1 truncate z-10 bg-black/30 px-1.5 py-0.5 rounded shadow-sm border border-white/5">
+                                Due: {entry.endTime}
+                              </span>
+                            )}
+                            
+                            {entry.room && !isAssign && (
                               <span className="text-[9px] text-dark-muted font-mono font-medium mt-0.5 truncate group-hover:text-dark-text/70 transition-colors">
                                 {entry.room}
                               </span>
@@ -971,14 +1000,16 @@ export default function Schedule() {
         const [d, t] = a.dueDate.split('T');
         dateVal = d;
         const timePart = t.split('.')[0].substring(0, 5); // get HH:mm
-        startTime = timePart;
+        endTime = timePart;
         
-        // Add 1 hour for end time
+        // Give it a 2-hour width ending at the deadline for better visibility
         const [h, m] = timePart.split(':').map(Number);
-        const endH = (h + 1) % 24;
-        endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const startH = Math.max(6, h - 2);
+        startTime = `${String(startH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       } else {
         dateVal = a.dueDate;
+        startTime = '06:00';
+        endTime = '24:00'; // All-day span
       }
       
       if (!dateVal) return null;
@@ -989,7 +1020,7 @@ export default function Schedule() {
 
       return {
         id: `assignment-${a.id}`,
-        title: `📌 ${a.title}`,
+        title: a.title.replace('📌 ', ''), // Clean up the title, we use glowing dot instead
         courseCode: a.course || '',
         day: dayKey,
         date: dateVal,
