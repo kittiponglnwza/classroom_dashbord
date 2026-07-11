@@ -310,8 +310,9 @@ export default function Courses() {
           </div>
 
           <div className="space-y-1.5">
-            <h3 className="font-semibold text-sm md:text-base font-heading text-white group-hover:text-brand-400 transition-colors leading-snug">
-              {course.name}
+            <h3 className="font-semibold text-sm md:text-base font-heading text-white group-hover:text-brand-400 transition-colors leading-snug flex items-center gap-2.5">
+              <span className={`w-2.5 h-2.5 rounded-full bg-${course.color}-500 shrink-0 ring-4 ring-${course.color}-500/10`} />
+              <span className="truncate" title={course.name}>{course.name}</span>
             </h3>
             <div className="flex items-center gap-1.5 text-[10px] text-dark-muted font-medium">
               <span className="flex items-center gap-1"><BookOpen size={10} /> {t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
