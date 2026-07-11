@@ -81,8 +81,8 @@ export default function Home() {
   return (
     <div className="space-y-8 relative max-w-7xl mx-auto py-4">
       {/* Abstract Background Elements */}
-      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-brand-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
-      <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] ambient-glow-brand rounded-full pointer-events-none -z-10"></div>
+      <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] ambient-glow-indigo rounded-full pointer-events-none -z-10"></div>
 
       {/* Welcome Banner */}
       <div className="relative overflow-hidden bg-gradient-to-br from-brand-900/40 via-dark-card/60 to-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl opacity-0 animate-fade-in group hover:border-brand-500/20 transition-all duration-500" style={{ animationDelay: '50ms' }}>

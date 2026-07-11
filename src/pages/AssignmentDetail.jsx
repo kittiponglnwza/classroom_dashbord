@@ -83,8 +83,8 @@ export default function AssignmentDetail() {
   return (
     <div className="space-y-8 relative max-w-7xl mx-auto py-4 animate-fade-in">
       {/* Abstract Background Elements */}
-      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-brand-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
-      <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] ambient-glow-brand rounded-full pointer-events-none -z-10"></div>
+      <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] ambient-glow-indigo rounded-full pointer-events-none -z-10"></div>
       {downloadingFile && (
         <div className="fixed top-6 right-6 z-50 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold text-xs px-4.5 py-3 rounded-xl shadow-xl animate-fade-in">
           <span className="animate-pulse">⚡</span>

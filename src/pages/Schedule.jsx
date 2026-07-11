@@ -1167,8 +1167,8 @@ export default function Schedule() {
   return (
     <div className="space-y-8 relative max-w-7xl mx-auto py-4 animate-fade-in">
       {/* Abstract Background Elements */}
-      <div className="fixed top-20 right-1/4 w-[600px] h-[600px] bg-brand-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
-      <div className="fixed bottom-0 left-1/4 w-[600px] h-[600px] bg-rose-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="fixed top-20 right-1/4 w-[600px] h-[600px] ambient-glow-brand rounded-full pointer-events-none -z-10"></div>
+      <div className="fixed bottom-0 left-1/4 w-[600px] h-[600px] ambient-glow-rose rounded-full pointer-events-none -z-10"></div>
 
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>

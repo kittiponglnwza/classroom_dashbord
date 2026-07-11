@@ -73,7 +73,7 @@ export default function Settings() {
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 relative">
       
       {/* Abstract Background Elements */}
-      <div className="fixed top-20 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-brand-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="fixed top-20 left-1/2 -translate-x-1/2 w-[800px] h-[500px] ambient-glow-brand rounded-full pointer-events-none -z-10"></div>
       
       {/* Header section */}
       <div className="text-center space-y-4 mb-14 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
