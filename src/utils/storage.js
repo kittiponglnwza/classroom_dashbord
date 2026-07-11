@@ -7,16 +7,16 @@ const KEYS = STORAGE_CONFIG.keys;
 /* Token Handling via Secure Session Storage */
 export const saveToken = (token) => {
   if (token) {
-    sessionStorage.setItem(KEYS.accessToken, token);
+    localStorage.setItem(KEYS.accessToken, token);
   }
 };
 
 export const getToken = () => {
-  return sessionStorage.getItem(KEYS.accessToken);
+  return localStorage.getItem(KEYS.accessToken);
 };
 
 export const clearToken = () => {
-  sessionStorage.removeItem(KEYS.accessToken);
+  localStorage.removeItem(KEYS.accessToken);
 };
 
 /* Active User Email configuration */
