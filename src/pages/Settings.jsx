@@ -147,12 +147,12 @@ export default function Settings() {
           {/* Integration Card */}
           <div className="bg-gradient-to-br from-brand-500/5 to-transparent border border-brand-500/10 rounded-3xl p-8 hover:border-brand-500/30 transition-all duration-500 opacity-0 animate-fade-in group" style={{ animationDelay: '250ms' }}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-              <div>
+              <div className="flex-1 min-w-0 pr-2">
                 <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-                  <Layers className="text-brand-400" size={18} />
-                  {lang === 'en' ? 'Classroom Integration' : 'บัญชี Google Classroom'}
+                  <Layers className="text-brand-400 shrink-0" size={18} />
+                  <span className="truncate">{lang === 'en' ? 'Classroom Integration' : 'บัญชี Google Classroom'}</span>
                 </h3>
-                <p className="text-xs text-dark-muted max-w-xs leading-relaxed">
+                <p className="text-xs text-dark-muted leading-relaxed break-all">
                   {isLoggedIn 
                     ? (lang === 'en' ? `Connected securely as ${profile.email || email}` : `เชื่อมต่อแล้วด้วยอีเมล ${profile.email || email}`) 
                     : (lang === 'en' ? 'Connect your account to sync assignments automatically.' : 'เชื่อมต่อบัญชีเพื่อซิงค์ข้อมูลการบ้านอัตโนมัติ')}
