@@ -989,30 +989,50 @@ export default function Schedule() {
   // Load assignments and map to schedule entries
   const assignmentScheduleEntries = useMemo(() => {
     if (!assignments) return [];
-    return assignments.map(a => {
-      if (!a.dueDate) return null;
-      let dateVal = '';
-      let startTime = '23:00';
-      let endTime = '23:59';
-      
-      const hasTime = a.dueDate.includes('T');
-      if (hasTime) {
-        const [d, t] = a.dueDate.split('T');
-        dateVal = d;
-        const timePart = t.split('.')[0].substring(0, 5); // get HH:mm
-        endTime = timePart;
+    // Only show assignments that are not yet completed and have a due date
+    return assignments
+      .filter(a => a.status !== 'done' && a.dueDate)
+      .map(a => {
+        let dateVal = '';
+        let startTime = '23:00';
+        let endTime = '23:59';
         
-        // Give it a 2-hour width ending at the deadline for better visibility
-        const [h, m] = timePart.split(':').map(Number);
-        const startH = Math.max(6, h - 2);
-        startTime = `${String(startH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      } else {
-        dateVal = a.dueDate;
-        startTime = '06:00';
-        endTime = '24:00'; // All-day span
-      }
-      
-      if (!dateVal) return null;
+        const hasTime = a.dueDate.includes('T');
+        if (hasTime) {
+          // Fix timezone: Google Classroom API provides UTC time but older cached data might miss 'Z'.
+          // Ensure we treat it as UTC if it's a full time string.
+          const isLocalEndOfDay = a.dueDate.includes('23:59:59'); 
+          const isoString = (a.dueDate.endsWith('Z') || a.dueDate.includes('+') || isLocalEndOfDay) 
+            ? a.dueDate 
+            : `${a.dueDate}Z`;
+            
+          const dObj = new Date(isoString);
+          
+          if (!isNaN(dObj.getTime())) {
+            dateVal = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
+            const h = dObj.getHours();
+            const m = dObj.getMinutes();
+            endTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            
+            // Give it a 2-hour width ending at the deadline for better visibility
+            const startH = Math.max(6, h - 2);
+            startTime = `${String(startH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          } else {
+            // fallback
+            const [d, t] = a.dueDate.split('T');
+            dateVal = d;
+            const timePart = t.split('.')[0].substring(0, 5);
+            endTime = timePart;
+            const [h, m] = timePart.split(':').map(Number);
+            startTime = `${String(Math.max(6, h - 2)).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          }
+        } else {
+          dateVal = a.dueDate;
+          startTime = '06:00';
+          endTime = '24:00'; // All-day span
+        }
+        
+        if (!dateVal) return null;
 
       const d = new Date(dateVal);
       const dayIndex = d.getDay();
