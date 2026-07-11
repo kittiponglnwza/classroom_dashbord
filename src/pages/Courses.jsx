@@ -289,11 +289,11 @@ export default function Courses() {
       <div
         key={course.id}
         onClick={() => setSearchParams({ selected: course.name })}
-        className={`bg-dark-card/20 border border-dark-border/40 rounded-2xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-md hover:translate-y-[-3px] ${
+        className={`bg-dark-card/20 border rounded-2xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-lg hover:translate-y-[-3px] ${
           isHidden ? 'opacity-45 saturate-50' : ''
-        }`}
+        } border-${course.color}-500/30 hover:border-${course.color}-500/60 shadow-[0_0_15px_rgba(var(--tw-colors-${course.color}-500),0.05)]`}
       >
-        <div className={`w-full h-1 ${getCourseBorderTopColor(course.color)}`} />
+        <div className={`w-full h-1.5 ${getCourseBorderTopColor(course.color)}`} />
         
         <div className="p-5 md:p-6 flex-1 space-y-4">
           <div className="flex items-center justify-between gap-3 text-[10px] font-bold text-dark-muted">
@@ -310,9 +310,8 @@ export default function Courses() {
           </div>
 
           <div className="space-y-1.5">
-            <h3 className="font-semibold text-sm md:text-base font-heading text-white group-hover:text-brand-400 transition-colors leading-snug flex items-center gap-2.5">
-              <span className={`w-2.5 h-2.5 rounded-full bg-${course.color}-500 shrink-0 ring-4 ring-${course.color}-500/10`} />
-              <span className="truncate" title={course.name}>{course.name}</span>
+            <h3 className="font-semibold text-sm md:text-base font-heading text-white group-hover:text-brand-400 transition-colors leading-snug truncate" title={course.name}>
+              {course.name}
             </h3>
             <div className="flex items-center gap-1.5 text-[10px] text-dark-muted font-medium">
               <span className="flex items-center gap-1"><BookOpen size={10} /> {t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
