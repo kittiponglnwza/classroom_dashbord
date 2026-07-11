@@ -115,14 +115,9 @@ export default function Settings() {
                   />
                 </div>
                 <div className="flex-1 w-full space-y-1">
-                  <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider">{t('avatarUrlLabel', lang)}</label>
-                  <input
-                    type="url"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://example.com/avatar.jpg"
-                    className="w-full bg-dark-sidebar/40 border border-dark-border/40 rounded-xl px-3.5 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/20 transition-all duration-200"
-                  />
+                  <p className="text-xs text-dark-muted leading-relaxed">
+                    {lang === 'en' ? 'Profile picture is synced automatically from your connected accounts.' : 'รูปประจำตัวจะถูกซิงค์จากบัญชีที่เชื่อมต่ออัตโนมัติ'}
+                  </p>
                 </div>
               </div>
 
@@ -214,138 +209,6 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Background Alerts Setup Card */}
-          <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-6 md:p-8 space-y-6 shadow-sm">
-            <div className="flex items-center gap-3 pb-3 border-b border-dark-border/40">
-              <Mail size={16} className="text-brand-400" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-xs text-white uppercase tracking-wider">
-                  {lang === 'en' ? 'Offline Gmail Alerts (No Browser Required)' : 'ตั้งค่าแจ้งเตือนทาง Gmail แบบออฟไลน์ (ปิดเว็บก็เตือน)'}
-                </h3>
-                <p className="text-[10px] text-dark-muted mt-0.5 leading-relaxed">
-                  {lang === 'en' ? 'Receive automated email reminders for pending assignments even when the website is closed.' : 'รับอีเมลแจ้งเตือนการบ้านค้างส่งโดยอัตโนมัติรันบนระบบคลาวด์ของ Google ตลอด 24 ชั่วโมง แม้จะปิดคอมพิวเตอร์'}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-5 text-xs text-zinc-300">
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="w-5 h-5 rounded-full bg-brand-500/10 border border-brand-500/25 flex items-center justify-center text-[10px] font-black text-brand-400 shrink-0">1</div>
-                  <div>
-                    <span className="font-bold text-white">
-                      {lang === 'en' ? 'Open Google Apps Script Dashboard:' : 'เปิดคอนโซล Google Apps Script:'}
-                    </span>
-                    <p className="mt-1">
-                      <a 
-                        href="https://script.google.com" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center gap-1.5 text-brand-400 hover:text-brand-300 font-medium underline"
-                      >
-                        script.google.com <ExternalLink size={11} />
-                      </a>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="w-5 h-5 rounded-full bg-brand-500/10 border border-brand-500/25 flex items-center justify-center text-[10px] font-black text-brand-400 shrink-0">2</div>
-                  <div>
-                    <span className="font-bold text-white">
-                      {lang === 'en' ? 'Create a Project:' : 'สร้างโครงการใหม่:'}
-                    </span>
-                    <p className="mt-1 text-dark-muted leading-relaxed">
-                      {lang === 'en' ? 'Click "New Project" (โครงการใหม่) to launch the code editor.' : 'คลิกปุ่ม "โครงการใหม่" (New Project) เพื่อเปิดหน้าจอตัวแก้ไขโค้ด'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="w-5 h-5 rounded-full bg-brand-500/10 border border-brand-500/25 flex items-center justify-center text-[10px] font-black text-brand-400 shrink-0">3</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <span className="font-bold text-white">
-                        {lang === 'en' ? 'Copy & Paste the script code:' : 'คัดลอกและวางโค้ดสคริปต์:'}
-                      </span>
-                      <button
-                        onClick={handleCopyScript}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                          copied 
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                            : 'bg-dark-sidebar hover:bg-dark-hover text-white border-dark-border/60'
-                        }`}
-                      >
-                        {copied ? (
-                          <>
-                            <Check size={11} />
-                            {lang === 'en' ? 'Copied!' : 'คัดลอกแล้ว!'}
-                          </>
-                        ) : (
-                          <>
-                            <Clipboard size={11} />
-                            {lang === 'en' ? 'Copy Script Code' : 'คัดลอกโค้ดสคริปต์'}
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    <p className="mt-1 text-dark-muted leading-relaxed">
-                      {lang === 'en' ? 'Delete any auto-generated code in the editor, and paste the copied script block below.' : 'ลบโค้ดเริ่มต้นในไฟล์ Code.gs ทั้งหมดออก แล้ววางสคริปต์ที่คัดลอกมาลงไปแทน'}
-                    </p>
-                    
-                    <div className="mt-3 relative bg-dark-sidebar/45 rounded-xl border border-dark-border/40 overflow-hidden">
-                      <div className="absolute top-2.5 right-2.5 z-10 text-[9px] font-bold text-dark-muted select-none pointer-events-none uppercase">Code.gs</div>
-                      <pre className="p-4 max-h-[160px] overflow-y-auto text-[10px] font-mono text-zinc-400 leading-relaxed scrollbar-thin">
-                        {getAppsScriptTemplate(hiddenCourseIds)}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="w-5 h-5 rounded-full bg-brand-500/10 border border-brand-500/25 flex items-center justify-center text-[10px] font-black text-brand-400 shrink-0">4</div>
-                  <div>
-                    <span className="font-bold text-white">
-                      {lang === 'en' ? 'Add Google Classroom API Service:' : 'เพิ่มบริการ Classroom API เข้าโครงการ:'}
-                    </span>
-                    <p className="mt-1 text-dark-muted leading-relaxed">
-                      {lang === 'en' 
-                        ? 'Click the "+" next to Services on the left menu. Search for "Classroom API", select it, and click Add.' 
-                        : 'คลิกเครื่องหมาย "+" ข้างคำว่า "บริการ" (Services) ในเมนูทางซ้าย ค้นหาคำว่า "Classroom API" จากนั้นกดเลือกและคลิกเพิ่ม (Add)'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="w-5 h-5 rounded-full bg-brand-500/10 border border-brand-500/25 flex items-center justify-center text-[10px] font-black text-brand-400 shrink-0">5</div>
-                  <div>
-                    <span className="font-bold text-white">
-                      {lang === 'en' ? 'Grant Access & Run:' : 'กดบันทึก ตรวจสอบสิทธิ์ และทดลองรัน:'}
-                    </span>
-                    <p className="mt-1 text-dark-muted leading-relaxed">
-                      {lang === 'en' 
-                        ? 'Click Save (floppy disk icon), select the "sendClassroomDigest" function from the dropdown, and click Run. Click Review Permissions, select your student Google Account, click Advanced -> Go to Untitled Project (unsafe), and click Allow. Verify you receive the email digest!'
-                        : 'กดปุ่มบันทึก (รูปแผ่นดิสก์) จากนั้นตรวจสอบว่าเลือกฟังก์ชัน "sendClassroomDigest" ไว้แล้วกดปุ่ม "รัน" (Run) จากนั้นคลิกตรวจสอบสิทธิ์และอนุญาตการเข้าถึงข้อมูลให้เรียบร้อย (คลิกขั้นสูง -> ไปยังโครงการที่ไม่มีชื่อ -> กดยอมรับ)'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="w-5 h-5 rounded-full bg-brand-500/10 border border-brand-500/25 flex items-center justify-center text-[10px] font-black text-brand-400 shrink-0">6</div>
-                  <div>
-                    <span className="font-bold text-white">
-                      {lang === 'en' ? 'Schedule Background Trigger:' : 'ตั้งค่าเวลาทำงานออโต้ (Trigger):'}
-                    </span>
-                    <p className="mt-1 text-dark-muted leading-relaxed">
-                      {lang === 'en' 
-                        ? 'Click Triggers (alarm clock icon in the left menu) -> click Add Trigger (bottom-right) -> choose Event source: "Time-driven", select trigger type: "Hour timer" -> every hour, and click Save. That\'s it! The script will now check and remind you of deadlines hourly in the background!' 
-                        : 'คลิกเมนู "ตัวกระตุ้น" (Triggers - รูปนาฬิกาปลุกเมนูซ้ายมือ) -> กดปุ่ม "เพิ่มตัวกระตุ้น" ที่มุมขวาล่าง -> เลือกแหล่งที่มาของเหตุการณ์: "ตามเวลาที่กำหนด" (Time-driven), เลือกประเภททริกเกอร์: "ตัวจับเวลาชั่วโมง" -> ทุกชั่วโมง แล้วกดบันทึก เป็นอันเสร็จสิ้น!'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
         </div>
 
