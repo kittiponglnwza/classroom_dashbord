@@ -10,7 +10,7 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete }) {
   const cardStyle = getCardStyle(index);
 
   return (
-    <div className="bg-gradient-to-br from-dark-card/60 via-dark-card/45 to-brand-950/5 border border-dark-border/30 hover:border-zinc-700/80 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 shadow-sm relative overflow-hidden group hover:shadow-md hover:-translate-y-0.5">
+    <div className="bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 shadow-xl relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1">
       {/* Course Code Border accent strip */}
       <div className={`absolute top-0 left-0 right-0 h-1 ${cardStyle.strip}`} />
       
@@ -58,7 +58,7 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete }) {
         </div>
 
         {/* Detail Metrics */}
-        <div className="grid grid-cols-2 gap-3 text-xs border-t border-dark-border/30 pt-3">
+        <div className="grid grid-cols-2 gap-4 text-xs border-t border-white/5 pt-4">
           {/* Date */}
           <div className="flex items-start gap-2 text-dark-muted">
             <Calendar size={13} className={`shrink-0 mt-0.5 ${cardStyle.accentText}`} />
@@ -80,7 +80,7 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete }) {
       </div>
 
       {/* Room & Seating Details */}
-      <div className="border-t border-dark-border/30 mt-4 pt-3 flex items-center justify-between">
+      <div className="border-t border-white/5 mt-5 pt-4 flex items-center justify-between">
         {/* Room Code */}
         <div className="flex items-center gap-2 text-xs">
           <MapPin size={13} className={cardStyle.accentText} />
@@ -89,9 +89,9 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete }) {
 
         {/* Seat callout */}
         {exam.seat && (
-          <div className="bg-brand-500/5 border border-brand-500/20 px-3 py-1 rounded-xl text-right">
-            <span className="text-[8px] uppercase font-bold text-brand-400 block tracking-wider leading-none">{t('seatCol', lang)}</span>
-            <span className="text-xs font-black text-white">{exam.seat}</span>
+          <div className="bg-white/5 border border-white/10 px-4 py-1.5 rounded-2xl text-right">
+            <span className="text-[10px] uppercase font-bold text-zinc-400 block tracking-wider leading-none mb-1">{t('seatCol', lang)}</span>
+            <span className="text-sm font-black text-white">{exam.seat}</span>
           </div>
         )}
       </div>

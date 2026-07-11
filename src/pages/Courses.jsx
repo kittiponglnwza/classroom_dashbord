@@ -289,9 +289,9 @@ export default function Courses() {
       <div
         key={course.id}
         onClick={() => setSearchParams({ selected: course.name })}
-        className={`bg-dark-card/20 border rounded-2xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-lg hover:translate-y-[-3px] ${
+        className={`bg-dark-card/30 backdrop-blur-xl border border-white/5 rounded-3xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 ${
           isHidden ? 'opacity-45 saturate-50' : ''
-        } border-${course.color}-500/30 hover:border-${course.color}-500/60 shadow-[0_0_15px_rgba(var(--tw-colors-${course.color}-500),0.05)]`}
+        } hover:border-${course.color}-500/30`}
       >
         <div className={`w-full h-1.5 ${getCourseBorderTopColor(course.color)}`} />
         
@@ -343,32 +343,38 @@ export default function Courses() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative max-w-7xl mx-auto py-4">
+      {/* Abstract Background Elements */}
+      <div className="fixed top-0 right-1/4 w-[600px] h-[600px] bg-brand-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="fixed bottom-0 left-1/4 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+
       {selectedCourseName ? (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-8 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
           <button
             onClick={() => setSearchParams({})}
-            className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-wider text-dark-muted hover:text-white transition-colors bg-dark-card/30 border border-dark-border/40 px-4 py-2.5 rounded-xl cursor-pointer"
+            className="flex items-center gap-2 text-xs uppercase font-bold tracking-wider text-zinc-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 border border-white/5 px-5 py-3 rounded-2xl cursor-pointer w-fit"
           >
-            <ArrowLeft size={13} />
+            <ArrowLeft size={16} />
             {lang === 'en' ? 'Back to All Courses' : 'กลับไปที่รายวิชาทั้งหมด'}
           </button>
 
           {(() => {
             if (!selectedCourseObj) return null;
             return (
-              <div className={`border border-dark-border/40 bg-dark-card/20 rounded-2xl relative overflow-hidden p-6 md:p-8 space-y-4 shadow-sm`}>
-                <div className={`absolute top-0 left-0 right-0 h-1.5 ${getCourseBorderTopColor(selectedCourseObj.color)}`} />
-                <div className="space-y-1">
-                  <span className={`text-[10px] font-bold tracking-widest uppercase ${getCourseTextColor(selectedCourseObj.color)}`}>
+              <div className={`border border-white/10 bg-dark-card/40 backdrop-blur-xl rounded-3xl relative overflow-hidden p-8 md:p-10 space-y-5 shadow-2xl opacity-0 animate-fade-in`} style={{ animationDelay: '150ms' }}>
+                <div className={`absolute top-0 left-0 right-0 h-2 ${getCourseBorderTopColor(selectedCourseObj.color)}`} />
+                <div className="space-y-2">
+                  <span className={`text-xs font-bold tracking-widest uppercase ${getCourseTextColor(selectedCourseObj.color)}`}>
                     {selectedCourseObj.code}
                   </span>
-                  <h1 className="text-xl md:text-2xl font-bold font-heading text-white">
+                  <h1 className="text-3xl md:text-4xl font-bold font-heading text-white tracking-tight">
                     {selectedCourseObj.name}
                   </h1>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-zinc-300">
-                  <User size={14} className={getCourseTextColor(selectedCourseObj.color)} />
+                <div className="flex items-center gap-3 text-sm font-medium text-zinc-300">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center bg-white/5 border border-white/5 ${getCourseTextColor(selectedCourseObj.color)}`}>
+                    <User size={16} />
+                  </div>
                   <span>{t('instructorLabel', lang)} {selectedCourseObj.instructor}</span>
                 </div>
               </div>
@@ -443,50 +449,49 @@ export default function Courses() {
             )}
           </div>
         </div>
-      ) : (
-        <div className="space-y-6">
-          <div className="flex flex-col gap-4">
+        <div className="space-y-8 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
+          <div className="flex flex-col gap-6">
             <div>
-              <h1 className="text-xl font-bold font-heading text-white">{t('enrolledCoursesTitle', lang)}</h1>
-              <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">{t('enrolledCoursesDesc', lang)}</p>
+              <h1 className="text-3xl font-bold font-heading text-white tracking-tight">{t('enrolledCoursesTitle', lang)}</h1>
+              <p className="text-sm text-dark-muted mt-1 leading-relaxed">{t('enrolledCoursesDesc', lang)}</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-muted" />
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-muted" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={lang === 'en' ? 'Search courses by name, code, or instructor...' : 'ค้นหาวิชาจากชื่อ, รหัส หรือ อาจารย์...'}
-                  className="w-full pl-9 pr-4 py-2.5 bg-dark-card/30 border border-dark-border/40 rounded-xl text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/40 transition-colors"
+                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/5 rounded-2xl text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/40 focus:bg-white/10 transition-all duration-300 shadow-sm"
                 />
               </div>
 
-              <div className="flex items-center gap-1 bg-dark-card/30 border border-dark-border/40 rounded-xl p-1 shrink-0">
+              <div className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-2xl p-1.5 shrink-0">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg transition-all cursor-pointer ${
-                    viewMode === 'grid' ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' : 'text-dark-muted hover:text-white border border-transparent'
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    viewMode === 'grid' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-500 hover:text-white'
                   }`}
                   title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
                 >
-                  <LayoutGrid size={14} />
+                  <LayoutGrid size={16} />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition-all cursor-pointer ${
-                    viewMode === 'list' ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' : 'text-dark-muted hover:text-white border border-transparent'
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    viewMode === 'list' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-500 hover:text-white'
                   }`}
                   title={lang === 'en' ? 'List view' : 'แบบรายการ'}
                 >
-                  <List size={14} />
+                  <List size={16} />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6 opacity-0 animate-fade-in" style={{ animationDelay: '150ms' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -536,11 +541,11 @@ export default function Courses() {
                 className="flex items-center gap-2 group cursor-pointer w-full"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-                  <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider group-hover:text-zinc-400 transition-colors">
+                  <div className="w-2 h-2 rounded-full bg-zinc-600 shadow-[0_0_8px_rgba(82,82,91,0.5)]" />
+                  <h2 className="text-sm font-bold text-zinc-500 uppercase tracking-wider group-hover:text-zinc-400 transition-colors">
                     {lang === 'en' ? 'Hidden Courses' : 'วิชาที่ซ่อน'}
                   </h2>
-                  <span className="text-[10px] text-dark-muted font-medium">({filteredHidden.length})</span>
+                  <span className="text-xs text-zinc-600 font-bold">({filteredHidden.length})</span>
                 </div>
                 <div className="flex-1 h-px bg-dark-border/20" />
                 {showHidden ? (

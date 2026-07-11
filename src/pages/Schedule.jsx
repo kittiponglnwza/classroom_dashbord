@@ -217,7 +217,7 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
   const showTimeLine = currentTimePercent !== null && currentTimePercent >= 0 && currentTimePercent <= 100;
 
   return (
-    <div className="bg-dark-card/20 border border-dark-border/40 rounded-2xl overflow-hidden animate-fade-in shadow-xl">
+    <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden animate-fade-in shadow-2xl">
       <div className="overflow-x-auto" ref={gridRef}>
         <div className="min-w-[1250px] relative">
           
@@ -1165,15 +1165,19 @@ export default function Schedule() {
   }, []);
 
   return (
-    <div className="space-y-6 animate-fade-in py-1">
+    <div className="space-y-8 relative max-w-7xl mx-auto py-4 animate-fade-in">
+      {/* Abstract Background Elements */}
+      <div className="fixed top-20 right-1/4 w-[600px] h-[600px] bg-brand-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="fixed bottom-0 left-1/4 w-[600px] h-[600px] bg-rose-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-border/40 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
         <div>
-          <h1 className="text-xl font-bold font-heading text-white flex items-center gap-2.5">
-            <CalendarDays size={20} className="text-brand-400" />
+          <h1 className="text-3xl font-bold font-heading text-white tracking-tight flex items-center gap-3">
+            <CalendarDays size={28} className="text-brand-400" />
             {t('scheduleTitle', lang)}
           </h1>
-          <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">{t('scheduleDesc', lang)}</p>
+          <p className="text-sm text-dark-muted mt-2 leading-relaxed">{t('scheduleDesc', lang)}</p>
         </div>
 
         <div className="flex items-center gap-3 self-end sm:self-center">
@@ -1181,10 +1185,10 @@ export default function Schedule() {
           {schedule.length > 0 && (
             <button
               onClick={handleClearAll}
-              className={`text-[11px] font-bold py-2.5 px-3 rounded-lg border transition-all cursor-pointer ${
+              className={`text-xs font-bold py-3 px-5 rounded-2xl border transition-all duration-300 cursor-pointer ${
                 showClearConfirm
                   ? 'text-rose-400 bg-rose-500/10 border-rose-500/30'
-                  : 'text-dark-muted border-dark-border hover:border-rose-500/30 hover:text-rose-400 hover:bg-rose-500/[0.02]'
+                  : 'text-zinc-400 border-white/5 hover:bg-white/5 hover:text-rose-400'
               }`}
             >
               {showClearConfirm ? t('clearAllConfirm', lang) : t('clearAllSchedule', lang)}
@@ -1192,61 +1196,61 @@ export default function Schedule() {
           )}
 
           {/* View toggle — hidden on mobile since mobile only supports list view */}
-          <div className="hidden md:flex items-center border border-dark-border rounded-lg p-0.5 bg-dark-sidebar">
+          <div className="hidden md:flex items-center border border-white/5 rounded-2xl p-1 bg-white/5">
             <button
               onClick={() => setViewType('weekly')}
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewType === 'weekly' ? 'bg-dark-card text-brand-400' : 'text-dark-muted hover:text-white'}`}
+              className={`p-2 rounded-xl transition-all duration-300 cursor-pointer ${viewType === 'weekly' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
               title={t('weeklyView', lang)}
             >
-              <LayoutGrid size={15} />
+              <LayoutGrid size={18} />
             </button>
             <button
               onClick={() => setViewType('daily')}
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewType === 'daily' ? 'bg-dark-card text-brand-400' : 'text-dark-muted hover:text-white'}`}
+              className={`p-2 rounded-xl transition-all duration-300 cursor-pointer ${viewType === 'daily' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
               title={t('dailyView', lang)}
             >
-              <List size={15} />
+              <List size={18} />
             </button>
           </div>
 
           {/* Add button */}
           <button
             onClick={openBlankAdd}
-            className="flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors cursor-pointer shadow-md shadow-brand-500/10 active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-brand-500/20 hover:-translate-y-0.5 cursor-pointer"
           >
-            <Plus size={16} />
+            <Plus size={18} />
             {t('addSchedule', lang)}
           </button>
         </div>
       </div>
 
       {/* Week Navigation controls */}
-      <div className="flex items-center justify-between bg-dark-card/25 backdrop-blur-sm border border-dark-border/40 rounded-xl px-4 py-2 hover:border-dark-border/60 transition-colors">
+      <div className="flex items-center justify-between bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl px-6 py-4 hover:border-white/10 transition-colors opacity-0 animate-fade-in shadow-lg" style={{ animationDelay: '100ms' }}>
         {/* Grouped Navigator Buttons (cohesive look matching view toggle) */}
-        <div className="flex items-center border border-dark-border/60 rounded-lg p-0.5 bg-dark-sidebar shrink-0">
+        <div className="flex items-center border border-white/5 rounded-2xl p-1 bg-white/5 shrink-0">
           <button
             onClick={() => setWeekOffset(prev => prev - 1)}
-            className="p-1.5 rounded-md text-dark-muted hover:text-white hover:bg-dark-card transition-all cursor-pointer"
+            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
             title={t('prevWeek', lang)}
           >
-            <ChevronLeft size={15} />
+            <ChevronLeft size={16} />
           </button>
           <button
             onClick={() => setWeekOffset(0)}
-            className={`px-3 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+            className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
               weekOffset === 0 
-                ? 'bg-dark-card text-brand-400 font-black shadow-sm' 
-                : 'text-dark-muted hover:text-white'
+                ? 'bg-white/10 text-brand-400 shadow-sm' 
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
             {t('thisWeek', lang)}
           </button>
           <button
             onClick={() => setWeekOffset(prev => prev + 1)}
-            className="p-1.5 rounded-md text-dark-muted hover:text-white hover:bg-dark-card transition-all cursor-pointer"
+            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
             title={t('nextWeek', lang)}
           >
-            <ChevronRight size={15} />
+            <ChevronRight size={16} />
           </button>
         </div>
 
@@ -1269,28 +1273,30 @@ export default function Schedule() {
       </div>
 
       {/* Views */}
-      {viewType === 'weekly' ? (
-        <WeeklyGrid
-          schedule={combinedSchedule}
-          lang={lang}
-          todayKey={todayKey}
-          currentMinutes={currentMinutes}
-          weekDates={weekDates}
-          weekOffset={weekOffset}
-          onClickBlock={openEditModal}
-          onClickEmpty={openAddModal}
-        />
-      ) : (
-        <DailyList
-          schedule={combinedSchedule}
-          lang={lang}
-          todayKey={todayKey}
-          selectedDay={selectedDay}
-          setSelectedDay={setSelectedDay}
-          weekDates={weekDates}
-          onClickCard={openEditModal}
-        />
-      )}
+      <div className="opacity-0 animate-fade-in" style={{ animationDelay: '200ms' }}>
+        {viewType === 'weekly' ? (
+          <WeeklyGrid
+            schedule={combinedSchedule}
+            lang={lang}
+            todayKey={todayKey}
+            currentMinutes={currentMinutes}
+            weekDates={weekDates}
+            weekOffset={weekOffset}
+            onClickBlock={openEditModal}
+            onClickEmpty={openAddModal}
+          />
+        ) : (
+          <DailyList
+            schedule={combinedSchedule}
+            lang={lang}
+            todayKey={todayKey}
+            selectedDay={selectedDay}
+            setSelectedDay={setSelectedDay}
+            weekDates={weekDates}
+            onClickCard={openEditModal}
+          />
+        )}
+      </div>
 
       {/* Add / Edit Modal */}
       {isModalOpen && (

@@ -53,40 +53,46 @@ export default function ExamRoom() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in py-2">
+    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in py-2 relative">
+      {/* Abstract Background Elements */}
+      <div className="fixed top-1/4 right-1/4 w-[500px] h-[500px] bg-brand-500/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+      <div className="fixed bottom-1/4 left-1/4 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+
       {/* Page Header */}
-      <div className="border-b border-dark-border/40 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-white/5 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
         <div>
-          <h1 className="text-xl font-bold font-heading text-white flex items-center gap-2.5">
-            <ClipboardCheck size={20} className="text-brand-400" />
+          <h1 className="text-3xl font-bold font-heading text-white flex items-center gap-3 tracking-tight">
+            <ClipboardCheck size={28} className="text-brand-400" />
             {t('examTitle', lang)}
           </h1>
-          <p className="text-[11px] text-dark-muted mt-1 leading-relaxed">{t('examDesc', lang)}</p>
+          <p className="text-sm text-dark-muted mt-2 leading-relaxed">{t('examDesc', lang)}</p>
         </div>
         <button
           type="button"
           onClick={openNewModal}
-          className="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-all duration-200 shadow-md shadow-brand-500/10 cursor-pointer shrink-0 active:scale-98"
+          className="flex items-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-brand-500/20 cursor-pointer shrink-0 hover:-translate-y-0.5"
         >
-          <Plus size={13} />
+          <Plus size={16} />
           {t('addExamBtn', lang)}
         </button>
       </div>
 
       {/* Security Warning Badge */}
-      <div className="bg-amber-500/5 border border-amber-500/15 rounded-2xl p-4 flex items-start gap-3 text-xs max-w-2xl text-amber-400/90 leading-relaxed">
-        <Lock size={15} className="shrink-0 mt-0.5" />
+      <div className="bg-amber-500/5 backdrop-blur-md border border-amber-500/20 rounded-2xl p-5 flex items-start gap-4 text-xs max-w-2xl text-amber-400/90 leading-relaxed shadow-lg opacity-0 animate-fade-in" style={{ animationDelay: '100ms' }}>
+        <Lock size={16} className="shrink-0 mt-0.5" />
         <p>{t('securityWarning', lang)}</p>
       </div>
 
       {/* Search Form Component */}
-      <ExamSearchForm 
-        studentId={studentId}
-        setStudentId={setStudentId}
-        onSearch={handleSearch}
-        loading={loading}
-        lang={lang}
-      />
+      <div className="opacity-0 animate-fade-in" style={{ animationDelay: '150ms' }}>
+        <ExamSearchForm 
+          studentId={studentId}
+          setStudentId={setStudentId}
+          onSearch={handleSearch}
+          loading={loading}
+          lang={lang}
+        />
+      </div>
 
       {/* Error Message */}
       {error && (
@@ -106,12 +112,12 @@ export default function ExamRoom() {
 
       {/* Search Results */}
       {((studentId.trim() !== "" && searchTriggered) || sortedExams.length > 0) && !loading && (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-8 animate-fade-in opacity-0" style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}>
           
           {/* Outdated Data Warning */}
           {isOutdatedData && (
-            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs px-4 py-4 rounded-xl flex items-start gap-3 animate-fade-in">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <div className="bg-amber-500/10 backdrop-blur-md border border-amber-500/20 text-amber-400 text-sm font-medium p-6 rounded-3xl flex items-start gap-4 shadow-lg">
+              <AlertCircle size={20} className="shrink-0 mt-0.5" />
               <p className="leading-relaxed">
                 {lang === 'en' 
                   ? 'The system currently shows exam schedules from the previous semester. It seems the university has not updated the exam database for the new semester yet.' 
@@ -145,10 +151,10 @@ export default function ExamRoom() {
 
           {/* No Upcoming Exams State */}
           {sortedExams.length === 0 && !unlistedInfo && (
-            <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-8 text-center max-w-2xl animate-fade-in">
-              <ClipboardCheck size={28} className="text-dark-muted mx-auto mb-3" />
-              <h3 className="font-bold text-white text-sm mb-1">{t('noUpcomingExams', lang)}</h3>
-              <p className="text-[11px] text-dark-muted leading-relaxed">
+            <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-10 text-center max-w-2xl shadow-2xl mx-auto">
+              <ClipboardCheck size={36} className="text-zinc-500 mx-auto mb-4" />
+              <h3 className="font-bold text-white text-lg mb-2">{t('noUpcomingExams', lang)}</h3>
+              <p className="text-sm text-zinc-400 leading-relaxed">
                 {lang === 'en'
                   ? 'There are no upcoming exams found in the database. If you have custom exam schedules, you can add them manually.'
                   : 'ไม่พบรายชื่อการสอบที่กำลังจะมาถึงในระบบ คุณสามารถเพิ่มวิชาสอบของคุณเองได้โดยใช้ปุ่มเพิ่มวิชาสอบด้านบน'}

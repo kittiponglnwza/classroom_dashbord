@@ -79,10 +79,14 @@ export default function Home() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative max-w-7xl mx-auto py-4">
+      {/* Abstract Background Elements */}
+      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-brand-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-brand-900/40 via-dark-card to-dark-card border border-brand-500/20 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-lg shadow-black/20 group">
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-brand-500/20 transition-all duration-700" />
+      <div className="relative overflow-hidden bg-gradient-to-br from-brand-900/40 via-dark-card/60 to-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl opacity-0 animate-fade-in group hover:border-brand-500/20 transition-all duration-500" style={{ animationDelay: '50ms' }}>
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-500/20 rounded-full blur-[80px] pointer-events-none group-hover:bg-brand-500/30 transition-all duration-700" />
         <div className="relative z-10">
           <h1 className="text-2xl md:text-3xl font-bold font-heading text-white mb-2">
             {t('welcomeBack', lang, { name: profile.name || 'Student' })}
@@ -108,13 +112,13 @@ export default function Home() {
       </div>
 
       {/* Task Statistics */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold font-heading text-white">{t('progressOverview', lang)}</h2>
+      <section className="space-y-4 opacity-0 animate-fade-in" style={{ animationDelay: '100ms' }}>
+        <h2 className="text-xl font-bold font-heading text-white">{t('progressOverview', lang)}</h2>
         <TaskStats assignments={visibleAssignments} lang={lang} exams={allExams} />
       </section>
 
       {/* Grid: Upcoming Tasks & Quick Quotes */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 opacity-0 animate-fade-in" style={{ animationDelay: '200ms' }}>
         {/* Left Column: Upcoming Deadlines & Recent Announcements */}
         <div className="lg:col-span-2 space-y-8">
           {/* Upcoming Deadlines */}
@@ -133,7 +137,7 @@ export default function Home() {
             </div>
 
             {upcomingAssignments.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {upcomingAssignments.map((assignment) => (
                   <AssignmentCard
                     key={assignment.id}
@@ -144,8 +148,8 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="bg-dark-card border border-dark-border border-dashed rounded-xl p-8 text-center">
-                <p className="text-dark-muted text-sm">{t('noUpcoming', lang)}</p>
+              <div className="bg-dark-card/30 backdrop-blur-md border border-white/5 border-dashed rounded-3xl p-10 text-center shadow-inner">
+                <p className="text-zinc-400 text-sm font-medium">{t('noUpcoming', lang)}</p>
               </div>
             )}
           </div>
@@ -175,7 +179,7 @@ export default function Home() {
                     <Link
                       key={ann.id}
                       to={`/courses?selected=${encodeURIComponent(ann.course)}`}
-                      className={`block p-4 rounded-xl bg-dark-card/20 border border-dark-border/40 hover:bg-dark-hover/30 hover:border-dark-border transition-all duration-300 hover:translate-x-1 group border-l-4 ${borderLeft} flex flex-col justify-between h-full`}
+                      className={`block p-5 rounded-2xl bg-dark-card/30 backdrop-blur-md border border-white/5 hover:bg-white/5 hover:border-white/10 transition-all duration-300 hover:translate-x-1 group border-l-[3px] ${borderLeft} flex flex-col justify-between h-full shadow-lg hover:shadow-xl`}
                     >
                       <div className="space-y-3 flex-1 flex flex-col justify-between">
                         <div className="space-y-2">
@@ -206,18 +210,18 @@ export default function Home() {
                 })}
               </div>
             ) : (
-              <div className="bg-dark-card border border-dark-border border-dashed rounded-xl p-8 text-center">
-                <p className="text-xs text-dark-muted">{t('noAnnouncements', lang)}</p>
+              <div className="bg-dark-card/30 backdrop-blur-md border border-white/5 border-dashed rounded-3xl p-10 text-center shadow-inner">
+                <p className="text-sm font-medium text-zinc-400">{t('noAnnouncements', lang)}</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Right Column: Next Exam Widget & Quick Course List */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Today's Classes Widget */}
-          <div className="bg-dark-card border border-dark-border rounded-xl p-5 space-y-4 shadow-sm shadow-black/20">
-            <div className="flex items-center justify-between border-b border-dark-border/40 pb-2.5">
+          <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 space-y-6 shadow-2xl group hover:border-white/10 transition-all duration-500">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
               <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
                 <CalendarDays size={14} className="text-brand-400" />
                 <span>{lang === 'en' ? "Today's Classes" : 'ตารางเรียนวันนี้'}</span>
@@ -228,12 +232,12 @@ export default function Home() {
             </div>
             
             {todayClasses.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {todayClasses.map((cls, idx) => {
                   const borderLeft = getBorderLeftColor(cls.color || 'blue');
                   return (
-                  <div key={idx} className={`flex items-start gap-3 p-3.5 rounded-xl bg-dark-card/40 border border-dark-border/40 hover:bg-dark-hover/30 hover:border-dark-border transition-all duration-300 hover:-translate-y-0.5 group border-l-4 ${borderLeft} shadow-sm`}>
-                    <div className="flex flex-col items-center justify-center shrink-0 w-12 h-12 rounded-lg bg-dark-bg/50 border border-dark-border/50 text-brand-400 group-hover:scale-105 transition-transform">
+                  <div key={idx} className={`flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 hover:-translate-y-1 group border-l-[3px] ${borderLeft} shadow-md`}>
+                    <div className="flex flex-col items-center justify-center shrink-0 w-14 h-14 rounded-xl bg-black/20 border border-white/5 text-brand-400 group-hover:scale-105 transition-transform">
                       <span className="text-[11px] font-bold leading-none">{cls.startTime}</span>
                       <span className="text-[9px] font-medium text-dark-muted mt-1.5 leading-none">{cls.endTime}</span>
                     </div>
@@ -255,8 +259,8 @@ export default function Home() {
                 )})}
               </div>
             ) : (
-              <div className="py-6 text-center border border-dashed border-dark-border/60 rounded-xl bg-dark-bg/30">
-                <p className="text-xs text-dark-muted font-medium flex items-center justify-center gap-2">
+              <div className="py-8 text-center border border-dashed border-white/10 rounded-2xl bg-white/5">
+                <p className="text-sm text-zinc-400 font-medium flex items-center justify-center gap-2">
                   <span>🎉</span> {lang === 'en' ? 'No classes today! Enjoy your day.' : 'วันนี้ไม่มีเรียน! พักผ่อนให้เต็มที่'}
                 </p>
               </div>
@@ -304,9 +308,9 @@ export default function Home() {
 
             if (!hasChecked) {
               return (
-                <div className="bg-dark-card border border-dark-border rounded-xl p-5 space-y-3 relative overflow-hidden group">
-                  <div className="absolute -top-10 -right-10 w-24 h-24 bg-brand-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-brand-500/10 transition-all duration-300" />
-                  <div className="flex items-center justify-between border-b border-dark-border/40 pb-2.5">
+                <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 space-y-4 relative overflow-hidden group hover:border-white/10 transition-all duration-500 shadow-2xl">
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-brand-500/20 transition-all duration-500" />
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
                     <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
                       <ClipboardCheck size={14} className="text-brand-400" />
                       <span>{t('upcomingExamHeader', lang)}</span>
@@ -335,9 +339,9 @@ export default function Home() {
 
             if (nextExam) {
               return (
-                <div className="bg-dark-card border border-dark-border hover:border-brand-500/20 rounded-xl p-5 space-y-3 relative overflow-hidden group transition-all duration-300">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-brand-500/40" />
-                  <div className="flex items-center justify-between border-b border-dark-border/40 pb-2.5">
+                <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 hover:border-brand-500/30 rounded-3xl p-6 lg:p-8 space-y-5 relative overflow-hidden group transition-all duration-500 shadow-2xl">
+                  <div className="absolute top-0 left-0 right-0 h-1.5 bg-brand-500/40" />
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
                     <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
                       <ClipboardCheck size={14} className="text-brand-400" />
                       <span>{t('upcomingExamHeader', lang)}</span>
@@ -385,8 +389,8 @@ export default function Home() {
 
             if (unlisted) {
               return (
-                <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-5 space-y-3 relative overflow-hidden">
-                  <div className="flex items-center justify-between border-b border-rose-500/10 pb-2.5">
+                <div className="bg-rose-500/10 backdrop-blur-xl border border-rose-500/20 rounded-3xl p-6 lg:p-8 space-y-4 relative overflow-hidden shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-rose-500/10 pb-4">
                     <h3 className="text-xs font-semibold text-rose-400 uppercase tracking-wider flex items-center gap-2">
                       <AlertCircle size={14} className="text-rose-400" />
                       <span>{t('upcomingExamHeader', lang)}</span>
@@ -414,8 +418,8 @@ export default function Home() {
             }
 
             return (
-              <div className="bg-dark-card border border-dark-border rounded-xl p-5 space-y-3 relative overflow-hidden">
-                <div className="flex items-center justify-between border-b border-dark-border/40 pb-2.5">
+              <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 space-y-4 relative overflow-hidden shadow-2xl hover:border-white/10 transition-all duration-500">
+                <div className="flex items-center justify-between border-b border-white/5 pb-4">
                   <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
                     <ClipboardCheck size={14} className="text-dark-muted" />
                     <span>{t('upcomingExamHeader', lang)}</span>
@@ -429,8 +433,8 @@ export default function Home() {
           })()}
 
           {/* Quick Course List */}
-          <div className="bg-dark-card border border-dark-border rounded-xl p-5 shadow-sm shadow-black/20 group">
-            <h3 className="text-xs font-semibold text-white uppercase tracking-wider mb-4 flex items-center justify-between">
+          <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 shadow-2xl group hover:border-white/10 transition-all duration-500">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center justify-between">
               <span>{t('mySubjects', lang)}</span>
               <BookOpen size={14} className="text-dark-muted group-hover:text-brand-400 transition-colors" />
             </h3>
@@ -438,20 +442,20 @@ export default function Home() {
               {visibleCourses.slice(0, 4).map((c) => {
                 const count = visibleAssignments.filter(a => a.course === c.name && a.status !== 'done').length;
                 return (
-                  <div key={c.id} className="flex items-center justify-between text-xs p-2.5 rounded-lg hover:bg-dark-hover/30 transition-colors group/row">
-                    <span className="text-zinc-300 font-medium truncate pr-3 group-hover/row:text-white transition-colors flex-1" title={c.name}>{c.name}</span>
-                    <span className={`px-2.5 py-1 rounded-full border text-[10px] font-bold shrink-0 shadow-sm ${
-                      count > 0 ? 'bg-brand-500/15 text-brand-400 border-brand-500/30' : 'bg-dark-bg text-zinc-400 border-dark-border/60'
+                  <div key={c.id} className="flex items-center justify-between text-sm p-3 rounded-2xl hover:bg-white/5 transition-colors group/row">
+                    <span className="text-zinc-300 font-bold truncate pr-3 group-hover/row:text-white transition-colors flex-1" title={c.name}>{c.name}</span>
+                    <span className={`px-3 py-1 rounded-full border text-[10px] font-bold shrink-0 shadow-sm ${
+                      count > 0 ? 'bg-brand-500/15 text-brand-400 border-brand-500/30' : 'bg-black/20 text-zinc-400 border-white/5'
                     }`}>
                       {t('activeCount', lang, { count })}
                     </span>
                   </div>
                 );
               })}
-              <div className="pt-3 mt-1 border-t border-dark-border/50">
+              <div className="pt-4 mt-2 border-t border-white/5">
                 <Link 
                   to="/courses"
-                  className="flex items-center justify-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-dark-bg/50 hover:bg-brand-500/10 border border-transparent hover:border-brand-500/20 font-semibold transition-all py-2 rounded-lg"
+                  className="flex items-center justify-center gap-2 text-sm text-zinc-400 hover:text-white bg-black/20 hover:bg-brand-500/10 border border-transparent hover:border-brand-500/20 font-bold transition-all py-3 rounded-2xl shadow-sm"
                 >
                   {t('manageCourses', lang)}
                   <ArrowRight size={12} />

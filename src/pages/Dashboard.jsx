@@ -198,112 +198,125 @@ export default function Dashboard() {
   const doneTasks = sortedAssignments.filter(a => a.status === 'done');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 relative max-w-7xl mx-auto py-4">
+      {/* Abstract Background Elements */}
+      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] bg-brand-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
         <div>
-          <h1 className="text-2xl font-bold font-heading text-white">{t('assignmentsTitle', lang)}</h1>
-          <p className="text-xs text-dark-muted">{t('assignmentsDesc', lang)}</p>
+          <h1 className="text-3xl font-bold font-heading text-white tracking-tight">{t('assignmentsTitle', lang)}</h1>
+          <p className="text-sm text-dark-muted mt-1">{t('assignmentsDesc', lang)}</p>
         </div>
         <div className="flex items-center gap-3">
           {isLoggedIn && (
             <button
               onClick={syncClassroom}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-semibold text-xs px-4 py-2.5 rounded-lg border border-dark-border transition-colors disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-brand-400 hover:text-brand-300 font-semibold text-xs px-5 py-3 rounded-2xl border border-white/5 transition-all duration-300 disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+              <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
               {t('syncClassroom', lang)}
             </button>
           )}
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors shadow-md shadow-brand-500/10 cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-brand-500/20 hover:-translate-y-0.5 cursor-pointer"
           >
-            <Plus size={16} />
+            <Plus size={18} />
             {t('createTask', lang)}
           </button>
         </div>
       </div>
 
       {/* Today's Schedule Widget */}
-      <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-5 shadow-lg animate-fade-in relative overflow-hidden">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <CalendarDays size={16} className="text-brand-400" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">{t('todaySchedule', lang)}</h3>
+      <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 shadow-2xl opacity-0 animate-fade-in relative overflow-hidden group hover:border-brand-500/20 transition-all duration-500" style={{ animationDelay: '150ms' }}>
+        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none">
+          <CalendarDays size={100} className="text-brand-500 blur-2xl group-hover:blur-xl transition-all" />
+        </div>
+
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-brand-500/10 flex items-center justify-center">
+              <CalendarDays size={20} className="text-brand-400" />
+            </div>
+            <h3 className="text-sm font-bold text-white tracking-wide">{t('todaySchedule', lang)}</h3>
           </div>
           <Link
             to="/schedule"
-            className="text-[10px] font-bold text-brand-400 hover:text-brand-300 transition-colors uppercase tracking-wider"
+            className="text-xs font-bold text-brand-400 hover:text-white transition-colors flex items-center gap-1"
           >
             {t('viewFullSchedule', lang)}
           </Link>
         </div>
 
-        {todayClasses.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {todayClasses.map(cls => (
-              <div
-                key={cls.id}
-                className="flex items-center justify-between bg-dark-sidebar/40 border border-dark-border/40 rounded-xl p-3 hover:border-brand-500/20 transition-all"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: cls.color }} />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-bold text-white truncate leading-tight">{cls.title}</p>
-                      {cls.date && (
-                        <span className="text-[7.5px] px-1 py-0.25 rounded font-extrabold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0 select-none">
-                          {lang === 'en' ? 'Once' : 'พิเศษ'}
+        <div className="relative z-10">
+          {todayClasses.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {todayClasses.map(cls => (
+                <div
+                  key={cls.id}
+                  className="flex items-center justify-between bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 hover:border-white/10 transition-all duration-300 group/item"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-1.5 h-10 rounded-full shrink-0 group-hover/item:scale-y-110 transition-transform" style={{ backgroundColor: cls.color }} />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-bold text-white truncate">{cls.title}</p>
+                        {cls.date && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                            {lang === 'en' ? 'Once' : 'พิเศษ'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-zinc-400 font-medium">
+                        <span className="flex items-center gap-1.5">
+                          <Clock size={12} className="text-zinc-500" />
+                          {cls.startTime} - {cls.endTime}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 text-[10px] text-dark-muted font-mono font-medium">
-                      <span className="flex items-center gap-1">
-                        <Clock size={10} />
-                        {cls.startTime} - {cls.endTime}
-                      </span>
-                      {cls.room && (
-                        <span className="bg-dark-bg/60 px-1 py-0.25 rounded">{cls.room}</span>
-                      )}
+                        {cls.room && (
+                          <span className="bg-black/30 px-2 py-0.5 rounded-full text-[10px] text-zinc-300">{cls.room}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="py-3 text-center bg-dark-sidebar/10 border border-dark-border/20 rounded-xl">
-            <p className="text-xs text-dark-muted font-semibold">{t('noClassesToday', lang)}</p>
-          </div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="py-6 text-center bg-white/5 border border-white/5 rounded-2xl">
+              <p className="text-sm text-zinc-400 font-medium">{t('noClassesToday', lang)}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Control Bar: Filters, Search, Views */}
-      <div className="bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+      {/* Control Bar: Filters, Search, Views */}
+      <div className="bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl p-4 lg:p-5 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between opacity-0 animate-fade-in" style={{ animationDelay: '250ms' }}>
         {/* Search */}
-        <div className="relative flex-1">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-dark-muted">
-            <Search size={16} />
+        <div className="relative flex-1 max-w-md">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-dark-muted">
+            <Search size={18} />
           </span>
           <input
             type="text"
             placeholder={t('searchPlaceholder', lang)}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-dark-sidebar border border-dark-border rounded-lg pl-9 pr-4 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all"
+            className="w-full bg-white/5 border border-white/5 rounded-2xl pl-11 pr-4 py-3 text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 focus:bg-white/10 transition-all duration-300"
           />
         </div>
 
         {/* Filters and Sorting */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-dark-sidebar border border-dark-border px-2.5 py-1.5 rounded-lg">
-            <Filter size={13} className="text-dark-muted" />
+          <div className="flex items-center gap-2 bg-white/5 border border-white/5 px-3 py-2.5 rounded-2xl transition-all hover:bg-white/10">
+            <Filter size={16} className="text-zinc-400" />
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
-              className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-sm text-zinc-200 focus:outline-none cursor-pointer pr-1"
             >
               <option value="all">{t('allSubjects', lang)}</option>
               {visibleCourses.map(c => (
@@ -313,11 +326,11 @@ export default function Dashboard() {
           </div>
 
           {viewType !== 'kanban' && (
-            <div className="flex items-center gap-1.5 bg-dark-sidebar border border-dark-border px-2.5 py-1.5 rounded-lg">
+            <div className="flex items-center gap-2 bg-white/5 border border-white/5 px-3 py-2.5 rounded-2xl transition-all hover:bg-white/10">
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer"
+                className="bg-transparent text-sm text-zinc-200 focus:outline-none cursor-pointer"
               >
                 <option value="all">{t('allStatuses', lang)}</option>
                 <option value="todo">{t('todo', lang)}</option>
@@ -327,12 +340,12 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 bg-dark-sidebar border border-dark-border px-2.5 py-1.5 rounded-lg">
-            <ArrowUpDown size={13} className="text-dark-muted" />
+          <div className="flex items-center gap-2 bg-white/5 border border-white/5 px-3 py-2.5 rounded-2xl transition-all hover:bg-white/10">
+            <ArrowUpDown size={16} className="text-zinc-400" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent text-xs text-zinc-200 focus:outline-none cursor-pointer"
+              className="bg-transparent text-sm text-zinc-200 focus:outline-none cursor-pointer"
             >
               <option value="due-asc">{t('sortByDueAsc', lang)}</option>
               <option value="due-desc">{t('sortByDueDesc', lang)}</option>
@@ -340,20 +353,20 @@ export default function Dashboard() {
             </select>
           </div>
 
-          <div className="flex items-center border border-dark-border rounded-lg p-0.5 bg-dark-sidebar ml-auto md:ml-0">
+          <div className="flex items-center border border-white/5 rounded-2xl p-1 bg-white/5 ml-auto md:ml-0">
             <button
               onClick={() => setViewType('grid')}
-              className={`p-1.5 rounded-md transition-colors ${viewType === 'grid' ? 'bg-dark-card text-brand-400' : 'text-dark-muted hover:text-white'}`}
+              className={`p-2 rounded-xl transition-all duration-300 ${viewType === 'grid' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
               title="Grid View"
             >
-              <LayoutGrid size={15} />
+              <LayoutGrid size={18} />
             </button>
             <button
               onClick={() => setViewType('kanban')}
-              className={`p-1.5 rounded-md transition-colors ${viewType === 'kanban' ? 'bg-dark-card text-brand-400' : 'text-dark-muted hover:text-white'}`}
+              className={`p-2 rounded-xl transition-all duration-300 ${viewType === 'kanban' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
               title="Kanban Board"
             >
-              <Kanban size={15} />
+              <Kanban size={18} />
             </button>
           </div>
         </div>
@@ -361,14 +374,16 @@ export default function Dashboard() {
 
       {/* Critical Rows (Only visible in Grid view to keep board columns clean) */}
       {viewType === 'grid' && (
-        <>
+        <div className="space-y-6">
           {overdueTasks.length > 0 && (
-            <div className="space-y-3 bg-rose-500/5 border border-rose-500/10 rounded-2xl p-5">
-              <h3 className="text-xs font-bold text-rose-400 flex items-center gap-2 uppercase tracking-wider">
-                <AlertTriangle size={15} className="animate-bounce" />
+            <div className="space-y-4 bg-rose-500/5 backdrop-blur-md border border-rose-500/10 rounded-3xl p-6 lg:p-8 opacity-0 animate-fade-in" style={{ animationDelay: '350ms' }}>
+              <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center">
+                  <AlertTriangle size={16} className="animate-bounce" />
+                </div>
                 {t('overdueTasksTitle', lang)}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {overdueTasks.map(task => (
                   <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
                 ))}
@@ -377,29 +392,32 @@ export default function Dashboard() {
           )}
 
           {todayTasks.length > 0 && (
-            <div className="space-y-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl p-5">
-              <h3 className="text-xs font-bold text-amber-400 flex items-center gap-2 uppercase tracking-wider">
-                <AlertTriangle size={15} />
+            <div className="space-y-4 bg-amber-500/5 backdrop-blur-md border border-amber-500/10 rounded-3xl p-6 lg:p-8 opacity-0 animate-fade-in" style={{ animationDelay: '400ms' }}>
+              <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                  <AlertTriangle size={16} />
+                </div>
                 {t('dueTodayTitle', lang)}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {todayTasks.map(task => (
                   <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
                 ))}
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Grid View */}
       {viewType === 'grid' && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold text-dark-muted uppercase tracking-wider">
+        <div className="space-y-5 opacity-0 animate-fade-in" style={{ animationDelay: '450ms' }}>
+          <h3 className="text-sm font-bold text-zinc-300 flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-brand-500"></span>
             {t('allCourseAssignments', lang, { count: sortedAssignments.length })}
           </h3>
           {sortedAssignments.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedAssignments.map((assignment) => (
                 <AssignmentCard
                   key={assignment.id}
@@ -410,8 +428,8 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center">
-              <p className="text-dark-muted text-sm">{t('noAssignmentsFound', lang)}</p>
+            <div className="bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl p-16 text-center shadow-lg">
+              <p className="text-zinc-400 text-sm font-medium">{t('noAssignmentsFound', lang)}</p>
             </div>
           )}
         </div>
@@ -419,67 +437,67 @@ export default function Dashboard() {
 
       {/* Kanban Board View */}
       {viewType === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-dark-sidebar/40 border border-dark-border/60 rounded-xl p-4 flex flex-col h-full min-h-[500px]">
-            <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" />
-                <span className="font-semibold text-sm text-white">{t('todo', lang)}</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 opacity-0 animate-fade-in" style={{ animationDelay: '350ms' }}>
+          <div className="bg-dark-card/30 backdrop-blur-xl border border-white/5 rounded-3xl p-5 lg:p-6 flex flex-col h-full min-h-[500px] shadow-lg">
+            <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-zinc-400 shadow-[0_0_8px_rgba(161,161,170,0.5)]" />
+                <span className="font-bold text-white tracking-wide">{t('todo', lang)}</span>
               </div>
-              <span className="bg-zinc-800 text-zinc-300 text-xs px-2 py-0.5 rounded-full font-bold">
+              <span className="bg-white/10 text-white text-xs px-3 py-1 rounded-full font-bold">
                 {todoTasks.length}
               </span>
             </div>
-            <div className="space-y-4 overflow-y-auto flex-1 max-h-[600px] pr-1">
+            <div className="space-y-5 overflow-y-auto flex-1 max-h-[600px] pr-2 custom-scrollbar">
               {todoTasks.map(task => (
                 <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
               ))}
               {todoTasks.length === 0 && (
-                <div className="border border-dark-border/40 border-dashed rounded-lg p-5 text-center text-xs text-dark-muted py-8">
+                <div className="border border-white/10 border-dashed rounded-2xl p-8 text-center text-sm font-medium text-zinc-500 py-12">
                   {t('emptyColumn', lang)}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-dark-sidebar/40 border border-dark-border/60 rounded-xl p-4 flex flex-col h-full min-h-[500px]">
-            <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="font-semibold text-sm text-white">{t('doing', lang)}</span>
+          <div className="bg-dark-card/30 backdrop-blur-xl border border-white/5 rounded-3xl p-5 lg:p-6 flex flex-col h-full min-h-[500px] shadow-lg">
+            <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+                <span className="font-bold text-white tracking-wide">{t('doing', lang)}</span>
               </div>
-              <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-2 py-0.5 rounded-full font-bold">
+              <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-3 py-1 rounded-full font-bold">
                 {doingTasks.length}
               </span>
             </div>
-            <div className="space-y-4 overflow-y-auto flex-1 max-h-[600px] pr-1">
+            <div className="space-y-5 overflow-y-auto flex-1 max-h-[600px] pr-2 custom-scrollbar">
               {doingTasks.map(task => (
                 <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
               ))}
               {doingTasks.length === 0 && (
-                <div className="border border-dark-border/40 border-dashed rounded-lg p-5 text-center text-xs text-dark-muted py-8">
+                <div className="border border-white/10 border-dashed rounded-2xl p-8 text-center text-sm font-medium text-zinc-500 py-12">
                   {t('emptyColumn', lang)}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-dark-sidebar/40 border border-dark-border/60 rounded-xl p-4 flex flex-col h-full min-h-[500px]">
-            <div className="flex items-center justify-between mb-4 border-b border-dark-border pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span className="font-semibold text-sm text-white">{t('completed', lang)}</span>
+          <div className="bg-dark-card/30 backdrop-blur-xl border border-white/5 rounded-3xl p-5 lg:p-6 flex flex-col h-full min-h-[500px] shadow-lg">
+            <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                <span className="font-bold text-white tracking-wide">{t('completed', lang)}</span>
               </div>
-              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-2 py-0.5 rounded-full font-bold">
+              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-3 py-1 rounded-full font-bold">
                 {doneTasks.length}
               </span>
             </div>
-            <div className="space-y-4 overflow-y-auto flex-1 max-h-[600px] pr-1">
+            <div className="space-y-5 overflow-y-auto flex-1 max-h-[600px] pr-2 custom-scrollbar">
               {doneTasks.map(task => (
                 <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
               ))}
               {doneTasks.length === 0 && (
-                <div className="border border-dark-border/40 border-dashed rounded-lg p-5 text-center text-xs text-dark-muted py-8">
+                <div className="border border-white/10 border-dashed rounded-2xl p-8 text-center text-sm font-medium text-zinc-500 py-12">
                   {t('emptyColumn', lang)}
                 </div>
               )}
@@ -490,91 +508,96 @@ export default function Dashboard() {
 
       {/* Create Task Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-dark-card border border-dark-border rounded-xl w-full max-w-lg overflow-hidden animate-fade-in relative shadow-2xl">
-            <div className="flex items-center justify-between p-5 border-b border-dark-border">
-              <h3 className="font-semibold font-heading text-lg text-white">{t('createTaskTitle', lang)}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-dark-card border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden animate-fade-in relative shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center justify-between p-6 border-b border-white/5">
+              <h3 className="font-bold text-xl text-white tracking-tight">{t('createTaskTitle', lang)}</h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-dark-muted hover:text-white p-1 rounded-lg hover:bg-dark-hover transition-colors"
+                className="text-zinc-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Title *' : 'หัวข้อการบ้าน *'}</label>
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              <div className="space-y-1.5 group/input relative">
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Title *' : 'หัวข้อการบ้าน *'}</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Linux Lab 5"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full bg-dark-sidebar border border-dark-border rounded-lg px-3.5 py-2 text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500"
+                  className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-brand-500 transition-all rounded-none"
                 />
+                <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Subject *' : 'วิชา *'}</label>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1.5 group/input relative">
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Subject *' : 'วิชา *'}</label>
                   <select
                     value={newCourse}
                     onChange={(e) => setNewCourse(e.target.value)}
-                    className="w-full bg-dark-sidebar border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500 cursor-pointer"
+                    className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus:border-brand-500 cursor-pointer transition-all rounded-none"
                   >
                     {visibleCourses.map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
+                      <option key={c.id} value={c.name} className="bg-dark-sidebar">{c.name}</option>
                     ))}
                   </select>
+                  <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Due Date *' : 'กำหนดส่ง *'}</label>
+                <div className="space-y-1.5 group/input relative">
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Due Date *' : 'กำหนดส่ง *'}</label>
                   <input
                     type="date"
                     required
                     value={newDueDate}
                     onChange={(e) => setNewDueDate(e.target.value)}
-                    className="w-full bg-dark-sidebar border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-500 cursor-pointer"
+                    className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus:border-brand-500 cursor-pointer transition-all rounded-none"
                   />
+                  <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Points' : 'คะแนนเต็ม'}</label>
+              <div className="space-y-1.5 group/input relative">
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Points' : 'คะแนนเต็ม'}</label>
                 <input
                   type="number"
                   min="0"
                   value={newPoints}
                   onChange={(e) => setNewPoints(e.target.value)}
-                  className="w-full bg-dark-sidebar border border-dark-border rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-500"
+                  className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus:border-brand-500 transition-all rounded-none"
                 />
+                <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-dark-muted mb-1.5 uppercase">{lang === 'en' ? 'Description' : 'คำอธิบาย'}</label>
+              <div className="space-y-1.5 group/input relative">
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Description' : 'คำอธิบาย'}</label>
                 <textarea
                   rows="3"
                   placeholder={lang === 'en' ? 'Describe details about this assignment...' : 'อธิบายรายละเอียดของการบ้านนี้...'}
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full bg-dark-sidebar border border-dark-border rounded-lg px-3.5 py-2 text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 resize-none"
+                  className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-brand-500 resize-none transition-all rounded-none"
                 />
+                <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-dark-border/40 mt-4">
+              <div className="flex justify-end gap-3 pt-6 mt-6">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-dark-muted hover:text-white hover:bg-dark-hover transition-colors"
+                  className="px-6 py-3 rounded-2xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
                 >
                   {lang === 'en' ? 'Cancel' : 'ยกเลิก'}
                 </button>
                 <button
                   type="submit"
-                  className="bg-brand-500 hover:bg-brand-600 text-white font-medium text-xs px-4 py-2 rounded-lg transition-colors shadow-md shadow-brand-500/10"
+                  className="bg-brand-500 hover:bg-brand-400 text-white font-bold text-sm px-6 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-brand-500/20 hover:-translate-y-0.5"
                 >
-                  {lang === 'en' ? 'Create' : 'สร้าง'}
+                  {lang === 'en' ? 'Create Task' : 'สร้างงาน'}
                 </button>
               </div>
             </form>
