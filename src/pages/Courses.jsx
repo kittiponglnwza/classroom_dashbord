@@ -5,7 +5,7 @@ import {
   User, BookOpen, ChevronRight, Eye, EyeOff, ArrowLeft, 
   Megaphone, FileText, ExternalLink, Calendar, 
   Check, Trash2, Pin, Search, ChevronDown, ChevronUp, 
-  LayoutGrid, List
+  LayoutGrid, List, Hash, Filter, FolderOpen
 } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { 
@@ -430,23 +430,51 @@ export default function Courses() {
             </button>
           </div>
 
-          <div className="animate-fade-in pt-2 space-y-6">
+          <div className="animate-fade-in pt-4 space-y-8">
             {courseTopics.length > 0 && (
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-semibold text-dark-muted">
-                  {lang === 'en' ? 'Topic Filter:' : 'ตัวกรองหัวข้อ:'}
-                </label>
-                <select
-                  value={selectedTopicId}
-                  onChange={(e) => setSelectedTopicId(e.target.value)}
-                  className="bg-dark-card border border-dark-border text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-brand-500/50"
-                >
-                  <option value="all">{lang === 'en' ? 'All Topics' : 'หัวข้อทั้งหมด'}</option>
-                  <option value="none">{lang === 'en' ? 'No Topic' : 'ไม่มีหัวข้อ'}</option>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-dark-muted px-1 uppercase tracking-wider">
+                  <Filter size={14} className={`text-${themeColor}-400`} />
+                  {lang === 'en' ? 'Topics' : 'หัวข้อ'}
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
+                  <button
+                    onClick={() => setSelectedTopicId('all')}
+                    className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center gap-2 border cursor-pointer ${
+                      selectedTopicId === 'all'
+                        ? `bg-${themeColor}-500/20 text-${themeColor}-300 border-${themeColor}-500/30 shadow-[0_0_15px_rgba(var(--color-${themeColor}-500),0.1)]`
+                        : 'bg-dark-card/50 text-dark-muted border-white/5 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <FolderOpen size={13} />
+                    {lang === 'en' ? 'All' : 'ทั้งหมด'}
+                  </button>
+                  <button
+                    onClick={() => setSelectedTopicId('none')}
+                    className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center gap-2 border cursor-pointer ${
+                      selectedTopicId === 'none'
+                        ? `bg-${themeColor}-500/20 text-${themeColor}-300 border-${themeColor}-500/30 shadow-[0_0_15px_rgba(var(--color-${themeColor}-500),0.1)]`
+                        : 'bg-dark-card/50 text-dark-muted border-white/5 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Hash size={13} />
+                    {lang === 'en' ? 'No Topic' : 'ไม่มีหัวข้อ'}
+                  </button>
                   {courseTopics.map(topic => (
-                    <option key={topic.id} value={topic.id}>{topic.name}</option>
+                    <button
+                      key={topic.id}
+                      onClick={() => setSelectedTopicId(topic.id)}
+                      className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center gap-2 border cursor-pointer ${
+                        selectedTopicId === topic.id
+                          ? `bg-${themeColor}-500/20 text-${themeColor}-300 border-${themeColor}-500/30 shadow-[0_0_15px_rgba(var(--color-${themeColor}-500),0.1)]`
+                          : 'bg-dark-card/50 text-dark-muted border-white/5 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      <Hash size={13} />
+                      {topic.name}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             )}
 
@@ -460,9 +488,17 @@ export default function Courses() {
                       : courseTopics.find(t => t.id === topicId)?.name || 'Unknown Topic';
                     
                     return (
-                      <div key={topicId} className="space-y-3">
+                      <div key={topicId} className="space-y-4">
                         {topicId !== 'none' || courseTopics.length > 0 ? (
-                          <h4 className="text-sm font-bold text-white px-1 border-b border-white/5 pb-2">{topicName}</h4>
+                          <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl bg-dark-sidebar/40 border border-white/5 border-l-4 border-l-${themeColor}-500`}>
+                            <div className={`p-1.5 rounded-lg bg-${themeColor}-500/10 text-${themeColor}-400`}>
+                              <Hash size={16} />
+                            </div>
+                            <h4 className="text-base font-bold text-white tracking-wide">{topicName}</h4>
+                            <span className="text-xs font-semibold text-dark-muted bg-black/20 px-2 py-0.5 rounded-md ml-auto">
+                              {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
+                            </span>
+                          </div>
                         ) : null}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                           {items.map((assignment) => (
@@ -493,9 +529,17 @@ export default function Courses() {
                       : courseTopics.find(t => t.id === topicId)?.name || 'Unknown Topic';
                     
                     return (
-                      <div key={topicId} className="space-y-3">
+                      <div key={topicId} className="space-y-4">
                         {topicId !== 'none' || courseTopics.length > 0 ? (
-                          <h4 className="text-sm font-bold text-white px-1 border-b border-white/5 pb-2">{topicName}</h4>
+                          <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl bg-dark-sidebar/40 border border-white/5 border-l-4 border-l-${themeColor}-500`}>
+                            <div className={`p-1.5 rounded-lg bg-${themeColor}-500/10 text-${themeColor}-400`}>
+                              <Hash size={16} />
+                            </div>
+                            <h4 className="text-base font-bold text-white tracking-wide">{topicName}</h4>
+                            <span className="text-xs font-semibold text-dark-muted bg-black/20 px-2 py-0.5 rounded-md ml-auto">
+                              {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
+                            </span>
+                          </div>
                         ) : null}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                           {items.map((resource) => (
