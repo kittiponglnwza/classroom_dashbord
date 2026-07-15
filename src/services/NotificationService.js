@@ -329,7 +329,7 @@ export class NotificationService {
    */
   static async triggerTestEmail(accessToken, toEmail) {
     if (!this.checkDailyLimitAndIncrement(toEmail)) {
-      throw new Error('Failed to send test email: Daily email limit (3) reached.');
+      throw new Error(`Failed to send test email: Daily email limit (${NOTIFICATION_CONFIG.maxDailyEmails}) reached.`);
     }
 
     const alertSettings = getAlertSettings(toEmail);
@@ -367,7 +367,7 @@ export class NotificationService {
    */
   static async triggerManualDigest(accessToken, toEmail, assignments) {
     if (!this.checkDailyLimitAndIncrement(toEmail)) {
-      throw new Error('Failed to send task digest: Daily email limit (3) reached.');
+      throw new Error(`Failed to send task digest: Daily email limit (${NOTIFICATION_CONFIG.maxDailyEmails}) reached.`);
     }
 
     const alertSettings = getAlertSettings(toEmail);

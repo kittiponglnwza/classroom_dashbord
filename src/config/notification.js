@@ -1,5 +1,5 @@
 export const NOTIFICATION_CONFIG = {
-  maxDailyEmails: 3,
+  maxDailyEmails: 10,
   defaultSundayDigestTime: '18:00',
   defaultSettings: {
     due3Days: true,

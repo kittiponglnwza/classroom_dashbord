@@ -43,7 +43,7 @@ export const API_SCOPES = [
   'openid', 'email', 'profile'
 ];
 
-export const DAILY_EMAIL_LIMIT = 3;
+export const DAILY_EMAIL_LIMIT = 10;
 
 export const DEFAULT_ALERT_SETTINGS = {
   due3Days: true,
