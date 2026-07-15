@@ -38,6 +38,7 @@ export const API_SCOPES = [
   'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly',
   'https://www.googleapis.com/auth/classroom.announcements.readonly',
   'https://www.googleapis.com/auth/classroom.materials.readonly',
+  'https://www.googleapis.com/auth/classroom.topics.readonly',
   'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/drive.appdata',
   'openid', 'email', 'profile'

@@ -10,7 +10,8 @@ export const STORAGE_CONFIG = {
     hiddenCourses: 'classroom_hub_hidden_courses',
     activeEmail: 'classroom_hub_active_email',
     schedule: 'classroom_hub_schedule',
-    exams: 'classroom_hub_exam_results'
+    exams: 'classroom_hub_exam_results',
+    topics: 'classroom_hub_topics'
   },
   
   // Cache TTLs in milliseconds

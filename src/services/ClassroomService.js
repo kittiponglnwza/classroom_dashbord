@@ -107,11 +107,12 @@ export class ClassroomService {
       const chunkPromises = chunk.map(async (course) => {
         try {
           // Fetch course resources concurrently for this specific course
-          const [rawCW, rawSub, rawAnn, rawMat] = await Promise.all([
+          const [rawCW, rawSub, rawAnn, rawMat, rawTopics] = await Promise.all([
             GoogleRepository.fetchCoursework(accessToken, course.id),
             GoogleRepository.fetchSubmissions(accessToken, course.id),
             GoogleRepository.fetchAnnouncements(accessToken, course.id),
-            GoogleRepository.fetchMaterials(accessToken, course.id)
+            GoogleRepository.fetchMaterials(accessToken, course.id),
+            GoogleRepository.fetchTopics(accessToken, course.id)
           ]);
 
           const submissionMap = new Map(rawSub.map(sub => [sub.courseWorkId, sub]));
@@ -152,6 +153,7 @@ export class ClassroomService {
               courseColor: courseDetails.color,
               courseId: course.id,
               googleLink: cw.alternateLink,
+              topicId: cw.topicId || null,
               updatedAt: new Date().toISOString()
             };
           });
@@ -190,18 +192,26 @@ export class ClassroomService {
               description: mat.description || '',
               creationTime: mat.creationTime || new Date().toISOString(),
               attachments: this.mapAttachments(mat.materials, mat.description),
-              googleLink: mat.alternateLink
+              googleLink: mat.alternateLink,
+              topicId: mat.topicId || null
             };
           });
 
+          const mappedTopics = rawTopics.map(t => ({
+            id: t.topicId,
+            courseId: course.id,
+            name: t.name
+          }));
+
           return {
             assignments: mappedAssignments,
-            resources: [...mappedAnnouncements, ...mappedMaterials]
+            resources: [...mappedAnnouncements, ...mappedMaterials],
+            topics: mappedTopics
           };
 
         } catch (e) {
           logger.error(`Error processing course: ${course.name}`, e);
-          return { assignments: [], resources: [] };
+          return { assignments: [], resources: [], topics: [] };
         }
       });
 
@@ -211,11 +221,13 @@ export class ClassroomService {
 
     const assignments = results.map(r => r.assignments || []).flat();
     const resources = results.map(r => r.resources || []).flat();
+    const topics = results.map(r => r.topics || []).flat();
 
     return {
       courses: mappedCourses,
       assignments,
-      resources
+      resources,
+      topics
     };
   }
 }

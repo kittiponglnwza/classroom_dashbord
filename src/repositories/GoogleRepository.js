@@ -75,6 +75,19 @@ export const GoogleRepository = {
   },
 
   /**
+   * Fetch topics for a specific course
+   */
+  async fetchTopics(accessToken, courseId) {
+    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${courseId}/topics`;
+    const headers = { 'Authorization': `Bearer ${accessToken}` };
+    const data = await httpClient.request(url, { headers }).catch(err => {
+      logger.error(`Failed to fetch topics for course ${courseId}:`, err);
+      return { topic: [] };
+    });
+    return data.topic || [];
+  },
+
+  /**
    * Send Gmail Notification (RFC 822 MIME message format)
    */
   async sendEmail(accessToken, toEmail, subject, htmlBody) {

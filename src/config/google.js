@@ -8,6 +8,7 @@ export const GOOGLE_CONFIG = {
     'https://www.googleapis.com/auth/classroom.coursework.students.readonly',
     'https://www.googleapis.com/auth/classroom.announcements.readonly',
     'https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly',
+    'https://www.googleapis.com/auth/classroom.topics.readonly',
     'https://www.googleapis.com/auth/gmail.send',
     'https://www.googleapis.com/auth/drive.appdata',
     'https://www.googleapis.com/auth/calendar.events',

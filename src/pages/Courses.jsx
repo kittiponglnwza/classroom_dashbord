@@ -94,7 +94,7 @@ function ResourceCard({
 
         {description && description !== title && (
           <div className="space-y-1">
-            <p className="text-xs text-dark-muted whitespace-pre-line leading-relaxed">{displayText}</p>
+            <p className="text-xs text-dark-muted whitespace-pre-line leading-relaxed break-words break-all">{displayText}</p>
             {shouldTruncate && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -236,7 +236,7 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
 export default function Courses() {
   const { lang } = useSettings();
   const { 
-    courses, assignments, resources, hiddenCourseIds, 
+    courses, assignments, resources, hiddenCourseIds, topics,
     handleStatusChange, handleTrackAsAssignment, handleUntrackAssignment,
     handleToggleCourseVisibility, handleToggleBulkCourses
   } = useClassroom();
@@ -247,6 +247,7 @@ export default function Courses() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [showHidden, setShowHidden] = useState(false);
+  const [selectedTopicId, setSelectedTopicId] = useState('all');
   const selectedCourseObj = courses.find(c => c.name === selectedCourseName) || { color: 'blue' };
   const themeColor = selectedCourseObj.color || 'blue';
 
@@ -279,6 +280,31 @@ export default function Courses() {
 
   const courseAssignments = assignments.filter((assignment) => assignment.course === selectedCourseName);
   const courseResources = resources.filter((resource) => resource.course === selectedCourseName);
+  const courseTopics = topics ? topics.filter(t => t.courseId === selectedCourseObj.id) : [];
+
+  const filterByTopic = (items) => {
+    if (selectedTopicId === 'all') return items;
+    if (selectedTopicId === 'none') return items.filter(item => !item.topicId);
+    return items.filter(item => item.topicId === selectedTopicId);
+  };
+
+  const groupItemsByTopic = (items) => {
+    const grouped = {};
+    const filteredItems = filterByTopic(items);
+    
+    // Create 'none' group for items without topic
+    grouped['none'] = filteredItems.filter(item => !item.topicId);
+    
+    // Group by existing topics
+    courseTopics.forEach(topic => {
+      const itemsInTopic = filteredItems.filter(item => item.topicId === topic.id);
+      if (itemsInTopic.length > 0) {
+        grouped[topic.id] = itemsInTopic;
+      }
+    });
+
+    return grouped;
+  };
 
   const renderCourseCard = (course, isHidden) => {
     const activeCount = getActiveCount(course.name);
@@ -404,20 +430,53 @@ export default function Courses() {
             </button>
           </div>
 
-          <div className="animate-fade-in pt-2">
+          <div className="animate-fade-in pt-2 space-y-6">
+            {courseTopics.length > 0 && (
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-semibold text-dark-muted">
+                  {lang === 'en' ? 'Topic Filter:' : 'ตัวกรองหัวข้อ:'}
+                </label>
+                <select
+                  value={selectedTopicId}
+                  onChange={(e) => setSelectedTopicId(e.target.value)}
+                  className="bg-dark-card border border-dark-border text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-brand-500/50"
+                >
+                  <option value="all">{lang === 'en' ? 'All Topics' : 'หัวข้อทั้งหมด'}</option>
+                  <option value="none">{lang === 'en' ? 'No Topic' : 'ไม่มีหัวข้อ'}</option>
+                  {courseTopics.map(topic => (
+                    <option key={topic.id} value={topic.id}>{topic.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {activeTab === 'assignments' ? (
-              <div className="space-y-4">
+              <div className="space-y-8">
                 {courseAssignments.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {courseAssignments.map((assignment) => (
-                      <AssignmentCard
-                        key={assignment.id}
-                        assignment={assignment}
-                        onStatusChange={handleStatusChange}
-                        lang={lang}
-                      />
-                    ))}
-                  </div>
+                  Object.entries(groupItemsByTopic(courseAssignments)).map(([topicId, items]) => {
+                    if (items.length === 0) return null;
+                    const topicName = topicId === 'none' 
+                      ? (lang === 'en' ? 'Other Assignments' : 'งานอื่นๆ') 
+                      : courseTopics.find(t => t.id === topicId)?.name || 'Unknown Topic';
+                    
+                    return (
+                      <div key={topicId} className="space-y-3">
+                        {topicId !== 'none' || courseTopics.length > 0 ? (
+                          <h4 className="text-sm font-bold text-white px-1 border-b border-white/5 pb-2">{topicName}</h4>
+                        ) : null}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                          {items.map((assignment) => (
+                            <AssignmentCard
+                              key={assignment.id}
+                              assignment={assignment}
+                              onStatusChange={handleStatusChange}
+                              lang={lang}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 text-center text-dark-muted text-xs">
                     {t('noTasksCourse', lang)}
@@ -425,21 +484,35 @@ export default function Courses() {
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-8">
                 {courseResources.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {courseResources.map((resource) => (
-                      <ResourceCard
-                        key={resource.id}
-                        resource={resource}
-                        assignments={assignments}
-                        onTrackAsAssignment={handleTrackAsAssignment}
-                        onUntrackAssignment={handleUntrackAssignment}
-                        courseColor={themeColor}
-                        lang={lang}
-                      />
-                    ))}
-                  </div>
+                  Object.entries(groupItemsByTopic(courseResources)).map(([topicId, items]) => {
+                    if (items.length === 0) return null;
+                    const topicName = topicId === 'none' 
+                      ? (lang === 'en' ? 'Other Resources' : 'สื่ออื่นๆ') 
+                      : courseTopics.find(t => t.id === topicId)?.name || 'Unknown Topic';
+                    
+                    return (
+                      <div key={topicId} className="space-y-3">
+                        {topicId !== 'none' || courseTopics.length > 0 ? (
+                          <h4 className="text-sm font-bold text-white px-1 border-b border-white/5 pb-2">{topicName}</h4>
+                        ) : null}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                          {items.map((resource) => (
+                            <ResourceCard
+                              key={resource.id}
+                              resource={resource}
+                              assignments={assignments}
+                              onTrackAsAssignment={handleTrackAsAssignment}
+                              onUntrackAssignment={handleUntrackAssignment}
+                              courseColor={themeColor}
+                              lang={lang}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 text-center text-dark-muted text-xs">
                     {t('noAnnouncementsCourse', lang)}

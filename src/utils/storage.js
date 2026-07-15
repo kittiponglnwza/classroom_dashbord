@@ -185,6 +185,15 @@ export const saveResources = (resources, email) => {
   StorageRepository.set(KEYS.resources, resources, email);
 };
 
+export const getTopics = (email) => {
+  const stored = StorageRepository.get(KEYS.topics, email, true);
+  return stored || [];
+};
+
+export const saveTopics = (topics, email) => {
+  StorageRepository.set(KEYS.topics, topics, email);
+};
+
 export const resetDatabase = (email) => {
   const userEmail = (email || getActiveEmail() || '').toLowerCase().trim();
   

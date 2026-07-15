@@ -24,7 +24,8 @@ const STANDARD_SCOPED_KEYS = [
   'classroom_hub_sent_notifications',
   'classroom_hub_daily_email_limit',
   KEYS.profile,
-  KEYS.lastSync
+  KEYS.lastSync,
+  KEYS.topics
 ];
 
 /**

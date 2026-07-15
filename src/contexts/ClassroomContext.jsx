@@ -5,7 +5,7 @@ import {
   addAssignment, getCourses, saveCourses, getLastSync, setLastSync,
   syncClassroomAssignments, getHiddenCourses, saveHiddenCourses,
   getResources, saveResources, saveAssignments, getActiveEmail, resetDatabase,
-  getSchedule, saveSchedule
+  getSchedule, saveSchedule, getTopics, saveTopics
 } from '../utils/storage';
 import { ClassroomService } from '../services/ClassroomService';
 import { syncManager } from '../services/SyncManager';
@@ -26,6 +26,7 @@ export const ClassroomProvider = ({ children }) => {
   const [resources, setResources] = useState([]);
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
   const [schedule, setSchedule] = useState([]);
+  const [topics, setTopics] = useState([]);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   
   // SyncManager State integration
@@ -38,6 +39,7 @@ export const ClassroomProvider = ({ children }) => {
     setResources(getResources(email));
     setHiddenCourseIds(getHiddenCourses(email));
     setSchedule(getSchedule(email));
+    setTopics(getTopics(email));
     setLastSyncTime(getLastSync(email));
   }, []);
 
@@ -107,10 +109,12 @@ export const ClassroomProvider = ({ children }) => {
       const syncedAssigns = syncClassroomAssignments(classroomData.assignments, userEmail);
       saveCourses(classroomData.courses, userEmail);
       saveResources(classroomData.resources || [], userEmail);
+      saveTopics(classroomData.topics || [], userEmail);
 
       setAssignments(syncedAssigns);
       setCourses(classroomData.courses);
       setResources(classroomData.resources || []);
+      setTopics(classroomData.topics || []);
       
       const now = new Date().toISOString();
       setLastSync(now, userEmail);
@@ -280,13 +284,13 @@ export const ClassroomProvider = ({ children }) => {
   }, [isLoggedIn, accessToken, syncClassroom]);
 
   const value = React.useMemo(() => ({
-    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime, syncState,
+    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime, syncState, topics,
     visibleCourses, visibleAssignments, visibleResources,
     syncClassroom, handleStatusChange, handleNotesChange, handleAddAssignment,
     handleDeleteScheduleEntry, handleSaveScheduleEntry, handleClearSchedule,
     handleToggleCourseVisibility, handleToggleBulkCourses, handleTrackAsAssignment, handleUntrackAssignment, resetData
   }), [
-    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime, syncState,
+    assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime, syncState, topics,
     visibleCourses, visibleAssignments, visibleResources,
     syncClassroom, handleStatusChange, handleNotesChange, handleAddAssignment,
     handleDeleteScheduleEntry, handleSaveScheduleEntry, handleClearSchedule,
