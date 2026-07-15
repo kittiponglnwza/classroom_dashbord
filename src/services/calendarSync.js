@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { parseExamDate } from '../utils/examDate';
+import { getAlertSettings } from '../utils/storage';
 
 const CALENDAR_EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 const TIMEZONE = 'Asia/Bangkok';
@@ -220,6 +221,22 @@ export async function syncClassroomDataToCalendar(accessToken, email, { schedule
 
   const map = loadEventMap(email);
   const activeKeys = new Set();
+  
+  const alertSettings = getAlertSettings(email);
+  let reminders = { useDefault: true };
+
+  if (!alertSettings.calendarReminderEnabled) {
+    reminders = { useDefault: false };
+  } else {
+    let minutes = parseInt(alertSettings.calendarReminderValue, 10) || 10;
+    if (alertSettings.calendarReminderUnit === 'hours') minutes *= 60;
+    else if (alertSettings.calendarReminderUnit === 'days') minutes *= 24 * 60;
+    
+    reminders = {
+      useDefault: false,
+      overrides: [{ method: 'popup', minutes }]
+    };
+  }
 
   try {
     // 1. Weekly class schedule (or one-off overrides with a specific date)
@@ -230,6 +247,7 @@ export async function syncClassroomDataToCalendar(accessToken, email, { schedule
       const body = entry.date
         ? buildOneOffTimedEvent(entry, 'schedule')
         : buildRecurringClassEvent(entry);
+      body.reminders = reminders;
       await upsertEvent(accessToken, key, body, map);
     }
 
@@ -240,7 +258,9 @@ export async function syncClassroomDataToCalendar(accessToken, email, { schedule
       if (!normalized) continue;
       const key = `exam:${normalized.id}`;
       activeKeys.add(key);
-      await upsertEvent(accessToken, key, buildOneOffTimedEvent(normalized, 'exam'), map);
+      const body = buildOneOffTimedEvent(normalized, 'exam');
+      body.reminders = reminders;
+      await upsertEvent(accessToken, key, body, map);
     }
 
     // 3. Assignment due dates
@@ -248,7 +268,9 @@ export async function syncClassroomDataToCalendar(accessToken, email, { schedule
       if (!a || !a.dueDate) continue;
       const key = `assignment:${a.id}`;
       activeKeys.add(key);
-      await upsertEvent(accessToken, key, buildAssignmentEvent(a), map);
+      const body = buildAssignmentEvent(a);
+      body.reminders = reminders;
+      await upsertEvent(accessToken, key, body, map);
     }
 
     // 4. Clean up events whose source item no longer exists

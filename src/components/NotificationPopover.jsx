@@ -9,7 +9,7 @@ import { triggerManualDigest } from '../utils/notifications';
 export default function NotificationPopover({ isNotificationsOpen, setIsNotificationsOpen, bellButtonRef }) {
   const { isLoggedIn, accessToken, profile } = useAuth();
   const { 
-    lang, emailAlerts, handleToggleAlerts, alertSettings, handleToggleSetting, 
+    lang, emailAlerts, handleToggleAlerts, alertSettings, handleToggleSetting, handleUpdateSetting,
     sundayTime, handleTimeChange, historyLogs, dailyLimit, refreshNotificationData 
   } = useSettings();
   const { assignments } = useClassroom();
@@ -220,6 +220,42 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                           <p className="text-[9px] text-dark-muted leading-tight">{t('includeExamsDesc', lang)}</p>
                         </div>
                       </label>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer border-t border-dark-border/10 pt-2.5">
+                        <input 
+                          type="checkbox"
+                          checked={alertSettings.calendarReminderEnabled}
+                          onChange={() => handleToggleSetting('calendarReminderEnabled')}
+                          className="w-3.5 h-3.5 rounded text-brand-500 bg-dark-sidebar border-dark-border cursor-pointer focus:ring-0 mt-0.5 shrink-0"
+                        />
+                        <div className="space-y-0.5">
+                          <span className="font-semibold text-zinc-200">{t('calendarReminderLabel', lang)}</span>
+                          <p className="text-[9px] text-dark-muted leading-tight">{t('calendarReminderDesc', lang)}</p>
+                        </div>
+                      </label>
+
+                      {alertSettings.calendarReminderEnabled && (
+                        <div className="flex items-center gap-2.5 pl-6 animate-fade-in">
+                          <span className="text-[9px] text-dark-muted uppercase font-semibold">{t('notifyBeforeLabel', lang)}</span>
+                          <input 
+                            type="number"
+                            min="0"
+                            max="999"
+                            value={alertSettings.calendarReminderValue}
+                            onChange={(e) => handleUpdateSetting('calendarReminderValue', parseInt(e.target.value, 10) || 0)}
+                            className="bg-dark-sidebar/40 border border-dark-border/40 rounded-lg px-2 py-0.5 w-16 text-xs text-white focus:outline-none"
+                          />
+                          <select
+                            value={alertSettings.calendarReminderUnit}
+                            onChange={(e) => handleUpdateSetting('calendarReminderUnit', e.target.value)}
+                            className="bg-dark-sidebar/40 border border-dark-border/40 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none cursor-pointer"
+                          >
+                            <option value="minutes">{t('minutesUnit', lang)}</option>
+                            <option value="hours">{t('hoursUnit', lang)}</option>
+                            <option value="days">{t('daysUnit', lang)}</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
 

@@ -78,6 +78,13 @@ export const SettingsProvider = ({ children }) => {
     syncManager.queueSync(accessToken, userEmail);
   };
 
+  const handleUpdateSetting = (field, value) => {
+    const updated = { ...alertSettings, [field]: value };
+    setAlertSettingsState(updated);
+    saveAlertSettings(updated, userEmail);
+    syncManager.queueSync(accessToken, userEmail);
+  };
+
   const handleTimeChange = (time) => {
     setSundayTimeState(time);
     setSundayDigestTime(time, userEmail);
@@ -95,7 +102,7 @@ export const SettingsProvider = ({ children }) => {
   const value = React.useMemo(() => ({
     lang, toggleLang, setLang,
     emailAlerts, handleToggleAlerts,
-    alertSettings, handleToggleSetting,
+    alertSettings, handleToggleSetting, handleUpdateSetting,
     sundayTime, handleTimeChange,
     historyLogs, dailyLimit, refreshNotificationData,
     reloadSettings

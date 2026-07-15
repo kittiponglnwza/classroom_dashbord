@@ -52,7 +52,10 @@ export const DEFAULT_ALERT_SETTINGS = {
   overdue1Day: true,
   newPosts: true,
   sundayDigest: true,
-  includeExams: true
+  includeExams: true,
+  calendarReminderEnabled: true,
+  calendarReminderValue: 10,
+  calendarReminderUnit: 'minutes'
 };
 
 export const COURSE_COLOR_PALETTE = ['emerald', 'blue', 'amber', 'rose', 'purple'];
