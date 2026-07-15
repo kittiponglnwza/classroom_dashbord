@@ -120,27 +120,36 @@ class SyncManager {
 
       try {
         if (isAssignments) {
-          const localArr = JSON.parse(localStr).data || [];
-          const remoteArr = JSON.parse(remoteStr).data || [];
-          const mergedArr = this.mergeEntitiesById(localArr, remoteArr);
+          const localParsed = JSON.parse(localStr);
+          const remoteParsed = JSON.parse(remoteStr);
+          const localArr = localParsed.data || [];
+          const remoteArr = remoteParsed.data || [];
+          const localIsNewer = new Date(localParsed.timestamp || 0) >= new Date(remoteParsed.timestamp || 0);
+          const mergedArr = this.mergeEntitiesById(localArr, remoteArr, localIsNewer);
           merged[fullKey] = JSON.stringify({
             version: STORAGE_CONFIG.schemaVersion,
             timestamp: new Date().toISOString(),
             data: mergedArr
           });
         } else if (isSchedule) {
-          const localArr = JSON.parse(localStr).data || [];
-          const remoteArr = JSON.parse(remoteStr).data || [];
-          const mergedArr = this.mergeEntitiesById(localArr, remoteArr);
+          const localParsed = JSON.parse(localStr);
+          const remoteParsed = JSON.parse(remoteStr);
+          const localArr = localParsed.data || [];
+          const remoteArr = remoteParsed.data || [];
+          const localIsNewer = new Date(localParsed.timestamp || 0) >= new Date(remoteParsed.timestamp || 0);
+          const mergedArr = this.mergeEntitiesById(localArr, remoteArr, localIsNewer);
           merged[fullKey] = JSON.stringify({
             version: STORAGE_CONFIG.schemaVersion,
             timestamp: new Date().toISOString(),
             data: mergedArr
           });
         } else if (isExams) {
-          const localObj = JSON.parse(localStr).data || { exams: [], manualExams: [], unlisted: null };
-          const remoteObj = JSON.parse(remoteStr).data || { exams: [], manualExams: [], unlisted: null };
-          const mergedManual = this.mergeEntitiesById(localObj.manualExams || [], remoteObj.manualExams || []);
+          const localParsed = JSON.parse(localStr);
+          const remoteParsed = JSON.parse(remoteStr);
+          const localObj = localParsed.data || { exams: [], manualExams: [], unlisted: null };
+          const remoteObj = remoteParsed.data || { exams: [], manualExams: [], unlisted: null };
+          const localIsNewer = new Date(localParsed.timestamp || 0) >= new Date(remoteParsed.timestamp || 0);
+          const mergedManual = this.mergeEntitiesById(localObj.manualExams || [], remoteObj.manualExams || [], localIsNewer);
           merged[fullKey] = JSON.stringify({
             version: STORAGE_CONFIG.schemaVersion,
             timestamp: new Date().toISOString(),
@@ -175,9 +184,10 @@ class SyncManager {
   }
 
   /**
-   * Helper to merge arrays of entities by comparing their `updatedAt` properties
+   * Helper to merge arrays of entities by comparing their `updatedAt` properties.
+   * When localIsNewer is true, remote-only items are skipped (they were likely deleted locally).
    */
-  mergeEntitiesById(localList, remoteList) {
+  mergeEntitiesById(localList, remoteList, localIsNewer = false) {
     const mergedMap = new Map();
 
     // Map all local items
@@ -194,7 +204,11 @@ class SyncManager {
       const localItem = mergedMap.get(idStr);
 
       if (!localItem) {
-        mergedMap.set(idStr, remoteItem);
+        // Item exists in remote but not in local
+        // If local collection is newer, the item was likely deleted locally — skip it
+        if (!localIsNewer) {
+          mergedMap.set(idStr, remoteItem);
+        }
       } else {
         const localTime = new Date(localItem.updatedAt || localItem.timestamp || 0).getTime();
         const remoteTime = new Date(remoteItem.updatedAt || remoteItem.timestamp || 0).getTime();
