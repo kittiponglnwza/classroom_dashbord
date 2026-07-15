@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-07-15
+### Added
+- **Topics & Grouping:** Grouped assignments and resources by their Classroom topics in the Course detail view.
+- **Collapsible List View:** Sleek, accordion-style collapsible list view for assignments and resources, replicating the Google Classroom feel while reducing clutter.
+
+### Changed
+- **Dashboard Redesign:** Minimalist UI overhaul. Removed bulky borders, consolidated the control bar, compressed the "Today's Schedule" widget into a modern banner, and set the default layout to List View.
+- **Topic Filter Redesign:** Transformed the old dropdown into a premium, horizontal scrollable glassmorphic pill button row.
+- **Kanban Board Polishing:** Fixed an issue where cards would stretch excessively in the Kanban view and streamlined column styles.
+
+### Fixed
+- **Settings Sync Crash:** Fixed a LocalStorage parsing error related to scoped email keys for the Sunday digest notification time.
+
 ## [1.2.0] - 2026-07-09
 ### Added
 - **Course Visibility Filters:** Ability to hide past or completed courses individually or in bulk.
