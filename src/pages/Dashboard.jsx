@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import AssignmentCard from '../components/AssignmentCard';
-import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle, CalendarDays, Clock } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle, CalendarDays, List } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { isDueToday, isOverdue } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,7 +22,7 @@ export default function Dashboard() {
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [sortBy, setSortBy] = useState('due-asc');
-  const [viewType, setViewType] = useState('grid');
+  const [viewType, setViewType] = useState('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State for new assignment
@@ -214,166 +214,143 @@ export default function Dashboard() {
             <button
               onClick={syncClassroom}
               disabled={isSyncing}
-              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-brand-400 hover:text-brand-300 font-semibold text-xs px-5 py-3 rounded-2xl border border-white/5 transition-all duration-300 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 hover:bg-white/5 text-brand-400 hover:text-brand-300 font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-300 disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
               {t('syncClassroom', lang)}
             </button>
           )}
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-brand-500/20 hover:-translate-y-0.5 cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-300 cursor-pointer"
           >
-            <Plus size={18} />
+            <Plus size={16} />
             {t('createTask', lang)}
           </button>
         </div>
       </div>
 
-      {/* Today's Schedule Widget */}
-      <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 shadow-2xl opacity-0 animate-fade-in relative overflow-hidden group hover:border-brand-500/20 transition-all duration-500" style={{ animationDelay: '150ms' }}>
-        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none">
-          <CalendarDays size={100} className="text-brand-500 blur-2xl group-hover:blur-xl transition-all" />
-        </div>
-
-        <div className="flex items-center justify-between mb-6 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-brand-500/10 flex items-center justify-center">
-              <CalendarDays size={20} className="text-brand-400" />
-            </div>
-            <h3 className="text-sm font-bold text-white tracking-wide">{t('todaySchedule', lang)}</h3>
-          </div>
-          <Link
-            to="/schedule"
-            className="text-xs font-bold text-brand-400 hover:text-white transition-colors flex items-center gap-1"
-          >
-            {t('viewFullSchedule', lang)}
-          </Link>
-        </div>
-
-        <div className="relative z-10">
-          {todayClasses.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {todayClasses.map(cls => (
-                <div
-                  key={cls.id}
-                  className="flex items-center justify-between bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 hover:border-white/10 transition-all duration-300 group/item"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-1.5 h-10 rounded-full shrink-0 group-hover/item:scale-y-110 transition-transform" style={{ backgroundColor: cls.color }} />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-bold text-white truncate">{cls.title}</p>
-                        {cls.date && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
-                            {lang === 'en' ? 'Once' : 'พิเศษ'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-zinc-400 font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <Clock size={12} className="text-zinc-500" />
-                          {cls.startTime} - {cls.endTime}
-                        </span>
-                        {cls.room && (
-                          <span className="bg-black/30 px-2 py-0.5 rounded-full text-[10px] text-zinc-300">{cls.room}</span>
-                        )}
-                      </div>
-                    </div>
+      {/* Today's Schedule Widget (Minimal) */}
+      <div className="opacity-0 animate-fade-in" style={{ animationDelay: '150ms' }}>
+        {todayClasses.length > 0 ? (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-brand-500/5 border border-brand-500/20 rounded-2xl px-6 py-4">
+            <div className="flex items-center gap-3">
+              <CalendarDays size={18} className="text-brand-400" />
+              <h3 className="text-sm font-bold text-brand-400">{t('todaySchedule', lang)}:</h3>
+              <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar whitespace-nowrap">
+                {todayClasses.map(cls => (
+                  <div key={cls.id} className="flex items-center gap-2 text-xs font-semibold text-white/80">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cls.color }}></span>
+                    {cls.title} ({cls.startTime})
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="py-6 text-center bg-white/5 border border-white/5 rounded-2xl">
+            <Link to="/schedule" className="text-xs font-bold text-brand-400 hover:text-brand-300 shrink-0">
+              {t('viewFullSchedule', lang)} &rarr;
+            </Link>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-4 bg-white/5 border border-white/5 rounded-2xl px-6 py-4">
+            <div className="flex items-center gap-3">
+              <CalendarDays size={18} className="text-zinc-400" />
               <p className="text-sm text-zinc-400 font-medium">{t('noClassesToday', lang)}</p>
             </div>
-          )}
-        </div>
+            <Link to="/schedule" className="text-xs font-bold text-brand-400 hover:text-brand-300 shrink-0">
+              {t('viewFullSchedule', lang)} &rarr;
+            </Link>
+          </div>
+        )}
       </div>
 
-      {/* Control Bar: Filters, Search, Views */}
-      {/* Control Bar: Filters, Search, Views */}
-      <div className="bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl p-4 lg:p-5 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between opacity-0 animate-fade-in" style={{ animationDelay: '250ms' }}>
+      {/* Control Bar: Filters, Search, Views (Minimal) */}
+      <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between opacity-0 animate-fade-in" style={{ animationDelay: '250ms' }}>
         {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-dark-muted">
-            <Search size={18} />
+        <div className="relative flex-1 max-w-sm">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-dark-muted">
+            <Search size={16} />
           </span>
           <input
             type="text"
             placeholder={t('searchPlaceholder', lang)}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/5 rounded-2xl pl-11 pr-4 py-3 text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 focus:bg-white/10 transition-all duration-300"
+            className="w-full bg-dark-sidebar/40 border border-transparent rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 focus:bg-dark-sidebar/80 transition-all duration-300"
           />
         </div>
 
         {/* Filters and Sorting */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-white/5 border border-white/5 px-3 py-2.5 rounded-2xl transition-all hover:bg-white/10">
-            <Filter size={16} className="text-zinc-400" />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all hover:bg-white/5">
+            <Filter size={14} className="text-zinc-400" />
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
-              className="bg-transparent text-sm text-zinc-200 focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none cursor-pointer pr-1"
             >
               <option value="all">{t('allSubjects', lang)}</option>
               {visibleCourses.map(c => (
-                <option key={c.id} value={c.name}>{c.name}</option>
+                <option key={c.id} value={c.name} className="bg-dark-sidebar">{c.name}</option>
               ))}
             </select>
           </div>
 
           {viewType !== 'kanban' && (
-            <div className="flex items-center gap-2 bg-white/5 border border-white/5 px-3 py-2.5 rounded-2xl transition-all hover:bg-white/10">
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all hover:bg-white/5">
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="bg-transparent text-sm text-zinc-200 focus:outline-none cursor-pointer"
+                className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none cursor-pointer"
               >
-                <option value="all">{t('allStatuses', lang)}</option>
-                <option value="todo">{t('todo', lang)}</option>
-                <option value="doing">{t('doing', lang)}</option>
-                <option value="done">{t('done', lang)}</option>
+                <option value="all" className="bg-dark-sidebar">{t('allStatuses', lang)}</option>
+                <option value="todo" className="bg-dark-sidebar">{t('todo', lang)}</option>
+                <option value="doing" className="bg-dark-sidebar">{t('doing', lang)}</option>
+                <option value="done" className="bg-dark-sidebar">{t('done', lang)}</option>
               </select>
             </div>
           )}
 
-          <div className="flex items-center gap-2 bg-white/5 border border-white/5 px-3 py-2.5 rounded-2xl transition-all hover:bg-white/10">
-            <ArrowUpDown size={16} className="text-zinc-400" />
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all hover:bg-white/5">
+            <ArrowUpDown size={14} className="text-zinc-400" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent text-sm text-zinc-200 focus:outline-none cursor-pointer"
+              className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none cursor-pointer"
             >
-              <option value="due-asc">{t('sortByDueAsc', lang)}</option>
-              <option value="due-desc">{t('sortByDueDesc', lang)}</option>
-              <option value="points-desc">{t('sortByPointsDesc', lang)}</option>
+              <option value="due-asc" className="bg-dark-sidebar">{t('sortByDueAsc', lang)}</option>
+              <option value="due-desc" className="bg-dark-sidebar">{t('sortByDueDesc', lang)}</option>
+              <option value="points-desc" className="bg-dark-sidebar">{t('sortByPointsDesc', lang)}</option>
             </select>
           </div>
 
-          <div className="flex items-center border border-white/5 rounded-2xl p-1 bg-white/5 ml-auto md:ml-0">
+          <div className="flex items-center border border-white/5 rounded-xl p-0.5 bg-white/5 ml-auto md:ml-2">
+            <button
+              onClick={() => setViewType('list')}
+              className={`p-2 rounded-lg transition-all duration-300 ${viewType === 'list' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+              title="List View"
+            >
+              <List size={16} />
+            </button>
             <button
               onClick={() => setViewType('grid')}
-              className={`p-2 rounded-xl transition-all duration-300 ${viewType === 'grid' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+              className={`p-2 rounded-lg transition-all duration-300 ${viewType === 'grid' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
               title="Grid View"
             >
-              <LayoutGrid size={18} />
+              <LayoutGrid size={16} />
             </button>
             <button
               onClick={() => setViewType('kanban')}
-              className={`p-2 rounded-xl transition-all duration-300 ${viewType === 'kanban' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+              className={`p-2 rounded-lg transition-all duration-300 ${viewType === 'kanban' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
               title="Kanban Board"
             >
-              <Kanban size={18} />
+              <Kanban size={16} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Critical Rows (Only visible in Grid view to keep board columns clean) */}
-      {viewType === 'grid' && (
+      {/* Critical Rows (Visible in Grid and List views) */}
+      {(viewType === 'grid' || viewType === 'list') && (
         <div className="space-y-6">
           {overdueTasks.length > 0 && (
             <div className="space-y-4 bg-rose-500/5 backdrop-blur-md border border-rose-500/10 rounded-3xl p-6 lg:p-8 opacity-0 animate-fade-in" style={{ animationDelay: '350ms' }}>
@@ -383,9 +360,9 @@ export default function Dashboard() {
                 </div>
                 {t('overdueTasksTitle', lang)}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className={viewType === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-3"}>
                 {overdueTasks.map(task => (
-                  <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
+                  <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode={viewType} />
                 ))}
               </div>
             </div>
@@ -399,9 +376,9 @@ export default function Dashboard() {
                 </div>
                 {t('dueTodayTitle', lang)}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className={viewType === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-3"}>
                 {todayTasks.map(task => (
-                  <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} />
+                  <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode={viewType} />
                 ))}
               </div>
             </div>
@@ -409,21 +386,22 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Grid View */}
-      {viewType === 'grid' && (
+      {/* Grid or List View Main Content */}
+      {(viewType === 'grid' || viewType === 'list') && (
         <div className="space-y-5 opacity-0 animate-fade-in" style={{ animationDelay: '450ms' }}>
           <h3 className="text-sm font-bold text-zinc-300 flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-brand-500"></span>
             {t('allCourseAssignments', lang, { count: sortedAssignments.length })}
           </h3>
           {sortedAssignments.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={viewType === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
               {sortedAssignments.map((assignment) => (
                 <AssignmentCard
                   key={assignment.id}
                   assignment={assignment}
                   onStatusChange={handleStatusChange}
                   lang={lang}
+                  viewMode={viewType}
                 />
               ))}
             </div>
