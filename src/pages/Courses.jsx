@@ -21,7 +21,8 @@ function ResourceCard({
   onTrackAsAssignment, 
   onUntrackAssignment, 
   courseColor,
-  lang = 'en'
+  lang = 'en',
+  viewMode = 'grid'
 }) {
   const { id, title, description, type, creationTime, attachments, googleLink } = resource;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -76,8 +77,52 @@ function ResourceCard({
     ? description.substring(0, 180) + '...'
     : description;
 
+  const [isListExpanded, setIsListExpanded] = useState(false);
+
+  if (viewMode === 'list' && !isListExpanded) {
+    return (
+      <div 
+        onClick={() => setIsListExpanded(true)}
+        className="group bg-dark-card/20 hover:bg-dark-card/40 border border-dark-border/30 rounded-xl p-3.5 flex items-center justify-between cursor-pointer transition-all hover:border-dark-border/60"
+      >
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-dark-sidebar border border-dark-border/60 group-hover:bg-white/5 transition-all ${resourceType.badge.split(' ')[0]}`}>
+            {resourceType.icon}
+          </div>
+          <span className="text-[14.5px] font-semibold text-white/90 truncate group-hover:text-brand-400 transition-colors">{title}</span>
+        </div>
+        <div className="flex items-center gap-4 shrink-0">
+           <div className="flex items-center gap-1.5 hidden sm:flex text-dark-muted">
+             <Calendar size={13} />
+             <span className="text-xs">{formattedDate}</span>
+           </div>
+           <div className="p-1 rounded-md text-zinc-500 group-hover:text-white transition-colors">
+             <ChevronDown size={16} />
+           </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-dark-card border border-dark-border rounded-xl p-5 hover:border-dark-border/80 transition-all duration-300 flex flex-col justify-between hover:shadow-lg">
+      {viewMode === 'list' && (
+        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-white/5 pb-3">
+          <div className="flex items-center gap-2">
+            <div className={`w-7 h-7 rounded-full bg-dark-sidebar flex items-center justify-center shrink-0 ${resourceType.badge.split(' ')[0]}`}>
+              {resourceType.icon}
+            </div>
+            <span className="text-sm font-bold text-white">{title}</span>
+          </div>
+          <button 
+            onClick={() => setIsListExpanded(false)} 
+            className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            title={lang === 'en' ? 'Collapse' : 'ย่อ'}
+          >
+            <ChevronUp size={16} />
+          </button>
+        </div>
+      )}
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3 text-[11px] mb-2">
           <span className={`px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 ${resourceType.badge}`}>
@@ -534,6 +579,7 @@ export default function Courses() {
                               assignment={assignment}
                               onStatusChange={handleStatusChange}
                               lang={lang}
+                              viewMode={viewMode}
                             />
                           ))}
                         </div>
@@ -578,6 +624,7 @@ export default function Courses() {
                               onUntrackAssignment={handleUntrackAssignment}
                               courseColor={themeColor}
                               lang={lang}
+                              viewMode={viewMode}
                             />
                           ))}
                         </div>

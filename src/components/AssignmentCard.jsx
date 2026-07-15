@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Calendar, Paperclip, AlertCircle, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, Paperclip, AlertCircle, CheckCircle2, Clock, ExternalLink, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { t } from '../utils/i18n';
 
 const COURSE_DOT_COLORS = {
@@ -11,7 +12,7 @@ const COURSE_DOT_COLORS = {
   zinc: 'bg-zinc-500'
 };
 
-export default function AssignmentCard({ assignment, onStatusChange, lang = 'en' }) {
+export default function AssignmentCard({ assignment, onStatusChange, lang = 'en', viewMode = 'grid' }) {
   const { id, title, course, dueDate, status, points, attachments, courseColor, googleLink } = assignment;
 
   const getStatusDotColor = () => {
@@ -122,8 +123,52 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
     }
   };
 
+  const [isListExpanded, setIsListExpanded] = useState(false);
+
+  if (viewMode === 'list' && !isListExpanded) {
+    return (
+      <div 
+        onClick={() => setIsListExpanded(true)}
+        className={`group bg-dark-card/20 hover:bg-dark-card/40 border border-dark-border/30 rounded-xl p-3.5 flex items-center justify-between cursor-pointer transition-all ${getCardBorderClass()}`}
+      >
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="w-9 h-9 rounded-full bg-dark-sidebar border border-dark-border/60 flex items-center justify-center shrink-0 text-brand-400 group-hover:bg-brand-500/10 group-hover:border-brand-500/20 transition-all">
+            <BookOpen size={16} />
+          </div>
+          <span className="text-[14.5px] font-semibold text-white/90 truncate group-hover:text-brand-400 transition-colors">{title}</span>
+        </div>
+        <div className="flex items-center gap-4 shrink-0">
+           <div className="flex items-center gap-1.5 hidden sm:flex">
+             {dueStatus.icon}
+             <span className={`text-xs ${dueStatus.colorClass}`}>{dueStatus.text}</span>
+           </div>
+           <div className="p-1 rounded-md text-zinc-500 group-hover:text-white transition-colors">
+             <ChevronDown size={16} />
+           </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`bg-dark-card/40 backdrop-blur-sm border border-dark-border/40 rounded-xl p-5 hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-all duration-300 flex flex-col justify-between group h-full ${getCardBorderClass()}`}>
+      {viewMode === 'list' && (
+        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-white/5 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-dark-sidebar flex items-center justify-center shrink-0 text-brand-400">
+              <BookOpen size={14} />
+            </div>
+            <span className="text-sm font-bold text-white">{title}</span>
+          </div>
+          <button 
+            onClick={() => setIsListExpanded(false)} 
+            className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            title={lang === 'en' ? 'Collapse' : 'ย่อ'}
+          >
+            <ChevronUp size={16} />
+          </button>
+        </div>
+      )}
       <div className="space-y-4">
         {/* Header: Course Name & Status Dropdown */}
         <div className="flex items-center justify-between gap-3">
