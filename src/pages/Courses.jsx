@@ -407,27 +407,54 @@ export default function Courses() {
             );
           })()}
 
-          <div className="flex bg-dark-sidebar/60 border border-dark-border/40 p-1 rounded-xl w-fit gap-1 select-none">
-            <button
-              onClick={() => setActiveTab('resources')}
-              className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'resources')}`}
-            >
-              <Megaphone size={13} />
-              <span>{t('announcementsMaterialsTab', lang)}</span>
-              <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'resources')}`}>
-                {courseResources.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveTab('assignments')}
-              className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'assignments')}`}
-            >
-              <BookOpen size={13} />
-              <span>{t('assignmentsTab', lang)}</span>
-              <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'assignments')}`}>
-                {courseAssignments.length}
-              </span>
-            </button>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex bg-dark-sidebar/60 border border-dark-border/40 p-1 rounded-xl w-fit gap-1 select-none">
+              <button
+                onClick={() => setActiveTab('resources')}
+                className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'resources')}`}
+              >
+                <Megaphone size={13} />
+                <span>{t('announcementsMaterialsTab', lang)}</span>
+                <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'resources')}`}>
+                  {courseResources.length}
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('assignments')}
+                className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'assignments')}`}
+              >
+                <BookOpen size={13} />
+                <span>{t('assignmentsTab', lang)}</span>
+                <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'assignments')}`}>
+                  {courseAssignments.length}
+                </span>
+              </button>
+            </div>
+
+            <div className="flex items-center bg-dark-card border border-white/5 rounded-[20px] p-1.5 shrink-0 shadow-inner">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-2xl transition-all duration-300 ease-out cursor-pointer flex items-center justify-center ${
+                  viewMode === 'grid' 
+                    ? 'bg-white/10 text-brand-400 shadow-md transform scale-100' 
+                    : 'text-zinc-500 hover:text-white transform scale-95 hover:scale-100'
+                }`}
+                title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
+              >
+                <LayoutGrid size={18} strokeWidth={2.5} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-2xl transition-all duration-300 ease-out cursor-pointer flex items-center justify-center ${
+                  viewMode === 'list' 
+                    ? 'bg-white/10 text-brand-400 shadow-md transform scale-100' 
+                    : 'text-zinc-500 hover:text-white transform scale-95 hover:scale-100'
+                }`}
+                title={lang === 'en' ? 'List view' : 'แบบรายการ'}
+              >
+                <List size={18} strokeWidth={2.5} />
+              </button>
+            </div>
           </div>
 
           <div className="animate-fade-in pt-4 space-y-8">
@@ -500,7 +527,7 @@ export default function Courses() {
                             </span>
                           </div>
                         ) : null}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
                           {items.map((assignment) => (
                             <AssignmentCard
                               key={assignment.id}
@@ -541,7 +568,7 @@ export default function Courses() {
                             </span>
                           </div>
                         ) : null}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
                           {items.map((resource) => (
                             <ResourceCard
                               key={resource.id}
