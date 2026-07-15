@@ -1,94 +1,94 @@
 # CH Classroom Hub 🎓
 
-> **Live Application URL:** [https://classrooms-hub.vercel.app/](https://classrooms-hub.vercel.app/)
+> **ลิงก์เข้าใช้งานแอปพลิเคชัน (Live URL):** [https://classrooms-hub.vercel.app/](https://classrooms-hub.vercel.app/)
 
-**CH Classroom Hub** is a minimalistic, Notion-style student dashboard designed to consolidate courses, assignments, announcements, and study materials from **Google Classroom** into a single, real-time interface. It features a premium Dark-slate aesthetic to reduce eye strain during long study sessions.
-
----
-
-## 🚀 Key Features
-
-1. **🔒 Secure Google Auth & Direct Connection**:
-   - Login directly via your Google Account (supports institutional `@email.kmutnb.ac.th` and standard Gmail). 
-   - 100% secure: Access Tokens are managed purely in browser Session Storage.
-
-2. **💾 Scoped User Preferences**:
-   - Safely switch between multiple Google Accounts. All cached data in LocalStorage is strictly scoped by the user's email address to prevent data leakage.
-
-3. **👁️ Course Visibility Filters**:
-   - Hide completed or past-semester courses individually or in bulk.
-   - Assignments from hidden courses are automatically purged from your dashboard, reducing visual clutter.
-
-4. **📅 Advanced Coursework Dashboard**:
-   - View assignments categorized by "Due Today" and "Overdue".
-   - Precision Countdown Heuristics display due times down to the minute.
-
-5. **📝 Notion-style Notepad**:
-   - Draft notes or track assignment progress in a private, local workspace attached to each coursework item.
-
-6. **🔔 Gmail Notification System (Apps Script)**:
-   - **Calendar-day accuracy**: Receive reminders 3 days before, 1 day before, and on the day an assignment is due.
-   - **Sunday Digest**: Weekly summary for assignments with no explicit due dates.
-   - **Anti-Spam**: New posts and announcements are batched into a single digest email.
+**CH Classroom Hub** คือแดชบอร์ดสำหรับนักศึกษาที่ออกแบบมาในสไตล์มินิมอล (คล้าย Notion) เพื่อรวบรวมรายวิชา, การบ้าน, ประกาศ, และสื่อการเรียนการสอนจาก **Google Classroom** ให้อยู่ในหน้าจอเดียวแบบเรียลไทม์ ตัวแอปใช้ธีมสีเข้มระดับพรีเมียม (Premium Dark-slate aesthetic) เพื่อช่วยลดอาการปวดตาในช่วงเวลาที่ต้องอ่านหนังสือนานๆ
 
 ---
 
-## 🛠️ Tech Stack
+## 🚀 ฟีเจอร์หลัก (Key Features)
+
+1. **🔒 ล็อกอินผ่าน Google อย่างปลอดภัย (Secure Google Auth)**:
+   - เข้าสู่ระบบผ่านบัญชี Google ของคุณได้โดยตรง (รองรับทั้งอีเมลสถาบัน `@email.kmutnb.ac.th` และ Gmail ทั่วไป)
+   - ปลอดภัย 100%: ระบบจัดการ Access Tokens ภายใน Session Storage ของเบราว์เซอร์เท่านั้น
+
+2. **💾 จัดการข้อมูลแยกตามบัญชี (Scoped User Preferences)**:
+   - สลับบัญชี Google ได้อย่างปลอดภัย ข้อมูลแคชทั้งหมดใน LocalStorage จะถูกแยกเก็บตามที่อยู่อีเมลของผู้ใช้ เพื่อป้องกันข้อมูลรั่วไหลระหว่างบัญชี
+
+3. **👁️ ตัวกรองซ่อนรายวิชา (Course Visibility Filters)**:
+   - สามารถซ่อนรายวิชาที่เรียนจบแล้วหรือรายวิชาจากเทอมที่แล้วได้ ทั้งแบบเลือกทีละวิชาหรือซ่อนทีละหลายวิชา
+   - การบ้านจากวิชาที่ถูกซ่อนจะถูกลบออกจากหน้าแดชบอร์ดโดยอัตโนมัติ ช่วยลดความเกะกะบนหน้าจอ
+
+4. **📅 แดชบอร์ดติดตามงานขั้นสูง (Advanced Coursework Dashboard)**:
+   - ดูการบ้านโดยแยกหมวดหมู่เป็น "กำหนดส่งวันนี้" (Due Today) และ "เลยกำหนดส่ง" (Overdue)
+   - ระบบนับถอยหลังที่แม่นยำ แสดงเวลากำหนดส่งได้ละเอียดถึงระดับนาที
+
+5. **📝 สมุดโน้ตสไตล์ Notion (Notion-style Notepad)**:
+   - ร่างโน้ตหรือติดตามความคืบหน้าของการบ้านในพื้นที่ส่วนตัว (Local workspace) ที่ผูกติดกับงานแต่ละชิ้น
+
+6. **🔔 ระบบแจ้งเตือนผ่าน Gmail (Gmail Notification System)**:
+   - **แจ้งเตือนแม่นยำตามวัน**: รับอีเมลแจ้งเตือนล่วงหน้า 3 วัน, 1 วัน, และในวันที่ครบกำหนดส่งการบ้าน
+   - **สรุปงานวันอาทิตย์ (Sunday Digest)**: อีเมลสรุปงานที่ไม่มีกำหนดส่งชัดเจนเป็นรายสัปดาห์
+   - **ระบบกันสแปม (Anti-Spam)**: รวมประกาศและโพสต์ใหม่ๆ ไว้ในอีเมลสรุปฉบับเดียวเพื่อไม่ให้รกกล่องจดหมาย
+
+---
+
+## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
 
 * **Frontend Framework**: React 19 (Vite 8)
-* **Routing**: React Router 7 (SPA client-side navigation)
-* **Styling**: Vanilla CSS + Tailwind CSS v4 (Enforced Dark-slate aesthetic)
+* **Routing**: React Router 7 (การนำทางแบบ SPA client-side)
+* **Styling**: Vanilla CSS + Tailwind CSS v4 (บังคับใช้ธีม Dark-slate)
 * **Icons**: Lucide React
 * **Integration APIs**: Google Identity Services (OAuth 2.0 Implicit flow) + Google Classroom API + Google Drive API
 
 ---
 
-## 📚 Documentation
+## 📚 เอกสารประกอบ (Documentation)
 
-For a deep dive into the architecture, setup, and usage, please refer to the documents below:
+หากต้องการดูรายละเอียดเชิงลึกเกี่ยวกับสถาปัตยกรรม, การติดตั้ง, และการใช้งาน สามารถอ้างอิงจากเอกสารด้านล่างนี้:
 
-- **[Architecture (ARCHITECTURE.md)](./docs/ARCHITECTURE.md)**: System design and data flow.
-- **[API Reference (API_REFERENCE.md)](./docs/API_REFERENCE.md)**: Google API endpoints and error handling.
-- **[Security Policy (SECURITY.md)](./docs/SECURITY.md)**: OAuth flows, token storage, and XSS prevention.
-- **[Deployment Guide (DEPLOYMENT_GUIDE.md)](./docs/DEPLOYMENT_GUIDE.md)**: Instructions for deploying to Vercel and setting up Google Cloud Console.
-- **[User Manual (USER_MANUAL_TH.md)](./docs/USER_MANUAL_TH.md)**: Thai manual for end-users.
-- **[Contributing (CONTRIBUTING.md)](./docs/CONTRIBUTING.md)**: Guidelines for contributing to the repository.
-- **[Changelog (CHANGELOG.md)](./CHANGELOG.md)**: Version history.
-- **[ADRs](./docs/ADR/)**: Architecture Decision Records detailing core technical choices.
+- **[สถาปัตยกรรม (ARCHITECTURE.md)](./docs/ARCHITECTURE.md)**: การออกแบบระบบและการไหลของข้อมูล
+- **[อ้างอิง API (API_REFERENCE.md)](./docs/API_REFERENCE.md)**: Endpoints ของ Google API และการจัดการข้อผิดพลาด
+- **[นโยบายความปลอดภัย (SECURITY.md)](./docs/SECURITY.md)**: ขั้นตอนการทำงานของ OAuth, การจัดเก็บ Token, และการป้องกัน XSS
+- **[คู่มือการตั้งค่าขึ้นเซิร์ฟเวอร์ (DEPLOYMENT_GUIDE.md)](./docs/DEPLOYMENT_GUIDE.md)**: คำแนะนำในการนำขึ้น Vercel และการตั้งค่า Google Cloud Console
+- **[คู่มือผู้ใช้งาน (USER_MANUAL_TH.md)](./docs/USER_MANUAL_TH.md)**: คู่มือภาษาไทยสำหรับผู้ใช้งานทั่วไป
+- **[การร่วมพัฒนา (CONTRIBUTING.md)](./docs/CONTRIBUTING.md)**: แนวทางในการร่วมพัฒนาโค้ด (Contributing guidelines)
+- **[บันทึกการเปลี่ยนแปลง (CHANGELOG.md)](./CHANGELOG.md)**: ประวัติการอัปเดตเวอร์ชั่น (Version history)
+- **[ADRs](./docs/ADR/)**: บันทึกการตัดสินใจเชิงสถาปัตยกรรม (Architecture Decision Records) ที่อธิบายเหตุผลของการเลือกใช้เทคโนโลยีหลัก
 
 ---
 
-## ⚙️ Quick Start (Development)
+## ⚙️ เริ่มต้นใช้งาน (Quick Start สำหรับนักพัฒนา)
 
-### 1. Clone & Install
+### 1. โคลนโปรเจกต์ & ติดตั้ง (Clone & Install)
 ```bash
 git clone https://github.com/kittiponglnwza/classroom-dashboard.git
 cd classroom-dashboard
 npm install
 ```
 
-### 2. Environment Variables
-Create a `.env` file in the root directory and add your Google Client ID:
+### 2. ตัวแปรสภาพแวดล้อม (Environment Variables)
+สร้างไฟล์ `.env` ในโฟลเดอร์หลัก (Root directory) และใส่ Google Client ID ของคุณลงไป:
 ```env
 VITE_GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
 ```
 
-### 3. Run Development Server
+### 3. รันเซิร์ฟเวอร์ (Run Development Server)
 ```bash
 npm run dev
 ```
 
 ---
 
-## 👨‍💻 Developer Information
+## 👨‍💻 ข้อมูลนักพัฒนา (Developer Information)
 
-* **Name**: Kittipong Teerasee
-* **Student ID**: 6704082611115
-* **Institution**: King Mongkut's University of Technology North Bangkok (KMUTNB)
+* **ชื่อ**: Kittipong Teerasee (กิตติพงษ์ ธีระสี)
+* **รหัสนักศึกษา**: 6704082611115
+* **สถาบัน**: มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ (KMUTNB)
 * **GitHub**: [kittiponglnwza](https://github.com/kittiponglnwza)
 
 ---
 
-## 📄 License
+## 📄 ลิขสิทธิ์ (License)
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+โปรเจกต์นี้ใช้ลิขสิทธิ์แบบ MIT License - สามารถอ่านรายละเอียดเพิ่มเติมได้ที่ไฟล์ [LICENSE](LICENSE)
