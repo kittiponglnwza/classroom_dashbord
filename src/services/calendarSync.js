@@ -223,7 +223,7 @@ export async function syncClassroomDataToCalendar(accessToken, email, { schedule
   const activeKeys = new Set();
   
   const alertSettings = getAlertSettings(email);
-  let reminders = { useDefault: true };
+  let reminders;
 
   if (!alertSettings.calendarReminderEnabled) {
     reminders = { useDefault: false };
