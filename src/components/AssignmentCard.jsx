@@ -151,7 +151,7 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
   }
 
   return (
-    <div className={`bg-dark-card/40 backdrop-blur-sm border border-dark-border/40 rounded-xl p-5 hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-all duration-300 flex flex-col justify-between group h-full ${getCardBorderClass()}`}>
+    <div className={`bg-dark-card/40 backdrop-blur-sm border border-dark-border/40 rounded-xl p-5 hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-all duration-300 flex flex-col justify-between group ${viewMode === 'grid' ? 'h-full' : ''} ${getCardBorderClass()}`}>
       {viewMode === 'list' && (
         <div className="flex justify-between items-center -mt-1 mb-3 border-b border-white/5 pb-3">
           <div className="flex items-center gap-2">
