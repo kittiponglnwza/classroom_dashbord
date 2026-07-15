@@ -586,24 +586,28 @@ export default function Courses() {
                 />
               </div>
 
-              <div className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-2xl p-1.5 shrink-0">
+              <div className="flex items-center bg-dark-card border border-white/5 rounded-[20px] p-1.5 shrink-0 shadow-inner">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
-                    viewMode === 'grid' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-500 hover:text-white'
+                  className={`p-2 rounded-2xl transition-all duration-300 ease-out cursor-pointer flex items-center justify-center ${
+                    viewMode === 'grid' 
+                      ? 'bg-white/10 text-brand-400 shadow-md transform scale-100' 
+                      : 'text-zinc-500 hover:text-white transform scale-95 hover:scale-100'
                   }`}
                   title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
                 >
-                  <LayoutGrid size={16} />
+                  <LayoutGrid size={18} strokeWidth={2.5} />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
-                    viewMode === 'list' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-500 hover:text-white'
+                  className={`p-2 rounded-2xl transition-all duration-300 ease-out cursor-pointer flex items-center justify-center ${
+                    viewMode === 'list' 
+                      ? 'bg-white/10 text-brand-400 shadow-md transform scale-100' 
+                      : 'text-zinc-500 hover:text-white transform scale-95 hover:scale-100'
                   }`}
                   title={lang === 'en' ? 'List view' : 'แบบรายการ'}
                 >
-                  <List size={16} />
+                  <List size={18} strokeWidth={2.5} />
                 </button>
               </div>
             </div>
