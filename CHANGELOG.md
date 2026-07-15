@@ -6,17 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.3.0] - 2026-07-15
-### Added
-- **Topics & Grouping:** Grouped assignments and resources by their Classroom topics in the Course detail view.
-- **Collapsible List View:** Sleek, accordion-style collapsible list view for assignments and resources, replicating the Google Classroom feel while reducing clutter.
+### Added (เพิ่มฟีเจอร์ใหม่)
+- **ระบบหมวดหมู่ (Topics & Grouping):** จัดกลุ่มงานและสื่อการสอนตามหัวข้อ (Topics) ที่ดึงมาจาก Google Classroom ในหน้ารายละเอียดวิชา
+- **List View แบบพับเก็บได้:** ดีไซน์ List View ใหม่ให้แสดงผลแบบย่อ-ขยายได้ (Accordion) คล้ายกับต้นฉบับของ Google Classroom เพื่อลดความเกะกะบนหน้าจอ
 
-### Changed
-- **Dashboard Redesign:** Minimalist UI overhaul. Removed bulky borders, consolidated the control bar, compressed the "Today's Schedule" widget into a modern banner, and set the default layout to List View.
-- **Topic Filter Redesign:** Transformed the old dropdown into a premium, horizontal scrollable glassmorphic pill button row.
-- **Kanban Board Polishing:** Fixed an issue where cards would stretch excessively in the Kanban view and streamlined column styles.
+### Changed (การเปลี่ยนแปลง)
+- **ปรับโฉมหน้า Dashboard:** ยกเครื่อง UI ให้เป็นแบบมินิมอล (Minimalist) ลบเส้นขอบที่หนาเกินไป, รวมแถบฟิลเตอร์ให้ดูสะอาดขึ้น, ย่อส่วนวิดเจ็ต "ตารางเรียนวันนี้" ให้เป็นแถบขนาดเล็ก และตั้งค่าให้ List View เป็นมุมมองเริ่มต้น
+- **ดีไซน์ปุ่มฟิลเตอร์หมวดหมู่:** เปลี่ยนจาก Dropdown ธรรมดาให้กลายเป็นแถบปุ่มกด (Pill buttons) แนวนอนที่เลื่อนได้และมีความสวยงามแบบโปร่งแสง
+- **ปรับปรุง Kanban Board:** แก้ไขปัญหาความสูงของการ์ดงานที่ยืดยาวเกินไปเวลาแสดงผลบนบอร์ด และปรับดีไซน์คอลัมน์ให้ดูเนียนตาขึ้น
 
-### Fixed
-- **Settings Sync Crash:** Fixed a LocalStorage parsing error related to scoped email keys for the Sunday digest notification time.
+### Fixed (แก้ไขบั๊ก)
+- **แก้บั๊ก Settings Sync:** แก้ไขปัญหา LocalStorage พัง (Parsing error) ที่เกิดจากการจัดการคีย์อีเมลของระบบตั้งเวลาแจ้งเตือนรายสัปดาห์ (Sunday Digest)
 
 ## [1.2.0] - 2026-07-09
 ### Added
