@@ -169,17 +169,14 @@ export class NotificationService {
   }
 
   /**
-   * Checks and increments the daily limit tracker. Max 3 emails per day.
+   * Checks and increments the daily limit tracker.
+   * NOTE: Limit temporarily disabled for debugging.
    */
   static checkDailyLimitAndIncrement(email) {
     const todayStr = new Date().toISOString().split('T')[0];
     const limit = getDailyEmailLimit(email);
     
     if (limit.lastSentDate === todayStr) {
-      if (limit.count >= NOTIFICATION_CONFIG.maxDailyEmails) {
-        logger.warn(`Daily email limit (${NOTIFICATION_CONFIG.maxDailyEmails}) reached for ${email}. Aborting send.`);
-        return false;
-      }
       limit.count += 1;
     } else {
       limit.lastSentDate = todayStr;
