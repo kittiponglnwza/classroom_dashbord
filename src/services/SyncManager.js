@@ -152,11 +152,18 @@ class SyncManager {
           });
         } else {
           // General settings, profiles, lastSync metadata: LWW based on collection timestamp
-          const localObj = JSON.parse(localStr);
-          const remoteObj = JSON.parse(remoteStr);
-          const localTime = new Date(localObj.timestamp || 0);
-          const remoteTime = new Date(remoteObj.timestamp || 0);
-          merged[fullKey] = remoteTime > localTime ? remoteStr : localStr;
+          let localObj, remoteObj;
+          try { localObj = JSON.parse(localStr); } catch { localObj = null; }
+          try { remoteObj = JSON.parse(remoteStr); } catch { remoteObj = null; }
+
+          // If either value is a raw (non-JSON-wrapped) string, prefer the local value
+          if (!localObj || !remoteObj || localObj.timestamp === undefined || remoteObj.timestamp === undefined) {
+            merged[fullKey] = localStr;
+          } else {
+            const localTime = new Date(localObj.timestamp || 0);
+            const remoteTime = new Date(remoteObj.timestamp || 0);
+            merged[fullKey] = remoteTime > localTime ? remoteStr : localStr;
+          }
         }
       } catch (err) {
         logger.error(`Error merging payload key: ${fullKey}. Falling back to local.`, err);

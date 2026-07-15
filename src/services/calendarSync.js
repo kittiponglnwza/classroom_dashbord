@@ -242,6 +242,7 @@ export async function syncClassroomDataToCalendar(accessToken, email, { schedule
     // 1. Weekly class schedule (or one-off overrides with a specific date)
     for (const entry of schedule) {
       if (!entry || !entry.startTime || !entry.endTime || !entry.day) continue;
+      if (entry.startTime === entry.endTime) continue; // skip empty time range
       const key = `schedule:${entry.id}`;
       activeKeys.add(key);
       const body = entry.date
@@ -256,6 +257,7 @@ export async function syncClassroomDataToCalendar(accessToken, email, { schedule
     for (const ex of allExams) {
       const normalized = normalizeExamEntry(ex);
       if (!normalized) continue;
+      if (normalized.startTime === normalized.endTime) continue; // skip empty time range
       const key = `exam:${normalized.id}`;
       activeKeys.add(key);
       const body = buildOneOffTimedEvent(normalized, 'exam');
