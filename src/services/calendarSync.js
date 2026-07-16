@@ -290,3 +290,28 @@ export async function syncClassroomDataToCalendar(accessToken, email, { schedule
     throw err;
   }
 }
+
+/**
+ * Resets all synced events by deleting them from the user's calendar
+ * and clearing the local tracking map.
+ */
+export async function resetCalendarEvents(accessToken, email) {
+  if (!accessToken || !email) return;
+
+  const map = loadEventMap(email);
+  const keys = Object.keys(map);
+  
+  if (keys.length === 0) {
+    logger.info('[Calendar Sync] No local events tracked to reset.');
+    return;
+  }
+
+  logger.info(`[Calendar Sync] Resetting ${keys.length} calendar events...`);
+  
+  for (const key of keys) {
+    await deleteEvent(accessToken, key, map);
+  }
+
+  saveEventMap(email, map); // should be empty now
+  logger.info('[Calendar Sync] Calendar reset complete.');
+}

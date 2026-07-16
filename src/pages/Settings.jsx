@@ -3,6 +3,8 @@ import { GraduationCap, Code, Mail, CheckCircle2, ChevronRight, Settings2, Spark
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { calendarSyncManager } from '../services/CalendarSyncManager';
+import { RefreshCw } from 'lucide-react';
 
 const GithubIcon = ({ size = 16, className = '' }) => (
   <svg height={size} width={size} viewBox="0 0 16 16" version="1.1" fill="currentColor" className={className} aria-hidden="true">
@@ -36,14 +38,15 @@ const InputField = ({ label, value, onChange, type = "text" }) => (
 
 export default function Settings() {
   const { lang } = useSettings();
-  const { profile, isLoggedIn, handleProfileSave, login, logout } = useAuth();
+  const { profile, isLoggedIn, handleProfileSave, login, logout, accessToken } = useAuth();
   
   const [name, setName] = useState(profile.name || '');
   const [studentId, setStudentId] = useState(profile.studentId || '');
   const [email, setEmail] = useState(profile.email || '');
   const [major, setMajor] = useState(profile.major || '');
   const [saveSuccess, setSaveSuccess] = useState(false);
-
+  const [isResettingCalendar, setIsResettingCalendar] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
 
 
   const devInfo = {
@@ -68,6 +71,23 @@ export default function Settings() {
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   };
+
+  const handleResetCalendar = async () => {
+    if (!profile.email || !accessToken) return;
+    setIsResettingCalendar(true);
+    setResetMessage('');
+    try {
+      await calendarSyncManager.resetAndSync(accessToken, profile.email);
+      setResetMessage(lang === 'en' ? 'Calendar reset & sync initiated!' : 'ล้างข้อมูลและเริ่มซิงค์ปฏิทินใหม่แล้ว!');
+    } catch (e) {
+      console.error(e);
+      setResetMessage(lang === 'en' ? 'Error resetting calendar.' : 'เกิดข้อผิดพลาดในการล้างข้อมูลปฏิทิน');
+    } finally {
+      setIsResettingCalendar(false);
+      setTimeout(() => setResetMessage(''), 4000);
+    }
+  };
+
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 relative">
@@ -162,6 +182,38 @@ export default function Settings() {
               )}
             </div>
           </div>
+
+          {/* Calendar Management Card */}
+          {isLoggedIn && (
+            <div className="bg-gradient-to-br from-amber-500/5 to-transparent border border-amber-500/10 rounded-3xl p-8 hover:border-amber-500/30 transition-all duration-500 opacity-0 animate-fade-in group" style={{ animationDelay: '300ms' }}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                <div className="flex-1 min-w-0 pr-2">
+                  <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                    <RefreshCw className="text-amber-400 shrink-0" size={18} />
+                    <span className="truncate">{lang === 'en' ? 'Reset Calendar Sync' : 'รีเซ็ตข้อมูลปฏิทิน'}</span>
+                  </h3>
+                  <p className="text-xs text-dark-muted leading-relaxed break-all">
+                    {lang === 'en' 
+                      ? 'If your calendar events are duplicated or notifications are repeating, use this to clear and freshly re-sync all data.'
+                      : 'หากการแจ้งเตือนซ้ำซ้อนหรือกิจกรรมในปฏิทินมีปัญหา คุณสามารถเลือกล้างและซิงค์ใหม่ทั้งหมดได้'}
+                  </p>
+                  {resetMessage && (
+                    <p className={`text-[10px] mt-2 font-bold ${resetMessage.includes('Error') || resetMessage.includes('ข้อผิดพลาด') ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {resetMessage}
+                    </p>
+                  )}
+                </div>
+                <button 
+                  onClick={handleResetCalendar} 
+                  disabled={isResettingCalendar}
+                  className="shrink-0 bg-amber-500/10 hover:bg-amber-500 hover:text-white text-amber-400 border border-amber-500/20 px-6 py-3 rounded-2xl text-xs font-bold transition-all duration-300 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isResettingCalendar && <RefreshCw size={14} className="animate-spin" />}
+                  {lang === 'en' ? 'Reset Calendar' : 'ล้างแล้วลงใหม่'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column (Developer & Info) */}

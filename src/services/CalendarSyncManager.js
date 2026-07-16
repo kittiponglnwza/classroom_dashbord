@@ -1,4 +1,4 @@
-import { syncClassroomDataToCalendar } from './calendarSync';
+import { syncClassroomDataToCalendar, resetCalendarEvents } from './calendarSync';
 import { examRepository } from '../repositories/examRepository';
 import { getSchedule, getAssignments } from '../utils/storage';
 import { logger } from '../utils/logger';
@@ -54,6 +54,25 @@ class CalendarSyncManager {
       await syncClassroomDataToCalendar(accessToken, lowerEmail, { schedule, assignments, exams, manualExams });
       this.setState('success');
       setTimeout(() => { if (this.state === 'success') this.setState('idle'); }, 3000);
+    } catch (err) {
+      this.setState('failed');
+      setTimeout(() => { if (this.state === 'failed') this.setState('idle'); }, 5000);
+      throw err;
+    }
+  }
+
+  /**
+   * Resets all synced calendar events (deletes them from the user's calendar),
+   * and then triggers a fresh sync.
+   */
+  async resetAndSync(accessToken, email) {
+    this.setState('syncing');
+    try {
+      const lowerEmail = email.toLowerCase().trim();
+      await resetCalendarEvents(accessToken, lowerEmail);
+      
+      // After reset, queue a fresh sync immediately
+      this.queueSync(accessToken, lowerEmail);
     } catch (err) {
       this.setState('failed');
       setTimeout(() => { if (this.state === 'failed') this.setState('idle'); }, 5000);
