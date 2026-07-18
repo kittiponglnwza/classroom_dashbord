@@ -139,9 +139,11 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
       const [yy, mm, dd] = weekDates['mon'].dateStr.split('-').map(Number);
       const monDate = new Date(yy, mm - 1, dd);
       if (monDate.getMonth() !== currentDate.getMonth() || monDate.getFullYear() !== currentDate.getFullYear()) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCurrentDate(new Date(monDate.getFullYear(), monDate.getMonth(), 1));
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekOffset, weekDates]);
 
   const handlePrevMonth = () => {
