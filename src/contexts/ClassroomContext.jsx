@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components, react-hooks/exhaustive-deps */
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  getAssignments, updateAssignmentStatus, updateAssignmentNotes,
+  getAssignments, updateAssignmentStatus, updateAssignmentNotes, updateAssignmentDueDate,
   addAssignment, getCourses, saveCourses, getLastSync, setLastSync,
   syncClassroomAssignments, getHiddenCourses, saveHiddenCourses,
   getResources, saveResources, saveAssignments, getActiveEmail, resetDatabase,
@@ -227,6 +227,13 @@ export const ClassroomProvider = ({ children }) => {
     syncManager.queueSync(accessToken, email);
   };
 
+  const handleDueDateChange = (id, newDueDate) => {
+    const email = getActiveEmail();
+    setAssignments(updateAssignmentDueDate(id, newDueDate, email));
+    syncManager.queueSync(accessToken, email);
+    calendarSyncManager.queueSync(accessToken, email);
+  };
+
   const handleAddAssignment = (newAssign) => {
     const email = getActiveEmail();
     setAssignments(addAssignment(newAssign, email));
@@ -349,13 +356,13 @@ export const ClassroomProvider = ({ children }) => {
   const value = React.useMemo(() => ({
     assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime, syncState, topics,
     visibleCourses, visibleAssignments, visibleResources,
-    syncClassroom, handleStatusChange, handleNotesChange, handleAddAssignment,
+    syncClassroom, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
     handleDeleteScheduleEntry, handleSaveScheduleEntry, handleClearSchedule,
     handleToggleCourseVisibility, handleToggleBulkCourses, handleTrackAsAssignment, handleUntrackAssignment, resetData
   }), [
     assignments, courses, resources, hiddenCourseIds, schedule, isSyncing, lastSyncTime, syncState, topics,
     visibleCourses, visibleAssignments, visibleResources,
-    syncClassroom, handleStatusChange, handleNotesChange, handleAddAssignment,
+    syncClassroom, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
     handleDeleteScheduleEntry, handleSaveScheduleEntry, handleClearSchedule,
     handleToggleCourseVisibility, handleToggleBulkCourses, handleTrackAsAssignment, handleUntrackAssignment, resetData
   ]);

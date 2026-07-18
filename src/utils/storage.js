@@ -112,6 +112,13 @@ export const updateAssignmentStatus = (id, status, email) => {
   return updated;
 };
 
+export const updateAssignmentDueDate = (id, dueDate, email) => {
+  const assignments = getAssignments(email);
+  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, dueDate, updatedAt: new Date().toISOString() } : a);
+  saveAssignments(updated, email);
+  return updated;
+};
+
 export const updateAssignmentNotes = (id, notes, email) => {
   const assignments = getAssignments(email);
   const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, notes, updatedAt: new Date().toISOString() } : a);

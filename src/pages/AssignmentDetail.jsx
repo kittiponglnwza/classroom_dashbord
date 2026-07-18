@@ -11,7 +11,7 @@ import { useClassroom } from '../contexts/ClassroomContext';
 
 export default function AssignmentDetail() {
   const { lang } = useSettings();
-  const { assignments, handleStatusChange, handleNotesChange } = useClassroom();
+  const { assignments, handleStatusChange, handleNotesChange, handleDueDateChange } = useClassroom();
   
   const { id } = useParams();
   const navigate = useNavigate();
@@ -19,6 +19,8 @@ export default function AssignmentDetail() {
 
   const [noteContent, setNoteContent] = useState(assignment?.notes || '');
   const [downloadingFile, setDownloadingFile] = useState('');
+  const [isEditingDueDate, setIsEditingDueDate] = useState(false);
+  const [tempDueDate, setTempDueDate] = useState('');
 
   useEffect(() => {
     if (assignment) {
@@ -139,9 +141,33 @@ export default function AssignmentDetail() {
                   <div className="p-3 bg-black/20 rounded-xl text-brand-400 group-hover/card:scale-110 transition-transform">
                     <Calendar size={18} />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <span className="text-[10px] text-zinc-500 block font-bold uppercase tracking-wider">{t('dueDateLabel', lang)}</span>
-                    <span className="text-sm font-bold text-zinc-200">{dueDate}</span>
+                    {isEditingDueDate ? (
+                      <input 
+                        type="datetime-local" 
+                        className="w-full bg-black/20 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-brand-500"
+                        value={tempDueDate}
+                        onChange={(e) => setTempDueDate(e.target.value)}
+                        onBlur={() => {
+                          if (tempDueDate !== dueDate) {
+                            handleDueDateChange(id, tempDueDate);
+                          }
+                          setIsEditingDueDate(false);
+                        }}
+                        autoFocus
+                      />
+                    ) : (
+                      <span 
+                        className="text-sm font-bold text-zinc-200 cursor-pointer border-b border-dashed border-zinc-500 hover:text-brand-400 hover:border-brand-400"
+                        onClick={() => {
+                          setTempDueDate(dueDate || '');
+                          setIsEditingDueDate(true);
+                        }}
+                      >
+                        {dueDate || t('noDueDate', lang)}
+                      </span>
+                    )}
                   </div>
                 </div>
 
