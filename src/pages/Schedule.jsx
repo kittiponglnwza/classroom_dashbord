@@ -367,7 +367,7 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
   return (
     <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden animate-fade-in shadow-2xl">
       <div className="overflow-x-auto" ref={gridRef}>
-        <div className="min-w-[1250px] relative">
+        <div className="min-w-[768px] w-full relative">
           
           {/* Time headers row */}
           <div className="grid grid-cols-[120px_repeat(18,1fr)] border-b border-dark-border/60 bg-dark-sidebar/40">
