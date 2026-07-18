@@ -1229,6 +1229,47 @@ export default function Schedule() {
     return () => clearInterval(interval);
   }, []);
 
+  // Calculate today's classes for the top banner
+  const todayClasses = useMemo(() => {
+    const today = new Date();
+    const todayIdx = today.getDay();
+    const todayKeyVal = todayIdx === 0 ? 'sun' : JS_DAY_MAP[todayIdx];
+    const todayDateStr = toLocalDateStr(today);
+
+    const activeExams = [];
+    const activeRegular = [];
+
+    combinedSchedule.forEach(entry => {
+      if (entry.isAssignment) return; // Skip assignments in the banner
+      if (entry.isExam) {
+        if (entry.date === todayDateStr) activeExams.push(entry);
+      } else {
+        if (entry.day === todayKeyVal && (!entry.date || entry.date === todayDateStr)) {
+          activeRegular.push(entry);
+        }
+      }
+    });
+
+    const filteredRegular = activeRegular.filter(regEntry => {
+      return !activeExams.some(exam => {
+        const codeMatch = regEntry.courseCode && exam.courseCode && 
+          regEntry.courseCode.toLowerCase().trim() === exam.courseCode.toLowerCase().trim();
+        const titleMatch = regEntry.title && exam.title && 
+          regEntry.title.toLowerCase().trim() === exam.title.toLowerCase().trim();
+        if (codeMatch || titleMatch) return true;
+
+        const startReg = timeToMinutes(regEntry.startTime);
+        const endReg = timeToMinutes(regEntry.endTime);
+        const startExam = timeToMinutes(exam.startTime);
+        const endExam = timeToMinutes(exam.endTime);
+
+        return startReg < endExam && endReg > startExam;
+      });
+    });
+
+    return [...filteredRegular, ...activeExams].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+  }, [combinedSchedule]);
+
   const openAddModal = useCallback((day, startTime, endTime, dateVal = '') => {
     setEditingEntry(null);
     setPrefillData({ 
@@ -1374,6 +1415,36 @@ export default function Schedule() {
           </button>
         </div>
       </div>
+
+      {/* Today's Classes Banner */}
+      {todayClasses.length > 0 && (
+        <div className="opacity-0 animate-fade-in" style={{ animationDelay: '75ms' }}>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-brand-500/5 border border-brand-500/20 rounded-2xl px-6 py-4 shadow-[0_4px_16px_rgba(99,102,241,0.05)]">
+            <div className="flex items-center gap-3">
+              <CalendarDays size={18} className="text-brand-400 shrink-0" />
+              <h3 className="text-sm font-bold text-brand-400 shrink-0">{lang === 'en' ? "Today's Classes" : "ตารางเรียนวันนี้"}:</h3>
+              <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar whitespace-nowrap px-2">
+                {todayClasses.map(cls => (
+                  <div key={cls.id} className="flex items-center gap-2 text-xs font-semibold text-white/80">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: resolveHexColor(cls.color) }}></span>
+                    {cls.title || cls.courseCode} ({cls.startTime})
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button 
+              onClick={() => {
+                setWeekOffset(0);
+                setSelectedDay(todayKey);
+                setViewType('daily');
+              }}
+              className="text-xs font-bold text-brand-400 hover:text-brand-300 shrink-0 transition-colors cursor-pointer"
+            >
+              {lang === 'en' ? 'Jump to today' : 'ดูของวันนี้'} &rarr;
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Week Navigation controls */}
       <div className="flex items-center justify-between bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl px-6 py-4 hover:border-white/10 transition-colors opacity-0 animate-fade-in shadow-lg" style={{ animationDelay: '100ms' }}>
