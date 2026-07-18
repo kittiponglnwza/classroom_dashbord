@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { CalendarDays, CalendarX2, Plus, X, Trash2, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, CalendarX2, Plus, X, Trash2, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
@@ -1416,35 +1416,7 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* Today's Classes Banner */}
-      {todayClasses.length > 0 && (
-        <div className="opacity-0 animate-fade-in" style={{ animationDelay: '75ms' }}>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-brand-500/5 border border-brand-500/20 rounded-2xl px-6 py-4 shadow-[0_4px_16px_rgba(99,102,241,0.05)]">
-            <div className="flex items-center gap-3">
-              <CalendarDays size={18} className="text-brand-400 shrink-0" />
-              <h3 className="text-sm font-bold text-brand-400 shrink-0">{lang === 'en' ? "Today's Classes" : "ตารางเรียนวันนี้"}:</h3>
-              <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar whitespace-nowrap px-2">
-                {todayClasses.map(cls => (
-                  <div key={cls.id} className="flex items-center gap-2 text-xs font-semibold text-white/80">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: resolveHexColor(cls.color) }}></span>
-                    {cls.title || cls.courseCode} ({cls.startTime})
-                  </div>
-                ))}
-              </div>
-            </div>
-            <button 
-              onClick={() => {
-                setWeekOffset(0);
-                setSelectedDay(todayKey);
-                setViewType('daily');
-              }}
-              className="text-xs font-bold text-brand-400 hover:text-brand-300 shrink-0 transition-colors cursor-pointer"
-            >
-              {lang === 'en' ? 'Jump to today' : 'ดูของวันนี้'} &rarr;
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* Week Navigation controls */}
       <div className="flex items-center justify-between bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl px-6 py-4 hover:border-white/10 transition-colors opacity-0 animate-fade-in shadow-lg" style={{ animationDelay: '100ms' }}>
@@ -1497,8 +1469,8 @@ export default function Schedule() {
       {/* Mini Calendar + Views Layout */}
       <div className="flex flex-col xl:flex-row gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '200ms' }}>
         
-        {/* Mini Calendar Widget */}
-        <div className="xl:w-[320px] shrink-0">
+        {/* Left Column: Mini Calendar & Today's Classes */}
+        <div className="xl:w-[320px] shrink-0 space-y-6">
           <MiniCalendar
             schedule={combinedSchedule}
             lang={lang}
@@ -1506,6 +1478,47 @@ export default function Schedule() {
             setWeekOffset={setWeekOffset}
             weekDates={weekDates}
           />
+
+          {/* Today's Classes Box */}
+          {todayClasses.length > 0 && (
+            <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                  <CalendarDays size={14} className="text-brand-400" />
+                  <span>{lang === 'en' ? "Today's Classes" : "ตารางเรียนวันนี้"}</span>
+                </h3>
+                <button 
+                  onClick={() => {
+                    setWeekOffset(0);
+                    setSelectedDay(todayKey);
+                    setViewType('daily');
+                  }}
+                  className="text-[10px] font-bold text-brand-400 hover:text-brand-300 transition-colors cursor-pointer"
+                >
+                  {lang === 'en' ? 'Jump to today' : 'ดูของวันนี้'} &rarr;
+                </button>
+              </div>
+              <div className="space-y-3">
+                {todayClasses.map(cls => (
+                  <div key={cls.id} className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 border-l-[3px]" style={{ borderLeftColor: resolveHexColor(cls.color) }}>
+                    <div className="flex flex-col items-center justify-center shrink-0 w-12 h-12 rounded-xl bg-black/20 border border-white/5 text-brand-400">
+                      <span className="text-[10px] font-bold leading-none">{cls.startTime}</span>
+                      <span className="text-[8px] font-medium text-dark-muted mt-1 leading-none">{cls.endTime}</span>
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center h-12">
+                      <h4 className="text-xs font-bold text-white truncate w-full" title={cls.title || cls.courseCode}>{cls.title || cls.courseCode}</h4>
+                      {cls.room && (
+                        <p className="text-[9px] text-dark-muted truncate mt-1 flex items-center gap-1">
+                          <MapPin size={9} className="shrink-0" />
+                          {cls.room}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Views */}
