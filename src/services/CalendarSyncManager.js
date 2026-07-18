@@ -71,8 +71,8 @@ class CalendarSyncManager {
       const lowerEmail = email.toLowerCase().trim();
       await resetCalendarEvents(accessToken, lowerEmail);
       
-      // After reset, queue a fresh sync immediately
-      this.queueSync(accessToken, lowerEmail);
+      // After reset, run a fresh sync immediately and wait for it
+      await this.runSync(accessToken, lowerEmail);
     } catch (err) {
       this.setState('failed');
       setTimeout(() => { if (this.state === 'failed') this.setState('idle'); }, 5000);
