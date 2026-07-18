@@ -298,20 +298,40 @@ export async function syncClassroomDataToCalendar(accessToken, email, { schedule
 export async function resetCalendarEvents(accessToken, email) {
   if (!accessToken || !email) return;
 
-  const map = loadEventMap(email);
-  const keys = Object.keys(map);
+  logger.info('[Calendar Sync] Fetching all Classroom Hub events from Google Calendar to reset...');
   
-  if (keys.length === 0) {
-    logger.info('[Calendar Sync] No local events tracked to reset.');
-    return;
-  }
+  let pageToken = null;
+  let deletedCount = 0;
 
-  logger.info(`[Calendar Sync] Resetting ${keys.length} calendar events...`);
-  
-  for (const key of keys) {
-    await deleteEvent(accessToken, key, map);
-  }
+  try {
+    do {
+      const url = new URL(CALENDAR_EVENTS_URL);
+      url.searchParams.append('privateExtendedProperty', `chSource=${SOURCE_TAG}`);
+      if (pageToken) {
+        url.searchParams.append('pageToken', pageToken);
+      }
 
-  saveEventMap(email, map); // should be empty now
-  logger.info('[Calendar Sync] Calendar reset complete.');
+      const data = await calendarRequest(accessToken, url.toString());
+      
+      if (data && data.items && data.items.length > 0) {
+        for (const event of data.items) {
+          try {
+            await calendarRequest(accessToken, `${CALENDAR_EVENTS_URL}/${event.id}`, { method: 'DELETE' });
+            deletedCount++;
+          } catch (err) {
+            logger.warn(`[Calendar Sync] Failed to delete orphaned event ${event.id}`, err.message);
+          }
+        }
+      }
+      
+      pageToken = data ? data.nextPageToken : null;
+    } while (pageToken);
+
+    // Clear the local tracking map
+    saveEventMap(email, {}); 
+    logger.info(`[Calendar Sync] Calendar reset complete. Deleted ${deletedCount} events from Google Calendar.`);
+  } catch (err) {
+    logger.error('[Calendar Sync] Failed to fetch and reset calendar events from API:', err.message || err);
+    throw err;
+  }
 }
