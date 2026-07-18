@@ -1152,7 +1152,8 @@ export default function Schedule() {
           // Fix timezone: Google Classroom API provides UTC time but older cached data might miss 'Z'.
           // Ensure we treat it as UTC if it's a full time string.
           const isLocalEndOfDay = a.dueDate.includes('23:59:59'); 
-          const isoString = (a.dueDate.endsWith('Z') || a.dueDate.includes('+') || isLocalEndOfDay) 
+          const isLocalTimeInput = a.dueDate.length === 16;
+          const isoString = (a.dueDate.endsWith('Z') || a.dueDate.includes('+') || isLocalEndOfDay || isLocalTimeInput) 
             ? a.dueDate 
             : `${a.dueDate}Z`;
             
