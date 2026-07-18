@@ -77,7 +77,7 @@ function nextDateForDay(dayKey) {
   const diff = (targetIdx - todayIdx + 7) % 7;
   const d = new Date(today);
   d.setDate(today.getDate() + diff);
-  return d.toISOString().split('T')[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function buildRecurringClassEvent(entry) {
@@ -112,12 +112,12 @@ function buildAssignmentEvent(assignment) {
     start = { dateTime: assignment.dueDate, timeZone: TIMEZONE };
     const endDate = new Date(assignment.dueDate);
     endDate.setMinutes(endDate.getMinutes() + 30);
-    end = { dateTime: `${endDate.toISOString().split('.')[0]}`, timeZone: TIMEZONE };
+    end = { dateTime: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}T${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}:00`, timeZone: TIMEZONE };
   } else {
     start = { date: assignment.dueDate };
     const endDate = new Date(`${assignment.dueDate}T00:00:00`);
     endDate.setDate(endDate.getDate() + 1);
-    end = { date: endDate.toISOString().split('T')[0] };
+    end = { date: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}` };
   }
 
   return {
@@ -150,7 +150,7 @@ function normalizeExamEntry(ex) {
     dateVal = ex.rawIsoDate.split('T')[0];
   } else if (ex.date) {
     const parsed = parseExamDate(ex.date);
-    if (parsed) dateVal = parsed.toISOString().split('T')[0];
+    if (parsed) dateVal = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
   }
   if (!dateVal) return null;
 

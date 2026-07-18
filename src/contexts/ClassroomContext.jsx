@@ -69,7 +69,70 @@ export const ClassroomProvider = ({ children }) => {
     }
   }, [isLoggedIn, loadLocalData]);
 
+  // Cross-tab sync: listen for localStorage changes from other tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (!e.key) return;
+      const activeEmail = getActiveEmail();
+      if (!activeEmail) return;
+      // Only react to keys belonging to our app
+      if (e.key.startsWith('classroom_hub_')) {
+        loadLocalData(activeEmail);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [loadLocalData]);
 
+  // Auto-polling Google Drive for real-time cross-device sync (every 60s when tab is active)
+  useEffect(() => {
+    if (!isLoggedIn || !accessToken) return;
+
+    let intervalId = null;
+    let isVisible = !document.hidden;
+
+    const startPolling = () => {
+      if (intervalId) return;
+      intervalId = setInterval(async () => {
+        const email = getActiveEmail();
+        if (!email || !accessToken) return;
+        try {
+          await syncManager.executeSync(accessToken, email);
+        } catch (err) {
+          logger.debug('[Auto-Poll] Background Drive poll failed (non-critical):', err.message);
+        }
+      }, 60000); // Poll every 60 seconds
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      isVisible = !document.hidden;
+      if (isVisible) {
+        // When tab becomes visible again, do an immediate sync + restart polling
+        const email = getActiveEmail();
+        if (email && accessToken) {
+          syncManager.executeSync(accessToken, email).catch(() => {});
+        }
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    if (isVisible) startPolling();
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [isLoggedIn, accessToken]);
 
   const syncClassroom = async (forcedToken = null) => {
     const tokenToUse = forcedToken || accessToken;

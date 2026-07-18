@@ -8,7 +8,8 @@ export const parseExamDate = (dateStr) => {
   // Try parsing ISO date first
   const isoMatch = cleanStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {
-    return new Date(cleanStr);
+    const [, isoY, isoM, isoD] = isoMatch;
+    return new Date(parseInt(isoY), parseInt(isoM) - 1, parseInt(isoD));
   }
 
   const thaiMonths = EXAM_CONFIG.thaiMonths;

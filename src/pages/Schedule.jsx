@@ -67,6 +67,10 @@ function getTodayKey() {
   return d === 0 ? 'sun' : JS_DAY_MAP[d];
 }
 
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function timeToMinutes(t) {
   const [h, m] = t.split(':').map(Number);
   return h * 60 + m;
@@ -106,7 +110,7 @@ function getWeekDates(offset, lang) {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateStr = toLocalDateStr(d);
     map[DAYS[i]] = {
       dateStr,
       formatted: d.toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short' }),
@@ -124,6 +128,150 @@ function timeToPercent(timeStr) {
   const startMinutes = START_HOUR * 60;
   const totalMinutes = (END_HOUR - START_HOUR) * 60;
   return Math.min(Math.max(((minutes - startMinutes) / totalMinutes) * 100, 0), 100);
+}
+
+// ─── MINI CALENDAR WIDGET ──────────────────────────────────────────
+function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    if (weekDates && weekDates['mon']) {
+      const [yy, mm, dd] = weekDates['mon'].dateStr.split('-').map(Number);
+      const monDate = new Date(yy, mm - 1, dd);
+      if (monDate.getMonth() !== currentDate.getMonth() || monDate.getFullYear() !== currentDate.getFullYear()) {
+        setCurrentDate(new Date(monDate.getFullYear(), monDate.getMonth(), 1));
+      }
+    }
+  }, [weekOffset, weekDates]);
+
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year, month) => {
+    const d = new Date(year, month, 1).getDay();
+    return d === 0 ? 6 : d - 1; // 0=Mon, 6=Sun
+  };
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+
+  const monthNames = lang === 'en' 
+    ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    : ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+    
+  const dayNames = lang === 'en' ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] : ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
+
+  const todayStr = toLocalDateStr(new Date());
+
+  const handleDayClick = (dayNum) => {
+    const clickedDate = new Date(year, month, dayNum);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const cDay = clickedDate.getDay();
+    const cDiff = cDay === 0 ? -6 : 1 - cDay;
+    const cMonday = new Date(clickedDate);
+    cMonday.setDate(clickedDate.getDate() + cDiff);
+    
+    const tDay = today.getDay();
+    const tDiff = tDay === 0 ? -6 : 1 - tDay;
+    const tMonday = new Date(today);
+    tMonday.setDate(today.getDate() + tDiff);
+    
+    const diffTime = cMonday.getTime() - tMonday.getTime();
+    const diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+    setWeekOffset(diffWeeks);
+  };
+
+  const renderDots = (dayNum) => {
+    const dateStr = toLocalDateStr(new Date(year, month, dayNum));
+    const dObj = new Date(year, month, dayNum);
+    const dayIndex = dObj.getDay();
+    const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
+
+    const dayEntries = schedule.filter(entry => {
+      if (entry.isExam || entry.isAssignment || entry.date) {
+        return entry.date === dateStr;
+      }
+      return entry.day === dayKey;
+    });
+
+    if (dayEntries.length === 0) return null;
+    
+    const colors = Array.from(new Set(dayEntries.map(e => e.color || '#3b82f6'))).slice(0, 3);
+    
+    return (
+      <div className="flex gap-0.5 justify-center mt-0.5 absolute bottom-1 left-1/2 -translate-x-1/2">
+        {colors.map((c, i) => (
+          <div key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: c }}></div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-dark-card border border-dark-border rounded-2xl p-4 shadow-lg sticky top-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-white font-semibold text-sm">
+          {monthNames[month]} {lang === 'th' ? year + 543 : year}
+        </h2>
+        <div className="flex gap-1">
+          <button onClick={handlePrevMonth} className="p-1.5 rounded-lg hover:bg-dark-hover text-dark-muted transition-colors">
+            <ChevronLeft size={16} />
+          </button>
+          <button onClick={handleNextMonth} className="p-1.5 rounded-lg hover:bg-dark-hover text-dark-muted transition-colors">
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {dayNames.map(d => (
+          <div key={d} className="text-center text-[10px] font-semibold text-dark-muted py-1">
+            {d}
+          </div>
+        ))}
+      </div>
+      
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: firstDay }).map((_, i) => (
+          <div key={`empty-${i}`} className="p-2" />
+        ))}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const dayNum = i + 1;
+          const dateStr = toLocalDateStr(new Date(year, month, dayNum));
+          const isToday = dateStr === todayStr;
+          
+          let isSelectedWeek = false;
+          if (weekDates) {
+            isSelectedWeek = Object.values(weekDates).some(w => w.dateStr === dateStr);
+          }
+          
+          return (
+            <button
+              key={dayNum}
+              onClick={() => handleDayClick(dayNum)}
+              className={`
+                relative h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-all
+                ${isToday ? 'bg-brand-500/20 text-brand-400 ring-1 ring-brand-500/50' : 
+                  isSelectedWeek ? 'bg-dark-hover text-white' : 'text-dark-muted hover:text-white hover:bg-dark-hover'}
+              `}
+            >
+              <span className={isSelectedWeek && !isToday ? 'opacity-100' : ''}>{dayNum}</span>
+              {renderDots(dayNum)}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ─── WEEKLY GRID VIEW ──────────────────────────────────────────────
@@ -577,7 +725,8 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   const handleDateChange = (dateVal) => {
     update('date', dateVal);
     if (dateVal) {
-      const d = new Date(dateVal);
+      const [yy, mm, dd] = dateVal.split('-').map(Number);
+      const d = new Date(yy, mm - 1, dd);
       const dayIndex = d.getDay(); // 0 = Sun
       const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
       update('day', dayKey);
@@ -590,7 +739,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
       update('date', '');
     } else {
       // Prefill with today's date if empty
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = toLocalDateStr(new Date());
       handleDateChange(todayStr);
     }
   };
@@ -960,13 +1109,14 @@ export default function Schedule() {
       } else if (ex.date) {
         const parsed = parseExamDate(ex.date);
         if (parsed) {
-          dateVal = parsed.toISOString().split('T')[0];
+          dateVal = toLocalDateStr(parsed);
         }
       }
 
       if (!dateVal) return null;
 
-      const d = new Date(dateVal);
+      const [ey, em, ed] = dateVal.split('-').map(Number);
+      const d = new Date(ey, em - 1, ed);
       const dayIndex = d.getDay();
       const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
 
@@ -1034,7 +1184,8 @@ export default function Schedule() {
         
         if (!dateVal) return null;
 
-      const d = new Date(dateVal);
+      const [ay, am, ad] = dateVal.split('-').map(Number);
+      const d = new Date(ay, am - 1, ad);
       const dayIndex = d.getDay();
       const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
 
@@ -1272,31 +1423,47 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* Views */}
-      <div className="opacity-0 animate-fade-in" style={{ animationDelay: '200ms' }}>
-        {viewType === 'weekly' ? (
-          <WeeklyGrid
+      {/* Mini Calendar + Views Layout */}
+      <div className="flex flex-col xl:flex-row gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '200ms' }}>
+        
+        {/* Mini Calendar Widget */}
+        <div className="xl:w-[320px] shrink-0">
+          <MiniCalendar
             schedule={combinedSchedule}
             lang={lang}
-            todayKey={todayKey}
-            currentMinutes={currentMinutes}
-            weekDates={weekDates}
             weekOffset={weekOffset}
-            onClickBlock={openEditModal}
-            onClickEmpty={openAddModal}
-          />
-        ) : (
-          <DailyList
-            schedule={combinedSchedule}
-            lang={lang}
-            todayKey={todayKey}
-            selectedDay={selectedDay}
-            setSelectedDay={setSelectedDay}
+            setWeekOffset={setWeekOffset}
             weekDates={weekDates}
-            onClickCard={openEditModal}
           />
-        )}
+        </div>
+
+        {/* Views */}
+        <div className="flex-1 min-w-0">
+          {viewType === 'weekly' ? (
+            <WeeklyGrid
+              schedule={combinedSchedule}
+              lang={lang}
+              todayKey={todayKey}
+              currentMinutes={currentMinutes}
+              weekDates={weekDates}
+              weekOffset={weekOffset}
+              onClickBlock={openEditModal}
+              onClickEmpty={openAddModal}
+            />
+          ) : (
+            <DailyList
+              schedule={combinedSchedule}
+              lang={lang}
+              todayKey={todayKey}
+              selectedDay={selectedDay}
+              setSelectedDay={setSelectedDay}
+              weekDates={weekDates}
+              onClickCard={openEditModal}
+            />
+          )}
+        </div>
       </div>
+
 
       {/* Add / Edit Modal */}
       {isModalOpen && (
