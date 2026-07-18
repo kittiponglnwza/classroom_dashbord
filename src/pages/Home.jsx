@@ -29,7 +29,11 @@ export default function Home() {
   // Filter out completed and get nearest due dates
   const upcomingAssignments = visibleAssignments
     .filter(a => a.status !== 'done')
-    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+    .sort((a, b) => {
+      const dateA = a.creationTime ? new Date(a.creationTime).getTime() : 0;
+      const dateB = b.creationTime ? new Date(b.creationTime).getTime() : 0;
+      return dateB - dateA;
+    })
     .slice(0, 3);
 
   // Get latest 3 announcements across all courses
@@ -126,7 +130,7 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold font-heading text-white flex items-center gap-2">
                 <Calendar size={18} className="text-brand-400" />
-                {t('upcomingDeadlines', lang)}
+                {t('latestAssignments', lang)}
               </h2>
               {visibleAssignments.filter(a => a.status !== 'done').length > 3 && (
                 <Link to="/dashboard" className="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors flex items-center gap-1">

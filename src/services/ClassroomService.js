@@ -154,6 +154,8 @@ export class ClassroomService {
               courseId: course.id,
               googleLink: cw.alternateLink,
               topicId: cw.topicId || null,
+              creationTime: cw.creationTime || new Date().toISOString(),
+              updateTime: cw.updateTime || new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
           });
