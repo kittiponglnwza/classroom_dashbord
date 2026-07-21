@@ -65,33 +65,27 @@ export default function Home() {
     });
   }, [schedule]);
 
-  // Load cached exam results at the top level of Home.jsx
   const activeEmail = (profile.email || '').toLowerCase().trim();
   const implicitStudentId = activeEmail.match(/\d{13}/) ? activeEmail.match(/\d{13}/)[0] : null;
-  const cacheKey = activeEmail ? `classroom_hub_exam_results_${activeEmail}` : 'classroom_hub_exam_results_';
 
   const [examState, setExamState] = useState(() => {
     let initialExams = [];
     let initialChecked = false;
     let initialUnlisted = null;
 
-    const cachedData = localStorage.getItem(cacheKey);
     const savedSearch = sessionStorage.getItem('lastExamSearch') || implicitStudentId;
+    const cachedResult = examRepository.getCachedExams(activeEmail);
+    const data = (cachedResult.success && cachedResult.data) ? cachedResult.data : null;
 
-    if (cachedData) {
-      try {
-        const parsed = JSON.parse(cachedData);
-        const hasCachedExams = parsed.exams && parsed.exams.length > 0;
-        const hasManual = parsed.manualExams && parsed.manualExams.length > 0;
-        
-        if (savedSearch || hasCachedExams || hasManual) {
-          initialChecked = true;
-          initialUnlisted = parsed.unlisted || null;
-          const examsToLoad = (savedSearch || hasCachedExams) ? (parsed.exams || []) : [];
-          initialExams = [...examsToLoad, ...(parsed.manualExams || [])];
-        }
-      } catch (e) {
-        console.error('Failed to parse cached exam results on Home page', e);
+    if (data) {
+      const hasCachedExams = data.exams && data.exams.length > 0;
+      const hasManual = data.manualExams && data.manualExams.length > 0;
+      
+      if (savedSearch || hasCachedExams || hasManual) {
+        initialChecked = true;
+        initialUnlisted = data.unlisted || null;
+        const examsToLoad = (savedSearch || hasCachedExams) ? (data.exams || []) : [];
+        initialExams = [...examsToLoad, ...(data.manualExams || [])];
       }
     }
     
