@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { parseExamDate } from '../../utils/examDate';
 import { examRepository } from '../../repositories/examRepository';
 import { syncManager } from '../../services/SyncManager';
@@ -53,10 +53,29 @@ export const useExamRoom = (activeEmail, lang) => {
     setManualExamList(parsed.manualExams || []);
     setUnlistedInfo(parsed.unlisted || null);
     const hasSearched = !!sessionStorage.getItem('lastExamSearch');
-    setSearchTriggered(hasSearched || !!(parsed.exams && parsed.exams.length > 0));
+    setSearchTriggered(hasSearched || !!(parsed.exams && parsed.exams.length > 0) || !!(parsed.manualExams && parsed.manualExams.length > 0));
     setStatus((parsed.exams && parsed.exams.length > 0) ? 'success' : 'idle');
     setError(null);
   }
+
+  // Bulletproof sync on mount
+  useEffect(() => {
+    if (activeEmail) {
+      const cachedResult = examRepository.getCachedExams(activeEmail);
+      if (cachedResult.success && cachedResult.data) {
+        const data = cachedResult.data;
+        const hasExams = data.exams && data.exams.length > 0;
+        const hasManual = data.manualExams && data.manualExams.length > 0;
+        if (hasExams || hasManual) {
+          setExamList(data.exams || []);
+          setManualExamList(data.manualExams || []);
+          setUnlistedInfo(data.unlisted || null);
+          setSearchTriggered(true);
+          if (hasExams) setStatus('success');
+        }
+      }
+    }
+  }, [activeEmail]);
 
   // Adjust state when studentId changes
   if (studentId !== prevStudentId) {
