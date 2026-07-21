@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus } from 'lucide-react';
+import { ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus, Search } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -33,9 +33,12 @@ export default function ExamRoom() {
 
   const loading = status === 'loading';
 
-  // Local UI State for Modal
+  // Local UI State for Modal and Search Form
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExamData, setEditingExamData] = useState(null);
+  const [isSearchVisible, setIsSearchVisible] = useState(() => {
+    return !(sortedExams && sortedExams.length > 0);
+  });
 
   const openNewModal = () => {
     setEditingExamData(null);
@@ -78,21 +81,29 @@ export default function ExamRoom() {
       </div>
 
       {/* Security Warning Badge */}
-      <div className="bg-amber-500/5 backdrop-blur-md border border-amber-500/20 rounded-2xl p-5 flex items-start gap-4 text-xs max-w-2xl text-amber-400/90 leading-relaxed shadow-lg opacity-0 animate-fade-in" style={{ animationDelay: '100ms' }}>
-        <Lock size={16} className="shrink-0 mt-0.5" />
-        <p>{t('securityWarning', lang)}</p>
-      </div>
+      {isSearchVisible && (
+        <div className="bg-amber-500/5 backdrop-blur-md border border-amber-500/20 rounded-2xl p-5 flex items-start gap-4 text-xs max-w-2xl text-amber-400/90 leading-relaxed shadow-lg opacity-0 animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <Lock size={16} className="shrink-0 mt-0.5" />
+          <p>{t('securityWarning', lang)}</p>
+        </div>
+      )}
 
       {/* Search Form Component */}
-      <div className="opacity-0 animate-fade-in" style={{ animationDelay: '150ms' }}>
-        <ExamSearchForm 
-          studentId={studentId}
-          setStudentId={setStudentId}
-          onSearch={handleSearch}
-          loading={loading}
-          lang={lang}
-        />
-      </div>
+      {isSearchVisible && (
+        <div className="opacity-0 animate-fade-in" style={{ animationDelay: '150ms' }}>
+          <ExamSearchForm 
+            studentId={studentId}
+            setStudentId={setStudentId}
+            onSearch={(e) => {
+              handleSearch(e);
+              // Hide search form after clicking search if it successfully fetched
+              // We'll let the user see the result, but wait, maybe don't hide immediately
+            }}
+            loading={loading}
+            lang={lang}
+          />
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -129,10 +140,22 @@ export default function ExamRoom() {
           {/* Seating Cards Grid */}
           {sortedExams.length > 0 && (
             <div className="space-y-4">
-              <h3 className="font-semibold text-xs text-white uppercase tracking-wider flex items-center gap-2">
-                <CheckCircle2 size={13} className="text-emerald-400" />
-                {lang === 'en' ? 'Your Exam Seating Schedule' : 'ตารางและที่นั่งสอบของคุณ'}
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-xs text-white uppercase tracking-wider flex items-center gap-2">
+                  <CheckCircle2 size={13} className="text-emerald-400" />
+                  {lang === 'en' ? 'Your Exam Seating Schedule' : 'ตารางและที่นั่งสอบของคุณ'}
+                </h3>
+                {!isSearchVisible && (
+                  <button
+                    type="button"
+                    onClick={() => setIsSearchVisible(true)}
+                    className="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors flex items-center gap-1"
+                  >
+                    <Search size={12} />
+                    {lang === 'en' ? 'Search Another ID' : 'ค้นหารหัสนักศึกษาอื่น'}
+                  </button>
+                )}
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {sortedExams.map((exam, idx) => (

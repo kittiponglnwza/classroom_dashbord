@@ -97,8 +97,9 @@ export const useExamRoom = (activeEmail, lang) => {
       }
     }
   }
+  const fetchAttempted = useRef(false);
 
-  const handleSearch = async (e) => {
+  const handleSearch = useCallback(async (e) => {
     if (e) e.preventDefault();
     
     if (abortControllerRef.current) {
@@ -144,7 +145,15 @@ export const useExamRoom = (activeEmail, lang) => {
       setError(result.error.message);
       setStatus('error');
     }
-  };
+  }, [studentId, lang, activeEmail, manualExamList]);
+
+  // Auto-fetch if not searched yet but we have a valid studentId derived from email
+  useEffect(() => {
+    if (studentId && studentId.match(/^\d{13}$/) && !searchTriggered && !fetchAttempted.current) {
+      fetchAttempted.current = true;
+      handleSearch();
+    }
+  }, [studentId, searchTriggered, handleSearch]);
 
   const handleSaveManualExam = useCallback((examData) => {
     let updatedManual = [...manualExamList];
