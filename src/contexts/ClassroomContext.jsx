@@ -170,6 +170,8 @@ export const ClassroomProvider = ({ children }) => {
             const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
             examRepository.saveToCache(userEmail, result.data.exams, currentManual, result.data.unlisted);
             sessionStorage.setItem('lastExamSearch', implicitStudentId);
+            syncManager.queueSync(tokenToUse, userEmail);
+            calendarSyncManager.queueSync(tokenToUse, userEmail);
           }
         }).catch(err => logger.error('[Sync] Background exam fetch failed', err));
       }

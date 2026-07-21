@@ -8,6 +8,10 @@ import { parseExamDate } from '../utils/examDate';
 import { getCourseBadgeColor } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
+
+import { syncManager } from '../services/SyncManager';
+import { calendarSyncManager } from '../services/CalendarSyncManager';
+import { getToken } from '../utils/storage';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { examRepository } from '../repositories/examRepository';
 
@@ -136,6 +140,13 @@ export default function Home() {
           const currentCache = examRepository.getCachedExams(activeEmail);
           const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
           examRepository.saveToCache(activeEmail, result.data.exams, currentManual, result.data.unlisted);
+          
+          const token = getToken();
+          if (token && activeEmail) {
+            syncManager.queueSync(token, activeEmail);
+            calendarSyncManager.queueSync(token, activeEmail);
+          }
+
           setExamState({
             allExams: [...result.data.exams, ...currentManual],
             hasCheckedExams: true,

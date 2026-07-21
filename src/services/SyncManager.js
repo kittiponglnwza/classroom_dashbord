@@ -149,14 +149,27 @@ class SyncManager {
           const localObj = localParsed.data || { exams: [], manualExams: [], unlisted: null };
           const remoteObj = remoteParsed.data || { exams: [], manualExams: [], unlisted: null };
           const localIsNewer = new Date(localParsed.timestamp || 0) >= new Date(remoteParsed.timestamp || 0);
+          
           const mergedManual = this.mergeEntitiesById(localObj.manualExams || [], remoteObj.manualExams || [], localIsNewer);
+          
+          let mergedExams;
+          let mergedUnlisted;
+          
+          if (localIsNewer) {
+            mergedExams = (localObj.exams && localObj.exams.length > 0) ? localObj.exams : (remoteObj.exams || []);
+            mergedUnlisted = localObj.unlisted !== undefined ? localObj.unlisted : remoteObj.unlisted;
+          } else {
+            mergedExams = (remoteObj.exams && remoteObj.exams.length > 0) ? remoteObj.exams : (localObj.exams || []);
+            mergedUnlisted = remoteObj.unlisted !== undefined ? remoteObj.unlisted : localObj.unlisted;
+          }
+
           merged[fullKey] = JSON.stringify({
             version: STORAGE_CONFIG.schemaVersion,
             timestamp: new Date().toISOString(),
             data: {
-              exams: remoteObj.exams || localObj.exams || [],
+              exams: mergedExams,
               manualExams: mergedManual,
-              unlisted: remoteObj.unlisted || localObj.unlisted
+              unlisted: mergedUnlisted
             }
           });
         } else {
