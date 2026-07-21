@@ -69,14 +69,23 @@ export default function Home() {
   const cacheKey = activeEmail ? `classroom_hub_exam_results_${activeEmail}` : 'classroom_hub_exam_results_';
   let allExams = [];
   const cachedData = localStorage.getItem(cacheKey);
-  const savedSearch = localStorage.getItem('lastExamSearch');
-  const hasSavedSearch = savedSearch && savedSearch.trim() !== '';
+  const implicitStudentId = activeEmail.match(/\d{13}/) ? activeEmail.match(/\d{13}/)[0] : null;
+  const savedSearch = sessionStorage.getItem('lastExamSearch') || implicitStudentId;
+  let hasCheckedExams = false;
+  let unlistedInfo = null;
 
   if (cachedData) {
     try {
       const parsed = JSON.parse(cachedData);
-      const examsToLoad = hasSavedSearch ? (parsed.exams || []) : [];
-      allExams = [...examsToLoad, ...(parsed.manualExams || [])];
+      const hasCachedExams = parsed.exams && parsed.exams.length > 0;
+      const hasManual = parsed.manualExams && parsed.manualExams.length > 0;
+      
+      if (savedSearch || hasCachedExams || hasManual) {
+        hasCheckedExams = true;
+        unlistedInfo = parsed.unlisted || null;
+        const examsToLoad = (savedSearch || hasCachedExams) ? (parsed.exams || []) : [];
+        allExams = [...examsToLoad, ...(parsed.manualExams || [])];
+      }
     } catch (e) {
       console.error('Failed to parse cached exam results on Home page', e);
     }
@@ -274,39 +283,26 @@ export default function Home() {
           {/* Next Exam Widget */}
           {(() => {
             let nextExam = null;
-            let unlisted = null;
-            let hasChecked = false;
+            let unlisted = unlistedInfo;
+            let hasChecked = hasCheckedExams;
 
-            if (cachedData) {
-              try {
-                const parsed = JSON.parse(cachedData);
-                const hasManual = parsed.manualExams && parsed.manualExams.length > 0;
-                
-                if (hasSavedSearch || hasManual) {
-                  hasChecked = true;
-                  unlisted = parsed.unlisted || null;
-                  const examsToLoad = hasSavedSearch ? (parsed.exams || []) : [];
-                  const exams = [...examsToLoad, ...(parsed.manualExams || [])];
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
+            if (hasChecked) {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
 
-                  const upcomingExams = exams.filter(exam => {
-                    const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
-                    return parsedDate ? parsedDate >= today : true;
-                  });
+              const upcomingExams = allExams.filter(exam => {
+                const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
+                return parsedDate ? parsedDate >= today : true;
+              });
 
-                  upcomingExams.sort((a, b) => {
-                    const dateA = parseExamDate(a.rawIsoDate || a.date) || new Date(8640000000000000);
-                    const dateB = parseExamDate(b.rawIsoDate || b.date) || new Date(8640000000000000);
-                    return dateA - dateB;
-                  });
+              upcomingExams.sort((a, b) => {
+                const dateA = parseExamDate(a.rawIsoDate || a.date) || new Date(8640000000000000);
+                const dateB = parseExamDate(b.rawIsoDate || b.date) || new Date(8640000000000000);
+                return dateA - dateB;
+              });
 
-                  if (upcomingExams.length > 0) {
-                    nextExam = upcomingExams[0];
-                  }
-                }
-              } catch (e) {
-                console.error('Failed to parse cached exam results on Home page', e);
+              if (upcomingExams.length > 0) {
+                nextExam = upcomingExams[0];
               }
             }
 
