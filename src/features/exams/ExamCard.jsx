@@ -1,4 +1,5 @@
-import { Calendar, Clock, MapPin, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Edit, Trash2, CalendarPlus } from 'lucide-react';
+import { getGoogleCalendarUrl } from '../../utils/calendarUrl';
 import { t } from '../../utils/i18n';
 import { EXAM_CARD_COLORS } from '../../constants';
 
@@ -36,25 +37,37 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete }) {
             </h4>
           </div>
 
-          {/* Manual exam actions */}
-          {exam.isManual && (
-            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">
-              <button
-                onClick={() => onEdit(exam)}
-                className="p-1.5 rounded-lg bg-dark-sidebar/60 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-colors cursor-pointer"
-                title={t('editExamBtn', lang)}
-              >
-                <Edit size={12} />
-              </button>
-              <button
-                onClick={() => onDelete(exam.id)}
-                className="p-1.5 rounded-lg bg-dark-sidebar/60 border border-rose-500/20 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                title={t('deleteExamBtn', lang)}
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          )}
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">
+            <a
+              href={getGoogleCalendarUrl(exam)}
+              target="_blank"
+              rel="noreferrer"
+              className="p-1.5 rounded-lg bg-dark-sidebar/60 border border-brand-500/30 text-brand-400 hover:text-white hover:bg-brand-500/20 transition-colors cursor-pointer"
+              title={t('addToCalendarBtn', lang) || 'Add to Google Calendar'}
+            >
+              <CalendarPlus size={12} />
+            </a>
+
+            {exam.isManual && (
+              <>
+                <button
+                  onClick={() => onEdit(exam)}
+                  className="p-1.5 rounded-lg bg-dark-sidebar/60 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-colors cursor-pointer"
+                  title={t('editExamBtn', lang)}
+                >
+                  <Edit size={12} />
+                </button>
+                <button
+                  onClick={() => onDelete(exam.id)}
+                  className="p-1.5 rounded-lg bg-dark-sidebar/60 border border-rose-500/20 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                  title={t('deleteExamBtn', lang)}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Detail Metrics */}

@@ -28,7 +28,10 @@ export const useExamRoom = (activeEmail, lang) => {
   const [examList, setExamList] = useState(initialCache.exams || []);
   const [manualExamList, setManualExamList] = useState(initialCache.manualExams || []);
   const [unlistedInfo, setUnlistedInfo] = useState(initialCache.unlisted || null);
-  const [searchTriggered, setSearchTriggered] = useState(!!(initialCache.exams && initialCache.exams.length > 0));
+  const [searchTriggered, setSearchTriggered] = useState(() => {
+    const hasSearched = !!sessionStorage.getItem('lastExamSearch');
+    return hasSearched || !!(initialCache.exams && initialCache.exams.length > 0);
+  });
   
   // State Machine: 'idle' | 'loading' | 'success' | 'error'
   const [status, setStatus] = useState((initialCache.exams && initialCache.exams.length > 0) ? 'success' : 'idle');
@@ -49,7 +52,8 @@ export const useExamRoom = (activeEmail, lang) => {
     setExamList(parsed.exams || []);
     setManualExamList(parsed.manualExams || []);
     setUnlistedInfo(parsed.unlisted || null);
-    setSearchTriggered(!!(parsed.exams && parsed.exams.length > 0));
+    const hasSearched = !!sessionStorage.getItem('lastExamSearch');
+    setSearchTriggered(hasSearched || !!(parsed.exams && parsed.exams.length > 0));
     setStatus((parsed.exams && parsed.exams.length > 0) ? 'success' : 'idle');
     setError(null);
   }
