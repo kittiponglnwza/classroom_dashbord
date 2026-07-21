@@ -67,6 +67,7 @@ export const useExamRoom = (activeEmail, lang) => {
         const hasExams = data.exams && data.exams.length > 0;
         const hasManual = data.manualExams && data.manualExams.length > 0;
         if (hasExams || hasManual) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setExamList(data.exams || []);
           setManualExamList(data.manualExams || []);
           setUnlistedInfo(data.unlisted || null);
