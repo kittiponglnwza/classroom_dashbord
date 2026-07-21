@@ -68,6 +68,8 @@ export default function Home() {
   const activeEmail = (profile.email || '').toLowerCase().trim();
   const implicitStudentId = activeEmail.match(/\d{13}/) ? activeEmail.match(/\d{13}/)[0] : null;
 
+  const [prevEmail, setPrevEmail] = useState(activeEmail);
+
   const [examState, setExamState] = useState(() => {
     let initialExams = [];
     let initialChecked = false;
@@ -92,6 +94,32 @@ export default function Home() {
     return { allExams: initialExams, hasCheckedExams: initialChecked, unlistedInfo: initialUnlisted };
   });
 
+  if (activeEmail !== prevEmail) {
+    setPrevEmail(activeEmail);
+    
+    let initialExams = [];
+    let initialChecked = false;
+    let initialUnlisted = null;
+
+    const savedSearch = sessionStorage.getItem('lastExamSearch') || implicitStudentId;
+    const cachedResult = examRepository.getCachedExams(activeEmail);
+    const data = (cachedResult.success && cachedResult.data) ? cachedResult.data : null;
+
+    if (data) {
+      const hasCachedExams = data.exams && data.exams.length > 0;
+      const hasManual = data.manualExams && data.manualExams.length > 0;
+      
+      if (savedSearch || hasCachedExams || hasManual) {
+        initialChecked = true;
+        initialUnlisted = data.unlisted || null;
+        const examsToLoad = (savedSearch || hasCachedExams) ? (data.exams || []) : [];
+        initialExams = [...examsToLoad, ...(data.manualExams || [])];
+      }
+    }
+    
+    setExamState({ allExams: initialExams, hasCheckedExams: initialChecked, unlistedInfo: initialUnlisted });
+  }
+
   const fetchAttempted = useRef(false);
 
   useEffect(() => {
@@ -99,9 +127,11 @@ export default function Home() {
       fetchAttempted.current = true;
       examRepository.fetchExams(implicitStudentId, lang).then(result => {
         if (result.success && result.data.exams && result.data.exams.length > 0) {
-          examRepository.saveToCache(activeEmail, result.data.exams, [], result.data.unlisted);
+          const currentCache = examRepository.getCachedExams(activeEmail);
+          const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
+          examRepository.saveToCache(activeEmail, result.data.exams, currentManual, result.data.unlisted);
           setExamState({
-            allExams: result.data.exams,
+            allExams: [...result.data.exams, ...currentManual],
             hasCheckedExams: true,
             unlistedInfo: result.data.unlisted || null
           });
