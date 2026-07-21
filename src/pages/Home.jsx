@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import TaskStats from '../components/TaskStats';
 import AssignmentCard from '../components/AssignmentCard';
@@ -9,6 +9,7 @@ import { getCourseBadgeColor } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
+import { examRepository } from '../repositories/examRepository';
 
 const getBorderLeftColor = (color) => {
   switch(color) {
@@ -66,30 +67,59 @@ export default function Home() {
 
   // Load cached exam results at the top level of Home.jsx
   const activeEmail = (profile.email || '').toLowerCase().trim();
-  const cacheKey = activeEmail ? `classroom_hub_exam_results_${activeEmail}` : 'classroom_hub_exam_results_';
-  let allExams = [];
-  const cachedData = localStorage.getItem(cacheKey);
   const implicitStudentId = activeEmail.match(/\d{13}/) ? activeEmail.match(/\d{13}/)[0] : null;
-  const savedSearch = sessionStorage.getItem('lastExamSearch') || implicitStudentId;
-  let hasCheckedExams = false;
-  let unlistedInfo = null;
+  const cacheKey = activeEmail ? `classroom_hub_exam_results_${activeEmail}` : 'classroom_hub_exam_results_';
 
-  if (cachedData) {
-    try {
-      const parsed = JSON.parse(cachedData);
-      const hasCachedExams = parsed.exams && parsed.exams.length > 0;
-      const hasManual = parsed.manualExams && parsed.manualExams.length > 0;
-      
-      if (savedSearch || hasCachedExams || hasManual) {
-        hasCheckedExams = true;
-        unlistedInfo = parsed.unlisted || null;
-        const examsToLoad = (savedSearch || hasCachedExams) ? (parsed.exams || []) : [];
-        allExams = [...examsToLoad, ...(parsed.manualExams || [])];
+  const [examState, setExamState] = useState(() => {
+    let initialExams = [];
+    let initialChecked = false;
+    let initialUnlisted = null;
+
+    const cachedData = localStorage.getItem(cacheKey);
+    const savedSearch = sessionStorage.getItem('lastExamSearch') || implicitStudentId;
+
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
+        const hasCachedExams = parsed.exams && parsed.exams.length > 0;
+        const hasManual = parsed.manualExams && parsed.manualExams.length > 0;
+        
+        if (savedSearch || hasCachedExams || hasManual) {
+          initialChecked = true;
+          initialUnlisted = parsed.unlisted || null;
+          const examsToLoad = (savedSearch || hasCachedExams) ? (parsed.exams || []) : [];
+          initialExams = [...examsToLoad, ...(parsed.manualExams || [])];
+        }
+      } catch (e) {
+        console.error('Failed to parse cached exam results on Home page', e);
       }
-    } catch (e) {
-      console.error('Failed to parse cached exam results on Home page', e);
     }
-  }
+    
+    return { allExams: initialExams, hasCheckedExams: initialChecked, unlistedInfo: initialUnlisted };
+  });
+
+  const fetchAttempted = useRef(false);
+
+  useEffect(() => {
+    if (!examState.hasCheckedExams && implicitStudentId && !fetchAttempted.current) {
+      fetchAttempted.current = true;
+      examRepository.fetchExams(implicitStudentId, lang).then(result => {
+        if (result.success && result.data.exams && result.data.exams.length > 0) {
+          examRepository.saveToCache(activeEmail, result.data.exams, [], result.data.unlisted);
+          setExamState({
+            allExams: result.data.exams,
+            hasCheckedExams: true,
+            unlistedInfo: result.data.unlisted || null
+          });
+          sessionStorage.setItem('lastExamSearch', implicitStudentId);
+        }
+      }).catch(err => {
+        console.error("Auto-fetch exams failed on Home page", err);
+      });
+    }
+  }, [examState.hasCheckedExams, implicitStudentId, activeEmail, lang]);
+
+  const { allExams, hasCheckedExams, unlistedInfo } = examState;
 
   return (
     <div className="space-y-8 relative max-w-7xl mx-auto py-4">
