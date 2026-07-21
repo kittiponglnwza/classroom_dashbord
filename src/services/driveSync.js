@@ -1,4 +1,5 @@
 import { httpClient } from '../utils/httpClient';
+import { StorageRepository } from '../repositories/StorageRepository';
 import { STORAGE_CONFIG } from '../config/storage';
 import { logger } from '../utils/logger';
 
@@ -62,6 +63,7 @@ export const applyRemoteSettingsPayload = (payload) => {
   Object.keys(payload).forEach(fullKey => {
     localStorage.setItem(fullKey, payload[fullKey]);
   });
+  StorageRepository.clearMemoryCache();
 };
 
 /**

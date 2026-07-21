@@ -4,7 +4,7 @@ import {
   getAssignments, updateAssignmentStatus, updateAssignmentNotes, updateAssignmentDueDate,
   addAssignment, getCourses, saveCourses, getLastSync, setLastSync,
   syncClassroomAssignments, getHiddenCourses, saveHiddenCourses,
-  getResources, saveResources, saveAssignments, getActiveEmail, resetDatabase,
+  getResources, saveResources, saveAssignments, getActiveEmail, setActiveEmail, resetDatabase,
   getSchedule, saveSchedule, getTopics, saveTopics
 } from '../utils/storage';
 import { ClassroomService } from '../services/ClassroomService';
@@ -141,7 +141,12 @@ export const ClassroomProvider = ({ children }) => {
     try {
       logger.info('[Sync] Loading profile and classroom updates...');
       const userProfile = await ClassroomService.fetchProfile(tokenToUse);
-      const userEmail = updateProfileFromGoogle(userProfile);
+      const userEmail = userProfile.email.toLowerCase().trim();
+
+      setActiveEmail(userEmail);
+      await syncManager.executeSync(tokenToUse, userEmail);
+
+      updateProfileFromGoogle(userProfile);
 
       // Restore language settings
       const savedUserLang = localStorage.getItem(`classroom_hub_${userEmail}_language`);
@@ -152,10 +157,6 @@ export const ClassroomProvider = ({ children }) => {
         localStorage.setItem(`classroom_hub_${userEmail}_language`, lang);
       }
 
-      loadLocalData(userEmail);
-
-      // Perform a blocking, immediate settings synchronization on first load
-      await syncManager.executeSync(tokenToUse, userEmail);
       loadLocalData(userEmail);
       reloadSettings();
 
