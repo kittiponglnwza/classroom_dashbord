@@ -122,10 +122,15 @@ export default function Home() {
   }, [activeEmail, implicitStudentId, schedule]);
 
   const fetchAttempted = useRef(false);
+  const [isFetchingExams, setIsFetchingExams] = useState(() => {
+    // If it hasn't checked exams but we have an implicit student ID, we will be fetching immediately.
+    return !examState.hasCheckedExams && !!implicitStudentId;
+  });
 
   useEffect(() => {
     if (!examState.hasCheckedExams && implicitStudentId && !fetchAttempted.current) {
       fetchAttempted.current = true;
+      setIsFetchingExams(true);
       examRepository.fetchExams(implicitStudentId, lang).then(result => {
         if (result.success && result.data.exams && result.data.exams.length > 0) {
           const currentCache = examRepository.getCachedExams(activeEmail);
@@ -140,6 +145,8 @@ export default function Home() {
         }
       }).catch(err => {
         console.error("Auto-fetch exams failed on Home page", err);
+      }).finally(() => {
+        setIsFetchingExams(false);
       });
     }
   }, [examState.hasCheckedExams, implicitStudentId, activeEmail, lang]);
@@ -362,6 +369,26 @@ export default function Home() {
             }
 
             if (!hasChecked) {
+              if (isFetchingExams) {
+                return (
+                  <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 space-y-4 relative overflow-hidden shadow-2xl animate-pulse">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-white/10 rounded-full" />
+                        <div className="h-3 w-24 bg-white/10 rounded-full" />
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="h-4 w-40 bg-white/10 rounded-full" />
+                      <div className="h-2 w-32 bg-white/10 rounded-full" />
+                    </div>
+                    <div className="pt-2">
+                      <div className="h-2 w-20 bg-brand-500/20 rounded-full" />
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 space-y-4 relative overflow-hidden group hover:border-white/10 transition-all duration-500 shadow-2xl">
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-brand-500/20 transition-all duration-500" />

@@ -11,6 +11,7 @@ import { ClassroomService } from '../services/ClassroomService';
 import { syncManager } from '../services/SyncManager';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { NotificationService } from '../services/NotificationService';
+import { examRepository } from '../repositories/examRepository';
 import { useAuth } from './AuthContext';
 import { useSettings } from './SettingsContext';
 import { logger } from '../utils/logger';
@@ -159,6 +160,19 @@ export const ClassroomProvider = ({ children }) => {
 
       loadLocalData(userEmail);
       reloadSettings();
+
+      // Fire exam fetch in the background immediately so it's ready for the dashboard
+      const implicitStudentId = userEmail.match(/\d{13}/) ? userEmail.match(/\d{13}/)[0] : null;
+      if (implicitStudentId) {
+        examRepository.fetchExams(implicitStudentId, lang).then(result => {
+          if (result.success && result.data.exams && result.data.exams.length > 0) {
+            const currentCache = examRepository.getCachedExams(userEmail);
+            const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
+            examRepository.saveToCache(userEmail, result.data.exams, currentManual, result.data.unlisted);
+            sessionStorage.setItem('lastExamSearch', implicitStudentId);
+          }
+        }).catch(err => logger.error('[Sync] Background exam fetch failed', err));
+      }
 
       // Fetch fresh classroom data from Google Classroom API
       const classroomData = await ClassroomService.fetchClassroomData(tokenToUse);
