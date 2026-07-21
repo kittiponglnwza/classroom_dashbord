@@ -68,7 +68,6 @@ export default function Home() {
   const activeEmail = (profile.email || '').toLowerCase().trim();
   const implicitStudentId = activeEmail.match(/\d{13}/) ? activeEmail.match(/\d{13}/)[0] : null;
 
-  const [prevEmail, setPrevEmail] = useState(activeEmail);
 
   const [examState, setExamState] = useState(() => {
     let initialExams = [];
@@ -94,31 +93,33 @@ export default function Home() {
     return { allExams: initialExams, hasCheckedExams: initialChecked, unlistedInfo: initialUnlisted };
   });
 
-  if (activeEmail !== prevEmail) {
-    setPrevEmail(activeEmail);
-    
-    let initialExams = [];
-    let initialChecked = false;
-    let initialUnlisted = null;
-
-    const savedSearch = sessionStorage.getItem('lastExamSearch') || implicitStudentId;
-    const cachedResult = examRepository.getCachedExams(activeEmail);
-    const data = (cachedResult.success && cachedResult.data) ? cachedResult.data : null;
-
-    if (data) {
-      const hasCachedExams = data.exams && data.exams.length > 0;
-      const hasManual = data.manualExams && data.manualExams.length > 0;
+  // Enforce exam cache sync on mount, activeEmail changes, and when ClassroomContext finishes a Drive sync (indicated by schedule/assignments updating)
+  useEffect(() => {
+    if (activeEmail) {
+      const savedSearch = sessionStorage.getItem('lastExamSearch') || implicitStudentId;
+      const cachedResult = examRepository.getCachedExams(activeEmail);
+      const data = (cachedResult.success && cachedResult.data) ? cachedResult.data : null;
       
-      if (savedSearch || hasCachedExams || hasManual) {
-        initialChecked = true;
-        initialUnlisted = data.unlisted || null;
-        const examsToLoad = (savedSearch || hasCachedExams) ? (data.exams || []) : [];
-        initialExams = [...examsToLoad, ...(data.manualExams || [])];
+      if (data) {
+        const hasCachedExams = data.exams && data.exams.length > 0;
+        const hasManual = data.manualExams && data.manualExams.length > 0;
+        
+        if (savedSearch || hasCachedExams || hasManual) {
+          const examsToLoad = (savedSearch || hasCachedExams) ? (data.exams || []) : [];
+          const newExams = [...examsToLoad, ...(data.manualExams || [])];
+          
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setExamState(prev => {
+            // Only update if changed to avoid infinite loop
+            if (JSON.stringify(prev.allExams) !== JSON.stringify(newExams)) {
+              return { allExams: newExams, hasCheckedExams: true, unlistedInfo: data.unlisted || null };
+            }
+            return prev;
+          });
+        }
       }
     }
-    
-    setExamState({ allExams: initialExams, hasCheckedExams: initialChecked, unlistedInfo: initialUnlisted });
-  }
+  }, [activeEmail, implicitStudentId, schedule]);
 
   const fetchAttempted = useRef(false);
 
