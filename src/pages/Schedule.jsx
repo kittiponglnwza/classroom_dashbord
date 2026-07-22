@@ -199,6 +199,7 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
     const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
 
     const dayEntries = schedule.filter(entry => {
+      if (entry.deletedAt && dateStr >= entry.deletedAt) return false;
       if (entry.isExam || entry.isAssignment || entry.date) {
         return entry.date === dateStr;
       }
@@ -295,6 +296,7 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
     const activeRegular = [];
 
     schedule.forEach(entry => {
+      if (entry.deletedAt && weekDates[entry.day] && weekDates[entry.day].dateStr >= entry.deletedAt) return;
       if (entry.isExam) {
         if (entry.date === weekDates[entry.day].dateStr) {
           activeExams.push(entry);
@@ -441,7 +443,7 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                         <div
                           key={entry.id}
                           data-schedule-block
-                          onClick={(e) => { e.stopPropagation(); onClickBlock(entry); }}
+                          onClick={(e) => { e.stopPropagation(); onClickBlock(entry, weekDates[day].dateStr); }}
                           className={`absolute rounded-lg overflow-hidden cursor-pointer shadow-md transition-all group flex flex-col justify-center ${
                             isAssign 
                               ? 'hover:ring-2 hover:ring-white/40 hover:scale-[1.02] hover:z-30' 
@@ -539,6 +541,7 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
     
     schedule.forEach(e => {
       if (e.day === selectedDay) {
+        if (e.deletedAt && weekDates[selectedDay] && weekDates[selectedDay].dateStr >= e.deletedAt) return;
         if (e.isExam) {
           if (e.date === weekDates[selectedDay].dateStr) {
             dayExams.push(e);
@@ -619,7 +622,7 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
           {dayEntries.map(entry => (
             <button
               key={entry.id}
-              onClick={() => onClickCard(entry)}
+              onClick={() => onClickCard(entry, weekDates[selectedDay].dateStr)}
               className="w-full text-left bg-dark-card/20 border border-dark-border/30 rounded-xl p-4 hover:border-brand-500/30 hover:bg-dark-card/30 transition-all group flex items-center justify-between cursor-pointer"
             >
               <div className="flex items-start gap-4">
@@ -757,6 +760,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
     if (!formData.title || !formData.startTime || !formData.endTime) return;
     
     const saved = {
+      ...(entry || {}),
       ...formData,
       // Ensure one-off type saves date, recurring doesn't
       date: classType === 'one-off' ? formData.date : '',
@@ -777,19 +781,19 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-dark-card border border-dark-border rounded-2xl p-6 max-w-lg w-full relative shadow-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-dark-card sm:border border-dark-border rounded-none sm:rounded-2xl p-0 sm:p-6 sm:max-w-lg w-full h-full sm:h-auto sm:max-h-[90vh] relative shadow-none sm:shadow-2xl overflow-y-auto custom-scrollbar flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-5 border-b border-dark-border/40 pb-3">
+        <div className="flex items-center justify-between p-4 sm:p-0 mb-0 sm:mb-5 border-b border-dark-border/40 sm:pb-3 sticky top-0 bg-dark-card/95 backdrop-blur-md z-10">
           <h3 className="font-bold font-heading text-base text-white">
             {isEdit ? t('editSchedule', lang) : t('addSchedule', lang)}
           </h3>
           <button
             onClick={onClose}
-            className="text-dark-muted hover:text-white p-1 rounded-lg hover:bg-dark-hover transition-colors cursor-pointer"
+            className="text-dark-muted hover:text-white w-11 h-11 flex items-center justify-center rounded-lg hover:bg-dark-hover transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -803,7 +807,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-0 space-y-4 flex-1">
           
           {/* Class Type Selector */}
           <div>
@@ -1015,33 +1019,33 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
               rows="2"
               value={formData.notes}
               onChange={(e) => update('notes', e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none resize-none"
+              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-3 text-xs text-white focus:border-brand-500 focus:outline-none resize-none"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between pt-4 border-t border-dark-border/40 mt-3">
+          <div className="flex justify-between items-center pt-5 pb-5 sm:pb-0 border-t border-dark-border/40 mt-6">
             <div>
               {isEdit && (
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className={`flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer ${
+                  className={`px-4 py-2 min-h-[44px] sm:min-h-0 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                     showDeleteConfirm
-                      ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg'
-                      : 'text-dark-muted hover:text-rose-400'
+                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      : 'text-dark-muted hover:text-rose-400 hover:bg-rose-500/10'
                   }`}
                 >
-                  <Trash2 size={13} />
-                  {showDeleteConfirm ? t('deleteExamBtn', lang) : t('deleteSchedule', lang)}
+                  {showDeleteConfirm ? t('confirmBtn', lang) : t('deleteBtn', lang)}
                 </button>
               )}
             </div>
+            
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg text-xs font-bold text-dark-muted hover:text-white hover:bg-dark-hover transition-colors cursor-pointer"
+                className="px-4 py-2 min-h-[44px] sm:min-h-0 text-xs font-semibold text-dark-muted hover:text-white transition-colors cursor-pointer"
               >
                 {t('cancelBtn', lang)}
               </button>
@@ -1243,6 +1247,7 @@ export default function Schedule() {
     const activeRegular = [];
 
     combinedSchedule.forEach(entry => {
+      if (entry.deletedAt && todayDateStr >= entry.deletedAt) return;
       if (entry.isAssignment) return; // Skip assignments in the banner
       if (entry.isExam) {
         if (entry.date === todayDateStr) activeExams.push(entry);
@@ -1285,7 +1290,7 @@ export default function Schedule() {
     setIsModalOpen(true);
   }, []);
 
-  const openEditModal = useCallback((entry) => {
+  const openEditModal = useCallback((entry, clickedDateStr) => {
     if (entry.isExam) {
       setWarningMessage(lang === 'th' 
         ? `วิชาสอบนี้ถูกดึงมาจากระบบค้นหาห้องสอบโดยอัตโนมัติ\nต้องการแก้ไขหรือลบ กรุณาไปที่เมนู "ตารางสอบ/ค้นหาห้องสอบ"` 
@@ -1300,7 +1305,7 @@ export default function Schedule() {
       );
       return;
     }
-    setEditingEntry(entry);
+    setEditingEntry({ ...entry, _clickedDateStr: clickedDateStr });
     setPrefillData(null);
     setIsModalOpen(true);
   }, [lang]);
@@ -1319,10 +1324,10 @@ export default function Schedule() {
   }, [handleSaveScheduleEntry]);
 
   const handleDelete = useCallback((id) => {
-    handleDeleteScheduleEntry(id);
+    handleDeleteScheduleEntry(id, editingEntry?._clickedDateStr);
     setIsModalOpen(false);
     setEditingEntry(null);
-  }, [handleDeleteScheduleEntry]);
+  }, [handleDeleteScheduleEntry, editingEntry]);
 
   const handleClearAll = () => {
     if (!showClearConfirm) {

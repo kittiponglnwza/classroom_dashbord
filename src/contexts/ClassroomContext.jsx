@@ -317,9 +317,18 @@ export const ClassroomProvider = ({ children }) => {
     calendarSyncManager.queueSync(accessToken, email);
   };
 
-  const handleDeleteScheduleEntry = (id) => {
+  const handleDeleteScheduleEntry = (id, deletedDateStr = null) => {
     const email = getActiveEmail();
-    const updated = schedule.filter(s => s.id !== id);
+    const entry = schedule.find(s => s.id === id);
+    if (!entry) return;
+
+    let updated;
+    if (entry.date || !deletedDateStr) {
+      updated = schedule.filter(s => s.id !== id);
+    } else {
+      updated = schedule.map(s => s.id === id ? { ...s, deletedAt: deletedDateStr, updatedAt: new Date().toISOString() } : s);
+    }
+
     setSchedule(updated);
     saveSchedule(updated, email);
     syncManager.queueSync(accessToken, email);
