@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import TaskStats from '../components/TaskStats';
 import AssignmentCard from '../components/AssignmentCard';
-import { Calendar, ArrowRight, BookOpen, Megaphone, Clock, Paperclip, ClipboardCheck, MapPin, AlertCircle, CalendarDays } from 'lucide-react';
+import { Calendar, ArrowRight, Megaphone, Clock, Paperclip, ClipboardCheck, MapPin, AlertCircle, CalendarDays } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { parseExamDate } from '../utils/examDate';
 import { getCourseBadgeColor } from '../utils/colors';
@@ -27,7 +27,10 @@ export default function Home() {
   const { profile } = useAuth();
   const { lang } = useSettings();
   const { handleStatusChange, schedule } = useClassroom();
-  const { visibleAssignments, visibleCourses, visibleResources } = useClassroomUI();
+  const {
+    visibleAssignments,
+    visibleResources
+  } = useClassroomUI();
 
   // Filter out completed and get nearest due dates
   const upcomingAssignments = visibleAssignments
@@ -428,37 +431,7 @@ export default function Home() {
             );
           })()}
 
-          {/* Quick Course List */}
-          <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 shadow-2xl group hover:border-white/10 transition-all duration-500">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center justify-between">
-              <span>{t('mySubjects', lang)}</span>
-              <BookOpen size={14} className="text-dark-muted group-hover:text-brand-400 transition-colors" />
-            </h3>
-            <div className="space-y-2">
-              {visibleCourses.slice(0, 4).map((c) => {
-                const count = visibleAssignments.filter(a => a.course === c.name && a.status !== 'done').length;
-                return (
-                  <div key={c.id} className="flex items-center justify-between text-sm p-3 rounded-2xl hover:bg-white/5 transition-colors group/row">
-                    <span className="text-zinc-300 font-bold truncate pr-3 group-hover/row:text-white transition-colors flex-1" title={c.name}>{c.name}</span>
-                    <span className={`px-3 py-1 rounded-full border text-[10px] font-bold shrink-0 shadow-sm ${
-                      count > 0 ? 'bg-brand-500/15 text-brand-400 border-brand-500/30' : 'bg-black/20 text-zinc-400 border-white/5'
-                    }`}>
-                      {t('activeCount', lang, { count })}
-                    </span>
-                  </div>
-                );
-              })}
-              <div className="pt-4 mt-2 border-t border-white/5">
-                <Link 
-                  to="/courses"
-                  className="flex items-center justify-center gap-2 text-sm text-zinc-400 hover:text-white bg-black/20 hover:bg-brand-500/10 border border-transparent hover:border-brand-500/20 font-bold transition-all py-3 rounded-2xl shadow-sm"
-                >
-                  {t('manageCourses', lang)}
-                  <ArrowRight size={12} />
-                </Link>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
