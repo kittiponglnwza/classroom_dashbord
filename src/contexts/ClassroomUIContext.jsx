@@ -8,7 +8,7 @@ import { syncManager } from '../services/SyncManager';
 export const ClassroomUIContext = createContext(null);
 
 export const ClassroomUIProvider = ({ children }) => {
-  const { accessToken, isLoggedIn } = useAuth();
+  const { accessToken, isLoggedIn, profile } = useAuth();
   const { courses, assignments, resources } = useClassroom();
   
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
@@ -18,14 +18,14 @@ export const ClassroomUIProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const activeEmail = getActiveEmail();
+    const activeEmail = profile?.email || getActiveEmail();
     if (isLoggedIn && activeEmail) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadHiddenCourses(activeEmail);
     } else {
       loadHiddenCourses('');
     }
-  }, [isLoggedIn, loadHiddenCourses]);
+  }, [isLoggedIn, profile?.email, loadHiddenCourses]);
 
   const handleToggleCourseVisibility = useCallback((courseId) => {
     const email = getActiveEmail();
