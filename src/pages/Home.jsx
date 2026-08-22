@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import TaskStats from '../components/TaskStats';
 import AssignmentCard from '../components/AssignmentCard';
-import { Calendar, ArrowRight, Megaphone, Clock, Paperclip, ClipboardCheck, MapPin, AlertCircle, CalendarDays } from 'lucide-react';
+import { Calendar, ArrowRight, Megaphone, Clock, Paperclip, ClipboardCheck, MapPin, AlertCircle, CalendarDays, X } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { parseExamDate } from '../utils/examDate';
 import { getCourseBadgeColor } from '../utils/colors';
@@ -31,6 +31,15 @@ export default function Home() {
     visibleAssignments,
     visibleResources
   } = useClassroomUI();
+
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return localStorage.getItem('hide_welcome_banner') !== 'true';
+  });
+
+  const handleDismissWelcome = () => {
+    setShowWelcome(false);
+    localStorage.setItem('hide_welcome_banner', 'true');
+  };
 
   // Filter out completed and get nearest due dates
   const upcomingAssignments = visibleAssignments
@@ -77,31 +86,43 @@ export default function Home() {
       <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] ambient-glow-indigo rounded-full pointer-events-none -z-10"></div>
 
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-brand-900/40 via-dark-card/60 to-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl opacity-0 animate-fade-in group hover:border-brand-500/20 transition-all duration-500" style={{ animationDelay: '50ms' }}>
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-500/20 rounded-full blur-[80px] pointer-events-none group-hover:bg-brand-500/30 transition-all duration-700" />
-        <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-bold font-heading text-white mb-2">
-            {t('welcomeBack', lang, { name: profile.name || 'Student' })}
-          </h1>
-          {(() => {
-            const pendingCount = visibleAssignments.filter(a => a.status !== 'done').length;
-            return (
-              <p className="text-dark-muted text-sm max-w-xl">
-                {pendingCount === 0 
-                  ? t('welcomeDescZero', lang) 
-                  : t('welcomeDesc', lang, { count: pendingCount })}
-              </p>
-            );
-          })()}
+      {showWelcome && (
+        <div className="relative overflow-hidden bg-gradient-to-br from-brand-900/40 via-dark-card/60 to-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xl opacity-0 animate-fade-in group hover:border-brand-500/20 transition-all duration-500" style={{ animationDelay: '50ms' }}>
+          
+          {/* Dismiss Button */}
+          <button 
+            onClick={handleDismissWelcome}
+            className="absolute top-4 right-4 p-1.5 text-zinc-500 hover:text-white hover:bg-white/10 rounded-full transition-colors z-20"
+            title="Dismiss"
+          >
+            <X size={16} />
+          </button>
+
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-500/20 rounded-full blur-[80px] pointer-events-none group-hover:bg-brand-500/30 transition-all duration-700" />
+          <div className="relative z-10 pr-6">
+            <h1 className="text-2xl md:text-3xl font-bold font-heading text-white mb-2">
+              {t('welcomeBack', lang, { name: profile.name || 'Student' })}
+            </h1>
+            {(() => {
+              const pendingCount = visibleAssignments.filter(a => a.status !== 'done').length;
+              return (
+                <p className="text-dark-muted text-sm max-w-xl">
+                  {pendingCount === 0 
+                    ? t('welcomeDescZero', lang) 
+                    : t('welcomeDesc', lang, { count: pendingCount })}
+                </p>
+              );
+            })()}
+          </div>
+          <Link 
+            to="/dashboard"
+            className="relative z-10 flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] self-start md:self-auto hover:-translate-y-0.5"
+          >
+            {t('goDashboard', lang)}
+            <ArrowRight size={16} />
+          </Link>
         </div>
-        <Link 
-          to="/dashboard"
-          className="relative z-10 flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] self-start md:self-auto hover:-translate-y-0.5"
-        >
-          {t('goDashboard', lang)}
-          <ArrowRight size={16} />
-        </Link>
-      </div>
+      )}
 
       {/* Task Statistics */}
       <section className="space-y-4 opacity-0 animate-fade-in" style={{ animationDelay: '100ms' }}>
