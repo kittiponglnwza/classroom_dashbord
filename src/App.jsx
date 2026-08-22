@@ -57,12 +57,12 @@ function AppContent() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen w-screen flex bg-dark-bg text-white relative">
+      <div className="min-h-screen w-screen flex bg-zinc-950 text-white relative">
         {/* Language Toggle */}
         <div className="absolute top-4 right-4 z-50">
           <button
             onClick={toggleLang}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-card/80 backdrop-blur-md hover:bg-dark-hover border border-dark-border text-xs font-semibold rounded-lg text-dark-muted hover:text-white transition-all cursor-pointer select-none active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-black/60 backdrop-blur-md border border-red-900/30 text-xs font-semibold rounded-lg text-zinc-400 hover:text-red-400 hover:border-red-500/50 transition-all cursor-pointer select-none active:scale-95"
           >
             <Globe size={13} />
             <span>{lang === 'en' ? 'EN' : 'TH'}</span>
@@ -70,38 +70,46 @@ function AppContent() {
         </div>
 
         {/* Left Side: Image (Hidden on smaller screens) */}
-        <div className="hidden lg:flex w-1/2 relative bg-zinc-900 border-r border-white/5 overflow-hidden">
-          <div className="absolute inset-0 bg-brand-500/20 mix-blend-overlay z-10"></div>
+        <div className="hidden lg:flex w-1/2 relative bg-zinc-900 border-r border-red-900/20 overflow-hidden items-center justify-center">
+          {/* Akatsuki Red Glows */}
+          <div className="absolute top-0 left-0 w-full h-full bg-red-600/10 mix-blend-overlay z-10"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600/20 rounded-full blur-[100px] pointer-events-none z-0"></div>
+          
           <img 
-            // คุณสามารถเปลี่ยน URL รูปภาพตรงนี้เป็นรูุปของคุณเองได้เลยครับ
-            src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop" 
-            alt="Login Banner" 
-            className="w-full h-full object-cover opacity-70"
+            src="/images/ninja-avatar.png" 
+            alt="Ninja Avatar" 
+            className="w-auto h-[80%] object-contain opacity-90 z-10 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]"
+            style={{ mixBlendMode: 'luminosity' }}
           />
+          
           {/* Gradient to blend smoothly with the right side */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-dark-bg z-20"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-zinc-950/50 to-zinc-950 z-20"></div>
         </div>
 
         {/* Right Side: Login Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 relative">
-          <div className="w-full max-w-sm bg-dark-card/40 backdrop-blur-xl border border-dark-border/50 rounded-3xl p-8 space-y-8 text-center shadow-2xl relative overflow-hidden animate-fade-in">
-            <div className="absolute -top-16 -left-16 w-32 h-32 bg-brand-500/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-16 -right-16 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 relative overflow-hidden bg-zinc-950">
+          {/* Akatsuki Red background accents */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-900/10 rounded-full blur-[120px] pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-rose-900/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+          <div className="w-full max-w-sm bg-black/40 backdrop-blur-xl border border-red-900/30 rounded-3xl p-8 space-y-8 text-center shadow-[0_0_40px_rgba(220,38,38,0.05)] relative z-10 animate-fade-in">
+            <div className="absolute -top-16 -left-16 w-32 h-32 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -right-16 w-32 h-32 bg-red-800/20 rounded-full blur-3xl pointer-events-none" />
 
             <div className="flex flex-col items-center space-y-2 relative z-10">
               <div className="flex items-center gap-2.5 select-none">
-                <span className="font-heading font-extrabold text-white text-2xl">CH</span>
-                <h1 className="text-xl font-bold text-white font-heading tracking-wide">Classroom Hub</h1>
+                <span className="font-heading font-black text-red-500 text-3xl tracking-tighter drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">CH</span>
+                <h1 className="text-xl font-bold text-zinc-100 font-heading tracking-wide">Classroom Hub</h1>
               </div>
-              <p className="text-[7.5px] text-dark-muted font-bold tracking-[0.25em] uppercase leading-none">
-                Learning • Connection • Community
+              <p className="text-[7.5px] text-red-400/80 font-bold tracking-[0.3em] uppercase leading-none mt-2">
+                Akatsuki • Connection • Community
               </p>
             </div>
 
-            <div className="space-y-4 pt-2 relative z-10">
+            <div className="space-y-4 pt-4 relative z-10">
               <button
                 onClick={() => login(lang)}
-                className="w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-100 text-zinc-900 font-semibold text-xs py-3.5 px-5 rounded-2xl transition-all duration-200 hover:scale-[1.01] hover:shadow-md cursor-pointer active:scale-[0.99]"
+                className="w-full flex items-center justify-center gap-3 bg-zinc-900 border border-red-900/50 hover:bg-red-950 hover:border-red-500/50 text-white font-semibold text-xs py-3.5 px-5 rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(220,38,38,0.2)] cursor-pointer active:scale-[0.98]"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -111,7 +119,7 @@ function AppContent() {
                 </svg>
                 <span>{t('connectGoogleBtn', lang)}</span>
               </button>
-              <p className="text-[10px] text-dark-muted max-w-[280px] mx-auto leading-relaxed">
+              <p className="text-[10px] text-zinc-500 max-w-[280px] mx-auto leading-relaxed">
                 {t('loginFooterText', lang)}
               </p>
             </div>
