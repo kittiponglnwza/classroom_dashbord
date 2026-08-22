@@ -64,7 +64,7 @@ function AppContent() {
           <img 
             src="/images/n.jpg" 
             alt="Ninja Background" 
-            className="w-full h-full object-cover opacity-60 grayscale-[30%]"
+            className="w-full h-full object-cover opacity-25 grayscale-[50%] blur-[2px]"
           />
           {/* Akatsuki Red Glows & Overlays */}
           <div className="absolute inset-0 bg-red-950/60 mix-blend-multiply pointer-events-none"></div>
@@ -91,9 +91,10 @@ function AppContent() {
           <div className="absolute -bottom-16 -right-16 w-32 h-32 bg-red-800/30 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex flex-col items-center space-y-2 relative z-10">
-            <div className="flex items-center gap-2.5 select-none">
+            <div className="flex items-center gap-2.5 select-none relative">
               <span className="font-heading font-black text-red-500 text-3xl tracking-tighter drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">CH</span>
               <h1 className="text-xl font-bold text-zinc-100 font-heading tracking-wide drop-shadow-md">Classroom Hub</h1>
+              <span className="absolute -right-10 -top-3 bg-red-900/40 border border-red-500/30 text-red-400 text-[8px] px-1.5 py-0.5 rounded-full font-bold tracking-wider rotate-12">BETA</span>
             </div>
             <p className="text-[7.5px] text-red-400/90 font-bold tracking-[0.3em] uppercase leading-none mt-2 drop-shadow-sm">
               Akatsuki • Connection • Community
@@ -116,6 +117,11 @@ function AppContent() {
             <p className="text-[10px] text-zinc-400 max-w-[280px] mx-auto leading-relaxed">
               {t('loginFooterText', lang)}
             </p>
+            <div className="pt-2 border-t border-red-900/20">
+              <p className="text-[9px] text-red-400/80 font-medium">
+                {lang === 'en' ? '⚠️ System is currently in beta testing phase.' : '⚠️ ระบบยังอยู่ในช่วงทดลองใช้งาน (Beta)'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
