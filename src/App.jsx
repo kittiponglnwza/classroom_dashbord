@@ -70,20 +70,23 @@ function AppContent() {
         </div>
 
         {/* Left Side: Image (Hidden on smaller screens) */}
-        <div className="hidden lg:flex w-1/2 relative bg-zinc-900 border-r border-red-900/20 overflow-hidden items-center justify-center">
-          {/* Akatsuki Red Glows */}
-          <div className="absolute top-0 left-0 w-full h-full bg-red-600/10 mix-blend-overlay z-10"></div>
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600/20 rounded-full blur-[100px] pointer-events-none z-0"></div>
-          
+        <div className="hidden lg:flex w-1/2 relative bg-zinc-950 border-r border-red-900/20 overflow-hidden items-center justify-center">
+          {/* Base background image - Fill the container */}
           <img 
-            src="/images/ninja-avatar.png" 
-            alt="Ninja Avatar" 
-            className="w-auto h-[80%] object-contain opacity-90 z-10 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]"
-            style={{ mixBlendMode: 'luminosity' }}
+            src="/images/n.jpg" 
+            alt="Ninja Background" 
+            className="absolute inset-0 w-full h-full object-cover opacity-80 z-0 grayscale-[20%]"
+            style={{
+              maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)',
+              WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)'
+            }}
           />
+
+          {/* Akatsuki Red Glows Overlay */}
+          <div className="absolute inset-0 bg-red-950/40 mix-blend-multiply z-10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-950/20 to-zinc-950 z-20 pointer-events-none"></div>
           
-          {/* Gradient to blend smoothly with the right side */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-zinc-950/50 to-zinc-950 z-20"></div>
+          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-red-600/20 rounded-full blur-[120px] pointer-events-none z-10"></div>
         </div>
 
         {/* Right Side: Login Form */}
