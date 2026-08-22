@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus, Search } from 'lucide-react';
+import { ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus, Search, LayoutGrid, List } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -39,6 +39,12 @@ export default function ExamRoom() {
   const [isSearchVisible, setIsSearchVisible] = useState(() => {
     return !(sortedExams && sortedExams.length > 0);
   });
+  const [layoutView, setLayoutView] = useState(() => localStorage.getItem('classroom_hub_exam_layout') || 'grid');
+
+  const toggleLayout = (view) => {
+    setLayoutView(view);
+    localStorage.setItem('classroom_hub_exam_layout', view);
+  };
 
   const openNewModal = () => {
     setEditingExamData(null);
@@ -140,32 +146,54 @@ export default function ExamRoom() {
           {/* Seating Cards Grid */}
           {sortedExams.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="font-semibold text-xs text-white uppercase tracking-wider flex items-center gap-2">
                   <CheckCircle2 size={13} className="text-emerald-400" />
                   {lang === 'en' ? 'Your Exam Seating Schedule' : 'ตารางและที่นั่งสอบของคุณ'}
                 </h3>
-                {!isSearchVisible && (
-                  <button
-                    type="button"
-                    onClick={() => setIsSearchVisible(true)}
-                    className="text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors flex items-center gap-1"
-                  >
-                    <Search size={12} />
-                    {lang === 'en' ? 'Search Another ID' : 'ค้นหารหัสนักศึกษาอื่น'}
-                  </button>
-                )}
+                
+                <div className="flex items-center gap-3">
+                  {/* View Toggles */}
+                  <div className="flex items-center bg-dark-card/50 border border-white/5 rounded-lg p-0.5">
+                    <button
+                      onClick={() => toggleLayout('grid')}
+                      className={`p-1.5 rounded-md transition-all ${layoutView === 'grid' ? 'bg-white/10 text-white shadow-sm' : 'text-dark-muted hover:text-white hover:bg-white/5'}`}
+                      title={lang === 'en' ? 'Grid View' : 'มุมมองแบบกริด'}
+                    >
+                      <LayoutGrid size={14} />
+                    </button>
+                    <button
+                      onClick={() => toggleLayout('list')}
+                      className={`p-1.5 rounded-md transition-all ${layoutView === 'list' ? 'bg-white/10 text-white shadow-sm' : 'text-dark-muted hover:text-white hover:bg-white/5'}`}
+                      title={lang === 'en' ? 'List View' : 'มุมมองแบบรายการ'}
+                    >
+                      <List size={14} />
+                    </button>
+                  </div>
+
+                  {!isSearchVisible && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSearchVisible(true)}
+                      className="text-[11px] bg-dark-sidebar/50 border border-white/5 px-3 py-1.5 rounded-lg text-brand-400 hover:text-brand-300 hover:bg-brand-500/10 font-semibold transition-colors flex items-center gap-1.5"
+                    >
+                      <Search size={12} />
+                      {lang === 'en' ? 'Search Another ID' : 'ค้นหารหัสอื่น'}
+                    </button>
+                  )}
+                </div>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {sortedExams.map((exam, idx) => (
-                  <ExamCard 
+              <div className={layoutView === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "flex flex-col gap-3"}>
+                {sortedExams.map((exam, index) => (
+                  <ExamCard
                     key={exam.id}
                     exam={exam}
-                    index={idx}
+                    index={index}
                     lang={lang}
                     onEdit={openEditModal}
                     onDelete={handleDeleteManualExam}
+                    layout={layoutView}
                   />
                 ))}
               </div>

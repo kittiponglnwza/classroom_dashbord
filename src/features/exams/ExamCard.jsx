@@ -7,11 +7,78 @@ const getCardStyle = (index) => {
   return EXAM_CARD_COLORS[index % EXAM_CARD_COLORS.length];
 };
 
-export default function ExamCard({ exam, index, lang, onEdit, onDelete }) {
+export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout = 'grid' }) {
   const cardStyle = getCardStyle(index);
 
+  if (layout === 'list') {
+    return (
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 shadow-xl relative overflow-hidden group hover:shadow-2xl hover:-translate-y-0.5">
+        <div className={`absolute top-0 left-0 bottom-0 w-1 ${cardStyle.strip}`} />
+        <div className={`absolute -top-12 -left-12 w-28 h-28 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${cardStyle.glow}`} />
+
+        <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 min-w-0 z-10 pl-2">
+          <div className="min-w-[150px] max-w-[280px]">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide border ${cardStyle.badge}`}>
+                {exam.courseCode}
+              </span>
+              {exam.isManual && (
+                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 uppercase tracking-wide">
+                  {t('manualTag', lang)}
+                </span>
+              )}
+            </div>
+            <h4 className="font-bold text-white text-[14px] leading-tight truncate">
+              {exam.courseName}
+            </h4>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-zinc-300 font-medium">
+            <div className="flex items-center gap-1.5">
+              <Calendar size={13} className={cardStyle.accentText} />
+              <span>{exam.date}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock size={13} className={cardStyle.accentText} />
+              <span>{exam.time}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MapPin size={13} className={cardStyle.accentText} />
+              <span className="truncate max-w-[140px]">{exam.room || '-'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 z-10 border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0">
+          {exam.seat && (
+            <div className="flex flex-col items-start sm:items-end bg-dark-bg/50 px-3 py-1.5 rounded-xl border border-white/5">
+              <span className="text-[9px] uppercase tracking-wider text-dark-muted font-bold">{t('seatCol', lang)}</span>
+              <span className="text-xs font-bold text-white">{exam.seat}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5">
+            <a href={getGoogleCalendarUrl(exam)} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg bg-dark-sidebar/60 border border-brand-500/30 text-brand-400 hover:text-white hover:bg-brand-500/20 transition-colors cursor-pointer" title={t('addToCalendarBtn', lang) || 'Add to Google Calendar'}>
+              <CalendarPlus size={14} />
+            </a>
+            {exam.isManual && (
+              <>
+                <button type="button" onClick={() => onEdit(exam)} className="p-1.5 rounded-lg bg-dark-sidebar/60 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-colors cursor-pointer" title={t('editExamBtn', lang)}>
+                  <Edit size={14} />
+                </button>
+                <button type="button" onClick={() => onDelete(exam.id)} className="p-1.5 rounded-lg bg-dark-sidebar/60 border border-rose-500/20 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer" title={t('deleteExamBtn', lang)}>
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Original Grid Layout
   return (
-    <div className="bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 shadow-xl relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1">
+    <div className="bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 rounded-3xl p-6 flex flex-col justify-between transition-all duration-300 shadow-xl relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 h-full">
       {/* Course Code Border accent strip */}
       <div className={`absolute top-0 left-0 right-0 h-1 ${cardStyle.strip}`} />
       

@@ -206,9 +206,24 @@ export const useExamRoom = (activeEmail, lang) => {
     today.setHours(0, 0, 0, 0);
 
     const parseDateForSort = (exam) => {
-      if (exam.rawIsoDate) return new Date(exam.rawIsoDate);
-      const parsed = parseExamDate(exam.date);
-      return parsed || new Date(8640000000000000);
+      let dateObj;
+      if (exam.rawIsoDate) {
+        dateObj = new Date(exam.rawIsoDate);
+      } else {
+        dateObj = parseExamDate(exam.date);
+      }
+      
+      if (!dateObj) return new Date(8640000000000000).getTime();
+
+      // Extract start time from exam.time (e.g. "9:00-12:00" -> "9:00")
+      if (exam.time) {
+        const timeMatch = exam.time.match(/(\d{1,2}):(\d{2})/);
+        if (timeMatch) {
+          dateObj.setHours(parseInt(timeMatch[1], 10), parseInt(timeMatch[2], 10), 0, 0);
+        }
+      }
+      
+      return dateObj.getTime();
     };
 
     return [...examList, ...manualExamList]
