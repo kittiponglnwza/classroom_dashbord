@@ -6,11 +6,13 @@ import { formatRelativeTime } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
+import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
 export default function HeaderBar({ setMobileMenuOpen }) {
   const { isLoggedIn, profile } = useAuth();
   const { lang, toggleLang } = useSettings();
-  const { visibleAssignments, isSyncing, lastSyncTime, syncClassroom } = useClassroom();
+  const { isSyncing, lastSyncTime, syncClassroom } = useClassroom();
+  const { visibleAssignments } = useClassroomUI();
   
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const bellButtonRef = useRef(null);
@@ -26,7 +28,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
       <div className="flex items-center gap-3">
         <button 
           onClick={() => setMobileMenuOpen(true)}
-          className="md:hidden p-2 text-dark-muted hover:text-white hover:bg-dark-hover rounded-lg transition-colors border border-dark-border cursor-pointer"
+          className="md:hidden w-11 h-11 flex items-center justify-center text-dark-muted hover:text-white hover:bg-dark-hover rounded-lg transition-colors border border-dark-border cursor-pointer"
         >
           <Menu size={20} />
         </button>
@@ -52,7 +54,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
             <button
               onClick={() => syncClassroom()}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-medium px-3.5 py-1.5 rounded-lg border border-dark-border transition-colors disabled:opacity-50 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-medium px-3.5 h-11 sm:h-8 rounded-lg border border-dark-border transition-colors disabled:opacity-50 cursor-pointer"
               title="Sync Google Classroom data"
             >
               <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
@@ -78,7 +80,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
 
         <button
           onClick={toggleLang}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-card hover:bg-dark-hover border border-dark-border text-xs font-semibold rounded-lg text-dark-muted hover:text-white transition-all shadow-sm cursor-pointer select-none active:scale-95 shrink-0"
+          className="flex items-center justify-center gap-1.5 w-11 h-11 sm:w-auto sm:h-8 px-0 sm:px-3 bg-dark-card hover:bg-dark-hover border border-dark-border text-xs font-semibold rounded-lg text-dark-muted hover:text-white transition-all shadow-sm cursor-pointer select-none active:scale-95 shrink-0"
           title={lang === 'en' ? 'Switch to Thai' : 'เปลี่ยนเป็นภาษาอังกฤษ'}
         >
           <Globe size={13} className="text-dark-muted group-hover:text-white" />
@@ -89,7 +91,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           <button 
             ref={bellButtonRef}
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            className={`p-2 rounded-lg transition-colors border relative cursor-pointer ${
+            className={`w-11 h-11 sm:w-auto sm:h-auto sm:p-2 flex items-center justify-center rounded-lg transition-colors border relative cursor-pointer ${
               isNotificationsOpen 
                 ? 'text-white bg-dark-hover border-dark-border' 
                 : 'text-dark-muted hover:text-white hover:bg-dark-hover border-transparent hover:border-dark-border'

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Calendar, Paperclip, AlertCircle, CheckCircle2, Clock, ExternalLink, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { calculateDueState } from '../utils/dateUtils';
 
 const COURSE_DOT_COLORS = {
   emerald: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]',
@@ -35,74 +36,58 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
 
   // Calculate detailed due status and display elements
   const getDueStatus = () => {
-    if (status === 'done') {
-      return { 
-        text: t('completed', lang), 
-        colorClass: 'text-emerald-400 font-semibold', 
-        icon: <CheckCircle2 size={13} className="text-emerald-400" />,
-        isOverdue: false 
-      };
+    const state = calculateDueState(dueDate, status);
+
+    switch (state.type) {
+      case 'done':
+        return { 
+          text: t('completed', lang), 
+          colorClass: 'text-emerald-400 font-semibold', 
+          icon: <CheckCircle2 size={13} className="text-emerald-400" />,
+          isOverdue: false 
+        };
+      case 'noDate':
+        return { 
+          text: t('noDueDate', lang), 
+          colorClass: 'text-dark-muted font-medium', 
+          icon: <Calendar size={13} className="text-dark-muted" />,
+          isOverdue: false 
+        };
+      case 'overdue':
+        return { 
+          text: state.diffDays === 0 
+            ? t('overdueHrs', lang, { hrs: state.diffHrs })
+            : t('overdueDays', lang, { days: state.diffDays }), 
+          colorClass: 'text-rose-400 font-extrabold animate-pulse', 
+          icon: <AlertCircle size={13} className="text-rose-400 shrink-0" />, 
+          isOverdue: true 
+        };
+      case 'dueToday':
+        return { 
+          text: state.diffHrs === 0 
+            ? t('minsLeftToday', lang, { mins: state.diffMins })
+            : t('hrsLeftToday', lang, { hrs: state.diffHrs }), 
+          colorClass: 'text-amber-400 font-bold', 
+          icon: <Clock size={13} className="text-amber-400" />, 
+          isOverdue: false 
+        };
+      case 'dueTomorrow':
+        return { 
+          text: t('dueTomorrow', lang), 
+          colorClass: 'text-amber-400/90 font-semibold', 
+          icon: <Calendar size={13} className="text-amber-400/90" />, 
+          isOverdue: false 
+        };
+      case 'dueLater':
+        return { 
+          text: t('daysLeft', lang, { days: state.diffDays }), 
+          colorClass: 'text-brand-300 font-medium', 
+          icon: <Calendar size={13} className="text-brand-300" />, 
+          isOverdue: false 
+        };
+      default:
+        return { text: '', colorClass: '', icon: null, isOverdue: false };
     }
-
-    if (!dueDate) {
-      return { 
-        text: t('noDueDate', lang), 
-        colorClass: 'text-dark-muted font-medium', 
-        icon: <Calendar size={13} className="text-dark-muted" />,
-        isOverdue: false 
-      };
-    }
-
-    const now = new Date();
-    const due = new Date(dueDate);
-    const diffMs = due - now;
-
-    // Overdue
-    if (diffMs < 0) {
-      const diffDays = Math.abs(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
-      const text = diffDays === 0 
-        ? t('overdueHrs', lang, { hrs: Math.abs(Math.floor(diffMs / (1000 * 60 * 60))) })
-        : t('overdueDays', lang, { days: diffDays });
-      return { 
-        text, 
-        colorClass: 'text-rose-400 font-extrabold animate-pulse', 
-        icon: <AlertCircle size={13} className="text-rose-400 shrink-0" />, 
-        isOverdue: true 
-      };
-    }
-
-    // Less than 24 hours left (due today)
-    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-    if (diffHrs < 24) {
-      const text = diffHrs === 0 
-        ? t('minsLeftToday', lang, { mins: Math.floor(diffMs / (1000 * 60)) })
-        : t('hrsLeftToday', lang, { hrs: diffHrs });
-      return { 
-        text, 
-        colorClass: 'text-amber-400 font-bold', 
-        icon: <Clock size={13} className="text-amber-400" />, 
-        isOverdue: false 
-      };
-    }
-
-    // Due tomorrow
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays === 1) {
-      return { 
-        text: t('dueTomorrow', lang), 
-        colorClass: 'text-amber-400/90 font-semibold', 
-        icon: <Calendar size={13} className="text-amber-400/90" />, 
-        isOverdue: false 
-      };
-    }
-
-    // Normal countdown in days
-    return { 
-      text: t('daysLeft', lang, { days: diffDays }), 
-      colorClass: 'text-dark-muted font-medium', 
-      icon: <Calendar size={13} className="text-dark-muted" />, 
-      isOverdue: false 
-    };
   };
 
   const dueStatus = getDueStatus();
@@ -179,7 +164,7 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
             </span>
           </div>
 
-          <div className="flex items-center gap-1 bg-dark-sidebar/50 border border-dark-border/30 pl-2.5 pr-1 py-0.5 rounded-lg hover:border-dark-border/60 transition-colors shrink-0">
+          <div className="flex items-center gap-1 bg-dark-sidebar/50 border border-dark-border/30 pl-3 pr-2 py-2 sm:pl-2.5 sm:pr-1 sm:py-0.5 rounded-lg hover:border-dark-border/60 transition-colors shrink-0">
             <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
             <select
               value={status}

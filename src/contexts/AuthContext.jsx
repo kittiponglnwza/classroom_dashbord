@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components, react-hooks/exhaustive-deps */
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   getToken, saveToken, clearToken, getActiveEmail, setActiveEmail, 
@@ -24,10 +24,8 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Intercept the token client callback to resolve this promise
       const originalCallback = tokenClient.callback;
       tokenClient.callback = (tokenResponse) => {
-        // Restore the original OAuth client callback
         tokenClient.callback = originalCallback;
 
         if (tokenResponse.error) {
@@ -44,7 +42,6 @@ export const AuthProvider = ({ children }) => {
       };
 
       try {
-        // requestAccessToken with prompt 'none' silently fetches new access tokens
         tokenClient.requestAccessToken({ prompt: 'none' });
       } catch (err) {
         tokenClient.callback = originalCallback;
@@ -62,7 +59,6 @@ export const AuthProvider = ({ children }) => {
     StorageRepository.clearMemoryCache();
   }, []);
 
-  // Setup httpClient callbacks to handle 401s and logouts centrally
   useEffect(() => {
     httpClient.registerCallbacks(
       async () => {
@@ -92,7 +88,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const initClient = (lang, onTokenSuccess) => {
+  const initClient = useCallback((lang, onTokenSuccess) => {
     const checkGisLoaded = setInterval(() => {
       if (window.google?.accounts?.oauth2) {
         clearInterval(checkGisLoaded);
@@ -112,29 +108,28 @@ export const AuthProvider = ({ children }) => {
       }
     }, 400);
     return () => clearInterval(checkGisLoaded);
-  };
+  }, []);
 
-  const login = () => {
+  const login = useCallback(() => {
     if (tokenClient) {
       tokenClient.requestAccessToken();
     } else {
       logger.error('Google OAuth client not initialized.');
     }
-  };
+  }, [tokenClient]);
 
-  const logout = () => {
-    // Normal logout cleans tokens and state directly
+  const logout = useCallback(() => {
     handleForceLogout();
-  };
+  }, [handleForceLogout]);
 
-  const handleProfileSave = (updatedProfile) => {
+  const handleProfileSave = useCallback((updatedProfile) => {
     const email = getActiveEmail();
     const profileToSave = { ...updatedProfile, isCustomized: true };
     saveProfile(profileToSave, email);
     setProfile(profileToSave);
-  };
+  }, []);
 
-  const updateProfileFromGoogle = (userProfile) => {
+  const updateProfileFromGoogle = useCallback((userProfile) => {
     const userEmail = userProfile.email;
     setActiveEmail(userEmail);
     const existingProfile = getProfile(userEmail);
@@ -144,13 +139,17 @@ export const AuthProvider = ({ children }) => {
     saveProfile(mergedProfile, userEmail);
     setProfile(mergedProfile);
     return userEmail;
-  };
+  }, []);
 
   const value = React.useMemo(() => ({
     accessToken, isLoggedIn, profile, login, logout, 
     handleProfileSave, updateProfileFromGoogle, initClient,
     handleSilentRefresh
-  }), [accessToken, isLoggedIn, profile, tokenClient]);
+  }), [
+    accessToken, isLoggedIn, profile, login, logout, 
+    handleProfileSave, updateProfileFromGoogle, initClient,
+    handleSilentRefresh
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

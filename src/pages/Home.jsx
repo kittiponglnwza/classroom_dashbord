@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import TaskStats from '../components/TaskStats';
 import AssignmentCard from '../components/AssignmentCard';
@@ -8,12 +8,9 @@ import { parseExamDate } from '../utils/examDate';
 import { getCourseBadgeColor } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-
-import { syncManager } from '../services/SyncManager';
-import { calendarSyncManager } from '../services/CalendarSyncManager';
-import { getToken } from '../utils/storage';
 import { useClassroom } from '../contexts/ClassroomContext';
-import { examRepository } from '../repositories/examRepository';
+import { useClassroomUI } from '../contexts/ClassroomUIContext';
+import { useExams } from '../hooks/useExams';
 
 const getBorderLeftColor = (color) => {
   switch(color) {
@@ -29,23 +26,24 @@ const getBorderLeftColor = (color) => {
 export default function Home() {
   const { profile } = useAuth();
   const { lang } = useSettings();
-  const { visibleAssignments, visibleCourses, visibleResources, handleStatusChange, schedule } = useClassroom();
+  const { handleStatusChange, schedule } = useClassroom();
+  const { visibleAssignments, visibleCourses, visibleResources } = useClassroomUI();
 
   // Filter out completed and get nearest due dates
   const upcomingAssignments = visibleAssignments
     .filter(a => a.status !== 'done')
-    .sort((a, b) => {
-      const dateA = a.creationTime ? new Date(a.creationTime).getTime() : 0;
-      const dateB = b.creationTime ? new Date(b.creationTime).getTime() : 0;
-      return dateB - dateA;
-    })
-    .slice(0, 3);
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+    .slice(0, 4);
 
-  // Get latest 3 announcements across all courses
+  // Get recent announcements/materials
   const recentAnnouncements = visibleResources
-    .filter(r => r.type === 'announcement')
     .sort((a, b) => new Date(b.creationTime) - new Date(a.creationTime))
     .slice(0, 3);
+
+
+
+  const activeEmail = (profile?.email || '').toLowerCase().trim();
+  const { allExams, hasCheckedExams, unlistedInfo, isFetching: isFetchingExams } = useExams(activeEmail, lang, schedule);
 
   // Compute Today's Classes
   const todayClasses = useMemo(() => {
@@ -68,101 +66,6 @@ export default function Home() {
       return (hA * 60 + mA) - (hB * 60 + mB);
     });
   }, [schedule]);
-
-  const activeEmail = (profile.email || '').toLowerCase().trim();
-  const implicitStudentId = activeEmail.match(/\d{13}/) ? activeEmail.match(/\d{13}/)[0] : null;
-
-
-  const [examState, setExamState] = useState(() => {
-    let initialExams = [];
-    let initialChecked = false;
-    let initialUnlisted = null;
-
-    const savedSearch = sessionStorage.getItem('lastExamSearch') || implicitStudentId;
-    const cachedResult = examRepository.getCachedExams(activeEmail);
-    const data = (cachedResult.success && cachedResult.data) ? cachedResult.data : null;
-
-    if (data) {
-      const hasCachedExams = data.exams && data.exams.length > 0;
-      const hasManual = data.manualExams && data.manualExams.length > 0;
-      
-      if (savedSearch || hasCachedExams || hasManual) {
-        initialChecked = true;
-        initialUnlisted = data.unlisted || null;
-        const examsToLoad = (savedSearch || hasCachedExams) ? (data.exams || []) : [];
-        initialExams = [...examsToLoad, ...(data.manualExams || [])];
-      }
-    }
-    
-    return { allExams: initialExams, hasCheckedExams: initialChecked, unlistedInfo: initialUnlisted };
-  });
-
-  // Enforce exam cache sync on mount, activeEmail changes, and when ClassroomContext finishes a Drive sync (indicated by schedule/assignments updating)
-  useEffect(() => {
-    if (activeEmail) {
-      const savedSearch = sessionStorage.getItem('lastExamSearch') || implicitStudentId;
-      const cachedResult = examRepository.getCachedExams(activeEmail);
-      const data = (cachedResult.success && cachedResult.data) ? cachedResult.data : null;
-      
-      if (data) {
-        const hasCachedExams = data.exams && data.exams.length > 0;
-        const hasManual = data.manualExams && data.manualExams.length > 0;
-        
-        if (savedSearch || hasCachedExams || hasManual) {
-          const examsToLoad = (savedSearch || hasCachedExams) ? (data.exams || []) : [];
-          const newExams = [...examsToLoad, ...(data.manualExams || [])];
-          
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setExamState(prev => {
-            // Only update if changed to avoid infinite loop
-            if (JSON.stringify(prev.allExams) !== JSON.stringify(newExams)) {
-              return { allExams: newExams, hasCheckedExams: true, unlistedInfo: data.unlisted || null };
-            }
-            return prev;
-          });
-        }
-      }
-    }
-  }, [activeEmail, implicitStudentId, schedule]);
-
-  const fetchAttempted = useRef(false);
-  const [isFetchingExams, setIsFetchingExams] = useState(() => {
-    // If it hasn't checked exams but we have an implicit student ID, we will be fetching immediately.
-    return !examState.hasCheckedExams && !!implicitStudentId;
-  });
-
-  useEffect(() => {
-    if (!examState.hasCheckedExams && implicitStudentId && !fetchAttempted.current) {
-      fetchAttempted.current = true;
-      setIsFetchingExams(true);
-      examRepository.fetchExams(implicitStudentId, lang).then(result => {
-        if (result.success && result.data.exams && result.data.exams.length > 0) {
-          const currentCache = examRepository.getCachedExams(activeEmail);
-          const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
-          examRepository.saveToCache(activeEmail, result.data.exams, currentManual, result.data.unlisted);
-          
-          const token = getToken();
-          if (token && activeEmail) {
-            syncManager.queueSync(token, activeEmail);
-            calendarSyncManager.queueSync(token, activeEmail);
-          }
-
-          setExamState({
-            allExams: [...result.data.exams, ...currentManual],
-            hasCheckedExams: true,
-            unlistedInfo: result.data.unlisted || null
-          });
-          sessionStorage.setItem('lastExamSearch', implicitStudentId);
-        }
-      }).catch(err => {
-        console.error("Auto-fetch exams failed on Home page", err);
-      }).finally(() => {
-        setIsFetchingExams(false);
-      });
-    }
-  }, [examState.hasCheckedExams, implicitStudentId, activeEmail, lang]);
-
-  const { allExams, hasCheckedExams, unlistedInfo } = examState;
 
   return (
     <div className="space-y-8 relative max-w-7xl mx-auto py-4">

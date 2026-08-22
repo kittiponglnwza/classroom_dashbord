@@ -5,13 +5,13 @@ import { t } from '../utils/i18n';
 import { getCourseBadgeColor } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { useClassroom } from '../contexts/ClassroomContext';
+import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
 export default function Sidebar({ onLinkClick = null }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { profile } = useAuth();
   const { lang } = useSettings();
-  const { visibleCourses, visibleAssignments } = useClassroom();
+  const { visibleCourses, visibleAssignments } = useClassroomUI();
 
   const getActiveCount = (courseName) => {
     return visibleAssignments.filter(a => a.course === courseName && a.status !== 'done').length;
@@ -50,7 +50,7 @@ export default function Sidebar({ onLinkClick = null }) {
         </Link>
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-6 bg-dark-card border border-dark-border text-dark-muted hover:text-white p-1 rounded-full hover:bg-dark-hover transition-colors shadow-lg z-20"
+          className="hidden md:flex absolute -right-3 top-6 bg-dark-card border border-dark-border text-dark-muted hover:text-white p-1 rounded-full hover:bg-dark-hover transition-colors shadow-lg z-20 items-center justify-center cursor-pointer"
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -64,7 +64,7 @@ export default function Sidebar({ onLinkClick = null }) {
               to={item.path}
               onClick={onLinkClick}
               className={({ isActive }) => 
-                `flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all group duration-200 ${
+                `flex items-center justify-between px-3 min-h-[44px] rounded-lg text-sm font-medium transition-all group duration-200 ${
                   isActive 
                     ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' 
                     : 'text-dark-muted hover:text-white hover:bg-dark-hover border border-transparent'
@@ -101,7 +101,7 @@ export default function Sidebar({ onLinkClick = null }) {
                     key={course.id}
                     to={`/courses?selected=${course.name}`}
                     onClick={onLinkClick}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-dark-muted hover:text-white hover:bg-dark-hover transition-colors group"
+                    className="flex items-center justify-between px-3 min-h-[44px] rounded-lg text-sm text-dark-muted hover:text-white hover:bg-dark-hover transition-colors group"
                   >
                     <div className="flex items-center gap-2.5 overflow-hidden">
                       <span className={`w-2 h-2 rounded-full bg-${course.color}-500`} />
@@ -125,7 +125,7 @@ export default function Sidebar({ onLinkClick = null }) {
           to="/exam-room"
           onClick={onLinkClick}
           className={({ isActive }) => 
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group duration-200 ${
+            `flex items-center gap-3 px-3 min-h-[44px] rounded-lg text-sm font-medium transition-all group duration-200 ${
               isActive 
                 ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20' 
                 : 'text-dark-muted hover:text-white hover:bg-dark-hover border border-transparent'

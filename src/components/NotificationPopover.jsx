@@ -68,7 +68,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
   return (
     <div 
       ref={popoverRef}
-      className="absolute right-0 top-12 z-50 w-[320px] sm:w-[380px] bg-dark-card/95 backdrop-blur-md border border-dark-border/80 rounded-2xl shadow-2xl p-4.5 space-y-4 text-xs text-white animate-fade-in"
+      className="fixed left-4 right-4 top-20 sm:absolute sm:left-auto sm:right-0 sm:top-12 z-50 sm:w-[380px] bg-dark-card/95 backdrop-blur-md border border-dark-border/80 rounded-2xl shadow-2xl p-4.5 space-y-4 text-xs text-white animate-fade-in"
     >
       <div className="flex items-center justify-between border-b border-dark-border/40 pb-3">
         <h3 className="font-bold text-xs text-white flex items-center gap-2 uppercase tracking-wide">

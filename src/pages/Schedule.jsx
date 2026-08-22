@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { CalendarDays, CalendarX2, Plus, X, Trash2, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import { CalendarDays, CalendarX2, Plus, X, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
+import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { useAuth } from '../contexts/AuthContext';
-import { examRepository } from '../repositories/examRepository';
+import { useExams } from '../hooks/useExams';
 import { parseExamDate } from '../utils/examDate';
 
-const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+import { DAYS, JS_DAY_MAP } from '../constants/dateConstants';
 const DAY_KEYS = {
   mon: 'dayMon', tue: 'dayTue', wed: 'dayWed', thu: 'dayThu',
   fri: 'dayFri', sat: 'daySat', sun: 'daySun',
@@ -22,7 +23,6 @@ const PRESET_COLORS = [
 ];
 const START_HOUR = 6;
 const END_HOUR = 24;
-const JS_DAY_MAP = [null, 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 const TRADITIONAL_DAY_COLORS = {
   mon: '#fbbf24', // Yellow
@@ -64,7 +64,7 @@ function addHoursToTime(timeStr, hours) {
 
 function getTodayKey() {
   const d = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  return d === 0 ? 'sun' : JS_DAY_MAP[d];
+  return JS_DAY_MAP[d];
 }
 
 function toLocalDateStr(d) {
@@ -143,8 +143,7 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
         setCurrentDate(new Date(monDate.getFullYear(), monDate.getMonth(), 1));
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekOffset, weekDates]);
+  }, [weekOffset, weekDates, currentDate]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -196,7 +195,7 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
     const dateStr = toLocalDateStr(new Date(year, month, dayNum));
     const dObj = new Date(year, month, dayNum);
     const dayIndex = dObj.getDay();
-    const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
+    const dayKey = JS_DAY_MAP[dayIndex];
 
     const dayEntries = schedule.filter(entry => {
       if (entry.deletedAt && dateStr >= entry.deletedAt) return false;
@@ -733,7 +732,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
       const [yy, mm, dd] = dateVal.split('-').map(Number);
       const d = new Date(yy, mm - 1, dd);
       const dayIndex = d.getDay(); // 0 = Sun
-      const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
+      const dayKey = JS_DAY_MAP[dayIndex];
       update('day', dayKey);
     }
   };
@@ -1067,7 +1066,8 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 export default function Schedule() {
   const { lang } = useSettings();
   const { profile } = useAuth();
-  const { schedule, assignments, visibleCourses, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule } = useClassroom();
+  const { schedule, assignments, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule } = useClassroom();
+  const { visibleCourses } = useClassroomUI();
 
   const [viewType, setViewType] = useState('weekly');
   const [selectedDay, setSelectedDay] = useState(getTodayKey());
@@ -1086,16 +1086,10 @@ export default function Schedule() {
   const todayKey = getTodayKey();
   const activeEmail = (profile?.email || '').toLowerCase().trim();
 
+  const { allExams } = useExams(activeEmail, lang, schedule);
+
   // Load cached exams and map to schedule entries
   const examScheduleEntries = useMemo(() => {
-    if (!activeEmail) return [];
-    const cachedResult = examRepository.getCachedExams(activeEmail);
-    if (!cachedResult.success || !cachedResult.data) return [];
-    
-    const examList = cachedResult.data.exams || [];
-    const manualExamList = cachedResult.data.manualExams || [];
-    const allExams = [...examList, ...manualExamList];
-
     return allExams.map(ex => {
       // Find time range (default 09:00 - 12:00 if not parsed)
       let startTime = '09:00';
@@ -1124,7 +1118,7 @@ export default function Schedule() {
       const [ey, em, ed] = dateVal.split('-').map(Number);
       const d = new Date(ey, em - 1, ed);
       const dayIndex = d.getDay();
-      const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
+      const dayKey = JS_DAY_MAP[dayIndex];
 
       return {
         id: `exam-${ex.id}`,
@@ -1140,7 +1134,7 @@ export default function Schedule() {
         isExam: true
       };
     }).filter(Boolean);
-  }, [activeEmail]);
+  }, [allExams]);
 
   // Load assignments and map to schedule entries
   const assignmentScheduleEntries = useMemo(() => {
@@ -1194,7 +1188,7 @@ export default function Schedule() {
       const [ay, am, ad] = dateVal.split('-').map(Number);
       const d = new Date(ay, am - 1, ad);
       const dayIndex = d.getDay();
-      const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
+      const dayKey = JS_DAY_MAP[dayIndex];
 
       return {
         id: `assignment-${a.id}`,
@@ -1240,7 +1234,7 @@ export default function Schedule() {
   const todayClasses = useMemo(() => {
     const today = new Date();
     const todayIdx = today.getDay();
-    const todayKeyVal = todayIdx === 0 ? 'sun' : JS_DAY_MAP[todayIdx];
+    const todayKeyVal = JS_DAY_MAP[todayIdx];
     const todayDateStr = toLocalDateStr(today);
 
     const activeExams = [];

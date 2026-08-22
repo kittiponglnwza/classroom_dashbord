@@ -172,11 +172,11 @@ export default function Settings() {
                 </p>
               </div>
               {isLoggedIn ? (
-                <button onClick={logout} className="shrink-0 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-400 border border-rose-500/20 px-6 py-3 rounded-2xl text-xs font-bold transition-all duration-300 cursor-pointer">
+                <button onClick={logout} className="w-full sm:w-auto shrink-0 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-400 border border-rose-500/20 px-6 py-3 rounded-2xl text-xs font-bold transition-all duration-300 cursor-pointer">
                   {t('disconnectBtn', lang)}
                 </button>
               ) : (
-                <button onClick={login} className="shrink-0 bg-brand-500 hover:bg-brand-400 text-white shadow-lg shadow-brand-500/25 px-6 py-3 rounded-2xl text-xs font-bold transition-all duration-300 hover:-translate-y-0.5 cursor-pointer">
+                <button onClick={login} className="w-full sm:w-auto shrink-0 bg-brand-500 hover:bg-brand-400 text-white shadow-lg shadow-brand-500/25 px-6 py-3 rounded-2xl text-xs font-bold transition-all duration-300 hover:-translate-y-0.5 cursor-pointer">
                   {t('connectBtn', lang)}
                 </button>
               )}
@@ -206,7 +206,7 @@ export default function Settings() {
                 <button 
                   onClick={handleResetCalendar} 
                   disabled={isResettingCalendar}
-                  className="shrink-0 bg-amber-500/10 hover:bg-amber-500 hover:text-white text-amber-400 border border-amber-500/20 px-6 py-3 rounded-2xl text-xs font-bold transition-all duration-300 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  className="w-full sm:w-auto justify-center shrink-0 bg-amber-500/10 hover:bg-amber-500 hover:text-white text-amber-400 border border-amber-500/20 px-6 py-3 rounded-2xl text-xs font-bold transition-all duration-300 cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
                   {isResettingCalendar && <RefreshCw size={14} className="animate-spin" />}
                   {lang === 'en' ? 'Reset Calendar' : 'ล้างแล้วลงใหม่'}

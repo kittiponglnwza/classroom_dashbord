@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components, react-hooks/exhaustive-deps */
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   getEnableEmailAlerts, setEnableEmailAlerts, getAlertSettings, 
@@ -16,16 +16,12 @@ export const SettingsProvider = ({ children }) => {
   const [lang, setLang] = useState(() => localStorage.getItem('classroom_hub_language') || 'en');
   const userEmail = getActiveEmail();
 
-  // Alert settings states
   const [emailAlerts, setEmailAlerts] = useState(false);
   const [alertSettings, setAlertSettingsState] = useState({});
   const [sundayTime, setSundayTimeState] = useState('18:00');
   const [historyLogs, setHistoryLogs] = useState([]);
   const [dailyLimit, setDailyLimit] = useState({ count: 0 });
 
-  /**
-   * Reloads all settings state from StorageRepository.
-   */
   const reloadSettings = useCallback(() => {
     const email = getActiveEmail();
     if (!email) return;
@@ -48,7 +44,7 @@ export const SettingsProvider = ({ children }) => {
     }
   }, [userEmail, isLoggedIn, reloadSettings]);
 
-  const toggleLang = () => {
+  const toggleLang = useCallback(() => {
     const nextLang = lang === 'en' ? 'th' : 'en';
     setLang(nextLang);
     localStorage.setItem('classroom_hub_language', nextLang);
@@ -56,9 +52,9 @@ export const SettingsProvider = ({ children }) => {
       localStorage.setItem(`classroom_hub_${userEmail}_language`, nextLang);
       syncManager.queueSync(accessToken, userEmail);
     }
-  };
+  }, [lang, userEmail, accessToken]);
 
-  const handleToggleAlerts = (val) => {
+  const handleToggleAlerts = useCallback((val) => {
     setEmailAlerts(val);
     setEnableEmailAlerts(val, userEmail);
     addNotificationHistoryLog({
@@ -69,34 +65,34 @@ export const SettingsProvider = ({ children }) => {
     }, userEmail);
     setHistoryLogs(getNotificationHistory(userEmail));
     syncManager.queueSync(accessToken, userEmail);
-  };
+  }, [userEmail, lang, accessToken]);
 
-  const handleToggleSetting = (field) => {
+  const handleToggleSetting = useCallback((field) => {
     const updated = { ...alertSettings, [field]: !alertSettings[field] };
     setAlertSettingsState(updated);
     saveAlertSettings(updated, userEmail);
     syncManager.queueSync(accessToken, userEmail);
-  };
+  }, [alertSettings, userEmail, accessToken]);
 
-  const handleUpdateSetting = (field, value) => {
+  const handleUpdateSetting = useCallback((field, value) => {
     const updated = { ...alertSettings, [field]: value };
     setAlertSettingsState(updated);
     saveAlertSettings(updated, userEmail);
     syncManager.queueSync(accessToken, userEmail);
-  };
+  }, [alertSettings, userEmail, accessToken]);
 
-  const handleTimeChange = (time) => {
+  const handleTimeChange = useCallback((time) => {
     setSundayTimeState(time);
     setSundayDigestTime(time, userEmail);
     syncManager.queueSync(accessToken, userEmail);
-  };
+  }, [userEmail, accessToken]);
 
-  const refreshNotificationData = () => {
+  const refreshNotificationData = useCallback(() => {
     if (userEmail) {
       setHistoryLogs(getNotificationHistory(userEmail));
       setDailyLimit(getDailyEmailLimit(userEmail));
     }
-  };
+  }, [userEmail]);
 
 
   const value = React.useMemo(() => ({
@@ -106,7 +102,14 @@ export const SettingsProvider = ({ children }) => {
     sundayTime, handleTimeChange,
     historyLogs, dailyLimit, refreshNotificationData,
     reloadSettings
-  }), [lang, emailAlerts, alertSettings, sundayTime, historyLogs, dailyLimit, reloadSettings]);
+  }), [
+    lang, toggleLang,
+    emailAlerts, handleToggleAlerts,
+    alertSettings, handleToggleSetting, handleUpdateSetting,
+    sundayTime, handleTimeChange,
+    historyLogs, dailyLimit, refreshNotificationData,
+    reloadSettings
+  ]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 };

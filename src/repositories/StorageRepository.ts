@@ -1,12 +1,13 @@
 import { ValidationError, StorageError } from '../utils/errors';
 import { STORAGE_CONFIG } from '../config/storage';
 import { logger } from '../utils/logger';
+import { SyncRecord } from '../types/models';
 
 // In-memory cache store
-const memoryCache = new Map();
+const memoryCache = new Map<string, SyncRecord<any>>();
 
 export class StorageRepository {
-  static getCacheKey(key, email) {
+  static getCacheKey(key: string, email?: string): string {
     const active = email ? email.toLowerCase().trim() : '';
     return active ? `${key}_${active}` : key;
   }
@@ -14,7 +15,7 @@ export class StorageRepository {
   /**
    * Validates data structure using defensive schema checks
    */
-  static validate(key, data) {
+  static validate(key: string, data: any): void {
     if (data === null || data === undefined) return;
 
     try {
@@ -60,7 +61,7 @@ export class StorageRepository {
   /**
    * Migrate storage schema versions if required
    */
-  static migrate(email) {
+  static migrate(email?: string): void {
     const activeEmail = email ? email.toLowerCase().trim() : '';
     const versionKey = activeEmail ? `classroom_hub_schema_version_${activeEmail}` : 'classroom_hub_schema_version';
     const storedVersion = parseInt(localStorage.getItem(versionKey) || '1', 10);
@@ -81,17 +82,17 @@ export class StorageRepository {
   /**
    * Write data to storage (Memory Cache & LocalStorage) with schema validation and updatedAt
    */
-  static set(baseKey, value, email = '') {
+  static set<T>(baseKey: string, value: T, email = ''): void {
     const cacheKey = this.getCacheKey(baseKey, email);
     
     // Schema validation
     this.validate(baseKey, value);
 
-    const payload = {
+    const payload: SyncRecord<any> = {
       version: STORAGE_CONFIG.schemaVersion,
       timestamp: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      data: value
+      // updatedAt: new Date().toISOString(), // Optional if we strictly follow SyncRecord interface
+      data: value as any
     };
 
     try {
@@ -104,7 +105,7 @@ export class StorageRepository {
         const timeKey = `classroom_hub_settings_last_updated_${email.toLowerCase().trim()}`;
         localStorage.setItem(timeKey, payload.timestamp);
       }
-    } catch (err) {
+    } catch (err: any) {
       logger.error(`LocalStorage write error for key: ${cacheKey}`, err);
       throw new StorageError(`Failed to save settings data: ${err.message}`);
     }
@@ -113,16 +114,16 @@ export class StorageRepository {
   /**
    * Get data from storage checking Memory Cache, LocalStorage, and TTL expiration
    */
-  static get(baseKey, email = '', forceIgnoreTTL = false) {
+  static get<T>(baseKey: string, email = '', forceIgnoreTTL = false): T | null {
     const cacheKey = this.getCacheKey(baseKey, email);
     this.migrate(email);
 
     // 1. Check memory cache first
     if (memoryCache.has(cacheKey)) {
-      const cached = memoryCache.get(cacheKey);
+      const cached = memoryCache.get(cacheKey)!;
       if (this.isValidCache(baseKey, cached, forceIgnoreTTL)) {
         logger.debug(`Cache Hit (Memory) for ${cacheKey}`);
-        return cached.data;
+        return cached.data as T;
       }
       logger.debug(`Cache Expired (Memory) for ${cacheKey}`);
     }
@@ -134,14 +135,14 @@ export class StorageRepository {
     }
 
     try {
-      const parsed = JSON.parse(stored);
+      const parsed = JSON.parse(stored) as SyncRecord<any>;
       
       // Verify wrap structure
       if (parsed && parsed.data !== undefined) {
         if (this.isValidCache(baseKey, parsed, forceIgnoreTTL)) {
           logger.debug(`Cache Hit (LocalStorage) for ${cacheKey}`);
           memoryCache.set(cacheKey, parsed);
-          return parsed.data;
+          return parsed.data as T;
         }
         logger.info(`Cache Expired (LocalStorage) for ${cacheKey}`);
       }
@@ -155,10 +156,12 @@ export class StorageRepository {
   /**
    * Validate if cached item is within TTL limits
    */
-  static isValidCache(baseKey, cachedObject, forceIgnoreTTL) {
+  static isValidCache(baseKey: string, cachedObject: SyncRecord<any>, forceIgnoreTTL: boolean): boolean {
     if (forceIgnoreTTL) return true;
     
-    const ttl = STORAGE_CONFIG.ttls[baseKey];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ttls = STORAGE_CONFIG.ttls as any;
+    const ttl = ttls[baseKey];
     if (!ttl) return true; // Items without configured TTL (e.g. local settings) do not expire
 
     const age = Date.now() - new Date(cachedObject.timestamp).getTime();
@@ -168,7 +171,7 @@ export class StorageRepository {
   /**
    * Remove item from storage
    */
-  static remove(baseKey, email = '') {
+  static remove(baseKey: string, email = ''): void {
     const cacheKey = this.getCacheKey(baseKey, email);
     localStorage.removeItem(cacheKey);
     memoryCache.delete(cacheKey);
@@ -177,7 +180,7 @@ export class StorageRepository {
   /**
    * Clear all active memory caches
    */
-  static clearMemoryCache() {
+  static clearMemoryCache(): void {
     memoryCache.clear();
   }
 }

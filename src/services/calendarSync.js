@@ -70,25 +70,41 @@ function signatureOf(body) {
 
 // ── Event builders ──────────────────────────────────────────────
 
-function nextDateForDay(dayKey) {
-  const today = new Date();
-  const todayIdx = today.getDay();
-  const targetIdx = DAY_TO_JS_INDEX[dayKey];
-  const diff = (targetIdx - todayIdx + 7) % 7;
-  const d = new Date(today);
-  d.setDate(today.getDate() + diff);
+function getAnchorDate(entry) {
+  let baseDate = new Date();
+  if (entry.id && entry.id.startsWith('sched-')) {
+    const ts = parseInt(entry.id.split('-')[1], 10);
+    if (!isNaN(ts)) {
+      baseDate = new Date(ts);
+    }
+  }
+  const baseIdx = baseDate.getDay();
+  const targetIdx = DAY_TO_JS_INDEX[entry.day];
+  const diff = (targetIdx - baseIdx + 7) % 7;
+  const d = new Date(baseDate);
+  d.setDate(baseDate.getDate() + diff);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function buildRecurringClassEvent(entry) {
-  const anchorDate = nextDateForDay(entry.day);
+  const anchorDate = getAnchorDate(entry);
+  let rrule = `RRULE:FREQ=WEEKLY;BYDAY=${DAY_TO_RRULE[entry.day]}`;
+  
+  if (entry.deletedAt) {
+    // deletedAt is 'YYYY-MM-DD'. We want it to stop before this date.
+    // UNTIL must be UTC. e.g. 20260822T000000Z
+    const deletedDate = new Date(`${entry.deletedAt}T00:00:00Z`);
+    const untilStr = deletedDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    rrule += `;UNTIL=${untilStr}`;
+  }
+
   return {
     summary: entry.title || entry.courseCode || 'Class',
     location: entry.room || '',
     description: [entry.courseCode, entry.notes].filter(Boolean).join('\n'),
     start: { dateTime: `${anchorDate}T${entry.startTime}:00`, timeZone: TIMEZONE },
     end: { dateTime: `${anchorDate}T${entry.endTime}:00`, timeZone: TIMEZONE },
-    recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_TO_RRULE[entry.day]}`],
+    recurrence: [rrule],
     extendedProperties: { private: { chSource: SOURCE_TAG, chType: 'schedule', chId: String(entry.id) } }
   };
 }

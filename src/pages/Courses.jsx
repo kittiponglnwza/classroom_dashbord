@@ -14,6 +14,7 @@ import {
 } from '../utils/colors';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
+import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
 function ResourceCard({ 
   resource, 
@@ -281,10 +282,13 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
 export default function Courses() {
   const { lang } = useSettings();
   const { 
-    courses, assignments, resources, hiddenCourseIds, topics,
-    handleStatusChange, handleTrackAsAssignment, handleUntrackAssignment,
-    handleToggleCourseVisibility, handleToggleBulkCourses
+    courses, assignments, resources, topics,
+    handleStatusChange, handleTrackAsAssignment, handleUntrackAssignment
   } = useClassroom();
+  
+  const { 
+    hiddenCourseIds, handleToggleCourseVisibility, handleToggleBulkCourses 
+  } = useClassroomUI();
   
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCourseName = searchParams.get('selected');
@@ -572,7 +576,7 @@ export default function Courses() {
                             </span>
                           </div>
                         ) : null}
-                        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
+                        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
                           {items.map((assignment) => (
                             <AssignmentCard
                               key={assignment.id}
@@ -614,7 +618,7 @@ export default function Courses() {
                             </span>
                           </div>
                         ) : null}
-                        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
+                        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
                           {items.map((resource) => (
                             <ResourceCard
                               key={resource.id}

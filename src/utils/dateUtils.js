@@ -60,3 +60,32 @@ export const formatRelativeTime = (timestamp, lang = 'en') => {
     day: 'numeric', month: 'short' 
   });
 };
+
+export const calculateDueState = (dueDate, status) => {
+  if (status === 'done') return { type: 'done', isOverdue: false };
+  if (!dueDate) return { type: 'noDate', isOverdue: false };
+
+  const now = new Date();
+  const due = new Date(dueDate);
+  const diffMs = due.getTime() - now.getTime();
+
+  if (diffMs < 0) {
+    const diffDays = Math.abs(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+    const diffHrs = Math.abs(Math.floor(diffMs / (1000 * 60 * 60)));
+    return { type: 'overdue', diffDays, diffHrs, isOverdue: true };
+  }
+
+  const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+  if (diffHrs < 24) {
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    return { type: 'dueToday', diffHrs, diffMins, isOverdue: false };
+  }
+
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 1) {
+    return { type: 'dueTomorrow', diffDays, isOverdue: false };
+  }
+
+  return { type: 'dueLater', diffDays, isOverdue: false };
+};
+

@@ -1,22 +1,23 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import AssignmentCard from '../components/AssignmentCard';
-import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, Plus, X, RefreshCw, AlertTriangle, CalendarDays, List } from 'lucide-react';
+import KanbanBoard from '../components/KanbanBoard';
+import TaskFilters from '../components/TaskFilters';
+import TodayScheduleWidget from '../components/TodayScheduleWidget';
+import CreateTaskModal from '../components/CreateTaskModal';
+import { Plus, RefreshCw, AlertTriangle } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { isDueToday, isOverdue } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
-import { examRepository } from '../repositories/examRepository';
-import { parseExamDate } from '../utils/examDate';
-
-// JS day index (0=Sun) → our day key
-const JS_DAY_MAP = [null, 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+import { useClassroomUI } from '../contexts/ClassroomUIContext';
+import { useTodayClasses } from '../hooks/useTodayClasses';
 
 export default function Dashboard() {
   const { isLoggedIn, profile } = useAuth();
   const { lang } = useSettings();
-  const { visibleAssignments, visibleCourses, schedule, handleStatusChange, handleAddAssignment, isSyncing, syncClassroom } = useClassroom();
+  const { schedule, handleStatusChange, handleAddAssignment, isSyncing, syncClassroom } = useClassroom();
+  const { visibleAssignments, visibleCourses } = useClassroomUI();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('all');
@@ -25,140 +26,7 @@ export default function Dashboard() {
   const [viewType, setViewType] = useState('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Form State for new assignment
-  const [newTitle, setNewTitle] = useState('');
-  const [newCourse, setNewCourse] = useState(visibleCourses[0]?.name || '');
-  const [newDueDate, setNewDueDate] = useState('');
-  const [newPoints, setNewPoints] = useState(100);
-  const [newDescription, setNewDescription] = useState('');
-
-  // Compute today's schedule including one-off class overrides and exam integrations
-  const todayClasses = useMemo(() => {
-    const d = new Date().getDay(); // 0=Sun
-    const todayKey = d === 0 ? 'sun' : JS_DAY_MAP[d];
-    const todayDateStr = new Date().toISOString().split('T')[0];
-    const activeEmail = (profile?.email || '').toLowerCase().trim();
-
-    // 1. Load cached exams
-    let examEntries = [];
-    if (activeEmail) {
-      const cachedResult = examRepository.getCachedExams(activeEmail);
-      if (cachedResult.success && cachedResult.data) {
-        const examList = cachedResult.data.exams || [];
-        const manualExamList = cachedResult.data.manualExams || [];
-        const allExams = [...examList, ...manualExamList];
-
-        examEntries = allExams.map(ex => {
-          let startTime = '09:00';
-          let endTime = '12:00';
-          if (ex.time) {
-            const parts = ex.time.split('-').map(s => s.trim());
-            if (parts.length === 2) {
-              startTime = parts[0];
-              endTime = parts[1];
-            }
-          }
-
-          let dateVal = '';
-          if (ex.rawIsoDate) {
-            dateVal = ex.rawIsoDate.split('T')[0];
-          } else if (ex.date) {
-            const parsed = parseExamDate(ex.date);
-            if (parsed) {
-              dateVal = parsed.toISOString().split('T')[0];
-            }
-          }
-
-          if (!dateVal) return null;
-
-          const ed = new Date(dateVal);
-          const dayIndex = ed.getDay();
-          const dayKey = dayIndex === 0 ? 'sun' : JS_DAY_MAP[dayIndex];
-
-          return {
-            id: `exam-${ex.id}`,
-            title: ex.subjectName || ex.courseName || 'Exam',
-            courseCode: ex.subjectCode || ex.courseCode || '',
-            day: dayKey,
-            date: dateVal,
-            startTime,
-            endTime,
-            room: ex.room ? `${ex.room} ${ex.seat ? `(${ex.seat})` : ''}` : '',
-            color: '#ef4444', // Red for exams
-            notes: ex.seat ? `Seat/Row: ${ex.seat}` : '',
-            isExam: true
-          };
-        }).filter(Boolean);
-      }
-    }
-
-    // 2. Separate today's exams and today's classes
-    const todayExams = examEntries.filter(entry => entry.day === todayKey && entry.date === todayDateStr);
-    const todayRegular = (schedule || []).filter(entry => entry.day === todayKey && (!entry.date || entry.date === todayDateStr));
-
-    // 3. Override class if exam for the same course is today
-    const filteredRegular = todayRegular.filter(regEntry => {
-      const hasConflict = todayExams.some(exam => {
-        // 1. Match by code or title
-        const codeMatch = regEntry.courseCode && exam.courseCode && 
-          regEntry.courseCode.toLowerCase().trim() === exam.courseCode.toLowerCase().trim();
-          
-        const titleMatch = regEntry.title && exam.title && 
-          regEntry.title.toLowerCase().trim() === exam.title.toLowerCase().trim();
-          
-        if (codeMatch || titleMatch) return true;
-
-        // 2. Match by time overlap
-        const [regHStart, regMStart] = regEntry.startTime.split(':').map(Number);
-        const [regHEnd, regMEnd] = regEntry.endTime.split(':').map(Number);
-        const [examHStart, examMStart] = exam.startTime.split(':').map(Number);
-        const [examHEnd, examMEnd] = exam.endTime.split(':').map(Number);
-
-        const startReg = regHStart * 60 + regMStart;
-        const endReg = regHEnd * 60 + regMEnd;
-        const startExam = examHStart * 60 + examMStart;
-        const endExam = examHEnd * 60 + examMEnd;
-
-        return startReg < endExam && endReg > startExam;
-      });
-      return !hasConflict;
-    });
-
-    return [...filteredRegular, ...todayExams]
-      .sort((a, b) => {
-        const [aH, aM] = a.startTime.split(':').map(Number);
-        const [bH, bM] = b.startTime.split(':').map(Number);
-        return (aH * 60 + aM) - (bH * 60 + bM);
-      });
-  }, [schedule, profile]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!newTitle || !newCourse || !newDueDate) return;
-
-    const courseObj = visibleCourses.find(c => c.name === newCourse);
-    const color = courseObj ? courseObj.color : 'blue';
-
-    // Format newDueDate to date with end of day time
-    const formattedDueDate = `${newDueDate}T23:59:59`;
-
-    handleAddAssignment({
-      title: newTitle,
-      course: newCourse,
-      dueDate: formattedDueDate,
-      status: 'todo',
-      points: Number(newPoints),
-      description: newDescription,
-      attachments: [],
-      courseColor: color
-    });
-
-    setNewTitle('');
-    setNewDueDate('');
-    setNewPoints(100);
-    setNewDescription('');
-    setIsModalOpen(false);
-  };
+  const todayClasses = useTodayClasses(schedule, profile);
 
   // Filter assignments
   const filteredAssignments = visibleAssignments.filter(assignment => {
@@ -230,124 +98,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Today's Schedule Widget (Minimal) */}
-      <div className="opacity-0 animate-fade-in" style={{ animationDelay: '150ms' }}>
-        {todayClasses.length > 0 ? (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-brand-500/5 border border-brand-500/20 rounded-2xl px-6 py-4">
-            <div className="flex items-center gap-3">
-              <CalendarDays size={18} className="text-brand-400" />
-              <h3 className="text-sm font-bold text-brand-400">{t('todaySchedule', lang)}:</h3>
-              <div className="flex items-center gap-3 overflow-x-auto custom-scrollbar whitespace-nowrap">
-                {todayClasses.map(cls => (
-                  <div key={cls.id} className="flex items-center gap-2 text-xs font-semibold text-white/80">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cls.color }}></span>
-                    {cls.title} ({cls.startTime})
-                  </div>
-                ))}
-              </div>
-            </div>
-            <Link to="/schedule" className="text-xs font-bold text-brand-400 hover:text-brand-300 shrink-0">
-              {t('viewFullSchedule', lang)} &rarr;
-            </Link>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-4 bg-white/5 border border-white/5 rounded-2xl px-6 py-4">
-            <div className="flex items-center gap-3">
-              <CalendarDays size={18} className="text-zinc-400" />
-              <p className="text-sm text-zinc-400 font-medium">{t('noClassesToday', lang)}</p>
-            </div>
-            <Link to="/schedule" className="text-xs font-bold text-brand-400 hover:text-brand-300 shrink-0">
-              {t('viewFullSchedule', lang)} &rarr;
-            </Link>
-          </div>
-        )}
-      </div>
+      <TodayScheduleWidget todayClasses={todayClasses} lang={lang} />
 
-      {/* Control Bar: Filters, Search, Views (Minimal) */}
-      <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between opacity-0 animate-fade-in" style={{ animationDelay: '250ms' }}>
-        {/* Search */}
-        <div className="relative flex-1 max-w-sm">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-dark-muted">
-            <Search size={16} />
-          </span>
-          <input
-            type="text"
-            placeholder={t('searchPlaceholder', lang)}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-dark-sidebar/40 border border-transparent rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 focus:bg-dark-sidebar/80 transition-all duration-300"
-          />
-        </div>
-
-        {/* Filters and Sorting */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all hover:bg-white/5">
-            <Filter size={14} className="text-zinc-400" />
-            <select
-              value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
-              className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none cursor-pointer pr-1"
-            >
-              <option value="all">{t('allSubjects', lang)}</option>
-              {visibleCourses.map(c => (
-                <option key={c.id} value={c.name} className="bg-dark-sidebar">{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {viewType !== 'kanban' && (
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all hover:bg-white/5">
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none cursor-pointer"
-              >
-                <option value="all" className="bg-dark-sidebar">{t('allStatuses', lang)}</option>
-                <option value="todo" className="bg-dark-sidebar">{t('todo', lang)}</option>
-                <option value="doing" className="bg-dark-sidebar">{t('doing', lang)}</option>
-                <option value="done" className="bg-dark-sidebar">{t('done', lang)}</option>
-              </select>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all hover:bg-white/5">
-            <ArrowUpDown size={14} className="text-zinc-400" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none cursor-pointer"
-            >
-              <option value="due-asc" className="bg-dark-sidebar">{t('sortByDueAsc', lang)}</option>
-              <option value="due-desc" className="bg-dark-sidebar">{t('sortByDueDesc', lang)}</option>
-              <option value="points-desc" className="bg-dark-sidebar">{t('sortByPointsDesc', lang)}</option>
-            </select>
-          </div>
-
-          <div className="flex items-center border border-white/5 rounded-xl p-0.5 bg-white/5 ml-auto md:ml-2">
-            <button
-              onClick={() => setViewType('list')}
-              className={`p-2 rounded-lg transition-all duration-300 ${viewType === 'list' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
-              title="List View"
-            >
-              <List size={16} />
-            </button>
-            <button
-              onClick={() => setViewType('grid')}
-              className={`p-2 rounded-lg transition-all duration-300 ${viewType === 'grid' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
-              title="Grid View"
-            >
-              <LayoutGrid size={16} />
-            </button>
-            <button
-              onClick={() => setViewType('kanban')}
-              className={`p-2 rounded-lg transition-all duration-300 ${viewType === 'kanban' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
-              title="Kanban Board"
-            >
-              <Kanban size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
+      <TaskFilters 
+        searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+        selectedCourse={selectedCourse} setSelectedCourse={setSelectedCourse}
+        selectedStatus={selectedStatus} setSelectedStatus={setSelectedStatus}
+        sortBy={sortBy} setSortBy={setSortBy}
+        viewType={viewType} setViewType={setViewType}
+        visibleCourses={visibleCourses} lang={lang}
+      />
 
       {/* Critical Rows (Visible in Grid and List views) */}
       {(viewType === 'grid' || viewType === 'list') && (
@@ -360,7 +120,7 @@ export default function Dashboard() {
                 </div>
                 {t('overdueTasksTitle', lang)}
               </h3>
-              <div className={viewType === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-3"}>
+              <div className={viewType === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-3"}>
                 {overdueTasks.map(task => (
                   <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode={viewType} />
                 ))}
@@ -376,7 +136,7 @@ export default function Dashboard() {
                 </div>
                 {t('dueTodayTitle', lang)}
               </h3>
-              <div className={viewType === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-3"}>
+              <div className={viewType === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-3"}>
                 {todayTasks.map(task => (
                   <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode={viewType} />
                 ))}
@@ -394,7 +154,7 @@ export default function Dashboard() {
             {t('allCourseAssignments', lang, { count: sortedAssignments.length })}
           </h3>
           {sortedAssignments.length > 0 ? (
-            <div className={viewType === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
+            <div className={viewType === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
               {sortedAssignments.map((assignment) => (
                 <AssignmentCard
                   key={assignment.id}
@@ -415,173 +175,17 @@ export default function Dashboard() {
 
       {/* Kanban Board View */}
       {viewType === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 opacity-0 animate-fade-in" style={{ animationDelay: '350ms' }}>
-          <div className="bg-dark-sidebar/30 border border-dark-border/40 rounded-3xl p-4 lg:p-5 flex flex-col h-full min-h-[500px]">
-            <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="w-3 h-3 rounded-full bg-zinc-400 shadow-[0_0_8px_rgba(161,161,170,0.5)]" />
-                <span className="font-bold text-white tracking-wide">{t('todo', lang)}</span>
-              </div>
-              <span className="bg-white/10 text-white text-xs px-3 py-1 rounded-full font-bold">
-                {todoTasks.length}
-              </span>
-            </div>
-            <div className="space-y-5 overflow-y-auto flex-1 max-h-[600px] pr-2 custom-scrollbar">
-              {todoTasks.map(task => (
-                <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode="kanban" />
-              ))}
-              {todoTasks.length === 0 && (
-                <div className="border border-white/10 border-dashed rounded-2xl p-8 text-center text-sm font-medium text-zinc-500 py-12">
-                  {t('emptyColumn', lang)}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-dark-sidebar/30 border border-dark-border/40 rounded-3xl p-4 lg:p-5 flex flex-col h-full min-h-[500px]">
-            <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
-                <span className="font-bold text-white tracking-wide">{t('doing', lang)}</span>
-              </div>
-              <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-3 py-1 rounded-full font-bold">
-                {doingTasks.length}
-              </span>
-            </div>
-            <div className="space-y-5 overflow-y-auto flex-1 max-h-[600px] pr-2 custom-scrollbar">
-              {doingTasks.map(task => (
-                <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode="kanban" />
-              ))}
-              {doingTasks.length === 0 && (
-                <div className="border border-white/10 border-dashed rounded-2xl p-8 text-center text-sm font-medium text-zinc-500 py-12">
-                  {t('emptyColumn', lang)}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-dark-sidebar/30 border border-dark-border/40 rounded-3xl p-4 lg:p-5 flex flex-col h-full min-h-[500px]">
-            <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-                <span className="font-bold text-white tracking-wide">{t('completed', lang)}</span>
-              </div>
-              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-3 py-1 rounded-full font-bold">
-                {doneTasks.length}
-              </span>
-            </div>
-            <div className="space-y-5 overflow-y-auto flex-1 max-h-[600px] pr-2 custom-scrollbar">
-              {doneTasks.map(task => (
-                <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode="kanban" />
-              ))}
-              {doneTasks.length === 0 && (
-                <div className="border border-white/10 border-dashed rounded-2xl p-8 text-center text-sm font-medium text-zinc-500 py-12">
-                  {t('emptyColumn', lang)}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <KanbanBoard 
+          todoTasks={todoTasks} doingTasks={doingTasks} doneTasks={doneTasks}
+          handleStatusChange={handleStatusChange} lang={lang}
+        />
       )}
 
       {/* Create Task Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-dark-card border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden animate-fade-in relative shadow-[0_0_40px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center justify-between p-6 border-b border-white/5">
-              <h3 className="font-bold text-xl text-white tracking-tight">{t('createTaskTitle', lang)}</h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-zinc-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              <div className="space-y-1.5 group/input relative">
-                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Title *' : 'หัวข้อการบ้าน *'}</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Linux Lab 5"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-brand-500 transition-all rounded-none"
-                />
-                <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1.5 group/input relative">
-                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Subject *' : 'วิชา *'}</label>
-                  <select
-                    value={newCourse}
-                    onChange={(e) => setNewCourse(e.target.value)}
-                    className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus:border-brand-500 cursor-pointer transition-all rounded-none"
-                  >
-                    {visibleCourses.map(c => (
-                      <option key={c.id} value={c.name} className="bg-dark-sidebar">{c.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
-                </div>
-                <div className="space-y-1.5 group/input relative">
-                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Due Date *' : 'กำหนดส่ง *'}</label>
-                  <input
-                    type="date"
-                    required
-                    value={newDueDate}
-                    onChange={(e) => setNewDueDate(e.target.value)}
-                    className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus:border-brand-500 cursor-pointer transition-all rounded-none"
-                  />
-                  <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 group/input relative">
-                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Points' : 'คะแนนเต็ม'}</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={newPoints}
-                  onChange={(e) => setNewPoints(e.target.value)}
-                  className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus:border-brand-500 transition-all rounded-none"
-                />
-                <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
-              </div>
-
-              <div className="space-y-1.5 group/input relative">
-                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Description' : 'คำอธิบาย'}</label>
-                <textarea
-                  rows="3"
-                  placeholder={lang === 'en' ? 'Describe details about this assignment...' : 'อธิบายรายละเอียดของการบ้านนี้...'}
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-brand-500 resize-none transition-all rounded-none"
-                />
-                <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-3 rounded-2xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  {lang === 'en' ? 'Cancel' : 'ยกเลิก'}
-                </button>
-                <button
-                  type="submit"
-                  className="bg-brand-500 hover:bg-brand-400 text-white font-bold text-sm px-6 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-brand-500/20 hover:-translate-y-0.5"
-                >
-                  {lang === 'en' ? 'Create Task' : 'สร้างงาน'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateTaskModal 
+        isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}
+        visibleCourses={visibleCourses} lang={lang} onAddAssignment={handleAddAssignment}
+      />
     </div>
   );
 }

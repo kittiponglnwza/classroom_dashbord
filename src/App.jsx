@@ -126,6 +126,7 @@ function AppContent() {
     </>
   );
 }
+import { ClassroomUIProvider } from './contexts/ClassroomUIContext';
 
 export default function App() {
   return (
@@ -134,7 +135,9 @@ export default function App() {
         <AuthProvider>
           <SettingsProvider>
             <ClassroomProvider>
-              <AppContent />
+              <ClassroomUIProvider>
+                <AppContent />
+              </ClassroomUIProvider>
             </ClassroomProvider>
           </SettingsProvider>
         </AuthProvider>
