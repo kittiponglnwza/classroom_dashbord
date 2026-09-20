@@ -57,7 +57,7 @@ export default function Sidebar({ onLinkClick = null }) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-7">
-        <div className="space-y-1">
+        <nav aria-label="Main Navigation" className="space-y-1">
           {navItems.map((item) => (
             <NavLink
               key={item.name}
@@ -85,7 +85,7 @@ export default function Sidebar({ onLinkClick = null }) {
               )}
             </NavLink>
           ))}
-        </div>
+        </nav>
 
         {!isCollapsed && visibleCourses.length > 0 && (
           <div className="space-y-2">
@@ -93,7 +93,7 @@ export default function Sidebar({ onLinkClick = null }) {
               <span>{t('myCourses', lang)}</span>
               <BookOpen size={12} />
             </h3>
-            <div className="space-y-0.5">
+            <nav aria-label="Courses Navigation" className="space-y-0.5">
               {visibleCourses.map((course) => {
                 const count = getActiveCount(course.name);
                 return (
@@ -115,7 +115,7 @@ export default function Sidebar({ onLinkClick = null }) {
                   </Link>
                 );
               })}
-            </div>
+            </nav>
           </div>
         )}
       </div>

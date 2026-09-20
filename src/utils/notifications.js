@@ -1,9 +1,5 @@
 import { NotificationService } from '../services/NotificationService';
 
-export const getCalendarDaysDifference = (dueDateStr, today) => {
-  return NotificationService.getCalendarDaysDifference(dueDateStr, today);
-};
-
 export function buildExamsHtml(toEmail, isWeeklyDigest = false) {
   return NotificationService.buildExamsHtml(toEmail, isWeeklyDigest);
 }

@@ -1,8 +1,9 @@
+import React from 'react';
 import { CheckCircle2, ListTodo, ClipboardList, Timer } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { parseExamDate } from '../utils/examDate';
 
-export default function TaskStats({ assignments = [], lang = 'en', exams = [] }) {
+const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en', exams = [] }) {
   const total = assignments.length;
   const todo = assignments.filter(a => a.status === 'todo').length;
   const done = assignments.filter(a => a.status === 'done').length;
@@ -118,4 +119,6 @@ export default function TaskStats({ assignments = [], lang = 'en', exams = [] })
       </div>
     </div>
   );
-}
+});
+
+export default TaskStats;

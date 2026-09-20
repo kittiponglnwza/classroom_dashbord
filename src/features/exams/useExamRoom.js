@@ -39,6 +39,14 @@ export const useExamRoom = (activeEmail, lang) => {
 
   const abortControllerRef = useRef(null);
 
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   // Adjust state when activeEmail prop changes
   if (activeEmail !== prevEmail) {
     setPrevEmail(activeEmail);

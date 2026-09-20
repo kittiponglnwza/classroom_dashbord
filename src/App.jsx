@@ -16,6 +16,7 @@ const Schedule = lazy(() => import('./pages/Schedule'));
 // Import Providers
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { ClassroomProvider } from './contexts/ClassroomContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -159,11 +160,13 @@ export default function App() {
       <Router>
         <AuthProvider>
           <SettingsProvider>
-            <ClassroomProvider>
-              <ClassroomUIProvider>
-                <AppContent />
-              </ClassroomUIProvider>
-            </ClassroomProvider>
+            <ToastProvider>
+              <ClassroomProvider>
+                <ClassroomUIProvider>
+                  <AppContent />
+                </ClassroomUIProvider>
+              </ClassroomProvider>
+            </ToastProvider>
           </SettingsProvider>
         </AuthProvider>
       </Router>

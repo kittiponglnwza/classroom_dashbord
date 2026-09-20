@@ -10,12 +10,19 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['src/services/parsers/**', 'src/utils/sanitize.js', 'src/utils/result.js'],
+      include: [
+        'src/services/**',
+        'src/utils/**',
+        'src/hooks/**',
+        'src/repositories/**',
+        'src/components/**',
+        'src/contexts/**'
+      ],
       thresholds: {
-        lines: 80,
-        functions: 80,
-        branches: 55,
-        statements: 80
+        lines: 40,
+        functions: 40,
+        branches: 30,
+        statements: 40
       }
     }
   }

@@ -68,10 +68,13 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
   return (
     <div 
       ref={popoverRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notification-popover-title"
       className="fixed left-4 right-4 top-20 sm:absolute sm:left-auto sm:right-0 sm:top-12 z-50 sm:w-[380px] bg-dark-card/95 backdrop-blur-md border border-dark-border/80 rounded-2xl shadow-2xl p-4.5 space-y-4 text-xs text-white animate-fade-in"
     >
       <div className="flex items-center justify-between border-b border-dark-border/40 pb-3">
-        <h3 className="font-bold text-xs text-white flex items-center gap-2 uppercase tracking-wide">
+        <h3 id="notification-popover-title" className="font-bold text-xs text-white flex items-center gap-2 uppercase tracking-wide">
           <Bell size={14} className="text-brand-400" />
           {lang === 'en' ? 'Gmail Alerts' : 'แจ้งเตือน Gmail'}
         </h3>
@@ -88,7 +91,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                 onChange={(e) => handleToggleAlerts(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-8 h-4.5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-brand-500"></div>
+              <div className="w-8 h-4.5 bg-zinc-700 peer-focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-brand-500"></div>
             </label>
           </div>
         )}
@@ -203,7 +206,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                             type="time" 
                             value={sundayTime}
                             onChange={(e) => handleTimeChange(e.target.value)}
-                            className="bg-dark-sidebar/40 border border-dark-border/40 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none"
+                            className="bg-dark-sidebar/40 border border-dark-border/40 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                           />
                         </div>
                       )}
@@ -243,12 +246,12 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                             max="999"
                             value={alertSettings.calendarReminderValue}
                             onChange={(e) => handleUpdateSetting('calendarReminderValue', parseInt(e.target.value, 10) || 0)}
-                            className="bg-dark-sidebar/40 border border-dark-border/40 rounded-lg px-2 py-0.5 w-16 text-xs text-white focus:outline-none"
+                            className="bg-dark-sidebar/40 border border-dark-border/40 rounded-lg px-2 py-0.5 w-16 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                           />
                           <select
                             value={alertSettings.calendarReminderUnit}
                             onChange={(e) => handleUpdateSetting('calendarReminderUnit', e.target.value)}
-                            className="bg-dark-sidebar/40 border border-dark-border/40 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none cursor-pointer"
+                            className="bg-dark-sidebar/40 border border-dark-border/40 rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
                           >
                             <option value="minutes">{t('minutesUnit', lang)}</option>
                             <option value="hours">{t('hoursUnit', lang)}</option>

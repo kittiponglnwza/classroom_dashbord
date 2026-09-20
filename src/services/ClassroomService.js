@@ -4,6 +4,8 @@ import { logger } from '../utils/logger';
 export class ClassroomService {
   /**
    * Fetch and format user profile
+   * @param {string} accessToken
+   * @returns {Promise<{name: string, studentId: string, email: string, major: string, avatarUrl: string}>}
    */
   static async fetchProfile(accessToken) {
     const data = await GoogleRepository.fetchUserProfile(accessToken);
@@ -18,6 +20,9 @@ export class ClassroomService {
 
   /**
    * Helper to map materials and links to attachments list
+   * @param {any[]} [materials=[]]
+   * @param {string} [textDescription='']
+   * @returns {{name: string, link: string, size: string}[]}
    */
   static mapAttachments(materials = [], textDescription = '') {
     const attachments = [];
@@ -78,6 +83,8 @@ export class ClassroomService {
   /**
    * Fetch and consolidate Google Classroom courses, coursework, announcements, and materials.
    * Utilizes concurrency batching to prevent parallel connection storms.
+   * @param {string} accessToken
+   * @returns {Promise<{courses: any[], assignments: any[], resources: any[], topics: any[]}>}
    */
   static async fetchClassroomData(accessToken) {
     const rawCourses = await GoogleRepository.fetchCourses(accessToken);

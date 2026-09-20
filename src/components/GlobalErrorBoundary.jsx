@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { logger } from '../utils/logger';
+import { NetworkError, AuthError, RateLimitError, StorageError, ParserError, ValidationError } from '../utils/errors';
 
 export class GlobalErrorBoundary extends React.Component {
   constructor(props) {
@@ -23,8 +24,38 @@ export class GlobalErrorBoundary extends React.Component {
     window.location.reload(); // Force refresh to clear bad state
   };
 
+  getErrorMessage(error) {
+    if (!error) return 'An unknown error occurred.';
+    
+    if (error instanceof NetworkError || error.name === 'NetworkError') {
+      return 'Network connection failed. Please check your internet connection.';
+    }
+    if (error instanceof AuthError || error.name === 'AuthError') {
+      return 'Authentication failed or session expired. Please log in again.';
+    }
+    if (error instanceof RateLimitError || error.name === 'RateLimitError') {
+      return 'Too many requests. Please slow down and try again later.';
+    }
+    if (error instanceof StorageError || error.name === 'StorageError') {
+      return 'Failed to read or write local data. Your browser storage might be full.';
+    }
+    if (error instanceof ParserError || error.name === 'ParserError' || error instanceof ValidationError || error.name === 'ValidationError') {
+      return 'Data processing failed. The application received unexpected data.';
+    }
+    
+    return error.message || 'An unexpected application error occurred.';
+  }
+
+  getErrorCode(error) {
+    if (error && error.code) return `(Code: ${error.code})`;
+    return '';
+  }
+
   render() {
     if (this.state.hasError) {
+      const errorMsg = this.getErrorMessage(this.state.error);
+      const errorCode = this.getErrorCode(this.state.error);
+
       return (
         <div className="min-h-screen bg-dark-bg flex items-center justify-center p-6 text-dark-text">
           <div className="max-w-md w-full bg-dark-card border border-dark-border rounded-2xl p-8 shadow-2xl flex flex-col items-center text-center">
@@ -40,8 +71,9 @@ export class GlobalErrorBoundary extends React.Component {
               The application encountered an unexpected error. Please refresh the page to try again.
             </p>
 
-            <div className="bg-dark-bg border border-dark-border rounded p-4 text-left w-full mb-8 overflow-auto max-h-32 text-xs font-mono text-rose-400">
-              {this.state.error?.toString()}
+            <div className="bg-dark-bg border border-dark-border rounded p-4 text-center w-full mb-8">
+              <p className="text-sm font-medium text-rose-400 mb-1">{errorMsg}</p>
+              {errorCode && <p className="text-xs text-dark-muted mt-2">{errorCode}</p>}
             </div>
             
             <button

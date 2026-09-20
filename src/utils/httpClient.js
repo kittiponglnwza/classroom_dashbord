@@ -9,6 +9,10 @@ class HttpClient {
     this.refreshingPromise = null;
   }
 
+  /**
+   * @param {(() => Promise<string>)|null} silentRefresh
+   * @param {(() => void)|null} logout
+   */
   registerCallbacks(silentRefresh, logout) {
     this.silentRefreshCallback = silentRefresh;
     this.logoutCallback = logout;
@@ -16,15 +20,23 @@ class HttpClient {
 
   /**
    * Helper to execute fetch with timeout
+   * @param {string} url
+   * @param {RequestInit} [options={}]
+   * @param {number} [timeoutMs=10000]
+   * @returns {Promise<Response>}
    */
   async fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
+      const signals = [controller.signal];
+      if (options.signal) signals.push(options.signal);
+      const composedSignal = signals.length > 1 ? AbortSignal.any(signals) : controller.signal;
+
       const response = await fetch(url, {
         ...options,
-        signal: controller.signal
+        signal: composedSignal
       });
       clearTimeout(id);
       return response;
@@ -39,6 +51,8 @@ class HttpClient {
 
   /**
    * Calculate backoff delay with exponential scaling and random jitter
+   * @param {number} attempt
+   * @returns {number}
    */
   getBackoffDelay(attempt) {
     const base = SYNC_CONFIG.backoffBaseMs;
@@ -58,6 +72,10 @@ class HttpClient {
 
   /**
    * Generic request wrapper with auto-retry and backoff
+   * @param {string} url
+   * @param {RequestInit} [options={}]
+   * @param {number} [attempt=0]
+   * @returns {Promise<any>}
    */
   async request(url, options = {}, attempt = 0) {
     try {
@@ -101,6 +119,10 @@ class HttpClient {
 
   /**
    * Handles 401 Unauthorized errors by attempting a silent token refresh
+   * @param {string} url
+   * @param {RequestInit} options
+   * @param {number} attempt
+   * @returns {Promise<any>}
    */
   async handleUnauthorized(url, options, attempt) {
     logger.warn('Received 401 Unauthorized. Attempting silent token refresh...');
@@ -141,6 +163,9 @@ class HttpClient {
     }
   }
 
+  /**
+   * Triggers the logout callback
+   */
   triggerLogout() {
     if (this.logoutCallback) {
       this.logoutCallback();

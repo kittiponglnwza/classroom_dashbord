@@ -144,7 +144,7 @@ function ResourceCard({
             {shouldTruncate && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-[11px] text-brand-400 hover:text-brand-300 font-semibold focus:outline-none cursor-pointer mt-1"
+                className="text-[11px] text-brand-400 hover:text-brand-300 font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer mt-1"
               >
                 {isExpanded ? 'Show Less' : 'Read More'}
               </button>
@@ -591,7 +591,8 @@ export default function Courses() {
                     );
                   })
                 ) : (
-                  <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 text-center text-dark-muted text-xs">
+                  <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 flex flex-col items-center justify-center text-center text-dark-muted text-xs">
+                    <BookOpen size={32} className="text-zinc-600 mb-3 opacity-50" />
                     {t('noTasksCourse', lang)}
                   </div>
                 )}
@@ -636,7 +637,8 @@ export default function Courses() {
                     );
                   })
                 ) : (
-                  <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 text-center text-dark-muted text-xs">
+                  <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 flex flex-col items-center justify-center text-center text-dark-muted text-xs">
+                    <Megaphone size={32} className="text-zinc-600 mb-3 opacity-50" />
                     {t('noAnnouncementsCourse', lang)}
                   </div>
                 )}
@@ -660,7 +662,7 @@ export default function Courses() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={lang === 'en' ? 'Search courses by name, code, or instructor...' : 'ค้นหาวิชาจากชื่อ, รหัส หรือ อาจารย์...'}
-                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/5 rounded-2xl text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/40 focus:bg-white/10 transition-all duration-300 shadow-sm"
+                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/5 rounded-2xl text-sm text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/40 focus:bg-white/10 transition-all duration-300 shadow-sm"
                 />
               </div>
 
@@ -725,7 +727,8 @@ export default function Courses() {
                 </div>
               )
             ) : (
-              <div className="bg-dark-card/20 border border-dark-border/30 rounded-xl p-8 text-center text-dark-muted text-xs">
+              <div className="bg-dark-card/20 border border-dark-border/30 rounded-xl p-12 flex flex-col items-center justify-center text-center text-dark-muted text-xs">
+                <Search size={32} className="text-zinc-600 mb-3 opacity-50" />
                 {searchQuery
                   ? (lang === 'en' ? 'No courses match your search.' : 'ไม่พบวิชาที่ตรงกับคำค้นหา')
                   : (lang === 'en' ? 'No active courses.' : 'ไม่มีวิชาที่แสดง')

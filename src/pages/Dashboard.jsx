@@ -4,7 +4,7 @@ import KanbanBoard from '../components/KanbanBoard';
 import TaskFilters from '../components/TaskFilters';
 import TodayScheduleWidget from '../components/TodayScheduleWidget';
 import CreateTaskModal from '../components/CreateTaskModal';
-import { Plus, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Plus, RefreshCw, AlertTriangle, ClipboardList } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { isDueToday, isOverdue } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +12,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { useTodayClasses } from '../hooks/useTodayClasses';
+import { useDashboardFilters } from '../hooks/useDashboardFilters';
 
 export default function Dashboard() {
   const { isLoggedIn, profile } = useAuth();
@@ -19,51 +20,23 @@ export default function Dashboard() {
   const { schedule, handleStatusChange, handleAddAssignment, isSyncing, syncClassroom } = useClassroom();
   const { visibleAssignments, visibleCourses } = useClassroomUI();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('due-asc');
-  const [viewType, setViewType] = useState('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const {
+    searchQuery, setSearchQuery,
+    selectedCourse, setSelectedCourse,
+    selectedStatus, setSelectedStatus,
+    sortBy, setSortBy,
+    viewType, setViewType,
+    sortedAssignments,
+    overdueTasks,
+    todayTasks,
+    todoTasks,
+    doingTasks,
+    doneTasks
+  } = useDashboardFilters(visibleAssignments);
 
   const todayClasses = useTodayClasses(schedule, profile);
-
-  // Filter assignments
-  const filteredAssignments = visibleAssignments.filter(assignment => {
-    const matchesSearch = assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          assignment.course.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCourse = selectedCourse === 'all' || assignment.course === selectedCourse;
-    const matchesStatus = selectedStatus === 'all' || assignment.status === selectedStatus;
-    return matchesSearch && matchesCourse && matchesStatus;
-  });
-
-  // Sort assignments
-  const sortedAssignments = [...filteredAssignments].sort((a, b) => {
-    if (sortBy === 'due-asc') {
-      return new Date(a.dueDate) - new Date(b.dueDate);
-    } else if (sortBy === 'due-desc') {
-      return new Date(b.dueDate) - new Date(a.dueDate);
-    } else if (sortBy === 'points-desc') {
-      return b.points - a.points;
-    }
-    return 0;
-  });
-
-  // Extract critical groups (not filtered by general status filter to avoid missing overdue alerts)
-  const allFilteredAssignments = visibleAssignments.filter(a => {
-    const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          a.course.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCourse = selectedCourse === 'all' || a.course === selectedCourse;
-    return matchesSearch && matchesCourse;
-  });
-
-  const overdueTasks = allFilteredAssignments.filter(a => isOverdue(a.dueDate) && a.status !== 'done');
-  const todayTasks = allFilteredAssignments.filter(a => isDueToday(a.dueDate) && !isOverdue(a.dueDate) && a.status !== 'done');
-
-  // Split assignments for Kanban columns
-  const todoTasks = sortedAssignments.filter(a => a.status === 'todo');
-  const doingTasks = sortedAssignments.filter(a => a.status === 'doing');
-  const doneTasks = sortedAssignments.filter(a => a.status === 'done');
 
   return (
     <div className="space-y-8 relative max-w-7xl mx-auto py-4">
@@ -166,8 +139,15 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl p-16 text-center shadow-lg">
-              <p className="text-zinc-400 text-sm font-medium">{t('noAssignmentsFound', lang)}</p>
+            <div className="bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl p-16 flex flex-col items-center justify-center text-center shadow-lg">
+              <ClipboardList size={48} className="text-zinc-600 mb-4 opacity-50" />
+              <p className="text-zinc-400 text-sm font-medium mb-6">{t('noAssignmentsFound', lang)}</p>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
+              >
+                {t('createTask', lang)}
+              </button>
             </div>
           )}
         </div>

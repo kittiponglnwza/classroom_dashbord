@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, List } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { useDebounce } from '../hooks/useDebounce';
 
 export default function TaskFilters({ 
   searchQuery, setSearchQuery, 
@@ -9,6 +11,19 @@ export default function TaskFilters({
   viewType, setViewType, 
   visibleCourses, lang 
 }) {
+  const [localSearch, setLocalSearch] = useState(searchQuery);
+  const debouncedSearch = useDebounce(localSearch, 300);
+
+  useEffect(() => {
+    setSearchQuery(debouncedSearch);
+  }, [debouncedSearch, setSearchQuery]);
+
+  useEffect(() => {
+    if (searchQuery === '') {
+      setLocalSearch('');
+    }
+  }, [searchQuery]);
+
   return (
     <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between opacity-0 animate-fade-in" style={{ animationDelay: '250ms' }}>
       {/* Search */}
@@ -19,9 +34,9 @@ export default function TaskFilters({
         <input
           type="text"
           placeholder={t('searchPlaceholder', lang)}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-dark-sidebar/40 border border-transparent rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 focus:bg-dark-sidebar/80 transition-all duration-300"
+          value={localSearch}
+          onChange={(e) => setLocalSearch(e.target.value)}
+          className="w-full bg-dark-sidebar/40 border border-transparent rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 focus:bg-dark-sidebar/80 transition-all duration-300"
         />
       </div>
 
@@ -32,7 +47,7 @@ export default function TaskFilters({
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none cursor-pointer pr-1"
+            className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer pr-1"
           >
             <option value="all">{t('allSubjects', lang)}</option>
             {visibleCourses.map(c => (
@@ -46,7 +61,7 @@ export default function TaskFilters({
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none cursor-pointer"
+              className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
             >
               <option value="all" className="bg-dark-sidebar">{t('allStatuses', lang)}</option>
               <option value="todo" className="bg-dark-sidebar">{t('todo', lang)}</option>
@@ -61,7 +76,7 @@ export default function TaskFilters({
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none cursor-pointer"
+            className="bg-transparent text-sm font-semibold text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
           >
             <option value="due-asc" className="bg-dark-sidebar">{t('sortByDueAsc', lang)}</option>
             <option value="due-desc" className="bg-dark-sidebar">{t('sortByDueDesc', lang)}</option>

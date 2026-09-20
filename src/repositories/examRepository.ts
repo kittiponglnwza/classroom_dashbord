@@ -24,13 +24,13 @@ export const examRepository = {
    * Fetches exams (network + parse)
    */
   async fetchExams(cleanId: string, lang: string, signal?: AbortSignal): Promise<Result<ExamData, Error>> {
-    const htmlResult = await fetchExamHtml(cleanId, signal);
+    const htmlResult = await fetchExamHtml(cleanId, signal as AbortSignal);
     
     if (!htmlResult.success) {
       return Result.fail(htmlResult.error || new Error('Failed to fetch exam HTML'));
     }
 
-    return parseExamHtml(htmlResult.data, lang);
+    return parseExamHtml(htmlResult.data || '', lang);
   },
 
   /**
@@ -64,7 +64,7 @@ export const examRepository = {
 
     } catch (e) {
       logger.error('Failed reading exam cache', e);
-      return Result.fail(e);
+      return Result.fail(e instanceof Error ? e : new Error(String(e)));
     }
   },
 
@@ -82,14 +82,14 @@ export const examRepository = {
       return Result.ok(true);
     } catch (e) {
       logger.error('Failed writing exam cache', e);
-      return Result.fail(e);
+      return Result.fail(e instanceof Error ? e : new Error(String(e)));
     }
   },
 
   /**
    * Clears exams from cache (leaves manual exams intact)
    */
-  clearExamsCache(activeEmail) {
+  clearExamsCache(activeEmail: string) {
     const cached = this.getCachedExams(activeEmail);
     if (cached.success && cached.data) {
       const { manualExams } = cached.data;

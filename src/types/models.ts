@@ -108,3 +108,41 @@ export interface Profile {
   picture?: string;
   updatedAt?: string;
 }
+
+export interface UserProfile extends Profile {
+  id?: string;
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: UserProfile | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export interface ClassroomState {
+  courses: Course[];
+  assignments: Assignment[];
+  resources: Resource[];
+  loading: boolean;
+  error: string | null;
+}
+
+export interface SyncState {
+  isSyncing: boolean;
+  lastSync: string | null;
+  error: string | null;
+}
+
+export interface ToastMessage {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  message: string;
+  duration?: number;
+}
+
+export interface FilterState {
+  status?: string;
+  courseId?: string;
+  query?: string;
+}

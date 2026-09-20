@@ -16,12 +16,14 @@ import { useAuth } from './AuthContext';
 import { useSettings } from './SettingsContext';
 import { logger } from '../utils/logger';
 import { useBackgroundSync } from '../hooks/useBackgroundSync';
+import { useToast } from '../hooks/useToast';
 
 export const ClassroomContext = createContext(null);
 
 export const ClassroomProvider = ({ children }) => {
   const { accessToken, isLoggedIn, updateProfileFromGoogle, logout: authLogout } = useAuth();
   const { lang, setLang, reloadSettings } = useSettings();
+  const { addToast } = useToast();
 
   const [assignments, setAssignments] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -146,6 +148,8 @@ export const ClassroomProvider = ({ children }) => {
       syncManager.queueSync(tokenToUse, userEmail);
       calendarSyncManager.queueSync(tokenToUse, userEmail);
 
+      addToast(lang === 'th' ? 'ซิงค์ข้อมูลสำเร็จ' : 'Sync completed successfully', 'success');
+
       setTimeout(async () => {
         try {
           if (lastSync) {
@@ -167,9 +171,14 @@ export const ClassroomProvider = ({ children }) => {
       logger.error('Failed to sync Google Classroom data', e);
       if (e.message === 'UNAUTHORIZED' || e.code === 401) {
         authLogout();
+        addToast(lang === 'th' ? 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' : 'Session expired, please login again.', 'error');
+      } else if (e.name === 'NetworkError' || e.message?.toLowerCase().includes('network') || !navigator.onLine) {
+        addToast(lang === 'th' ? 'เครือข่ายมีปัญหา กรุณาตรวจสอบการเชื่อมต่อ' : 'Network issue. Please check your connection.', 'warning');
+      } else {
+        addToast(e.message || (lang === 'th' ? 'การซิงค์ล้มเหลว' : 'Sync failed'), 'error');
       }
     }
-  }, [accessToken, lang, setLang, updateProfileFromGoogle, loadLocalData, reloadSettings, authLogout]);
+  }, [accessToken, lang, setLang, updateProfileFromGoogle, loadLocalData, reloadSettings, authLogout, addToast]);
 
   const handleStatusChange = useCallback((id, newStatus) => {
     const email = getActiveEmail();
@@ -270,10 +279,12 @@ export const ClassroomProvider = ({ children }) => {
   const isSyncing = syncState === 'uploading' || syncState === 'queued';
 
   useEffect(() => {
+    const controller = new AbortController();
     if (isLoggedIn && accessToken && !autoSyncedRef.current) {
       autoSyncedRef.current = true;
-      syncClassroom(accessToken);
+      syncClassroom(accessToken, controller.signal);
     }
+    return () => controller.abort();
   }, [isLoggedIn, accessToken, syncClassroom]);
 
   const value = React.useMemo(() => ({

@@ -1,7 +1,9 @@
+import React from 'react';
 import AssignmentCard from './AssignmentCard';
+import { ListTodo, Clock, CheckCircle } from 'lucide-react';
 import { t } from '../utils/i18n';
 
-export default function KanbanBoard({ todoTasks, doingTasks, doneTasks, handleStatusChange, lang }) {
+const KanbanBoard = React.memo(function KanbanBoard({ todoTasks, doingTasks, doneTasks, handleStatusChange, lang }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 opacity-0 animate-fade-in" style={{ animationDelay: '350ms' }}>
       <div className="bg-dark-sidebar/30 border border-dark-border/40 rounded-3xl p-4 lg:p-5 flex flex-col h-full min-h-[500px]">
@@ -19,7 +21,8 @@ export default function KanbanBoard({ todoTasks, doingTasks, doneTasks, handleSt
             <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode="kanban" />
           ))}
           {todoTasks.length === 0 && (
-            <div className="border border-white/10 border-dashed rounded-2xl p-8 text-center text-sm font-medium text-zinc-500 py-12">
+            <div className="border border-white/10 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center text-sm font-medium text-zinc-500 py-12 bg-white/[0.02]">
+              <ListTodo size={32} className="text-zinc-600 mb-3 opacity-50" />
               {t('emptyColumn', lang)}
             </div>
           )}
@@ -41,7 +44,8 @@ export default function KanbanBoard({ todoTasks, doingTasks, doneTasks, handleSt
             <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode="kanban" />
           ))}
           {doingTasks.length === 0 && (
-            <div className="border border-white/10 border-dashed rounded-2xl p-8 text-center text-sm font-medium text-zinc-500 py-12">
+            <div className="border border-white/10 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center text-sm font-medium text-zinc-500 py-12 bg-white/[0.02]">
+              <Clock size={32} className="text-zinc-600 mb-3 opacity-50" />
               {t('emptyColumn', lang)}
             </div>
           )}
@@ -63,7 +67,8 @@ export default function KanbanBoard({ todoTasks, doingTasks, doneTasks, handleSt
             <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode="kanban" />
           ))}
           {doneTasks.length === 0 && (
-            <div className="border border-white/10 border-dashed rounded-2xl p-8 text-center text-sm font-medium text-zinc-500 py-12">
+            <div className="border border-white/10 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center text-sm font-medium text-zinc-500 py-12 bg-white/[0.02]">
+              <CheckCircle size={32} className="text-zinc-600 mb-3 opacity-50" />
               {t('emptyColumn', lang)}
             </div>
           )}
@@ -71,4 +76,6 @@ export default function KanbanBoard({ todoTasks, doingTasks, doneTasks, handleSt
       </div>
     </div>
   );
-}
+});
+
+export default KanbanBoard;

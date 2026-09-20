@@ -11,7 +11,7 @@ interface ExamState {
   unlistedInfo: UnlistedExamInfo | null;
 }
 
-export function useExams(activeEmail: string, lang: string, scheduleDeps: any) {
+export function useExams(activeEmail: string, lang: string, scheduleDeps: unknown[]) {
   const implicitStudentId = activeEmail?.match(/\d{13}/) ? activeEmail.match(/\d{13}/)![0] : null;
 
   const [examState, setExamState] = useState<ExamState>(() => {
@@ -74,9 +74,11 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: any) {
 
   useEffect(() => {
     if (activeEmail && implicitStudentId && !examState.hasCheckedExams && !fetchAttempted.current) {
+      const controller = new AbortController();
       fetchAttempted.current = true;
       setIsFetching(true);
-      examRepository.fetchExams(implicitStudentId, lang).then(result => {
+      examRepository.fetchExams(implicitStudentId, lang, controller.signal).then(result => {
+        if (controller.signal.aborted) return;
         if (result.success && result.data.exams && result.data.exams.length > 0) {
           const currentCache = examRepository.getCachedExams(activeEmail);
           const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
@@ -97,11 +99,15 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: any) {
         } else {
           setExamState(prev => ({ ...prev, hasCheckedExams: true }));
         }
-      }).catch(() => {
+      }).catch((err) => {
+        if (err.name === 'AbortError') return;
         setExamState(prev => ({ ...prev, hasCheckedExams: true }));
       }).finally(() => {
+        if (controller.signal.aborted) return;
         setIsFetching(false);
       });
+
+      return () => controller.abort();
     }
   }, [activeEmail, implicitStudentId, examState.hasCheckedExams, lang]);
 

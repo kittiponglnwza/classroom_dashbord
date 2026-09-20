@@ -1,5 +1,5 @@
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
 import { Calendar, Paperclip, AlertCircle, CheckCircle2, Clock, ExternalLink, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { calculateDueState } from '../utils/dateUtils';
@@ -13,7 +13,7 @@ const COURSE_DOT_COLORS = {
   zinc: 'bg-zinc-500'
 };
 
-export default function AssignmentCard({ assignment, onStatusChange, lang = 'en', viewMode = 'grid' }) {
+const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatusChange, lang = 'en', viewMode = 'grid' }) {
   const { id, title, course, dueDate, status, points, attachments, courseColor, googleLink } = assignment;
 
   const getStatusDotColor = () => {
@@ -114,6 +114,14 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
     return (
       <div 
         onClick={() => setIsListExpanded(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsListExpanded(true);
+          }
+        }}
         className={`group bg-dark-card/20 hover:bg-dark-card/40 border border-dark-border/30 rounded-xl p-3.5 flex items-center justify-between cursor-pointer transition-all ${getCardBorderClass()}`}
       >
         <div className="flex items-center gap-3.5 min-w-0">
@@ -169,7 +177,7 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
             <select
               value={status}
               onChange={(e) => onStatusChange(id, e.target.value)}
-              className={`text-[10px] font-extrabold bg-transparent border-0 p-0 focus:outline-none focus:ring-0 cursor-pointer pr-4 select-none ${getStatusTextColor()}`}
+              className={`text-[10px] font-extrabold bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:ring-0 cursor-pointer pr-4 select-none ${getStatusTextColor()}`}
               style={{
                 backgroundImage: 'none',
                 paddingRight: '2px'
@@ -230,4 +238,6 @@ export default function AssignmentCard({ assignment, onStatusChange, lang = 'en'
       </div>
     </div>
   );
-}
+});
+
+export default AssignmentCard;

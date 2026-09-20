@@ -53,10 +53,15 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
-      <div className="bg-dark-card sm:border border-dark-border rounded-none sm:rounded-2xl w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-md overflow-y-auto custom-scrollbar relative shadow-none sm:shadow-2xl flex flex-col">
+      <div 
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="exam-manual-title"
+        className="bg-dark-card sm:border border-dark-border rounded-none sm:rounded-2xl w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-md overflow-y-auto custom-scrollbar relative shadow-none sm:shadow-2xl flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-dark-border/40">
-          <h3 className="font-semibold font-heading text-sm text-white flex items-center gap-2">
+          <h3 id="exam-manual-title" className="font-semibold font-heading text-sm text-white flex items-center gap-2">
             <ClipboardCheck size={16} className="text-brand-400" />
             {initialData ? t('examFormEditTitle', lang) : t('examFormTitle', lang)}
           </h3>
@@ -72,7 +77,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="e.g. 40613502"
                 value={formCode}
                 onChange={(e) => setFormCode(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/60"
+                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
               />
             </div>
             <div className="col-span-2">
@@ -83,7 +88,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="e.g. COMPUTER NETWORK"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/60"
+                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
               />
             </div>
           </div>
@@ -96,7 +101,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 required
                 value={formDate}
                 onChange={(e) => setFormDate(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500/60 cursor-pointer"
+                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60 cursor-pointer"
               />
             </div>
             <div>
@@ -107,7 +112,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="09:00 - 12:00"
                 value={formTime}
                 onChange={(e) => setFormTime(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/60"
+                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
               />
             </div>
           </div>
@@ -120,7 +125,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="e.g. 81-506"
                 value={formRoom}
                 onChange={(e) => setFormRoom(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/60"
+                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
               />
             </div>
             <div>
@@ -130,7 +135,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="e.g. Row 5, Seat 20"
                 value={formSeat}
                 onChange={(e) => setFormSeat(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus:border-brand-500/60"
+                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
               />
             </div>
           </div>

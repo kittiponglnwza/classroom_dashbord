@@ -41,9 +41,14 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
-      <div className="bg-dark-card sm:border sm:border-white/10 rounded-none sm:rounded-3xl w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg overflow-y-auto custom-scrollbar animate-fade-in relative shadow-none sm:shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+      <div 
+        role="dialog" 
+        aria-modal="true" 
+        aria-labelledby="create-task-title"
+        className="bg-dark-card sm:border sm:border-white/10 rounded-none sm:rounded-3xl w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg overflow-y-auto custom-scrollbar animate-fade-in relative shadow-none sm:shadow-[0_0_40px_rgba(0,0,0,0.5)]"
+      >
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/5 sticky top-0 bg-dark-card/90 backdrop-blur-md z-10">
-          <h3 className="font-bold text-xl text-white tracking-tight">{t('createTaskTitle', lang)}</h3>
+          <h3 id="create-task-title" className="font-bold text-xl text-white tracking-tight">{t('createTaskTitle', lang)}</h3>
           <button
             onClick={onClose}
             className="text-zinc-400 hover:text-white w-11 h-11 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
@@ -61,7 +66,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               placeholder="e.g. Linux Lab 5"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-brand-500 transition-all rounded-none"
+              className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 transition-all rounded-none"
             />
             <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
           </div>
@@ -72,7 +77,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               <select
                 value={newCourse}
                 onChange={(e) => setNewCourse(e.target.value)}
-                className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus:border-brand-500 cursor-pointer transition-all rounded-none"
+                className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 cursor-pointer transition-all rounded-none"
               >
                 {visibleCourses.map(c => (
                   <option key={c.id} value={c.name} className="bg-dark-sidebar">{c.name}</option>
@@ -87,7 +92,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
                 required
                 value={newDueDate}
                 onChange={(e) => setNewDueDate(e.target.value)}
-                className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus:border-brand-500 cursor-pointer transition-all rounded-none"
+                className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 cursor-pointer transition-all rounded-none"
               />
               <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
             </div>
@@ -100,7 +105,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               min="0"
               value={newPoints}
               onChange={(e) => setNewPoints(e.target.value)}
-              className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus:border-brand-500 transition-all rounded-none"
+              className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 transition-all rounded-none"
             />
             <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
           </div>
@@ -112,7 +117,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               placeholder={lang === 'en' ? 'Describe details about this assignment...' : 'อธิบายรายละเอียดของการบ้านนี้...'}
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
-              className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-brand-500 resize-none transition-all rounded-none"
+              className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 resize-none transition-all rounded-none"
             />
             <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
           </div>

@@ -30,7 +30,7 @@ const InputField = ({ label, value, onChange, type = "text" }) => (
       required
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-transparent border-b border-dark-border/60 pb-2 pt-1 text-sm text-white placeholder-dark-muted focus:outline-none focus:border-brand-500 transition-all rounded-none"
+      className="w-full bg-transparent border-b border-dark-border/60 pb-2 pt-1 text-sm text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 transition-all rounded-none"
     />
     <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
   </div>

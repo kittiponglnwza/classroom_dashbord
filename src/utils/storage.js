@@ -5,6 +5,9 @@ import { STORAGE_CONFIG } from '../config/storage';
 const KEYS = STORAGE_CONFIG.keys;
 
 /* Token Handling via Secure Session Storage */
+// SECURITY NOTE: As a pure Single Page Application using Google's implicit OAuth flow 
+// without a backend server, we must store tokens in client-side storage (sessionStorage). 
+// Using HttpOnly cookies would be more secure but requires a backend architecture.
 export const saveToken = (token) => {
   if (token) {
     sessionStorage.setItem(KEYS.accessToken, token);

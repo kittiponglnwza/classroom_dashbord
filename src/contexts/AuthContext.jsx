@@ -4,11 +4,25 @@ import {
   getToken, saveToken, clearToken, getActiveEmail, setActiveEmail, 
   getProfile, saveProfile
 } from '../utils/storage';
-import { initGoogleClient } from '../services/googleClassroom';
+import { initGoogleClient } from '../services/googleClassroomClient';
 import { StorageRepository } from '../repositories/StorageRepository';
 import { httpClient } from '../utils/httpClient';
 import { logger } from '../utils/logger';
 
+/**
+ * @typedef {Object} AuthContextType
+ * @property {string|null} accessToken
+ * @property {boolean} isLoggedIn
+ * @property {import('../types/models').UserProfile} profile
+ * @property {() => void} login
+ * @property {() => void} logout
+ * @property {(profile: Partial<import('../types/models').UserProfile>) => void} handleProfileSave
+ * @property {(profile: import('../types/models').UserProfile) => string} updateProfileFromGoogle
+ * @property {(lang: string, onTokenSuccess?: (token: string) => void) => () => void} initClient
+ * @property {() => Promise<string>} handleSilentRefresh
+ */
+
+/** @type {React.Context<AuthContextType | null>} */
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {

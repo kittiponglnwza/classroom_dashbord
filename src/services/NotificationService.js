@@ -14,39 +14,10 @@ import { parseExamDate } from '../utils/examDate';
 import { escapeHtml } from '../utils/sanitize';
 import { NOTIFICATION_CONFIG } from '../config/notification';
 import { logger } from '../utils/logger';
+import { getCalendarDaysDiff } from '../utils/dateUtils';
+import { getHexColor } from '../utils/colors';
 
 export class NotificationService {
-  /**
-   * Calculates calendar days difference: dueDate - today
-   */
-  static getCalendarDaysDifference(dueDateStr, today) {
-    if (!dueDateStr) return null;
-    
-    const d1 = new Date(dueDateStr);
-    const d2 = new Date(today);
-    
-    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null;
-
-    d1.setHours(0, 0, 0, 0);
-    d2.setHours(0, 0, 0, 0);
-    
-    const diffTime = d1.getTime() - d2.getTime();
-    return Math.round(diffTime / (1000 * 60 * 60 * 24));
-  }
-
-  /**
-   * Returns hex color code based on Tailwind color names
-   */
-  static getHexColor(color) {
-    switch (color) {
-      case 'emerald': return '#10b981';
-      case 'blue': return '#3b82f6';
-      case 'amber': return '#f59e0b';
-      case 'rose': return '#f43f5e';
-      case 'purple': return '#a855f7';
-      default: return '#6366f1';
-    }
-  }
 
   /**
    * Wraps email body in a beautiful, premium dark-slate HTML template
@@ -236,11 +207,11 @@ export class NotificationService {
       let highlightHtml = `
         <div style="margin-top: 25px; border: 1px dashed #f59e0b; background-color: rgba(245, 158, 11, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
           <span style="font-size: 10px; color: #f59e0b; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">🔥 Next Exam</span>
-          <h4 style="color: #ffffff; margin: 6px 0 2px 0; font-size: 14px;">${nextExam.courseCode} • ${nextExam.courseName}</h4>
+          <h4 style="color: #ffffff; margin: 6px 0 2px 0; font-size: 14px;">${escapeHtml(nextExam.courseCode)} • ${escapeHtml(nextExam.courseName)}</h4>
           <div style="font-size: 12px; color: #9ca3af; margin-top: 4px; line-height: 1.5;">
-            📅 <strong>Date:</strong> ${nextExam.date} (${nextExamRemaining})<br/>
-            ⏱️ <strong>Time:</strong> ${nextExam.time || '-'}<br/>
-            📍 <strong>Room:</strong> ${nextExam.room || '-'} ${nextExam.seat ? `• 🪑 <strong>Seat:</strong> ${nextExam.seat}` : ''}
+            📅 <strong>Date:</strong> ${escapeHtml(nextExam.date)} (${nextExamRemaining})<br/>
+            ⏱️ <strong>Time:</strong> ${escapeHtml(nextExam.time || '-')}<br/>
+            📍 <strong>Room:</strong> ${escapeHtml(nextExam.room || '-')} ${nextExam.seat ? `• 🪑 <strong>Seat:</strong> ${escapeHtml(nextExam.seat)}` : ''}
           </div>
         </div>
       `;
@@ -263,8 +234,8 @@ export class NotificationService {
               <span style="font-size: 11px; color: #9ca3af;">${escapeHtml(exam.courseName || '')}</span>${isManualLabel ? '<br/>' + isManualLabel : ''}
             </td>
             <td style="padding: 12px 8px; font-size: 12px; color: #e5e7eb; white-space: nowrap;">
-              ${exam.date || '-'}<br/>
-              <span style="font-size: 10px; color: #9ca3af;">${exam.time || ''}</span>
+              ${escapeHtml(exam.date || '-')}<br/>
+              <span style="font-size: 10px; color: #9ca3af;">${escapeHtml(exam.time || '')}</span>
             </td>
             <td style="padding: 12px 8px; font-size: 11px; color: #f59e0b; white-space: nowrap; font-weight: 600;">
               ${remainingLabel}
@@ -273,7 +244,7 @@ export class NotificationService {
               ${escapeHtml(exam.room || '-')}
             </td>
             <td style="padding: 12px 8px; font-size: 12px; color: #10b981; font-weight: bold; text-align: center;">
-              ${seatText}
+              ${escapeHtml(seatText)}
             </td>
           </tr>
         `;
@@ -394,11 +365,11 @@ export class NotificationService {
 
       Object.keys(courseGroups).forEach(courseName => {
         const list = courseGroups[courseName];
-        const borderHex = this.getHexColor(list[0].courseColor);
+        const borderHex = getHexColor(list[0].courseColor);
         
         tasksHtml += `
           <div style="margin-top: 16px; border: 1px solid rgba(148, 163, 184, 0.08); border-left: 4px solid ${borderHex}; background-color: #131b2e; border-radius: 12px; padding: 16px;">
-            <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">📚 ${courseName}</h4>
+            <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">📚 ${escapeHtml(courseName)}</h4>
             <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-top: 8px;">
         `;
         
@@ -473,7 +444,7 @@ export class NotificationService {
     for (const task of activeTodoAssignments) {
       if (!task.dueDate) continue;
 
-      const diffDays = this.getCalendarDaysDifference(task.dueDate, now);
+      const diffDays = getCalendarDaysDiff(task.dueDate, now);
       if (diffDays === null) continue;
 
       let triggerType = null;
@@ -509,7 +480,7 @@ export class NotificationService {
             <h2 class="title" style="color: ${triggerType.includes('overdue') ? '#f43f5e' : '#f59e0b'};">
               ${emoji} ${warningLabel}
             </h2>
-            <div style="border-left: 4px solid ${this.getHexColor(task.courseColor)}; background-color: #1f2937; border-radius: 8px; padding: 15px; margin-top: 15px;">
+            <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #1f2937; border-radius: 8px; padding: 15px; margin-top: 15px;">
               <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">${escapeHtml(task.courseCode)} • ${escapeHtml(task.course)}</span>
               <h3 style="color: #ffffff; margin: 4px 0 10px 0; font-size: 15px;">${escapeHtml(task.title)}</h3>
               <p style="font-size: 12px; color: #d1d5db; line-height: 1.6; margin: 0;">${escapeHtml(task.description || 'No description provided.')}</p>
@@ -562,11 +533,11 @@ export class NotificationService {
 
               Object.keys(courseGroups).forEach(courseName => {
                 const list = courseGroups[courseName];
-                const borderHex = this.getHexColor(list[0].courseColor);
+                const borderHex = getHexColor(list[0].courseColor);
                 
                 itemsHtml += `
                   <div style="margin-top: 16px; border: 1px solid rgba(148, 163, 184, 0.08); border-left: 4px solid ${borderHex}; background-color: #131b2e; border-radius: 12px; padding: 16px;">
-                    <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">📚 ${courseName}</h4>
+                    <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">📚 ${escapeHtml(courseName)}</h4>
                     <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-top: 8px;">
                 `;
                 list.forEach(t => {
@@ -654,7 +625,7 @@ export class NotificationService {
     let groupHtml = '';
     Object.keys(courseGroups).forEach(courseName => {
       const group = courseGroups[courseName];
-      const borderHex = this.getHexColor(group.color);
+      const borderHex = getHexColor(group.color);
       
       groupHtml += `
         <div style="margin-top: 15px; border-left: 4px solid ${borderHex}; background-color: #1f2937; border-radius: 8px; padding: 12px 15px;">

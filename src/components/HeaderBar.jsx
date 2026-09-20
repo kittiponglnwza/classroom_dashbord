@@ -28,6 +28,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
       <div className="flex items-center gap-3">
         <button 
           onClick={() => setMobileMenuOpen(true)}
+          aria-label="Open Mobile Menu"
           className="md:hidden w-11 h-11 flex items-center justify-center text-dark-muted hover:text-white hover:bg-dark-hover rounded-lg transition-colors border border-dark-border cursor-pointer"
         >
           <Menu size={20} />
@@ -54,6 +55,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
             <button
               onClick={() => syncClassroom()}
               disabled={isSyncing}
+              aria-label="Sync Google Classroom data"
               className="flex items-center justify-center gap-1.5 bg-dark-card hover:bg-dark-hover text-brand-400 hover:text-brand-300 font-medium px-3.5 h-11 sm:h-8 rounded-lg border border-dark-border transition-colors disabled:opacity-50 cursor-pointer"
               title="Sync Google Classroom data"
             >
@@ -80,6 +82,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
 
         <button
           onClick={toggleLang}
+          aria-label={lang === 'en' ? 'Switch to Thai' : 'เปลี่ยนเป็นภาษาอังกฤษ'}
           className="flex items-center justify-center gap-1.5 w-11 h-11 sm:w-auto sm:h-8 px-0 sm:px-3 bg-dark-card hover:bg-dark-hover border border-dark-border text-xs font-semibold rounded-lg text-dark-muted hover:text-white transition-all shadow-sm cursor-pointer select-none active:scale-95 shrink-0"
           title={lang === 'en' ? 'Switch to Thai' : 'เปลี่ยนเป็นภาษาอังกฤษ'}
         >
@@ -91,6 +94,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           <button 
             ref={bellButtonRef}
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+            aria-label="Notifications"
             className={`w-11 h-11 sm:w-auto sm:h-auto sm:p-2 flex items-center justify-center rounded-lg transition-colors border relative cursor-pointer ${
               isNotificationsOpen 
                 ? 'text-white bg-dark-hover border-dark-border' 

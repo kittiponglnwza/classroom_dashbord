@@ -417,6 +417,14 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                       isToday ? 'bg-brand-500/[0.02]' : ''
                     }`}
                     onClick={(e) => handleRowClick(day, e)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleRowClick(day, e);
+                      }
+                    }}
                   >
                     {/* Hour grid vertical lines */}
                     <div className="absolute inset-0 grid grid-cols-[repeat(18,1fr)] pointer-events-none">
@@ -443,6 +451,15 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                           key={entry.id}
                           data-schedule-block
                           onClick={(e) => { e.stopPropagation(); onClickBlock(entry, weekDates[day].dateStr); }}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onClickBlock(entry, weekDates[day].dateStr);
+                            }
+                          }}
                           className={`absolute rounded-lg overflow-hidden cursor-pointer shadow-md transition-all group flex flex-col justify-center ${
                             isAssign 
                               ? 'hover:ring-2 hover:ring-white/40 hover:scale-[1.02] hover:z-30' 
@@ -843,7 +860,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
             <select
               value={isCustom ? '__custom__' : formData.courseId}
               onChange={handleCourseSelect}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none cursor-pointer"
+              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
             >
               <option value="__custom__">{t('customEntry', lang)}</option>
               {visibleCourses.map(c => (
@@ -866,7 +883,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 value={formData.title}
                 onChange={(e) => update('title', e.target.value)}
                 readOnly={!isCustom}
-                className={`w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
             </div>
             <div>
@@ -878,7 +895,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 value={formData.courseCode}
                 onChange={(e) => update('courseCode', e.target.value)}
                 readOnly={!isCustom}
-                className={`w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
             </div>
           </div>
@@ -894,7 +911,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 required
                 value={formData.date}
                 onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none cursor-pointer"
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
               />
             </div>
           ) : (
@@ -905,7 +922,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
               <select
                 value={formData.day}
                 onChange={(e) => update('day', e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none cursor-pointer"
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
               >
                 {DAYS.map(d => (
                   <option key={d} value={d}>{t(DAY_KEYS[d], lang)}</option>
@@ -932,7 +949,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                     endTime: addHoursToTime(val, 3) // Auto default +3 hours
                   }));
                 }}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none cursor-pointer"
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
               />
             </div>
             <div>
@@ -964,7 +981,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 required
                 value={formData.endTime}
                 onChange={(e) => update('endTime', e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none cursor-pointer"
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
               />
             </div>
           </div>
@@ -978,7 +995,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
               type="text"
               value={formData.room}
               onChange={(e) => update('room', e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
+              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             />
           </div>
 
@@ -1018,7 +1035,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
               rows="2"
               value={formData.notes}
               onChange={(e) => update('notes', e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-3 text-xs text-white focus:border-brand-500 focus:outline-none resize-none"
+              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-3 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 resize-none"
             />
           </div>
 

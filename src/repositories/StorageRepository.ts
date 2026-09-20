@@ -4,6 +4,7 @@ import { logger } from '../utils/logger';
 import { SyncRecord } from '../types/models';
 
 // In-memory cache store
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const memoryCache = new Map<string, SyncRecord<any>>();
 
 export class StorageRepository {
@@ -15,7 +16,7 @@ export class StorageRepository {
   /**
    * Validates data structure using defensive schema checks
    */
-  static validate(key: string, data: any): void {
+  static validate(key: string, data: unknown): void {
     if (data === null || data === undefined) return;
 
     try {
@@ -47,8 +48,9 @@ export class StorageRepository {
       }
 
       if (key === STORAGE_CONFIG.keys.exams) {
-        if (typeof data !== 'object') throw new ValidationError('Exams cache must be an object.');
-        if (!Array.isArray(data.exams || []) || !Array.isArray(data.manualExams || [])) {
+        if (typeof data !== 'object' || data === null) throw new ValidationError('Exams cache must be an object.');
+        const typedData = data as Record<string, unknown>;
+        if (!Array.isArray(typedData.exams || []) || !Array.isArray(typedData.manualExams || [])) {
           throw new ValidationError('Exams fields must be arrays.');
         }
       }

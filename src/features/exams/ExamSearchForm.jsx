@@ -21,7 +21,7 @@ export default function ExamSearchForm({ studentId, setStudentId, onSearch, load
                 onChange={(e) => setStudentId(e.target.value)}
                 placeholder={t('examSearchPlaceholder', lang)}
                 maxLength={13}
-                className="w-full bg-black/20 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/20 transition-all duration-300"
+                className="w-full bg-black/20 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/20 transition-all duration-300"
               />
             </div>
             <button

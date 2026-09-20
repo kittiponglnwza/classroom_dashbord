@@ -119,7 +119,7 @@ export default function AssignmentDetail() {
                 <select
                   value={status}
                   onChange={(e) => handleStatusChange(id, e.target.value)}
-                  className={`text-sm px-4 py-2 rounded-xl bg-black/20 border border-white/10 text-white cursor-pointer focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 font-bold shadow-sm transition-all duration-300 hover:bg-white/5 ${
+                  className={`text-sm px-4 py-2 rounded-xl bg-black/20 border border-white/10 text-white cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 font-bold shadow-sm transition-all duration-300 hover:bg-white/5 ${
                     status === 'todo' ? 'text-zinc-400' :
                     status === 'doing' ? 'text-amber-400' : 'text-emerald-400'
                   }`}
@@ -146,7 +146,7 @@ export default function AssignmentDetail() {
                     {isEditingDueDate ? (
                       <input 
                         type="datetime-local" 
-                        className="w-full bg-black/20 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-brand-500"
+                        className="w-full bg-black/20 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500"
                         value={tempDueDate}
                         onChange={(e) => setTempDueDate(e.target.value)}
                         onBlur={() => {
@@ -263,7 +263,7 @@ export default function AssignmentDetail() {
                   onBlur={handleNotesBlur}
                   rows="16"
                   placeholder={t('workspacePlaceholder', lang)}
-                  className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/20 transition-all duration-300 font-mono resize-none leading-relaxed shadow-inner"
+                  className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/20 transition-all duration-300 font-mono resize-none leading-relaxed shadow-inner"
                 />
               </div>
             </div>

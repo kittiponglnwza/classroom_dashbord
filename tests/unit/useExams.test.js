@@ -58,7 +58,7 @@ describe('useExams', () => {
       expect(result.current.isFetching).toBe(false);
     });
 
-    expect(examRepository.fetchExams).toHaveBeenCalledWith('6401012345678', 'th');
+    expect(examRepository.fetchExams).toHaveBeenCalledWith('6401012345678', 'th', expect.any(AbortSignal));
     expect(examRepository.saveToCache).toHaveBeenCalled();
     expect(syncManager.queueSync).toHaveBeenCalledWith('mock-token', '6401012345678@email.com');
     expect(calendarSyncManager.queueSync).toHaveBeenCalledWith('mock-token', '6401012345678@email.com');
