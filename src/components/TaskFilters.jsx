@@ -18,11 +18,9 @@ export default function TaskFilters({
     setSearchQuery(debouncedSearch);
   }, [debouncedSearch, setSearchQuery]);
 
-  useEffect(() => {
-    if (searchQuery === '') {
-      setLocalSearch('');
-    }
-  }, [searchQuery]);
+  if (searchQuery === '' && localSearch !== '') {
+    setLocalSearch('');
+  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between opacity-0 animate-fade-in" style={{ animationDelay: '250ms' }}>
@@ -111,3 +109,4 @@ export default function TaskFilters({
     </div>
   );
 }
+

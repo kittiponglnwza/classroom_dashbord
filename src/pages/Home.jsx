@@ -2,9 +2,9 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import TaskStats from '../components/TaskStats';
 import AssignmentCard from '../components/AssignmentCard';
-import { Calendar, ArrowRight, Megaphone, Clock, Paperclip, ClipboardCheck, MapPin, AlertCircle, CalendarDays, X, CheckCircle } from 'lucide-react';
+import { Calendar, ArrowRight, Megaphone, Clock, Paperclip, MapPin, CalendarDays, X, CheckCircle } from 'lucide-react';
 import { t } from '../utils/i18n';
-import { parseExamDate } from '../utils/examDate';
+
 import { getCourseBadgeColor } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';

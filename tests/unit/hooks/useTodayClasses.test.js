@@ -2,7 +2,6 @@ import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useTodayClasses } from '../../../src/hooks/useTodayClasses';
 import { examRepository } from '../../../src/repositories/examRepository';
-import { JS_DAY_MAP } from '../../../src/constants/dateConstants';
 
 vi.mock('../../../src/repositories/examRepository', () => ({
   examRepository: {
@@ -45,3 +44,4 @@ describe('useTodayClasses', () => {
     expect(result.current[1].title).toBe('History');
   });
 });
+

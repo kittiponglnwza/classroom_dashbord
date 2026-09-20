@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 const icons = {
@@ -40,3 +39,4 @@ export default function ToastContainer({ toasts, removeToast }) {
     </div>
   );
 }
+

@@ -6,7 +6,7 @@ import TodayScheduleWidget from '../components/TodayScheduleWidget';
 import CreateTaskModal from '../components/CreateTaskModal';
 import { Plus, RefreshCw, AlertTriangle, ClipboardList } from 'lucide-react';
 import { t } from '../utils/i18n';
-import { isDueToday, isOverdue } from '../utils/dateUtils';
+
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';

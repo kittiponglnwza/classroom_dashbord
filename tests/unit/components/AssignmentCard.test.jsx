@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -70,3 +69,4 @@ describe('AssignmentCard', () => {
     expect(overdueText).toHaveClass('text-rose-400');
   });
 });
+
