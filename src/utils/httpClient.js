@@ -27,25 +27,49 @@ class HttpClient {
    */
   async fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeoutMs);
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+
+    const externalSignal = options.signal;
+    const onExternalAbort = () => controller.abort(externalSignal?.reason);
+
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        clearTimeout(timeoutId);
+        const cancelErr = new Error('Request aborted');
+        cancelErr.name = 'AbortError';
+        throw cancelErr;
+      }
+      externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+
+    const fetchOptions = { ...options };
+    delete fetchOptions._retried401;
 
     try {
-      const signals = [controller.signal];
-      if (options.signal) signals.push(options.signal);
-      const composedSignal = signals.length > 1 ? AbortSignal.any(signals) : controller.signal;
-
       const response = await fetch(url, {
-        ...options,
-        signal: composedSignal
+        ...fetchOptions,
+        signal: controller.signal
       });
-      clearTimeout(id);
       return response;
     } catch (err) {
-      clearTimeout(id);
-      if (err.name === 'AbortError') {
+      if (externalSignal?.aborted && !timedOut) {
+        const cancelErr = new Error(err?.message || 'Request aborted');
+        cancelErr.name = 'AbortError';
+        throw cancelErr;
+      }
+      if (err?.name === 'AbortError' || timedOut) {
         throw new NetworkError('Request timed out.');
       }
-      throw new NetworkError(err.message || 'Network request failed.');
+      throw new NetworkError(err?.message || 'Network request failed.');
+    } finally {
+      clearTimeout(timeoutId);
+      if (externalSignal) {
+        externalSignal.removeEventListener('abort', onExternalAbort);
+      }
     }
   }
 
@@ -83,12 +107,21 @@ class HttpClient {
       const response = await this.fetchWithTimeout(url, options);
 
       if (response.ok) {
+        if (response.status === 204) return null;
+        if (typeof response.text === 'function') {
+          const text = await response.text().catch(() => '');
+          return text ? JSON.parse(text) : null;
+        }
         return await response.json();
       }
 
       // Handle HTTP Error Codes
       const status = response.status;
       if (status === 401) {
+        if (options._retried401) {
+          this.triggerLogout();
+          throw new AuthError('Session expired after token refresh.');
+        }
         // Intercept 401 and try to run silent token refresh
         return await this.handleUnauthorized(url, options, attempt);
       }
@@ -98,18 +131,33 @@ class HttpClient {
       }
 
       const errorText = await response.text().catch(() => '');
+      if (
+        status === 403 &&
+        /rateLimitExceeded|userRateLimitExceeded|quotaExceeded|rate limit/i.test(errorText)
+      ) {
+        throw new RateLimitError(`Rate limited (403): ${errorText}`, 403);
+      }
+
       throw new AppError(`API Error (${status}): ${errorText}`, status);
 
     } catch (err) {
+      if (err?.name === 'AbortError') {
+        throw err;
+      }
       // Check if the error is retryable (Network errors, Rate limiting, 5xx Server errors)
       const isRetryable = err instanceof NetworkError || 
                           err instanceof RateLimitError || 
                           (err instanceof AppError && err.code >= 500);
 
-      if (isRetryable && attempt < SYNC_CONFIG.maxRetryAttempts) {
+      if (isRetryable && attempt < SYNC_CONFIG.maxRetryAttempts && !options.signal?.aborted) {
         const delay = this.getBackoffDelay(attempt);
         logger.warn(`Request failed. Retrying in ${Math.round(delay)}ms... Error: ${err.message}`);
         await new Promise(resolve => setTimeout(resolve, delay));
+        if (options.signal?.aborted) {
+          const cancelErr = new Error('Request aborted');
+          cancelErr.name = 'AbortError';
+          throw cancelErr;
+        }
         return this.request(url, options, attempt + 1);
       }
 
@@ -153,7 +201,7 @@ class HttpClient {
       };
 
       logger.info('Silent token refresh succeeded. Retrying original request...');
-      return await this.request(url, { ...options, headers: updatedHeaders }, attempt);
+      return await this.request(url, { ...options, headers: updatedHeaders, _retried401: true }, attempt);
 
     } catch (refreshErr) {
       this.refreshingPromise = null;

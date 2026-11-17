@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Paperclip, AlertCircle, CheckCircle2, Clock, ExternalLink, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { calculateDueState } from '../utils/dateUtils';
+import { sanitizeExternalUrl } from '../utils/sanitize';
 
 const COURSE_DOT_COLORS = {
   emerald: 'bg-emerald-400',
@@ -15,6 +16,10 @@ const COURSE_DOT_COLORS = {
 
 const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatusChange, lang = 'en', viewMode = 'grid' }) {
   const { id, title, course, dueDate, status, points, attachments, courseColor, googleLink } = assignment;
+  const safeGoogleLink = sanitizeExternalUrl(googleLink);
+  const pointsLabel = typeof points === 'number'
+    ? `${points} ${lang === 'en' ? 'pts' : 'คะแนน'}`
+    : t('ungraded', lang);
   const location = useLocation();
   const linkState = {
     from: `${location.pathname}${location.search}`,
@@ -141,9 +146,10 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
           >
             <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
             <select
+              aria-label={`${title} status`}
               value={status}
               onChange={(e) => onStatusChange(id, e.target.value)}
-              className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none cursor-pointer select-none ${getStatusTextColor()}`}
+              className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer select-none ${getStatusTextColor()}`}
             >
               <option value="todo">{t('todo', lang)}</option>
               <option value="doing">{t('doing', lang)}</option>
@@ -196,6 +202,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
           <div className="flex items-center gap-1.5 bg-[#1E1E1E] border border-[#3C3C3C] px-2.5 py-1 rounded-lg hover:border-[#454545] transition-colors shrink-0">
             <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
             <select
+              aria-label={`${title} status`}
               value={status}
               onChange={(e) => onStatusChange(id, e.target.value)}
               className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer pr-1 select-none ${getStatusTextColor()}`}
@@ -232,9 +239,9 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
             </span>
           )}
 
-          {googleLink && (
+          {safeGoogleLink && (
             <a
-              href={googleLink}
+              href={safeGoogleLink}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-[#3794FF] hover:underline font-medium flex items-center gap-0.5 transition-colors"
@@ -246,7 +253,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
           )}
 
           <span className="text-xs font-medium text-[#9D9D9D]">
-            {points} {lang === 'en' ? 'pts' : 'คะแนน'}
+            {pointsLabel}
           </span>
         </div>
       </div>

@@ -31,6 +31,11 @@
 }
 
 /* VS Code Dark Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #424242 #1E1E1E;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

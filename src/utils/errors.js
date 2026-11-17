@@ -2,6 +2,10 @@
  * Base Application Error
  */
 export class AppError extends Error {
+  /**
+   * @param {string} message
+   * @param {number|string|null} [code=null]
+   */
   constructor(message, code = null) {
     super(message);
     this.name = this.constructor.name;

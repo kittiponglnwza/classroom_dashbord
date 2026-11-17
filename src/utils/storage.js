@@ -93,12 +93,6 @@ export const setActiveEmail = (email) => {
   }
 };
 
-export const touchLocalSettingsTimestamp = (email) => {
-  if (!email) return;
-  const timeKey = `classroom_hub_settings_last_updated_${email.toLowerCase().trim()}`;
-  localStorage.setItem(timeKey, new Date().toISOString());
-};
-
 /* Caching Last Sync timestamps */
 export const setLastSync = (time, email) => {
   StorageRepository.set(KEYS.lastSync, time, email);
@@ -109,6 +103,33 @@ export const getLastSync = (email) => {
   return StorageRepository.get(KEYS.lastSync, email, true);
 };
 
+const DELETED_IDS_KEY = 'classroom_hub_deleted_ids';
+const TOMBSTONE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+export const getDeletedIds = (email) => {
+  if (!email) return [];
+  const stored = StorageRepository.get(DELETED_IDS_KEY, email, true);
+  return Array.isArray(stored) ? stored : [];
+};
+
+export const recordDeletedId = (entityType, id, email) => {
+  if (!email || !id || !entityType) return;
+  const current = getDeletedIds(email);
+  const cutoff = Date.now() - TOMBSTONE_RETENTION_MS;
+  const filtered = current.filter(entry => {
+    if (!entry || !entry.id || !entry.entityType) return false;
+    const t = new Date(entry.deletedAt || 0).getTime();
+    if (!Number.isFinite(t) || t < cutoff) return false;
+    return !(entry.entityType === entityType && String(entry.id) === String(id));
+  });
+  filtered.push({
+    entityType,
+    id: String(id),
+    deletedAt: new Date().toISOString()
+  });
+  StorageRepository.set(DELETED_IDS_KEY, filtered.slice(-500), email);
+};
+
 /* Scoped Assignments fetching */
 export const getAssignments = (email) => {
   // Pass forceIgnoreTTL = true for local rendering if required, or false for cache logic.
@@ -117,8 +138,6 @@ export const getAssignments = (email) => {
   if (!stored) {
     const active = email || getActiveEmail();
     if (!active) {
-      // Default mock fallback
-      StorageRepository.set(KEYS.assignments, initialAssignments);
       return initialAssignments;
     }
     return [];
@@ -135,33 +154,50 @@ export const saveAssignments = (assignments, email) => {
  */
 export const syncClassroomAssignments = (apiAssignments, email) => {
   const localAssignments = getAssignments(email);
-  
-  const merged = apiAssignments.map(apiAssign => {
+  const nowIso = new Date().toISOString();
+
+  const mockIds = ['assign-1', 'assign-2', 'assign-3', 'assign-4', 'assign-5', 'assign-6', 'assign-7'];
+  const localManualTasks = localAssignments.filter(la =>
+    String(la.id).startsWith('assign-') && !mockIds.includes(la.id)
+  );
+  const seenIds = new Set(localManualTasks.map(la => String(la.id)));
+
+  const uniqueApiAssignments = [];
+  for (const apiAssign of apiAssignments) {
+    const key = String(apiAssign?.id ?? '');
+    if (!key || seenIds.has(key)) continue;
+    seenIds.add(key);
+    uniqueApiAssignments.push(apiAssign);
+  }
+
+  const merged = uniqueApiAssignments.map(apiAssign => {
     const localAssign = localAssignments.find(la => String(la.id) === String(apiAssign.id));
-    
+
     // Merge logic: preserve notes, status, and custom dueDate modifications
     if (localAssign) {
+      const apiStatus = apiAssign.status;
+      // Preserve local status if submissions fetch failed (apiStatus === null)
+      const resolvedStatus = apiStatus === 'done'
+        ? 'done'
+        : (localAssign.status || apiStatus || 'todo');
       return {
         ...apiAssign,
         dueDate: localAssign.customDueDate ? localAssign.dueDate : apiAssign.dueDate,
         customDueDate: Boolean(localAssign.customDueDate),
         notes: localAssign.notes || '',
-        status: apiAssign.status === 'done' ? 'done' : (localAssign.status || apiAssign.status),
-        updatedAt: localAssign.updatedAt || new Date().toISOString()
+        status: resolvedStatus,
+        statusUpdatedAt: localAssign.statusUpdatedAt || undefined,
+        updatedAt: localAssign.updatedAt || nowIso
       };
     }
     return {
       ...apiAssign,
+      status: apiAssign.status || 'todo',
       notes: '',
-      updatedAt: new Date().toISOString()
+      updatedAt: apiAssign.updatedAt || nowIso
     };
   });
 
-  const mockIds = ['assign-1', 'assign-2', 'assign-3', 'assign-4', 'assign-5', 'assign-6', 'assign-7'];
-  const localManualTasks = localAssignments.filter(la => 
-    String(la.id).startsWith('assign-') && !mockIds.includes(la.id)
-  );
-  
   const finalAssignments = [...localManualTasks, ...merged];
   saveAssignments(finalAssignments, email);
   return finalAssignments;
@@ -169,14 +205,19 @@ export const syncClassroomAssignments = (apiAssignments, email) => {
 
 export const updateAssignmentStatus = (id, status, email) => {
   const assignments = getAssignments(email);
-  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, status, updatedAt: new Date().toISOString() } : a);
+  const nowIso = new Date().toISOString();
+  const updated = assignments.map(a =>
+    String(a.id) === String(id)
+      ? { ...a, status, updatedAt: nowIso, statusUpdatedAt: nowIso }
+      : a
+  );
   saveAssignments(updated, email);
   return updated;
 };
 
 export const updateAssignmentDueDate = (id, dueDate, email) => {
   const assignments = getAssignments(email);
-  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, dueDate, customDueDate: true, updatedAt: new Date().toISOString() } : a);
+  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, dueDate, customDueDate: Boolean(dueDate), updatedAt: new Date().toISOString() } : a);
   saveAssignments(updated, email);
   return updated;
 };
@@ -190,13 +231,25 @@ export const updateAssignmentNotes = (id, notes, email) => {
 
 export const addAssignment = (assignment, email) => {
   const assignments = getAssignments(email);
+  const nowIso = new Date().toISOString();
   const newAssignment = {
-    id: `assign-${Date.now()}`,
-    updatedAt: new Date().toISOString(),
+    id: `assign-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    updatedAt: nowIso,
+    statusUpdatedAt: nowIso,
     ...assignment
   };
   const updated = [newAssignment, ...assignments];
   saveAssignments(updated, email);
+  return updated;
+};
+
+export const deleteAssignment = (id, email) => {
+  const assignments = getAssignments(email);
+  const updated = assignments.filter(a => String(a.id) !== String(id));
+  saveAssignments(updated, email);
+  if (email) {
+    recordDeletedId('assignments', id, email);
+  }
   return updated;
 };
 
@@ -205,7 +258,6 @@ export const getCourses = (email) => {
   if (!stored) {
     const active = email || getActiveEmail();
     if (!active) {
-      StorageRepository.set(KEYS.courses, initialCourses);
       return initialCourses;
     }
     return [];
@@ -222,7 +274,6 @@ export const getProfile = (email) => {
   if (!stored) {
     const active = email || getActiveEmail();
     if (!active) {
-      StorageRepository.set(KEYS.profile, defaultProfile);
       return defaultProfile;
     }
     return {};
@@ -242,6 +293,17 @@ export const getSchedule = (email) => {
 };
 
 export const saveSchedule = (schedule, email) => {
+  if (email) {
+    const prev = StorageRepository.get(KEYS.schedule, email, true) || [];
+    const nextIds = new Set((Array.isArray(schedule) ? schedule : []).map(item => String(item?.id)));
+    if (Array.isArray(prev)) {
+      prev.forEach(item => {
+        if (item?.id && !nextIds.has(String(item.id))) {
+          recordDeletedId('schedule', item.id, email);
+        }
+      });
+    }
+  }
   StorageRepository.set(KEYS.schedule, schedule, email);
 };
 
@@ -296,6 +358,10 @@ export const resetDatabase = (email) => {
     StorageRepository.remove(KEYS.hiddenCourses, userEmail);
     StorageRepository.remove(KEYS.schedule, userEmail);
     StorageRepository.remove(KEYS.exams, userEmail);
+    StorageRepository.remove(KEYS.topics, userEmail);
+    StorageRepository.remove(DELETED_IDS_KEY, userEmail);
+    StorageRepository.remove(`classroom_hub_calendar_event_map_${userEmail}`);
+    StorageRepository.remove(`classroom_hub_settings_last_updated_${userEmail}`);
     
     return {
       assignments: [],

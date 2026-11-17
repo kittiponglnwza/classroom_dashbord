@@ -1,29 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   ArrowLeft, Calendar, Paperclip, FileText, Clock,
-  FileCode, Award, BookOpen, ExternalLink, Check
+  FileCode, Award, BookOpen, ExternalLink, Check, Trash2, Edit2, X
 } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { getCourseBadgeColor } from '../utils/colors';
+import { calculateDueState, parseLocalDateInput } from '../utils/dateUtils';
+import { sanitizeExternalUrl } from '../utils/sanitize';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
+import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
 function formatDueDateDisplay(dueDate, lang) {
   if (!dueDate) return null;
-  const parsed = new Date(dueDate);
-  if (Number.isNaN(parsed.getTime())) return dueDate;
+  const parsed = parseLocalDateInput(dueDate);
+  if (!parsed) return dueDate;
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dueDate.trim());
   return parsed.toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    ...(isDateOnly ? {} : { hour: '2-digit', minute: '2-digit' })
   });
 }
 
 function toDatetimeLocalValue(dueDate) {
   if (!dueDate) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dueDate.trim())) return `${dueDate.trim()}T23:59`;
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dueDate)) return dueDate;
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dueDate)) return dueDate.slice(0, 16);
   const d = new Date(dueDate);
@@ -38,7 +42,12 @@ function toDatetimeLocalValue(dueDate) {
 
 export default function AssignmentDetail() {
   const { lang } = useSettings();
-  const { assignments, handleStatusChange, handleNotesChange, handleDueDateChange } = useClassroom();
+  const {
+    assignments, handleStatusChange, handleNotesChange,
+    handleDueDateChange, handleUpdateAssignment, handleDeleteAssignment
+  } = useClassroom();
+  const ui = useClassroomUI();
+  const visibleCourses = ui?.visibleCourses || [];
 
   const { id } = useParams();
   const navigate = useNavigate();
@@ -49,13 +58,57 @@ export default function AssignmentDetail() {
   const [noteSaved, setNoteSaved] = useState(false);
   const [isEditingDueDate, setIsEditingDueDate] = useState(false);
   const [tempDueDate, setTempDueDate] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isEditingTask, setIsEditingTask] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCourse, setEditCourse] = useState('');
+  const [editPoints, setEditPoints] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+
+  const statusId = useId();
+  const editTitleId = useId();
+  const editCourseId = useId();
+  const editPointsId = useId();
+  const editDescId = useId();
+
+  const isNotesDirtyRef = useRef(false);
+  const noteContentRef = useRef(noteContent);
+  const noteSaveTimerRef = useRef(null);
+  const lastAssignIdRef = useRef(id);
 
   useEffect(() => {
-    if (assignment) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    noteContentRef.current = noteContent;
+  }, [noteContent]);
+
+  // Reset dirty tracking when switching assignment IDs
+  useEffect(() => {
+    if (lastAssignIdRef.current !== id) {
+      lastAssignIdRef.current = id;
+      isNotesDirtyRef.current = false;
+      setConfirmDelete(false);
+      setIsEditingTask(false);
+      setNoteContent(assignment?.notes || '');
+    }
+  }, [id, assignment?.notes]);
+
+  // Only hydrate notes from background sync when the user doesn't have unsaved local edits
+  useEffect(() => {
+    if (assignment && !isNotesDirtyRef.current) {
       setNoteContent(assignment.notes || '');
     }
   }, [assignment?.notes, assignment]);
+
+  // Flush dirty notes and clear timers on unmount / route switch
+  useEffect(() => {
+    const activeId = id;
+    return () => {
+      if (noteSaveTimerRef.current) clearTimeout(noteSaveTimerRef.current);
+      if (isNotesDirtyRef.current && handleNotesChange) {
+        isNotesDirtyRef.current = false;
+        handleNotesChange(activeId, noteContentRef.current);
+      }
+    };
+  }, [id, handleNotesChange]);
 
   const fromPath = location.state?.from || '';
 
@@ -104,45 +157,75 @@ export default function AssignmentDetail() {
   }
 
   const { title, course, courseCode, dueDate, status, points, attachments, description, courseColor, googleLink } = assignment;
+  const safeGoogleLink = sanitizeExternalUrl(googleLink);
+  const isCustomTask = String(id).startsWith('assign-');
 
   const handleNotesBlur = () => {
+    isNotesDirtyRef.current = false;
     if (noteContent !== (assignment.notes || '')) {
       handleNotesChange(id, noteContent);
       setNoteSaved(true);
-      setTimeout(() => setNoteSaved(false), 2000);
+      if (noteSaveTimerRef.current) clearTimeout(noteSaveTimerRef.current);
+      noteSaveTimerRef.current = setTimeout(() => setNoteSaved(false), 2000);
     }
   };
 
   const getDaysLeft = () => {
-    if (status === 'done') {
-      return { text: t('completed', lang), color: 'text-emerald-400' };
-    }
-    if (!dueDate) {
-      return { text: lang === 'en' ? 'No due date' : 'ไม่มีกำหนดส่ง', color: 'text-[#9D9D9D]' };
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(dueDate);
-    if (Number.isNaN(due.getTime())) {
-      return { text: lang === 'en' ? 'No due date' : 'ไม่มีกำหนดส่ง', color: 'text-[#9D9D9D]' };
-    }
-    due.setHours(0, 0, 0, 0);
-    const diffTime = due - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      return { text: t('overdueDays', lang, { days: Math.abs(diffDays) }), color: 'text-rose-400' };
-    } else if (diffDays === 0) {
-      return { text: lang === 'en' ? 'Due today' : 'ส่งภายในวันนี้', color: 'text-amber-400 font-semibold' };
-    } else if (diffDays === 1) {
-      return { text: t('dueTomorrow', lang), color: 'text-amber-400' };
-    } else {
-      return { text: t('daysLeft', lang, { days: diffDays }), color: 'text-[#FFFFFF]' };
+    const state = calculateDueState(dueDate, status);
+    switch (state.type) {
+      case 'done':
+        return { text: t('completed', lang), color: 'text-emerald-400' };
+      case 'noDate':
+        return { text: t('noDueDate', lang), color: 'text-[#9D9D9D]' };
+      case 'overdue':
+        return {
+          text: state.diffDays === 0
+            ? t('overdueHrs', lang, { hrs: state.diffHrs })
+            : t('overdueDays', lang, { days: state.diffDays }),
+          color: 'text-rose-400'
+        };
+      case 'dueToday':
+        return {
+          text: state.diffHrs === 0
+            ? t('minsLeftToday', lang, { mins: state.diffMins })
+            : t('hrsLeftToday', lang, { hrs: state.diffHrs }),
+          color: 'text-amber-400 font-semibold'
+        };
+      case 'dueTomorrow':
+        return { text: t('dueTomorrow', lang), color: 'text-amber-400' };
+      case 'dueLater':
+        return { text: t('daysLeft', lang, { days: state.diffDays }), color: 'text-[#FFFFFF]' };
+      default:
+        return { text: t('noDueDate', lang), color: 'text-[#9D9D9D]' };
     }
   };
 
   const daysInfo = getDaysLeft();
   const formattedDue = formatDueDateDisplay(dueDate, lang);
+
+  const openTaskEditor = () => {
+    setEditTitle(title || '');
+    setEditCourse(course || '');
+    setEditPoints(points === null || points === undefined ? '' : String(points));
+    setEditDescription(description || '');
+    setIsEditingTask(true);
+  };
+
+  const saveTaskEdit = (e) => {
+    e.preventDefault();
+    if (!editTitle.trim() || !handleUpdateAssignment) return;
+    const courseObj = visibleCourses.find(c => c.name === editCourse);
+    handleUpdateAssignment(id, {
+      title: editTitle.trim(),
+      course: editCourse || course,
+      courseCode: courseObj?.code || courseCode,
+      courseId: courseObj?.id || assignment.courseId,
+      courseColor: courseObj?.color || courseColor,
+      points: editPoints === '' ? null : Number(editPoints),
+      description: editDescription
+    });
+    setIsEditingTask(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -168,9 +251,52 @@ export default function AssignmentDetail() {
               <span>{t('openCoursePage', lang)}</span>
             </Link>
           )}
-          {googleLink && (
+          {isCustomTask && handleUpdateAssignment && !isEditingTask && (
+            <button
+              type="button"
+              onClick={openTaskEditor}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#D4D4D4] bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+            >
+              <Edit2 size={13} />
+              <span>{t('editTaskBtn', lang)}</span>
+            </button>
+          )}
+          {isCustomTask && handleDeleteAssignment && (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!confirmDelete) {
+                    setConfirmDelete(true);
+                    return;
+                  }
+                  handleDeleteAssignment(id);
+                  handleBack();
+                }}
+                className={`inline-flex items-center gap-1.5 text-xs font-medium px-3.5 py-2 rounded-xl border transition-colors cursor-pointer ${
+                  confirmDelete
+                    ? 'bg-rose-600 text-white border-rose-600'
+                    : 'text-rose-400 bg-[#252526] hover:bg-rose-500/15 border-[#3C3C3C]'
+                }`}
+              >
+                <Trash2 size={14} />
+                <span>{confirmDelete ? t('confirmBtn', lang) : t('deleteBtn', lang)}</span>
+              </button>
+              {confirmDelete && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="inline-flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-xl border border-[#3C3C3C] bg-[#252526] hover:bg-[#2A2D2E] text-[#D4D4D4] transition-colors cursor-pointer"
+                >
+                  <X size={13} />
+                  <span>{t('cancelBtn', lang)}</span>
+                </button>
+              )}
+            </div>
+          )}
+          {safeGoogleLink && (
             <a
-              href={googleLink}
+              href={safeGoogleLink}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs font-medium text-[#D4D4D4] bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] px-3.5 py-2 rounded-xl transition-colors"
@@ -192,8 +318,10 @@ export default function AssignmentDetail() {
                 </span>
               </div>
               <div className="flex items-center gap-2.5">
-                <span className="text-xs text-[#9D9D9D] font-medium">{t('statusLabel', lang)}</span>
+                <label htmlFor={statusId} className="text-xs text-[#9D9D9D] font-medium">{t('statusLabel', lang)}</label>
                 <select
+                  id={statusId}
+                  aria-label={t('statusLabel', lang)}
                   value={status}
                   onChange={(e) => handleStatusChange(id, e.target.value)}
                   className={`text-xs px-3.5 py-2 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] font-semibold transition-colors ${
@@ -211,82 +339,178 @@ export default function AssignmentDetail() {
               </div>
             </div>
 
-            <div className="space-y-5">
-              <h1 className="text-2xl md:text-3xl font-semibold text-[#FFFFFF] tracking-tight leading-snug">
-                {title}
-              </h1>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
-                  <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-[#3794FF] shrink-0">
-                    <Calendar size={17} />
+            {isEditingTask ? (
+              <form onSubmit={saveTaskEdit} className="space-y-4 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4">
+                <div className="space-y-1.5">
+                  <label htmlFor={editTitleId} className="block text-xs font-medium text-[#D4D4D4]">{lang === 'en' ? 'Title *' : 'ชื่องาน *'}</label>
+                  <input
+                    id={editTitleId}
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full bg-[#252526] border border-[#3C3C3C] rounded-xl px-3 py-2 text-sm text-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label htmlFor={editCourseId} className="block text-xs font-medium text-[#D4D4D4]">{lang === 'en' ? 'Subject' : 'วิชา'}</label>
+                    <select
+                      id={editCourseId}
+                      value={editCourse}
+                      onChange={(e) => setEditCourse(e.target.value)}
+                      className="w-full bg-[#252526] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                    >
+                      {!visibleCourses.some(c => c.name === editCourse) && editCourse && (
+                        <option value={editCourse}>{editCourse}</option>
+                      )}
+                      {visibleCourses.map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[11px] text-[#858585] block font-medium">{t('dueDateLabel', lang)}</span>
-                    {isEditingDueDate ? (
-                      <input
-                        type="datetime-local"
-                        className="w-full bg-[#252526] border border-[#3C3C3C] rounded-lg px-2 py-1 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
-                        value={tempDueDate}
-                        onChange={(e) => setTempDueDate(e.target.value)}
-                        onBlur={() => {
-                          if (tempDueDate && tempDueDate !== toDatetimeLocalValue(dueDate)) {
-                            handleDueDateChange(id, tempDueDate);
-                          }
-                          setIsEditingDueDate(false);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.currentTarget.blur();
-                          } else if (e.key === 'Escape') {
-                            setIsEditingDueDate(false);
-                          }
-                        }}
-                        autoFocus
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className="text-xs font-semibold text-[#FFFFFF] hover:text-[#3794FF] border-b border-dashed border-[#858585] text-left truncate max-w-full cursor-pointer"
-                        onClick={() => {
-                          setTempDueDate(toDatetimeLocalValue(dueDate));
-                          setIsEditingDueDate(true);
-                        }}
-                      >
-                        {formattedDue || t('noDueDate', lang)}
-                      </button>
-                    )}
+                  <div className="space-y-1.5">
+                    <label htmlFor={editPointsId} className="block text-xs font-medium text-[#D4D4D4]">{lang === 'en' ? 'Points' : 'คะแนนเต็ม'}</label>
+                    <input
+                      id={editPointsId}
+                      type="number"
+                      min="0"
+                      max="1000"
+                      value={editPoints}
+                      onChange={(e) => setEditPoints(e.target.value)}
+                      className="w-full bg-[#252526] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor={editDescId} className="block text-xs font-medium text-[#D4D4D4]">{t('descriptionHeader', lang)}</label>
+                  <textarea
+                    id={editDescId}
+                    rows="4"
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full bg-[#252526] border border-[#3C3C3C] rounded-xl p-3 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] resize-none"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingTask(false)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-medium text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] cursor-pointer"
+                  >
+                    {t('cancelBtn', lang)}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl text-xs font-medium bg-[#007ACC] hover:bg-[#1177BB] text-white cursor-pointer"
+                  >
+                    {t('saveBtn', lang)}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <div className="space-y-5">
+                  <h1 className="text-2xl md:text-3xl font-semibold text-[#FFFFFF] tracking-tight leading-snug">
+                    {title}
+                  </h1>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
+                      <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-[#3794FF] shrink-0">
+                        <Calendar size={17} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[11px] text-[#858585] block font-medium">{t('dueDateLabel', lang)}</span>
+                        {isEditingDueDate ? (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <input
+                              type="datetime-local"
+                              aria-label={t('dueDateLabel', lang)}
+                              className="w-full bg-[#252526] border border-[#3C3C3C] rounded-lg px-2 py-1 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                              value={tempDueDate}
+                              onChange={(e) => setTempDueDate(e.target.value)}
+                              onBlur={() => {
+                                if (tempDueDate !== toDatetimeLocalValue(dueDate)) {
+                                  handleDueDateChange(id, tempDueDate);
+                                }
+                                setIsEditingDueDate(false);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur();
+                                } else if (e.key === 'Escape') {
+                                  setIsEditingDueDate(false);
+                                }
+                              }}
+                              autoFocus
+                            />
+                            {tempDueDate && (
+                              <button
+                                type="button"
+                                aria-label={t('noDueDate', lang)}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setTempDueDate('');
+                                  handleDueDateChange(id, '');
+                                  setIsEditingDueDate(false);
+                                }}
+                                title={t('noDueDate', lang)}
+                                className="p-1 text-[#858585] hover:text-rose-400 cursor-pointer shrink-0"
+                              >
+                                <X size={13} />
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-xs font-semibold text-[#FFFFFF] hover:text-[#3794FF] border-b border-dashed border-[#858585] text-left truncate max-w-full cursor-pointer"
+                            onClick={() => {
+                              setTempDueDate(toDatetimeLocalValue(dueDate));
+                              setIsEditingDueDate(true);
+                            }}
+                          >
+                            {formattedDue || t('noDueDate', lang)}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
+                      <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-amber-400 shrink-0">
+                        <Award size={17} />
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-[#858585] block font-medium">{t('gradeWeightLabel', lang)}</span>
+                        <span className="text-xs font-semibold text-[#FFFFFF]">
+                          {typeof points === 'number'
+                            ? `${points} ${lang === 'en' ? 'Points' : 'คะแนน'}`
+                            : t('ungraded', lang)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
+                      <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-[#3794FF] shrink-0">
+                        <Clock size={17} />
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-[#858585] block font-medium">{t('countdownLabel', lang)}</span>
+                        <span className={`text-xs font-semibold ${daysInfo.color}`}>{daysInfo.text}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
-                  <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-amber-400 shrink-0">
-                    <Award size={17} />
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-[#858585] block font-medium">{t('gradeWeightLabel', lang)}</span>
-                    <span className="text-xs font-semibold text-[#FFFFFF]">{points} {lang === 'en' ? 'Points' : 'คะแนน'}</span>
-                  </div>
+                <div className="space-y-2.5 pt-2">
+                  <h3 className="text-xs font-semibold text-[#FFFFFF]">{t('descriptionHeader', lang)}</h3>
+                  <p className="text-sm text-[#D4D4D4] leading-relaxed whitespace-pre-line bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-5">
+                    {description || t('noDescription', lang)}
+                  </p>
                 </div>
-
-                <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
-                  <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-[#3794FF] shrink-0">
-                    <Clock size={17} />
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-[#858585] block font-medium">{t('countdownLabel', lang)}</span>
-                    <span className={`text-xs font-semibold ${daysInfo.color}`}>{daysInfo.text}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 pt-2">
-              <h3 className="text-xs font-semibold text-[#FFFFFF]">{t('descriptionHeader', lang)}</h3>
-              <p className="text-sm text-[#D4D4D4] leading-relaxed whitespace-pre-line bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-5">
-                {description || t('noDescription', lang)}
-              </p>
-            </div>
+              </>
+            )}
 
             {attachments && attachments.length > 0 && (
               <div className="space-y-3 pt-2">
@@ -296,12 +520,12 @@ export default function AssignmentDetail() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {attachments.map((file, i) => {
-                    const hasLink = file.link && file.link.trim() !== '';
-                    if (hasLink) {
+                    const safeAttachmentLink = sanitizeExternalUrl(file.link);
+                    if (safeAttachmentLink) {
                       return (
                         <a
                           key={i}
-                          href={file.link}
+                          href={safeAttachmentLink}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] rounded-xl p-3.5 flex items-center justify-between gap-3 transition-colors group"
@@ -363,8 +587,12 @@ export default function AssignmentDetail() {
 
               <div className="pt-1">
                 <textarea
+                  aria-label={t('workspaceHeader', lang)}
                   value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
+                  onChange={(e) => {
+                    isNotesDirtyRef.current = true;
+                    setNoteContent(e.target.value);
+                  }}
                   onBlur={handleNotesBlur}
                   rows="16"
                   placeholder={t('workspacePlaceholder', lang)}

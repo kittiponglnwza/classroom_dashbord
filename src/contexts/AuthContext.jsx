@@ -6,7 +6,9 @@ import {
 } from '../utils/storage';
 import { initGoogleClient } from '../services/googleClassroomClient';
 import { StorageRepository } from '../repositories/StorageRepository';
+import { STORAGE_CONFIG } from '../config/storage';
 import { syncManager } from '../services/SyncManager';
+import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { httpClient } from '../utils/httpClient';
 import { logger } from '../utils/logger';
 
@@ -44,7 +46,10 @@ export const AuthProvider = ({ children }) => {
   // with one click and no account chooser. Cleared only by an explicit logout.
   const [rememberedAccount, setRememberedAccount] = useState(null);
   const [rememberMe, setRememberMeState] = useState(() => getRememberMe());
+  const [authError, setAuthError] = useState(null);
   const pendingTokenRequestRef = useRef(null);
+
+  const clearAuthError = useCallback(() => setAuthError(null), []);
 
   const handleRememberMeChange = useCallback((enabled) => {
     const next = Boolean(enabled);
@@ -98,6 +103,8 @@ export const AuthProvider = ({ children }) => {
   }, [tokenClient, settlePendingRequest]);
 
   const clearSessionState = useCallback(() => {
+    syncManager.cancel();
+    calendarSyncManager.cancel();
     clearToken();
     setAccessToken(null);
     setIsLoggedIn(false);
@@ -121,8 +128,23 @@ export const AuthProvider = ({ children }) => {
   // Explicit user logout: forget the account on this device as well.
   const handleForceLogout = useCallback(() => {
     clearSessionState();
+    setAuthError(null);
     setActiveEmail('');
     setRememberedAccount(null);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('lastExamSearch');
+    }
+  }, [clearSessionState]);
+
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === STORAGE_CONFIG.keys.activeEmail && !e.newValue) {
+        clearSessionState();
+        setRememberedAccount(null);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, [clearSessionState]);
 
   useEffect(() => {
@@ -161,6 +183,7 @@ export const AuthProvider = ({ children }) => {
         const client = initGoogleClient(
           (tokenResponse) => {
             const token = tokenResponse.access_token;
+            setAuthError(null);
             setAccessToken(token);
             saveToken(token, tokenResponse.expires_in);
             setIsLoggedIn(true);
@@ -170,14 +193,21 @@ export const AuthProvider = ({ children }) => {
             if (onTokenSuccess) onTokenSuccess(token);
           },
           (err) => {
-            const error = new Error(`OAuth error: ${err?.error || 'unknown'}`);
+            const code = err?.error || err?.type || 'unknown';
+            const error = new Error(`OAuth error: ${code}`);
             if (settlePendingRequest(error)) {
-              logger.error('[Auth] Silent token refresh failed:', err?.error);
+              logger.error('[Auth] Silent token refresh failed:', code);
             } else {
               logger.error('Google authorization failed:', err);
+              if (code !== 'popup_closed') {
+                setAuthError(error.message);
+              }
             }
           }
         );
+        if (!client) {
+          setAuthError('Google OAuth Client ID is not configured.');
+        }
         setTokenClient(client);
       }
     }, 400);
@@ -187,14 +217,19 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback((options) => {
     if (!tokenClient) {
       logger.error('Google OAuth client not initialized.');
+      setAuthError('Google Sign-In is still loading or not configured. Please try again in a moment.');
       return;
+    }
+    setAuthError(null);
+    if (pendingTokenRequestRef.current) {
+      settlePendingRequest(new Error('Superseded by interactive sign-in'));
     }
     const selectAccount = typeof options === 'object' && options !== null && options.selectAccount === true;
     const hint = (selectAccount || !getRememberMe()) ? '' : (rememberedAccount?.email || getActiveEmail() || '');
     // Returning user: pre-select the remembered account and let Google skip the chooser/consent
     // when the grant already exists. New user or "use another account": show the chooser.
     tokenClient.requestAccessToken(hint ? { prompt: '', login_hint: hint } : { prompt: 'select_account' });
-  }, [tokenClient, rememberedAccount]);
+  }, [tokenClient, rememberedAccount, settlePendingRequest]);
 
   const logout = useCallback(() => {
     handleForceLogout();
@@ -227,12 +262,14 @@ export const AuthProvider = ({ children }) => {
   const value = React.useMemo(() => ({
     accessToken, isLoggedIn, profile, rememberedAccount,
     rememberMe, handleRememberMeChange,
+    authError, clearAuthError, isAuthReady: Boolean(tokenClient),
     login, logout, expireSession,
     handleProfileSave, updateProfileFromGoogle, initClient,
     handleSilentRefresh
   }), [
     accessToken, isLoggedIn, profile, rememberedAccount,
     rememberMe, handleRememberMeChange,
+    authError, clearAuthError, tokenClient,
     login, logout, expireSession,
     handleProfileSave, updateProfileFromGoogle, initClient,
     handleSilentRefresh

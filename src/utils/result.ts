@@ -1,3 +1,5 @@
+import { AppError } from './errors';
+
 /**
  * Result pattern utilities for better error handling without try/catch hell
  */
@@ -23,23 +25,23 @@ export const Result = {
   })
 };
 
-export class ApiError extends Error {
+export class ApiError extends AppError {
   status: number;
   constructor(message: string, status = 500) {
-    super(message);
+    super(message, status);
     this.name = 'ApiError';
     this.status = status;
   }
 }
 
-export class ValidationError extends Error {
+export class ValidationError extends AppError {
   constructor(message: string) {
     super(message);
     this.name = 'ValidationError';
   }
 }
 
-export class NetworkError extends Error {
+export class NetworkError extends AppError {
   constructor(message = 'Network connection failed') {
     super(message);
     this.name = 'NetworkError';

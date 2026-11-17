@@ -3,7 +3,7 @@ import { Link, useInRouterContext } from 'react-router-dom';
 import { Menu, Bell, RefreshCw, AlertTriangle, Globe } from 'lucide-react';
 import { t } from '../utils/i18n';
 import NotificationPopover from './NotificationPopover';
-import { formatRelativeTime } from '../utils/dateUtils';
+import { formatRelativeTime, isOverdue } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
@@ -32,13 +32,11 @@ export default function HeaderBar({ setMobileMenuOpen }) {
   const { visibleAssignments } = useClassroomUI();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState(null);
   const bellButtonRef = useRef(null);
 
   const totalActive = visibleAssignments.filter(a => a.status !== 'done').length;
-  const overdueCount = visibleAssignments.filter(a => {
-    if (a.status === 'done' || !a.dueDate) return false;
-    return new Date(a.dueDate) < new Date();
-  }).length;
+  const overdueCount = visibleAssignments.filter(a => a.status !== 'done' && isOverdue(a.dueDate)).length;
 
   return (
     <header className="h-16 border-b border-[#3C3C3C] bg-[#252526] px-4 md:px-8 flex items-center justify-between shrink-0 z-30">
@@ -86,14 +84,14 @@ export default function HeaderBar({ setMobileMenuOpen }) {
         )}
 
         <div className="hidden lg:flex items-center gap-4 text-xs pr-3 border-r border-[#3C3C3C]">
-          <SafeLink to="/dashboard?status=todo" className="text-right hover:opacity-80 transition-opacity">
+          <SafeLink to="/dashboard" className="text-right hover:opacity-80 transition-opacity">
             <span className="text-[#858585] block">{t('tasksPending', lang)}</span>
             <span className="font-semibold text-[#D4D4D4]">
               {totalActive} {totalActive === 1 ? t('taskPlural', lang) : t('tasksPlural', lang)}
             </span>
           </SafeLink>
           {overdueCount > 0 && (
-            <SafeLink to="/dashboard?status=todo" className="text-right hover:opacity-80 transition-opacity">
+            <SafeLink to="/dashboard" className="text-right hover:opacity-80 transition-opacity">
               <span className="text-rose-400 font-medium flex items-center gap-1">
                 <AlertTriangle size={11} /> {t('overdueHeader', lang)}
               </span>
@@ -146,12 +144,19 @@ export default function HeaderBar({ setMobileMenuOpen }) {
         </div>
 
         <SafeLink to="/settings" className="flex items-center gap-2.5 pl-1 hover:opacity-85 transition-opacity">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-[#1E1E1E] border border-[#3C3C3C]">
-            <img
-              src={profile.avatarUrl || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200'}
-              alt="Student Avatar"
-              className="w-full h-full object-cover"
-            />
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-[#1E1E1E] border border-[#3C3C3C] flex items-center justify-center shrink-0">
+            {profile.avatarUrl && failedAvatarUrl !== profile.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt="Student Avatar"
+                onError={() => setFailedAvatarUrl(profile.avatarUrl)}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-xs font-semibold text-[#D4D4D4]">
+                {(profile.name || 'S').charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="hidden sm:flex flex-col text-left max-w-[130px]">
             <span className="text-xs font-semibold text-[#D4D4D4] truncate">

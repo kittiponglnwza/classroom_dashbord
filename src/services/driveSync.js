@@ -24,10 +24,30 @@ const STANDARD_SCOPED_KEYS = [
   'classroom_hub_notification_history',
   'classroom_hub_sent_notifications',
   'classroom_hub_daily_email_limit',
+  'classroom_hub_deleted_ids',
   KEYS.profile,
   KEYS.lastSync,
   KEYS.topics
 ];
+
+const isSafeSyncKey = (fullKey, expectedEmail = '') => {
+  if (typeof fullKey !== 'string' || !fullKey.startsWith('classroom_hub_')) return false;
+  const lowerEmail = expectedEmail ? expectedEmail.toLowerCase().trim() : '';
+  if (lowerEmail) {
+    if (fullKey === `classroom_hub_${lowerEmail}_language`) return true;
+    return STANDARD_SCOPED_KEYS.some(prefix => fullKey === `${prefix}_${lowerEmail}`);
+  }
+  return STANDARD_SCOPED_KEYS.some(prefix => fullKey.startsWith(`${prefix}_`)) || fullKey.endsWith('_language');
+};
+
+const canonicalPayloadString = (payload) => {
+  if (!payload || typeof payload !== 'object') return '{}';
+  const sorted = {};
+  Object.keys(payload).sort().forEach(k => {
+    sorted[k] = payload[k];
+  });
+  return JSON.stringify(sorted);
+};
 
 /**
  * Collects all user-scoped localStorage raw string data into a payload object.
@@ -56,22 +76,28 @@ export const getLocalSettingsPayload = (email) => {
 };
 
 /**
- * Applies a remote settings payload to localStorage.
+ * Applies a remote settings payload to localStorage with key allowlist validation.
  */
-export const applyRemoteSettingsPayload = (payload) => {
+export const applyRemoteSettingsPayload = (payload, expectedEmail = '') => {
   if (!payload || typeof payload !== 'object') return;
   Object.keys(payload).forEach(fullKey => {
-    localStorage.setItem(fullKey, payload[fullKey]);
+    if (!isSafeSyncKey(fullKey, expectedEmail)) {
+      logger.warn(`[Drive Sync] Ignoring unexpected key in remote payload: ${fullKey}`);
+      return;
+    }
+    if (typeof payload[fullKey] === 'string') {
+      localStorage.setItem(fullKey, payload[fullKey]);
+    }
   });
   StorageRepository.clearMemoryCache();
 };
 
 /**
- * Checks Google Drive appDataFolder for the settings sync file.
+ * Checks Google Drive appDataFolder for the settings sync file (newest non-trashed).
  */
 async function findSyncFile(accessToken) {
-  const q = encodeURIComponent(`name='${SYNC_FILE_NAME}'`);
-  const url = `${DRIVE_FILES_URL}?spaces=appDataFolder&q=${q}&fields=files(id,name)`;
+  const q = encodeURIComponent(`name='${SYNC_FILE_NAME}' and trashed=false`);
+  const url = `${DRIVE_FILES_URL}?spaces=appDataFolder&q=${q}&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime)`;
   
   const headers = { 'Authorization': `Bearer ${accessToken}` };
   const data = await httpClient.request(url, { headers });
@@ -127,36 +153,27 @@ async function uploadSyncFileContent(accessToken, fileId, payload, timestamp) {
 }
 
 /**
- * Downloads the content of the sync file.
+ * Downloads the content of the sync file via httpClient (supports 401 refresh & retry).
  */
 async function downloadSyncFileContent(accessToken, fileId) {
   const url = `${DRIVE_FILES_URL}/${fileId}?alt=media`;
-  // Use httpClient request with alternate media query
-  const response = await httpClient.fetchWithTimeout(url, {
-    headers: { 'Authorization': `Bearer ${accessToken}` }
-  });
-
-  if (!response.ok) {
-    const errBody = await response.text().catch(() => '');
-    throw new Error(`Drive download failed (${response.status}): ${errBody}`);
-  }
-
-  const text = await response.text();
-  if (!text || text.trim().length === 0) {
-    return null;
-  }
-
   try {
-    return JSON.parse(text);
+    const data = await httpClient.request(url, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    return data || null;
   } catch (e) {
-    logger.warn('[Drive Sync] Failed to parse remote settings file, treating as empty.', e);
-    return null;
+    if (e instanceof SyntaxError) {
+      logger.warn('[Drive Sync] Failed to parse remote settings JSON, treating as empty.', e);
+      return null;
+    }
+    throw e;
   }
 }
 
 /**
  * Synchronizes local settings with Google Drive appDataFolder.
- * Integrates merge-based conflict resolution.
+ * Integrates merge-based conflict resolution and avoids stale pre-await local snapshots.
  */
 export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
   if (!accessToken || !email) return false;
@@ -166,11 +183,11 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
 
   try {
     logger.info('[Drive Sync] Querying sync file on Google Drive...');
-    let file = await findSyncFile(accessToken);
-    const localPayload = getLocalSettingsPayload(lowerEmail);
+    const file = await findSyncFile(accessToken);
 
     if (!file) {
       logger.info('[Drive Sync] Sync file not found. Creating new sync file...');
+      const localPayload = getLocalSettingsPayload(lowerEmail);
       const now = new Date().toISOString();
       await createSyncFileWithContent(accessToken, localPayload, now);
       localStorage.setItem(timeKey, now);
@@ -180,6 +197,7 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
 
     logger.info('[Drive Sync] Sync file found. Downloading remote state...');
     const remoteData = await downloadSyncFileContent(accessToken, file.id);
+    const localPayload = getLocalSettingsPayload(lowerEmail);
 
     if (!remoteData || !remoteData.payload) {
       logger.info('[Drive Sync] Remote sync file was empty. Uploading current state...');
@@ -189,12 +207,12 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
       return false;
     }
 
-    // Perform fine-grained merge using conflict resolution callback
+    // Perform fine-grained merge using fresh local state vs downloaded remote payload
     const mergedPayload = mergeCallback(localPayload, remoteData.payload, lowerEmail);
 
-    const localSerialized = JSON.stringify(localPayload);
-    const remoteSerialized = JSON.stringify(remoteData.payload);
-    const mergedSerialized = JSON.stringify(mergedPayload);
+    const localSerialized = canonicalPayloadString(localPayload);
+    const remoteSerialized = canonicalPayloadString(remoteData.payload);
+    const mergedSerialized = canonicalPayloadString(mergedPayload);
 
     const localIsOutOfSync = localSerialized !== mergedSerialized;
     const remoteIsOutOfSync = remoteSerialized !== mergedSerialized;
@@ -203,11 +221,11 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
 
     if (localIsOutOfSync) {
       logger.info('[Drive Sync] Local data is out of sync. Applying merged data to local storage...');
-      applyRemoteSettingsPayload(mergedPayload);
+      applyRemoteSettingsPayload(mergedPayload, lowerEmail);
       appliedRemote = true;
     }
 
-    if (remoteIsOutOfSync || localIsOutOfSync) {
+    if (remoteIsOutOfSync) {
       logger.info('[Drive Sync] Remote data requires update. Uploading merged state to Google Drive...');
       const now = new Date().toISOString();
       await uploadSyncFileContent(accessToken, file.id, mergedPayload, now);
@@ -219,6 +237,6 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
     return appliedRemote;
   } catch (err) {
     logger.error('[Drive Sync] Synchronization process failed:', err.message || err);
-    return false;
+    throw err;
   }
 }

@@ -11,6 +11,8 @@ import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { useExams } from '../hooks/useExams';
 import { useTodayClasses } from '../hooks/useTodayClasses';
+import { parseLocalDateInput } from '../utils/dateUtils';
+import { getCookieConsent } from '../utils/cookieConsent';
 import NextExamWidget from '../components/NextExamWidget';
 
 const getBorderLeftColor = (color) => {
@@ -36,7 +38,10 @@ export default function Home() {
 
   const handleDismissWelcome = () => {
     setShowWelcome(false);
-    localStorage.setItem('hide_welcome_banner', 'true');
+    const consent = getCookieConsent();
+    if (!consent || consent.preferences !== false) {
+      localStorage.setItem('hide_welcome_banner', 'true');
+    }
   };
 
   // Filter out completed and get nearest due dates (items with valid dueDate first)
@@ -44,8 +49,10 @@ export default function Home() {
     return visibleAssignments
       .filter(a => a.status !== 'done')
       .sort((a, b) => {
-        const timeA = a.dueDate ? new Date(a.dueDate).getTime() : NaN;
-        const timeB = b.dueDate ? new Date(b.dueDate).getTime() : NaN;
+        const parsedA = parseLocalDateInput(a.dueDate, { endOfDayForDateOnly: true });
+        const parsedB = parseLocalDateInput(b.dueDate, { endOfDayForDateOnly: true });
+        const timeA = parsedA ? parsedA.getTime() : NaN;
+        const timeB = parsedB ? parsedB.getTime() : NaN;
         const validA = Number.isFinite(timeA);
         const validB = Number.isFinite(timeB);
         if (validA && validB) return timeA - timeB;
@@ -64,7 +71,12 @@ export default function Home() {
   }, [visibleResources]);
 
   const activeEmail = (profile?.email || '').toLowerCase().trim();
-  const { allExams, hasCheckedExams, unlistedInfo, isFetching: isFetchingExams } = useExams(activeEmail, lang, schedule);
+  const { allExams, hasCheckedExams, unlistedInfo, isFetching: isFetchingExams } = useExams(
+    activeEmail,
+    lang,
+    schedule,
+    profile?.studentId
+  );
   const todayClasses = useTodayClasses(schedule, profile);
 
   const pendingCount = visibleAssignments.filter(a => a.status !== 'done').length;
@@ -182,7 +194,7 @@ export default function Home() {
                   return (
                     <Link
                       key={ann.id}
-                      to={`/courses?selected=${encodeURIComponent(ann.course)}&tab=resources`}
+                      to={`/courses?selected=${encodeURIComponent(ann.course)}&tab=resources&highlight=${encodeURIComponent(ann.id)}`}
                       state={{ from: '/' }}
                       className={`p-4 rounded-2xl bg-[#252526] border border-[#3C3C3C] hover:border-[#007ACC]/70 transition-colors group border-l-3 ${borderLeft} flex flex-col justify-between h-full`}
                     >

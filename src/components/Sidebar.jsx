@@ -9,6 +9,7 @@ import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
 export default function Sidebar({ onLinkClick = null }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState(null);
   const { profile } = useAuth();
   const { lang } = useSettings();
   const { visibleCourses, visibleAssignments } = useClassroomUI();
@@ -18,8 +19,12 @@ export default function Sidebar({ onLinkClick = null }) {
     ? new URLSearchParams(location.search).get('selected')
     : null;
 
-  const getActiveCount = (courseName) => {
-    return visibleAssignments.filter(a => a.course === courseName && a.status !== 'done').length;
+  const getActiveCount = (course) => {
+    return visibleAssignments.filter(a => {
+      if (a.status === 'done') return false;
+      if (a.courseId && course.id) return a.courseId === course.id;
+      return a.course === course.name;
+    }).length;
   };
 
   const totalActive = visibleAssignments.filter(a => a.status !== 'done').length;
@@ -70,6 +75,7 @@ export default function Sidebar({ onLinkClick = null }) {
               key={item.name}
               to={item.path}
               end={item.end}
+              title={isCollapsed ? t(item.key, lang) : undefined}
               onClick={onLinkClick}
               className={({ isActive }) => {
                 const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
@@ -100,7 +106,7 @@ export default function Sidebar({ onLinkClick = null }) {
             </h3>
             <nav aria-label="Courses Navigation" className="space-y-0.5">
               {visibleCourses.map((course) => {
-                const count = getActiveCount(course.name);
+                const count = getActiveCount(course);
                 const isCourseActive = selectedCourseParam === course.name;
                 return (
                   <Link
@@ -133,6 +139,7 @@ export default function Sidebar({ onLinkClick = null }) {
       <div className="px-3 py-2 border-t border-[#3C3C3C] shrink-0">
         <NavLink
           to="/exam-room"
+          title={isCollapsed ? t('examRoom', lang) : undefined}
           onClick={onLinkClick}
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
@@ -158,8 +165,13 @@ export default function Sidebar({ onLinkClick = null }) {
       >
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="w-8 h-8 rounded-full overflow-hidden border border-[#3C3C3C] bg-[#1E1E1E] flex items-center justify-center shrink-0">
-            {profile.avatarUrl ? (
-              <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            {profile.avatarUrl && failedAvatarUrl !== profile.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt="Avatar"
+                onError={() => setFailedAvatarUrl(profile.avatarUrl)}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <span className="text-[#D4D4D4] text-xs font-semibold">
                 {profile.name ? profile.name.charAt(0).toUpperCase() : 'S'}

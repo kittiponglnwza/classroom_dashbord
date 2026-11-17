@@ -8,6 +8,7 @@ import {
   LayoutGrid, List, Hash, Filter, FolderOpen
 } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { sanitizeExternalUrl } from '../utils/sanitize';
 import {
   getCourseBorderTopColor, getCourseTextColor, getTabStyles,
   getTabBadgeStyles, getTrackButtonStyles, getCourseBadgeColor, getCourseDotClass
@@ -23,11 +24,13 @@ function ResourceCard({
   onUntrackAssignment,
   courseColor,
   lang = 'en',
-  viewMode = 'grid'
+  viewMode = 'grid',
+  isHighlighted = false
 }) {
   const { id, title, description, type, creationTime, attachments, googleLink } = resource;
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isListExpanded, setIsListExpanded] = useState(false);
+  const safeGoogleLink = sanitizeExternalUrl(googleLink);
+  const [isExpanded, setIsExpanded] = useState(isHighlighted);
+  const [isListExpanded, setIsListExpanded] = useState(isHighlighted);
 
   const formattedDate = new Date(creationTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
     day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit'
@@ -88,7 +91,11 @@ function ResourceCard({
   }
 
   return (
-    <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 transition-colors flex flex-col justify-between">
+    <div
+      className={`bg-[#252526] border rounded-2xl p-5 transition-colors flex flex-col justify-between ${
+        isHighlighted ? 'border-[#007ACC]' : 'border-[#3C3C3C]'
+      }`}
+    >
       {viewMode === 'list' && (
         <div className="flex justify-between items-center -mt-1 mb-3 border-b border-[#3C3C3C] pb-2.5">
           <span className="text-xs font-medium text-[#9D9D9D]">{resourceType.label}</span>
@@ -139,53 +146,60 @@ function ResourceCard({
             {lang === 'en' ? `Attachments (${attachments.length})` : `ไฟล์แนบ (${attachments.length})`}
           </span>
           <div className="space-y-1.5">
-            {attachments.map((att, idx) => (
-              <a
-                key={idx}
-                href={att.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-2 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] hover:border-[#007ACC]/70 text-xs text-[#D4D4D4] transition-colors"
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <ExternalLink size={12} className="text-[#3794FF] shrink-0" />
-                  <span className="truncate font-medium">{att.name}</span>
-                </div>
-                <span className="text-[11px] text-[#858585] shrink-0 ml-2">{att.size}</span>
-              </a>
-            ))}
+            {attachments.map((att, idx) => {
+              const safeAttLink = sanitizeExternalUrl(att.link);
+              if (!safeAttLink) return null;
+              return (
+                <a
+                  key={idx}
+                  href={safeAttLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-2 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] hover:border-[#007ACC]/70 text-xs text-[#D4D4D4] transition-colors"
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <ExternalLink size={12} className="text-[#3794FF] shrink-0" />
+                    <span className="truncate font-medium">{att.name}</span>
+                  </div>
+                  <span className="text-[11px] text-[#858585] shrink-0 ml-2">{att.size}</span>
+                </a>
+              );
+            })}
           </div>
         </div>
       )}
 
       <div className="border-t border-[#3C3C3C] pt-3.5 mt-4 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => (isTracked ? onUntrackAssignment(id) : onTrackAsAssignment(resource))}
-          className={`text-xs font-medium px-3 py-1.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 ${
-            isTracked
-              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-rose-500/15 hover:text-rose-400 hover:border-rose-500/30 group'
-              : getTrackButtonStyles(courseColor, isTracked)
-          }`}
-        >
-          {isTracked ? (
-            <>
-              <Check size={12} className="group-hover:hidden text-emerald-400" />
-              <Trash2 size={12} className="hidden group-hover:inline text-rose-400" />
-              <span className="group-hover:hidden">{t('trackedAsTask', lang)}</span>
-              <span className="hidden group-hover:inline">{t('untrackTask', lang)}</span>
-            </>
-          ) : (
-            <>
-              <Pin size={12} />
-              <span>{t('trackAsTask', lang)}</span>
-            </>
-          )}
-        </button>
+        {isTracked ? (
+          <div className="inline-flex items-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 overflow-hidden">
+            <span className="text-xs font-medium px-3 py-1.5 text-emerald-400 inline-flex items-center gap-1.5">
+              <Check size={12} />
+              <span>{t('trackedAsTask', lang)}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => onUntrackAssignment(id)}
+              title={t('untrackTask', lang)}
+              aria-label={t('untrackTask', lang)}
+              className="px-2 py-1.5 text-rose-400 hover:bg-rose-500/20 border-l border-emerald-500/30 transition-colors cursor-pointer"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onTrackAsAssignment(resource)}
+            className={`text-xs font-medium px-3 py-1.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 ${getTrackButtonStyles(courseColor, false)}`}
+          >
+            <Pin size={12} />
+            <span>{t('trackAsTask', lang)}</span>
+          </button>
+        )}
 
-        {googleLink && (
+        {safeGoogleLink && (
           <a
-            href={googleLink}
+            href={safeGoogleLink}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-[#3794FF] hover:underline font-medium inline-flex items-center gap-1 shrink-0"
@@ -279,8 +293,10 @@ export default function Courses() {
   const selectedCourseName = searchParams.get('selected');
   const activeTab = searchParams.get('tab') || 'resources';
   const selectedTopicId = searchParams.get('topic') || 'all';
+  const highlightedId = searchParams.get('highlight') || '';
   const viewMode = searchParams.get('view') || 'grid';
   const searchQuery = searchParams.get('q') || '';
+  const [courseSearch, setCourseSearch] = useState('');
   const [showHidden, setShowHidden] = useState(false);
 
   const updateParams = useCallback((updates, replace = true) => {
@@ -341,24 +357,44 @@ export default function Courses() {
     );
   }, [hiddenCourses, searchQuery]);
 
-  const getActiveCount = (courseName) => {
-    return assignments.filter(a => a.course === courseName && a.status !== 'done').length;
+  const matchesCourseItem = useCallback((item, courseObj, courseName) => {
+    if (courseObj?.id && item.courseId) {
+      return item.courseId === courseObj.id;
+    }
+    return item.course === courseName;
+  }, []);
+
+  const getActiveCount = (course) => {
+    return assignments.filter(a => a.status !== 'done' && matchesCourseItem(a, course, course.name)).length;
   };
 
-  const courseAssignments = assignments.filter((assignment) => assignment.course === selectedCourseName);
-  const courseResources = resources.filter((resource) => resource.course === selectedCourseName);
+  const courseAssignments = assignments.filter((a) => matchesCourseItem(a, selectedCourseObj, selectedCourseName));
+  const courseResources = resources.filter((r) => matchesCourseItem(r, selectedCourseObj, selectedCourseName));
   const courseTopics = topics ? topics.filter(tItem => tItem.courseId === selectedCourseObj.id) : [];
 
-  const filterByTopic = (items) => {
-    if (selectedTopicId === 'all') return items;
-    if (selectedTopicId === 'none') return items.filter(item => !item.topicId);
-    return items.filter(item => item.topicId === selectedTopicId);
+  const knownTopicIds = new Set(courseTopics.map(tItem => tItem.id));
+
+  const filterCourseItems = (items) => {
+    let result = items;
+    if (selectedTopicId === 'none') {
+      result = result.filter(item => !item.topicId || !knownTopicIds.has(item.topicId));
+    } else if (selectedTopicId !== 'all') {
+      result = result.filter(item => item.topicId === selectedTopicId);
+    }
+    if (courseSearch.trim()) {
+      const q = courseSearch.toLowerCase();
+      result = result.filter(item =>
+        String(item.title || '').toLowerCase().includes(q) ||
+        String(item.description || '').toLowerCase().includes(q)
+      );
+    }
+    return result;
   };
 
   const groupItemsByTopic = (items) => {
     const grouped = {};
-    const filteredItems = filterByTopic(items);
-    grouped['none'] = filteredItems.filter(item => !item.topicId);
+    const filteredItems = filterCourseItems(items);
+    grouped['none'] = filteredItems.filter(item => !item.topicId || !knownTopicIds.has(item.topicId));
 
     courseTopics.forEach(topic => {
       const itemsInTopic = filteredItems.filter(item => item.topicId === topic.id);
@@ -371,9 +407,9 @@ export default function Courses() {
   };
 
   const renderCourseCard = (course, isHidden) => {
-    const activeCount = getActiveCount(course.name);
-    const totalAssignments = assignments.filter(a => a.course === course.name).length;
-    const totalResources = resources.filter(r => r.course === course.name).length;
+    const activeCount = getActiveCount(course);
+    const totalAssignments = assignments.filter(a => matchesCourseItem(a, course, course.name)).length;
+    const totalResources = resources.filter(r => matchesCourseItem(r, course, course.name)).length;
 
     return (
       <div
@@ -521,31 +557,45 @@ export default function Courses() {
               </button>
             </div>
 
-            <div className="flex items-center bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-0.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => updateParams({ view: 'grid' })}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
-                  viewMode === 'grid'
-                    ? 'bg-[#094771]/70 text-[#3794FF]'
-                    : 'text-[#858585] hover:text-[#D4D4D4]'
-                }`}
-                title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => updateParams({ view: 'list' })}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
-                  viewMode === 'list'
-                    ? 'bg-[#094771]/70 text-[#3794FF]'
-                    : 'text-[#858585] hover:text-[#D4D4D4]'
-                }`}
-                title={lang === 'en' ? 'List view' : 'แบบรายการ'}
-              >
-                <List size={16} />
-              </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#858585]" />
+                <input
+                  type="text"
+                  aria-label={t('searchInCoursePlaceholder', lang)}
+                  value={courseSearch}
+                  onChange={(e) => setCourseSearch(e.target.value)}
+                  placeholder={t('searchInCoursePlaceholder', lang)}
+                  className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl pl-8 pr-3 py-1.5 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] w-44 sm:w-56"
+                />
+              </div>
+
+              <div className="flex items-center bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-0.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => updateParams({ view: 'grid' })}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                    viewMode === 'grid'
+                      ? 'bg-[#094771]/70 text-[#3794FF]'
+                      : 'text-[#858585] hover:text-[#D4D4D4]'
+                  }`}
+                  title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
+                >
+                  <LayoutGrid size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateParams({ view: 'list' })}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                    viewMode === 'list'
+                      ? 'bg-[#094771]/70 text-[#3794FF]'
+                      : 'text-[#858585] hover:text-[#D4D4D4]'
+                  }`}
+                  title={lang === 'en' ? 'List view' : 'แบบรายการ'}
+                >
+                  <List size={16} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -600,92 +650,133 @@ export default function Courses() {
               </div>
             )}
 
-            {activeTab === 'assignments' ? (
-              <div className="space-y-6">
-                {courseAssignments.length > 0 ? (
-                  Object.entries(groupItemsByTopic(courseAssignments)).map(([topicId, items]) => {
-                    if (items.length === 0) return null;
-                    const topicName = topicId === 'none'
-                      ? (lang === 'en' ? 'Other Assignments' : 'งานอื่นๆ')
-                      : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
+            {activeTab === 'assignments' ? (() => {
+              const grouped = groupItemsByTopic(courseAssignments);
+              const hasAnyFiltered = Object.values(grouped).some(arr => arr.length > 0);
+              return (
+                <div className="space-y-6">
+                  {courseAssignments.length > 0 && hasAnyFiltered ? (
+                    Object.entries(grouped).map(([topicId, items]) => {
+                      if (items.length === 0) return null;
+                      const topicName = topicId === 'none'
+                        ? (lang === 'en' ? 'Other Assignments' : 'งานอื่นๆ')
+                        : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
 
-                    return (
-                      <div key={topicId} className="space-y-3">
-                        {(topicId !== 'none' || courseTopics.length > 0) && (
-                          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
-                            <Hash size={15} className="text-[#3794FF]" />
-                            <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
-                            <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
-                              {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
-                            </span>
+                      return (
+                        <div key={topicId} className="space-y-3">
+                          {(topicId !== 'none' || courseTopics.length > 0) && (
+                            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
+                              <Hash size={15} className="text-[#3794FF]" />
+                              <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
+                              <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
+                                {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
+                              </span>
+                            </div>
+                          )}
+                          <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
+                            {items.map((assignment) => (
+                              <AssignmentCard
+                                key={assignment.id}
+                                assignment={assignment}
+                                onStatusChange={handleStatusChange}
+                                lang={lang}
+                                viewMode={viewMode}
+                              />
+                            ))}
                           </div>
-                        )}
-                        <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
-                          {items.map((assignment) => (
-                            <AssignmentCard
-                              key={assignment.id}
-                              assignment={assignment}
-                              onStatusChange={handleStatusChange}
-                              lang={lang}
-                              viewMode={viewMode}
-                            />
-                          ))}
                         </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#9D9D9D] text-xs">
-                    <BookOpen size={28} className="text-[#858585] mb-2.5 opacity-60" />
-                    {t('noTasksCourse', lang)}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {courseResources.length > 0 ? (
-                  Object.entries(groupItemsByTopic(courseResources)).map(([topicId, items]) => {
-                    if (items.length === 0) return null;
-                    const topicName = topicId === 'none'
-                      ? (lang === 'en' ? 'Other Resources' : 'สื่ออื่นๆ')
-                      : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
+                      );
+                    })
+                  ) : (
+                    <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#9D9D9D] text-xs gap-3">
+                      <BookOpen size={28} className="text-[#858585] opacity-60" />
+                      <span>
+                        {courseAssignments.length > 0
+                          ? (lang === 'en' ? 'No assignments match the selected topic or search.' : 'ไม่พบงานในหัวข้อหรือคำค้นหานี้')
+                          : t('noTasksCourse', lang)}
+                      </span>
+                      {(selectedTopicId !== 'all' || courseSearch) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCourseSearch('');
+                            updateParams({ topic: 'all' });
+                          }}
+                          className="text-xs font-medium text-[#3794FF] hover:underline cursor-pointer"
+                        >
+                          {t('clearFilters', lang)}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })() : (() => {
+              const grouped = groupItemsByTopic(courseResources);
+              const hasAnyFiltered = Object.values(grouped).some(arr => arr.length > 0);
+              return (
+                <div className="space-y-6">
+                  {courseResources.length > 0 && hasAnyFiltered ? (
+                    Object.entries(grouped).map(([topicId, items]) => {
+                      if (items.length === 0) return null;
+                      const topicName = topicId === 'none'
+                        ? (lang === 'en' ? 'Other Resources' : 'สื่ออื่นๆ')
+                        : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
 
-                    return (
-                      <div key={topicId} className="space-y-3">
-                        {(topicId !== 'none' || courseTopics.length > 0) && (
-                          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
-                            <Hash size={15} className="text-[#3794FF]" />
-                            <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
-                            <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
-                              {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
-                            </span>
+                      return (
+                        <div key={topicId} className="space-y-3">
+                          {(topicId !== 'none' || courseTopics.length > 0) && (
+                            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
+                              <Hash size={15} className="text-[#3794FF]" />
+                              <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
+                              <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
+                                {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
+                              </span>
+                            </div>
+                          )}
+                          <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
+                            {items.map((resource) => (
+                              <ResourceCard
+                                key={resource.id}
+                                resource={resource}
+                                assignments={assignments}
+                                onTrackAsAssignment={handleTrackAsAssignment}
+                                onUntrackAssignment={handleUntrackAssignment}
+                                courseColor={themeColor}
+                                lang={lang}
+                                viewMode={viewMode}
+                                isHighlighted={highlightedId && String(resource.id) === String(highlightedId)}
+                              />
+                            ))}
                           </div>
-                        )}
-                        <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
-                          {items.map((resource) => (
-                            <ResourceCard
-                              key={resource.id}
-                              resource={resource}
-                              assignments={assignments}
-                              onTrackAsAssignment={handleTrackAsAssignment}
-                              onUntrackAssignment={handleUntrackAssignment}
-                              courseColor={themeColor}
-                              lang={lang}
-                              viewMode={viewMode}
-                            />
-                          ))}
                         </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#9D9D9D] text-xs">
-                    <Megaphone size={28} className="text-[#858585] mb-2.5 opacity-60" />
-                    {t('noAnnouncementsCourse', lang)}
-                  </div>
-                )}
-              </div>
-            )}
+                      );
+                    })
+                  ) : (
+                    <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#9D9D9D] text-xs gap-3">
+                      <Megaphone size={28} className="text-[#858585] opacity-60" />
+                      <span>
+                        {courseResources.length > 0
+                          ? (lang === 'en' ? 'No posts match the selected topic or search.' : 'ไม่พบประกาศหรือเอกสารในหัวข้อหรือคำค้นหานี้')
+                          : t('noAnnouncementsCourse', lang)}
+                      </span>
+                      {(selectedTopicId !== 'all' || courseSearch) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCourseSearch('');
+                            updateParams({ topic: 'all' });
+                          }}
+                          className="text-xs font-medium text-[#3794FF] hover:underline cursor-pointer"
+                        >
+                          {t('clearFilters', lang)}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       ) : (
@@ -757,9 +848,9 @@ export default function Courses() {
                     <CourseRow
                       key={course.id}
                       course={course}
-                      activeCount={getActiveCount(course.name)}
-                      totalAssignments={assignments.filter(a => a.course === course.name).length}
-                      totalResources={resources.filter(r => r.course === course.name).length}
+                      activeCount={getActiveCount(course)}
+                      totalAssignments={assignments.filter(a => matchesCourseItem(a, course, course.name)).length}
+                      totalResources={resources.filter(r => matchesCourseItem(r, course, course.name)).length}
                       isHidden={false}
                       onSelect={() => handleSelectCourse(course.name)}
                       onToggleVisibility={handleToggleCourseVisibility}
@@ -824,9 +915,9 @@ export default function Courses() {
                           <CourseRow
                             key={course.id}
                             course={course}
-                            activeCount={getActiveCount(course.name)}
-                            totalAssignments={assignments.filter(a => a.course === course.name).length}
-                            totalResources={resources.filter(r => r.course === course.name).length}
+                            activeCount={getActiveCount(course)}
+                            totalAssignments={assignments.filter(a => matchesCourseItem(a, course, course.name)).length}
+                            totalResources={resources.filter(r => matchesCourseItem(r, course, course.name)).length}
                             isHidden={true}
                             onSelect={() => handleSelectCourse(course.name)}
                             onToggleVisibility={handleToggleCourseVisibility}

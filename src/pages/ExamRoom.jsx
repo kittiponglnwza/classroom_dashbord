@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus, Search, LayoutGrid, List } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { getCookieConsent } from '../utils/cookieConsent';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -28,7 +29,7 @@ export default function ExamRoom() {
     handleSearch,
     handleSaveManualExam,
     handleDeleteManualExam
-  } = useExamRoom(activeEmail, lang);
+  } = useExamRoom(activeEmail, lang, profile.studentId);
 
   const loading = status === 'loading';
 
@@ -41,7 +42,10 @@ export default function ExamRoom() {
 
   const toggleLayout = (view) => {
     setLayoutView(view);
-    localStorage.setItem('classroom_hub_exam_layout', view);
+    const consent = getCookieConsent();
+    if (!consent || consent.preferences !== false) {
+      localStorage.setItem('classroom_hub_exam_layout', view);
+    }
   };
 
   const openNewModal = () => {
@@ -70,14 +74,26 @@ export default function ExamRoom() {
           </h1>
           <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">{t('examDesc', lang)}</p>
         </div>
-        <button
-          type="button"
-          onClick={openNewModal}
-          className="flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
-        >
-          <Plus size={15} />
-          <span>{t('addExamBtn', lang)}</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+          {!isSearchVisible && (
+            <button
+              type="button"
+              onClick={() => setIsSearchVisible(true)}
+              className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3.5 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer"
+            >
+              <Search size={14} className="text-[#3794FF]" />
+              <span>{lang === 'en' ? 'Search Student ID' : 'ค้นหารหัสนักศึกษา'}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={openNewModal}
+            className="flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+          >
+            <Plus size={15} />
+            <span>{t('addExamBtn', lang)}</span>
+          </button>
+        </div>
       </div>
 
       {/* Security Notice */}
@@ -190,7 +206,7 @@ export default function ExamRoom() {
             </div>
           )}
 
-          {sortedExams.length === 0 && !unlistedInfo && (
+          {sortedExams.length === 0 && !unlistedInfo && !error && (
             <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-10 text-center max-w-2xl mx-auto">
               <ClipboardCheck size={32} className="text-[#858585] mx-auto mb-3 opacity-60" />
               <h3 className="font-semibold text-[#FFFFFF] text-base mb-1.5">{t('noUpcomingExams', lang)}</h3>

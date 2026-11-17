@@ -14,12 +14,17 @@ export const STORAGE_CONFIG = {
     topics: 'classroom_hub_topics'
   },
   
-  // Cache TTLs in milliseconds
+  // Cache TTLs in milliseconds (mapped by both short alias and full storage base key)
   ttls: {
     assignments: 5 * 60 * 1000,      // 5 minutes
+    classroom_hub_assignments: 5 * 60 * 1000,
     courses: 30 * 60 * 1000,         // 30 minutes
+    classroom_hub_courses: 30 * 60 * 1000,
     resources: 10 * 60 * 1000,       // 10 minutes (Announcements/Materials)
+    classroom_hub_resources: 10 * 60 * 1000,
     exams: 10 * 60 * 1000,           // 10 minutes
-    profile: 60 * 60 * 1000          // 60 minutes
+    classroom_hub_exam_results: 10 * 60 * 1000,
+    profile: 60 * 60 * 1000,         // 60 minutes
+    classroom_hub_profile: 60 * 60 * 1000
   }
 };

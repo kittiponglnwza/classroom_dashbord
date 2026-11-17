@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 import { t } from '../utils/i18n';
 
@@ -9,31 +9,32 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
   const [newPoints, setNewPoints] = useState(100);
   const [newDescription, setNewDescription] = useState('');
 
+  const titleId = useId();
+  const courseId = useId();
+  const dueDateId = useId();
+  const pointsId = useId();
+  const descId = useId();
+
   const selectedCourse = newCourse || visibleCourses[0]?.name || 'General';
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        setNewTitle('');
+        setNewDueDate('');
+        setNewPoints(100);
+        setNewDescription('');
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!newTitle || !selectedCourse || !newDueDate) return;
-
-    const courseObj = visibleCourses.find(c => c.name === selectedCourse);
-    const color = courseObj ? courseObj.color : 'blue';
-    const formattedDueDate = `${newDueDate}T23:59:59`;
-
-    onAddAssignment({
-      title: newTitle,
-      course: selectedCourse,
-      courseCode: courseObj?.code || '',
-      courseId: courseObj?.id || '',
-      dueDate: formattedDueDate,
-      status: 'todo',
-      points: Number(newPoints),
-      description: newDescription,
-      attachments: [],
-      courseColor: color
-    });
-
+  const handleCloseReset = () => {
     setNewTitle('');
     setNewDueDate('');
     setNewPoints(100);
@@ -41,8 +42,35 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
     onClose();
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !selectedCourse || !newDueDate) return;
+
+    const courseObj = visibleCourses.find(c => c.name === selectedCourse);
+    const color = courseObj ? courseObj.color : 'blue';
+    const formattedDueDate = newDueDate;
+
+    onAddAssignment({
+      title: newTitle.trim(),
+      course: selectedCourse,
+      courseCode: courseObj?.code || '',
+      courseId: courseObj?.id || '',
+      dueDate: formattedDueDate,
+      status: 'todo',
+      points: newPoints === '' ? null : Number(newPoints),
+      description: newDescription,
+      attachments: [],
+      courseColor: color
+    });
+
+    handleCloseReset();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) handleCloseReset(); }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in"
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -55,7 +83,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
           </h3>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseReset}
             aria-label="Close modal"
             className="p-1.5 flex items-center justify-center text-[#9D9D9D] hover:text-[#FFFFFF] rounded-lg hover:bg-[#2A2D2E] transition-colors cursor-pointer"
           >
@@ -65,12 +93,14 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-[#D4D4D4]">
+            <label htmlFor={titleId} className="block text-xs font-medium text-[#D4D4D4]">
               {lang === 'en' ? 'Task Title *' : 'ชื่องาน *'}
             </label>
             <input
+              id={titleId}
               type="text"
               required
+              autoFocus
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder={lang === 'en' ? 'e.g. Read Chapter 4 & Summarize' : 'เช่น อ่านบทที่ 4 และสรุปเนื้อหา'}
@@ -80,10 +110,11 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-[#D4D4D4]">
+              <label htmlFor={courseId} className="block text-xs font-medium text-[#D4D4D4]">
                 {lang === 'en' ? 'Subject *' : 'วิชา *'}
               </label>
               <select
+                id={courseId}
                 value={selectedCourse}
                 onChange={(e) => setNewCourse(e.target.value)}
                 className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-sm text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer transition-colors"
@@ -98,10 +129,11 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-[#D4D4D4]">
+              <label htmlFor={dueDateId} className="block text-xs font-medium text-[#D4D4D4]">
                 {lang === 'en' ? 'Due Date *' : 'กำหนดส่ง *'}
               </label>
               <input
+                id={dueDateId}
                 type="date"
                 required
                 value={newDueDate}
@@ -112,10 +144,11 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-[#D4D4D4]">
+            <label htmlFor={pointsId} className="block text-xs font-medium text-[#D4D4D4]">
               {lang === 'en' ? 'Points / Weight' : 'คะแนนเต็ม'}
             </label>
             <input
+              id={pointsId}
               type="number"
               min="0"
               max="1000"
@@ -126,10 +159,11 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-[#D4D4D4]">
+            <label htmlFor={descId} className="block text-xs font-medium text-[#D4D4D4]">
               {lang === 'en' ? 'Description & Instructions' : 'รายละเอียดงาน'}
             </label>
             <textarea
+              id={descId}
               rows="4"
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
@@ -141,7 +175,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
           <div className="pt-3 border-t border-[#3C3C3C] flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCloseReset}
               className="px-4 py-2 rounded-xl text-xs font-medium text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
             >
               {lang === 'en' ? 'Cancel' : 'ยกเลิก'}

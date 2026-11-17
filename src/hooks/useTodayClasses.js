@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { examRepository } from '../repositories/examRepository';
 import { parseExamDate } from '../utils/examDate';
 import { JS_DAY_MAP } from '../constants/dateConstants';
@@ -11,12 +11,38 @@ const toLocalDateStr = (date) => {
   return `${y}-${m}-${d}`;
 };
 
+const normalizeExamTime = (raw, fallback) => {
+  if (!raw || typeof raw !== 'string') return fallback;
+  const match = raw.trim().match(/^(\d{1,2})[:.](\d{2})$/);
+  if (!match) return fallback;
+  const h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  if (h < 0 || h > 23 || m < 0 || m > 59) return fallback;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
 export function useTodayClasses(schedule, profile) {
+  const [todayStamp, setTodayStamp] = useState(() => toLocalDateStr(new Date()));
+
+  useEffect(() => {
+    const checkDateRollover = () => {
+      const current = toLocalDateStr(new Date());
+      setTodayStamp(prev => (prev !== current ? current : prev));
+    };
+    const intervalId = setInterval(checkDateRollover, 60000);
+    window.addEventListener('focus', checkDateRollover);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', checkDateRollover);
+    };
+  }, []);
+
   return useMemo(() => {
-    const now = new Date();
+    const [year, month, day] = todayStamp.split('-').map(Number);
+    const now = new Date(year, month - 1, day);
     const d = now.getDay(); // 0=Sun
     const todayKey = JS_DAY_MAP[d];
-    const todayDateStr = toLocalDateStr(now);
+    const todayDateStr = todayStamp;
     const activeEmail = (profile?.email || '').toLowerCase().trim();
 
     // 1. Load cached exams
@@ -31,16 +57,16 @@ export function useTodayClasses(schedule, profile) {
         examEntries = allExams.map(ex => {
           let startTime = '09:00';
           let endTime = '12:00';
-          if (ex.time) {
-            const parts = ex.time.split('-').map(s => s.trim());
+          if (ex.time && typeof ex.time === 'string') {
+            const parts = ex.time.split(/[-–]/).map(s => s.trim());
             if (parts.length === 2) {
-              startTime = parts[0];
-              endTime = parts[1];
+              startTime = normalizeExamTime(parts[0], startTime);
+              endTime = normalizeExamTime(parts[1], endTime);
             }
           }
 
           let dateVal = '';
-          if (ex.rawIsoDate) {
+          if (ex.rawIsoDate && /^\d{4}-\d{2}-\d{2}/.test(ex.rawIsoDate)) {
             dateVal = ex.rawIsoDate.split('T')[0];
           } else if (ex.date) {
             const parsed = parseExamDate(ex.date);
@@ -53,6 +79,7 @@ export function useTodayClasses(schedule, profile) {
 
           const [yy, mm, dd] = dateVal.split('-').map(Number);
           const ed = (yy && mm && dd) ? new Date(yy, mm - 1, dd) : new Date(dateVal);
+          if (Number.isNaN(ed.getTime())) return null;
           const dayIndex = ed.getDay();
           const dayKey = JS_DAY_MAP[dayIndex];
 
@@ -65,7 +92,7 @@ export function useTodayClasses(schedule, profile) {
             startTime,
             endTime,
             room: ex.room ? `${ex.room} ${ex.seat ? `(${ex.seat})` : ''}` : '',
-            color: '#ef4444', // Red for exams
+            color: '#F14C4C',
             notes: ex.seat ? `Seat/Row: ${ex.seat}` : '',
             isExam: true
           };
@@ -82,5 +109,5 @@ export function useTodayClasses(schedule, profile) {
 
     // 3. Override class if exam for the same course is today
     return matchSchedulesAndExams(todayRegular, todayExams);
-  }, [schedule, profile]);
+  }, [schedule, profile, todayStamp]);
 }

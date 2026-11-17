@@ -16,6 +16,22 @@ export function getAppsScriptTemplate(hiddenCourseIds = []) {
  *    - Select hour interval: Every hour (or select preferred time)
  */
 
+function escapeHtmlScript(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function sanitizeSafeUrl(url) {
+  if (!url) return '';
+  var s = String(url).trim();
+  return /^https?:\\/\\//i.test(s) ? s : '';
+}
+
 function sendClassroomDigest() {
   try {
     var email = Session.getActiveUser().getEmail();
@@ -25,9 +41,25 @@ function sendClassroomDigest() {
     }
 
     var hiddenCourseIds = ${hiddenArrayStr};
+    var props = PropertiesService.getScriptProperties();
+    var sentTodayKey = 'ch_sent_' + Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');
+    var sentIds = [];
+    try {
+      sentIds = JSON.parse(props.getProperty(sentTodayKey) || '[]');
+    } catch (e) {
+      sentIds = [];
+    }
 
-    var response = Classroom.Courses.list({courseStates: ["ACTIVE"]});
-    var courses = response.courses || [];
+    var courses = [];
+    var coursePageToken = null;
+    do {
+      var listOpts = { courseStates: ["ACTIVE"] };
+      if (coursePageToken) listOpts.pageToken = coursePageToken;
+      var response = Classroom.Courses.list(listOpts);
+      if (response.courses) courses = courses.concat(response.courses);
+      coursePageToken = response.nextPageToken;
+    } while (coursePageToken);
+
     if (courses.length === 0) {
       Logger.log("No active courses found.");
       return;
@@ -45,28 +77,35 @@ function sendClassroomDigest() {
         continue;
       }
 
-      var courseWorkResponse;
+      var courseWorks = [];
+      var cwPageToken = null;
       try {
-        courseWorkResponse = Classroom.Courses.CourseWork.list(course.id);
+        do {
+          var cwOpts = cwPageToken ? { pageToken: cwPageToken } : {};
+          var cwResponse = Classroom.Courses.CourseWork.list(course.id, cwOpts);
+          if (cwResponse.courseWork) courseWorks = courseWorks.concat(cwResponse.courseWork);
+          cwPageToken = cwResponse.nextPageToken;
+        } while (cwPageToken);
       } catch (err) {
-        // Skip courses where coursework cannot be retrieved (e.g. permission issues)
         continue;
       }
-      
-      var courseWorks = courseWorkResponse.courseWork || [];
 
       for (var j = 0; j < courseWorks.length; j++) {
         var work = courseWorks[j];
         
-        if (!work.dueDate) continue;
+        if (!work.dueDate || sentIds.indexOf(work.id) !== -1) continue;
 
         var dueYear = work.dueDate.year;
         var dueMonth = work.dueDate.month - 1; // 0-indexed
         var dueDay = work.dueDate.day;
-        var dueHour = work.dueTime ? work.dueTime.hours : 23;
-        var dueMin = work.dueTime ? work.dueTime.minutes : 59;
-        
-        var dueDate = new Date(dueYear, dueMonth, dueDay, dueHour, dueMin);
+        var dueDate;
+        if (work.dueTime) {
+          // Classroom dueTime is always UTC
+          dueDate = new Date(Date.UTC(dueYear, dueMonth, dueDay, work.dueTime.hours || 0, work.dueTime.minutes || 0, work.dueTime.seconds || 0));
+        } else {
+          // Date-only due date: end of Bangkok day (23:59:59+07:00 = 16:59:59Z)
+          dueDate = new Date(Date.UTC(dueYear, dueMonth, dueDay, 16, 59, 59));
+        }
         
         // Skip if already past due
         if (dueDate < now) continue;
@@ -88,12 +127,13 @@ function sendClassroomDigest() {
 
           if (!isDone) {
             pendingAssignments.push({
+              id: work.id,
               title: work.title,
               courseName: course.name,
-              dueDate: dueDate.toLocaleString("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+              dueDate: Utilities.formatDate(dueDate, "Asia/Bangkok", "dd MMM HH:mm"),
               daysLeft: diffDays,
-              points: work.maxPoints || 100,
-              link: work.alternateLink
+              points: typeof work.maxPoints === 'number' ? String(work.maxPoints) + ' คะแนน' : 'ไม่ระบุคะแนน',
+              link: sanitizeSafeUrl(work.alternateLink)
             });
           }
         }
@@ -101,32 +141,32 @@ function sendClassroomDigest() {
     }
 
     if (pendingAssignments.length === 0) {
-      Logger.log("No pending assignments due within 3 days.");
+      Logger.log("No new pending assignments due within 3 days.");
       return;
     }
 
-    // Format HTML Email body
-    var htmlBody = '<html><head><meta charset="utf-8"></head><body style="background-color: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; margin: 0; padding: 20px;">' +
-      '<div style="max-width: 600px; margin: 0 auto; background-color: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
-      '<div style="text-align: center; border-bottom: 1px solid #1f2937; padding-bottom: 20px; margin-bottom: 20px;">' +
-      '<div style="font-size: 16px; font-weight: bold; color: #6366f1; text-transform: uppercase; letter-spacing: 2px;">Classroom Hub</div>' +
-      '<div style="font-size: 20px; font-weight: bold; color: #ffffff; margin-top: 10px;">สรุปงานค้างส่งใกล้วันกำหนดส่ง (เหลือเวลาไม่ถึง 3 วัน)</div>' +
+    // Format HTML Email body (VS Code Dark+ palette)
+    var htmlBody = '<html><head><meta charset="utf-8"></head><body style="background-color: #1E1E1E; color: #D4D4D4; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; margin: 0; padding: 20px;">' +
+      '<div style="max-width: 600px; margin: 0 auto; background-color: #252526; border: 1px solid #3C3C3C; border-radius: 12px; padding: 28px;">' +
+      '<div style="text-align: center; border-bottom: 1px solid #3C3C3C; padding-bottom: 18px; margin-bottom: 20px;">' +
+      '<div style="font-size: 14px; font-weight: bold; color: #3794FF; text-transform: uppercase; letter-spacing: 2px;">Classroom Hub</div>' +
+      '<div style="font-size: 19px; font-weight: bold; color: #FFFFFF; margin-top: 8px;">สรุปงานค้างส่งใกล้วันกำหนดส่ง (เหลือเวลาไม่ถึง 3 วัน)</div>' +
       '</div><div>';
 
     for (var k = 0; k < pendingAssignments.length; k++) {
       var item = pendingAssignments[k];
-      htmlBody += '<div style="background-color: rgba(31, 41, 55, 0.4); border: 1px solid #374151; border-radius: 12px; padding: 15px; margin-bottom: 15px;">' +
-        '<div style="display: inline-block; background-color: rgba(99, 102, 241, 0.1); color: #818cf8; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 99px; margin-bottom: 8px;">' + item.courseName + '</div>' +
-        '<div style="font-size: 14px; font-weight: bold; color: #ffffff; margin-bottom: 10px;">' + item.title + '</div>' +
-        '<div style="font-size: 11px; color: #9ca3af; margin-bottom: 15px;">' +
-        'กำหนดส่ง: <strong style="color: #fb923c;">' + item.dueDate + '</strong> (' + item.daysLeft + ' วันที่เหลือ) &nbsp;|&nbsp; ' + item.points + ' คะแนน' +
+      htmlBody += '<div style="background-color: #1E1E1E; border: 1px solid #3C3C3C; border-radius: 8px; padding: 15px; margin-bottom: 14px;">' +
+        '<div style="display: inline-block; background-color: #094771; color: #3794FF; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 6px; margin-bottom: 8px;">' + escapeHtmlScript(item.courseName) + '</div>' +
+        '<div style="font-size: 14px; font-weight: bold; color: #FFFFFF; margin-bottom: 8px;">' + escapeHtmlScript(item.title) + '</div>' +
+        '<div style="font-size: 12px; color: #9D9D9D; margin-bottom: 12px;">' +
+        'กำหนดส่ง: <strong style="color: #CCA700;">' + escapeHtmlScript(item.dueDate) + '</strong> (' + escapeHtmlScript(item.daysLeft) + ' วันที่เหลือ) &nbsp;|&nbsp; ' + escapeHtmlScript(item.points) +
         '</div>' +
-        '<a href="' + item.link + '" target="_blank" style="display: inline-block; background-color: #4f46e5; color: #ffffff !important; text-decoration: none; padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: bold;">เปิดทำการบ้านใน Classroom</a>' +
+        (item.link ? '<a href="' + escapeHtmlScript(item.link) + '" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #007ACC; color: #FFFFFF !important; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold;">เปิดทำการบ้านใน Classroom</a>' : '') +
         '</div>';
     }
 
     htmlBody += '</div>' +
-      '<div style="text-align: center; font-size: 11px; color: #6b7280; margin-top: 30px; border-top: 1px solid #1f2937; padding-top: 15px;">' +
+      '<div style="text-align: center; font-size: 11px; color: #858585; margin-top: 26px; border-top: 1px solid #3C3C3C; padding-top: 15px;">' +
       'ส่งโดยระบบออโต้คลาวด์ Classroom Hub (Personal Apps Script)<br>' +
       'คุณได้รับอีเมลนี้เนื่องจากตั้งค่าแจ้งเตือนงานค้างส่งล่วงหน้าไว้' +
       '</div></div></body></html>';
@@ -136,6 +176,11 @@ function sendClassroomDigest() {
       subject: "สรุปงานค้างส่ง (เหลือเวลาไม่ถึง 3 วัน) - Classroom Hub",
       htmlBody: htmlBody
     });
+
+    for (var m = 0; m < pendingAssignments.length; m++) {
+      sentIds.push(pendingAssignments[m].id);
+    }
+    props.setProperty(sentTodayKey, JSON.stringify(sentIds.slice(-200)));
     Logger.log("Notification email sent successfully to: " + email);
 
   } catch (error) {

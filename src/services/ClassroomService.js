@@ -1,20 +1,35 @@
 import { GoogleRepository } from '../repositories/GoogleRepository';
+import { AuthError, ValidationError } from '../utils/errors';
+import { sanitizeExternalUrl } from '../utils/sanitize';
 import { logger } from '../utils/logger';
+
+const isHostMatch = (url, allowedHosts) => {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return allowedHosts.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+  } catch {
+    return false;
+  }
+};
 
 export class ClassroomService {
   /**
    * Fetch and format user profile
    * @param {string} accessToken
+   * @param {{signal?: AbortSignal}} [options]
    * @returns {Promise<{name: string, studentId: string, email: string, major: string, avatarUrl: string}>}
    */
-  static async fetchProfile(accessToken) {
-    const data = await GoogleRepository.fetchUserProfile(accessToken);
+  static async fetchProfile(accessToken, options = {}) {
+    const data = await GoogleRepository.fetchUserProfile(accessToken, options);
+    if (!data || !data.email) {
+      throw new ValidationError('Google profile response did not contain a valid email address.');
+    }
     return {
       name: data.name || 'Google User',
-      studentId: 'Google Sync User',
-      email: data.email,
-      major: 'Connected Account',
-      avatarUrl: data.picture || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200'
+      studentId: '',
+      email: String(data.email).trim().toLowerCase(),
+      major: '',
+      avatarUrl: sanitizeExternalUrl(data.picture) || ''
     };
   }
 
@@ -28,50 +43,58 @@ export class ClassroomService {
     const attachments = [];
     const seenLinks = new Set();
 
-    materials.forEach(mat => {
+    (Array.isArray(materials) ? materials : []).forEach(mat => {
+      if (!mat) return;
       let name = '';
-      let link = '';
+      let rawLink = '';
       let size = '';
 
-      if (mat.driveFile) {
-        name = mat.driveFile.driveFile.title;
-        link = mat.driveFile.driveFile.alternateLink;
+      if (mat.driveFile?.driveFile) {
+        name = mat.driveFile.driveFile.title || 'Google Drive File';
+        rawLink = mat.driveFile.driveFile.alternateLink;
         size = 'Google Drive File';
       } else if (mat.link) {
         name = mat.link.title || 'Attachment Link';
-        link = mat.link.url;
+        rawLink = mat.link.url;
         size = 'External Link';
       } else if (mat.youtubeVideo) {
         name = mat.youtubeVideo.title || 'YouTube Video';
-        link = mat.youtubeVideo.alternateLink;
+        rawLink = mat.youtubeVideo.alternateLink;
         size = 'Video';
+      } else if (mat.form) {
+        name = mat.form.title || 'Google Form';
+        rawLink = mat.form.formUrl || mat.form.responseUrl;
+        size = 'Google Form';
       }
 
-      if (link) {
-        attachments.push({ name, link, size });
-        seenLinks.add(link.toLowerCase().trim());
+      const safeLink = sanitizeExternalUrl(rawLink);
+      if (safeLink && !seenLinks.has(safeLink.toLowerCase())) {
+        attachments.push({ name, link: safeLink, size });
+        seenLinks.add(safeLink.toLowerCase());
       }
     });
 
-    if (textDescription) {
+    if (textDescription && typeof textDescription === 'string') {
       const urlRegex = /(https?:\/\/[^\s\n\r]+)/g;
       const matches = textDescription.match(urlRegex) || [];
       matches.forEach(url => {
         const cleanUrl = url.replace(/[.,;)]+$/, '');
-        const lowerUrl = cleanUrl.toLowerCase().trim();
+        const safeUrl = sanitizeExternalUrl(cleanUrl);
+        if (!safeUrl) return;
+        const lowerUrl = safeUrl.toLowerCase();
         if (!seenLinks.has(lowerUrl)) {
           let name = 'External Document Link';
           let size = 'External Link';
           
-          if (lowerUrl.includes('drive.google.com')) {
+          if (isHostMatch(safeUrl, ['drive.google.com', 'docs.google.com'])) {
             name = 'Google Drive Document';
             size = 'Google Drive File';
-          } else if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) {
+          } else if (isHostMatch(safeUrl, ['youtube.com', 'youtu.be'])) {
             name = 'YouTube Video';
             size = 'Video';
           }
           
-          attachments.push({ name, link: cleanUrl, size });
+          attachments.push({ name, link: safeUrl, size });
           seenLinks.add(lowerUrl);
         }
       });
@@ -84,10 +107,16 @@ export class ClassroomService {
    * Fetch and consolidate Google Classroom courses, coursework, announcements, and materials.
    * Utilizes concurrency batching to prevent parallel connection storms.
    * @param {string} accessToken
-   * @returns {Promise<{courses: any[], assignments: any[], resources: any[], topics: any[]}>}
+   * @param {{signal?: AbortSignal, getToken?: (() => string|null)}} [options]
+   * @returns {Promise<{courses: any[], assignments: any[], resources: any[], topics: any[], failedCourseIds?: string[]}>}
    */
-  static async fetchClassroomData(accessToken) {
-    const rawCourses = await GoogleRepository.fetchCourses(accessToken);
+  static async fetchClassroomData(accessToken, options = {}) {
+    const reqOptions = {
+      signal: options.signal,
+      getToken: options.getToken
+    };
+    const currentToken = (typeof reqOptions.getToken === 'function' ? reqOptions.getToken() : null) || accessToken;
+    const rawCourses = await GoogleRepository.fetchCourses(currentToken, reqOptions);
     
     // Filter active courses
     const activeCourses = rawCourses.filter(c => c.courseState === 'ACTIVE');
@@ -95,32 +124,72 @@ export class ClassroomService {
     
     const mappedCourses = activeCourses.map((c, index) => ({
       id: c.id,
-      name: c.name,
+      name: c.name || 'Untitled Course',
       code: c.section || 'CLASSROOM',
-      instructor: c.teacherFolder?.title || 'Course Instructor',
-      color: colorPalette[index % colorPalette.length],
-      bgBanner: `from-${colorPalette[index % colorPalette.length]}-950/40 to-${colorPalette[index % colorPalette.length]}-900/10`
+      instructor: c.descriptionHeading || c.room || 'Google Classroom',
+      color: colorPalette[index % colorPalette.length]
     }));
 
     const courseMap = new Map(mappedCourses.map(c => [c.id, c]));
 
     // Batch courses processing (concurrency limit = 3 courses in parallel)
     const results = [];
+    const failedFeeds = {
+      coursework: new Set(),
+      submissions: new Set(),
+      announcements: new Set(),
+      materials: new Set(),
+      topics: new Set()
+    };
     const concurrencyLimit = 3;
 
     for (let i = 0; i < activeCourses.length; i += concurrencyLimit) {
+      if (reqOptions.signal?.aborted) {
+        const abortErr = new Error('Classroom sync aborted');
+        abortErr.name = 'AbortError';
+        throw abortErr;
+      }
+
       const chunk = activeCourses.slice(i, i + concurrencyLimit);
+      const chunkToken = (typeof reqOptions.getToken === 'function' ? reqOptions.getToken() : null) || accessToken;
       
       const chunkPromises = chunk.map(async (course) => {
         try {
-          // Fetch course resources concurrently for this specific course
-          const [rawCW, rawSub, rawAnn, rawMat, rawTopics] = await Promise.all([
-            GoogleRepository.fetchCoursework(accessToken, course.id),
-            GoogleRepository.fetchSubmissions(accessToken, course.id),
-            GoogleRepository.fetchAnnouncements(accessToken, course.id),
-            GoogleRepository.fetchMaterials(accessToken, course.id),
-            GoogleRepository.fetchTopics(accessToken, course.id)
+          const [cwRes, subRes, annRes, matRes, topicsRes] = await Promise.allSettled([
+            GoogleRepository.fetchCoursework(chunkToken, course.id, reqOptions),
+            GoogleRepository.fetchSubmissions(chunkToken, course.id, reqOptions),
+            GoogleRepository.fetchAnnouncements(chunkToken, course.id, reqOptions),
+            GoogleRepository.fetchMaterials(chunkToken, course.id, reqOptions),
+            GoogleRepository.fetchTopics(chunkToken, course.id, reqOptions)
           ]);
+
+          // Propagate auth/abort errors immediately instead of masking them
+          for (const settled of [cwRes, subRes, annRes, matRes, topicsRes]) {
+            if (settled.status === 'rejected') {
+              const reason = settled.reason;
+              if (reason?.name === 'AbortError' || reason instanceof AuthError || reason?.code === 401) {
+                throw reason;
+              }
+            }
+          }
+
+          const rawCW = cwRes.status === 'fulfilled' ? cwRes.value : [];
+          const rawSub = subRes.status === 'fulfilled' ? subRes.value : [];
+          const rawAnn = annRes.status === 'fulfilled' ? annRes.value : [];
+          const rawMat = matRes.status === 'fulfilled' ? matRes.value : [];
+          const rawTopics = topicsRes.status === 'fulfilled' ? topicsRes.value : [];
+
+          const courseworkFailed = cwRes.status === 'rejected';
+          const submissionsFailed = subRes.status === 'rejected';
+          const announcementsFailed = annRes.status === 'rejected';
+          const materialsFailed = matRes.status === 'rejected';
+          const topicsFailed = topicsRes.status === 'rejected';
+
+          if (courseworkFailed) failedFeeds.coursework.add(course.id);
+          if (submissionsFailed) failedFeeds.submissions.add(course.id);
+          if (announcementsFailed) failedFeeds.announcements.add(course.id);
+          if (materialsFailed) failedFeeds.materials.add(course.id);
+          if (topicsFailed) failedFeeds.topics.add(course.id);
 
           const submissionMap = new Map(rawSub.map(sub => [sub.courseWorkId, sub]));
           const courseDetails = courseMap.get(course.id) || { name: course.name, color: 'blue', code: 'CLASSROOM' };
@@ -129,7 +198,7 @@ export class ClassroomService {
           const pad = (n) => String(n).padStart(2, '0');
           const mappedAssignments = rawCW.map(cw => {
             const submission = submissionMap.get(cw.id);
-            let apiStatus = 'todo';
+            let apiStatus = submissionsFailed ? null : 'todo';
             if (submission) {
               const state = submission.state; // TURNED_IN, RETURNED
               if (state === 'TURNED_IN' || state === 'RETURNED') {
@@ -138,32 +207,40 @@ export class ClassroomService {
             }
 
             let formattedDueDate = '';
-            if (cw.dueDate) {
-              formattedDueDate = `${cw.dueDate.year}-${pad(cw.dueDate.month)}-${pad(cw.dueDate.day)}`;
+            if (cw.dueDate?.year && cw.dueDate?.month && cw.dueDate?.day) {
               if (cw.dueTime) {
-                formattedDueDate += `T${pad(cw.dueTime.hours || 0)}:${pad(cw.dueTime.minutes || 0)}:00`;
+                const utcMs = Date.UTC(
+                  cw.dueDate.year,
+                  cw.dueDate.month - 1,
+                  cw.dueDate.day,
+                  cw.dueTime.hours || 0,
+                  cw.dueTime.minutes || 0,
+                  cw.dueTime.seconds || 0
+                );
+                formattedDueDate = new Date(utcMs).toISOString();
               } else {
-                formattedDueDate += 'T23:59:59';
+                // Google Classroom date-only due date (no dueTime) represents the local calendar day
+                formattedDueDate = `${cw.dueDate.year}-${pad(cw.dueDate.month)}-${pad(cw.dueDate.day)}`;
               }
             }
 
             return {
               id: cw.id,
-              title: cw.title,
+              title: cw.title || 'Untitled Assignment',
               course: courseDetails.name,
               courseCode: courseDetails.code,
               dueDate: formattedDueDate,
               status: apiStatus,
-              points: cw.maxPoints || 100,
+              points: typeof cw.maxPoints === 'number' ? cw.maxPoints : null,
               description: cw.description || '',
               attachments: this.mapAttachments(cw.materials, cw.description),
               courseColor: courseDetails.color,
               courseId: course.id,
-              googleLink: cw.alternateLink,
+              googleLink: sanitizeExternalUrl(cw.alternateLink),
               topicId: cw.topicId || null,
               creationTime: cw.creationTime || new Date().toISOString(),
               updateTime: cw.updateTime || new Date().toISOString(),
-              updatedAt: new Date().toISOString()
+              updatedAt: cw.updateTime || cw.creationTime || new Date().toISOString()
             };
           });
 
@@ -184,7 +261,7 @@ export class ClassroomService {
               description: text,
               creationTime: ann.creationTime || new Date().toISOString(),
               attachments: this.mapAttachments(ann.materials, text),
-              googleLink: ann.alternateLink
+              googleLink: sanitizeExternalUrl(ann.alternateLink)
             };
           });
 
@@ -201,7 +278,7 @@ export class ClassroomService {
               description: mat.description || '',
               creationTime: mat.creationTime || new Date().toISOString(),
               attachments: this.mapAttachments(mat.materials, mat.description),
-              googleLink: mat.alternateLink,
+              googleLink: sanitizeExternalUrl(mat.alternateLink),
               topicId: mat.topicId || null
             };
           });
@@ -219,7 +296,15 @@ export class ClassroomService {
           };
 
         } catch (e) {
+          if (e?.name === 'AbortError' || e instanceof AuthError || e?.code === 401) {
+            throw e;
+          }
           logger.error(`Error processing course: ${course.name}`, e);
+          failedFeeds.coursework.add(course.id);
+          failedFeeds.submissions.add(course.id);
+          failedFeeds.announcements.add(course.id);
+          failedFeeds.materials.add(course.id);
+          failedFeeds.topics.add(course.id);
           return { assignments: [], resources: [], topics: [] };
         }
       });
@@ -231,12 +316,27 @@ export class ClassroomService {
     const assignments = results.map(r => r.assignments || []).flat();
     const resources = results.map(r => r.resources || []).flat();
     const topics = results.map(r => r.topics || []).flat();
+    const failedCourseIds = Array.from(new Set([
+      ...failedFeeds.coursework,
+      ...failedFeeds.submissions,
+      ...failedFeeds.announcements,
+      ...failedFeeds.materials,
+      ...failedFeeds.topics
+    ]));
 
     return {
       courses: mappedCourses,
       assignments,
       resources,
-      topics
+      topics,
+      failedCourseIds,
+      failedFeeds: {
+        coursework: Array.from(failedFeeds.coursework),
+        submissions: Array.from(failedFeeds.submissions),
+        announcements: Array.from(failedFeeds.announcements),
+        materials: Array.from(failedFeeds.materials),
+        topics: Array.from(failedFeeds.topics)
+      }
     };
   }
 }

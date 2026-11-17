@@ -28,6 +28,7 @@ export default function Dashboard() {
     selectedStatus, setSelectedStatus,
     sortBy, setSortBy,
     viewType, setViewType,
+    clearFilters,
     sortedAssignments,
     overdueTasks,
     todayTasks,
@@ -37,6 +38,13 @@ export default function Dashboard() {
   } = useDashboardFilters(visibleAssignments);
 
   const todayClasses = useTodayClasses(schedule, profile);
+
+  const criticalTaskIds = new Set([
+    ...overdueTasks.map(t => t.id),
+    ...todayTasks.map(t => t.id)
+  ]);
+  const mainListAssignments = sortedAssignments.filter(a => !criticalTaskIds.has(a.id));
+  const hasActiveFilters = Boolean(searchQuery || selectedCourse !== 'all' || selectedStatus !== 'all');
 
   return (
     <div className="space-y-6">
@@ -77,6 +85,7 @@ export default function Dashboard() {
         selectedStatus={selectedStatus} setSelectedStatus={setSelectedStatus}
         sortBy={sortBy} setSortBy={setSortBy}
         viewType={viewType} setViewType={setViewType}
+        clearFilters={clearFilters}
         visibleCourses={visibleCourses} lang={lang}
       />
 
@@ -118,11 +127,34 @@ export default function Dashboard() {
         <div className="space-y-3.5">
           <h3 className="text-xs font-semibold text-[#9D9D9D] flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#3794FF]" />
-            <span>{t('allCourseAssignments', lang, { count: sortedAssignments.length })}</span>
+            <span>{t('allCourseAssignments', lang, { count: mainListAssignments.length })}</span>
           </h3>
-          {sortedAssignments.length > 0 ? (
+          {sortedAssignments.length === 0 ? (
+            <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center">
+              <ClipboardList size={36} className="text-[#858585] mb-3 opacity-60" />
+              <p className="text-[#9D9D9D] text-xs font-medium mb-4">{t('noAssignmentsFound', lang)}</p>
+              <div className="flex items-center gap-2.5">
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] text-[#D4D4D4] rounded-xl px-4 py-2 text-xs font-medium transition-colors cursor-pointer"
+                  >
+                    {t('clearFilters', lang)}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="bg-[#007ACC] hover:bg-[#1177BB] text-white rounded-xl px-4 py-2 text-xs font-medium transition-colors cursor-pointer"
+                >
+                  {t('createTask', lang)}
+                </button>
+              </div>
+            </div>
+          ) : mainListAssignments.length > 0 ? (
             <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
-              {sortedAssignments.map((assignment) => (
+              {mainListAssignments.map((assignment) => (
                 <AssignmentCard
                   key={assignment.id}
                   assignment={assignment}
@@ -132,19 +164,7 @@ export default function Dashboard() {
                 />
               ))}
             </div>
-          ) : (
-            <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center">
-              <ClipboardList size={36} className="text-[#858585] mb-3 opacity-60" />
-              <p className="text-[#9D9D9D] text-xs font-medium mb-4">{t('noAssignmentsFound', lang)}</p>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className="bg-[#007ACC] hover:bg-[#1177BB] text-white rounded-xl px-4 py-2 text-xs font-medium transition-colors cursor-pointer"
-              >
-                {t('createTask', lang)}
-              </button>
-            </div>
-          )}
+          ) : null}
         </div>
       )}
 

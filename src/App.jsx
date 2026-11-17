@@ -1,7 +1,7 @@
 import { useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Layout from './components/Layout';
-import { Globe, BookOpen } from 'lucide-react';
+import { Globe, BookOpen, AlertCircle, ArrowLeft } from 'lucide-react';
 import { t } from './utils/i18n';
 
 // Lazy loaded pages
@@ -22,19 +22,47 @@ import { ClassroomUIProvider } from './contexts/ClassroomUIContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import CookieConsentBanner from './components/CookieConsentBanner';
 
+function NotFoundView({ lang }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4">
+      <div className="w-12 h-12 rounded-2xl bg-[#252526] border border-[#3C3C3C] flex items-center justify-center text-[#858585]">
+        <AlertCircle size={22} />
+      </div>
+      <div className="space-y-1">
+        <h1 className="text-lg font-semibold text-[#FFFFFF]">
+          {lang === 'th' ? 'ไม่พบหน้าที่คุณต้องการ' : 'Page Not Found'}
+        </h1>
+        <p className="text-xs text-[#9D9D9D]">
+          {lang === 'th' ? 'เส้นทางนี้ไม่มีอยู่ในแอปพลิเคชัน หรืออาจถูกย้ายแล้ว' : 'The requested route does not exist or may have moved.'}
+        </p>
+      </div>
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#007ACC] hover:bg-[#1177BB] text-white text-xs font-medium transition-colors"
+      >
+        <ArrowLeft size={14} />
+        <span>{lang === 'th' ? 'กลับหน้าแรก' : 'Back to Home'}</span>
+      </Link>
+    </div>
+  );
+}
+
 function AppContent() {
-  const { isLoggedIn, login, initClient, rememberedAccount, rememberMe = true, handleRememberMeChange } = useAuth();
+  const {
+    isLoggedIn, login, initClient, rememberedAccount,
+    rememberMe = true, handleRememberMeChange, authError, isAuthReady = true
+  } = useAuth();
   const { lang, toggleLang } = useSettings();
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
   }, []);
 
-  // Initialize Google Auth Client
+  // Initialize Google Auth Client once on mount
   useEffect(() => {
-    const cleanup = initClient(lang, () => {});
+    const cleanup = initClient('en', () => {});
     return cleanup;
-  }, [initClient, lang]);
+  }, [initClient]);
 
   if (!isLoggedIn) {
     return (
@@ -70,10 +98,18 @@ function AppContent() {
             </p>
           </div>
 
+          {authError && (
+            <div role="alert" className="flex items-start gap-2 rounded-xl border border-[#F14C4C]/40 bg-[#F14C4C]/10 px-3 py-2 text-left text-xs text-[#F14C4C]">
+              <AlertCircle size={15} className="shrink-0 mt-0.5" />
+              <span>{authError}</span>
+            </div>
+          )}
+
           <div className="space-y-3 pt-2">
             <button
               type="button"
               onClick={() => login()}
+              aria-disabled={!isAuthReady}
               className="w-full flex items-center justify-center gap-2.5 bg-[#007ACC] hover:bg-[#1177BB] active:bg-[#0E639C] text-white font-medium text-sm py-3 px-5 rounded-xl transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4 shrink-0 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
@@ -137,6 +173,7 @@ function AppContent() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/exam-room" element={<ExamRoom />} />
             <Route path="/schedule" element={<Schedule />} />
+            <Route path="*" element={<NotFoundView lang={lang} />} />
           </Routes>
         </Suspense>
       </Layout>

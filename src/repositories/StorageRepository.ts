@@ -24,7 +24,7 @@ export class StorageRepository {
       if (key === STORAGE_CONFIG.keys.assignments) {
         if (!Array.isArray(data)) throw new ValidationError('Assignments must be an array.');
         data.forEach(item => {
-          if (!item.id || !item.title) {
+          if (!item || !item.id || typeof item.title !== 'string') {
             throw new ValidationError('Assignment must contain id and title.');
           }
         });
@@ -33,7 +33,7 @@ export class StorageRepository {
       if (key === STORAGE_CONFIG.keys.courses) {
         if (!Array.isArray(data)) throw new ValidationError('Courses must be an array.');
         data.forEach(item => {
-          if (!item.id || !item.name) {
+          if (!item || !item.id || typeof item.name !== 'string') {
             throw new ValidationError('Course must contain id and name.');
           }
         });
@@ -42,7 +42,7 @@ export class StorageRepository {
       if (key === STORAGE_CONFIG.keys.schedule) {
         if (!Array.isArray(data)) throw new ValidationError('Schedule must be an array.');
         data.forEach(item => {
-          if (!item.id || !item.day || !item.startTime || !item.endTime) {
+          if (!item || !item.id || !item.day || !item.startTime || !item.endTime) {
             throw new ValidationError('Schedule entry must contain id, day, startTime, and endTime.');
           }
         });
@@ -83,6 +83,46 @@ export class StorageRepository {
   }
 
   /**
+   * Evict heavy regenerable caches (resources & stale exam caches) to free localStorage quota
+   */
+  private static evictExpendableCaches(email = '', includeExams = false): void {
+    try {
+      const keysToRemove: string[] = [];
+      const resourcesPrefix = STORAGE_CONFIG.keys.resources;
+      const examsPrefix = STORAGE_CONFIG.keys.exams;
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        if (k === resourcesPrefix || k.startsWith(`${resourcesPrefix}_`)) {
+          keysToRemove.push(k);
+        }
+        if (includeExams && (k === examsPrefix || k.startsWith(`${examsPrefix}_`))) {
+          keysToRemove.push(k);
+        }
+      }
+      if (keysToRemove.length === 0 && !includeExams) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k === examsPrefix || k.startsWith(`${examsPrefix}_`))) {
+            keysToRemove.push(k);
+          }
+        }
+      }
+      keysToRemove.forEach((k) => {
+        localStorage.removeItem(k);
+        memoryCache.delete(k);
+        rawCache.delete(k);
+      });
+      if (keysToRemove.length > 0) {
+        logger.warn(`Evicted ${keysToRemove.length} expendable cache keys after QuotaExceededError (${email || 'default'})`);
+      }
+    } catch (evictErr) {
+      logger.warn('Failed to evict expendable caches:', evictErr);
+    }
+  }
+
+  /**
    * Write data to storage (Memory Cache & LocalStorage) with schema validation and updatedAt
    */
   static set<T>(baseKey: string, value: T, email = ''): void {
@@ -94,24 +134,52 @@ export class StorageRepository {
     const payload: SyncRecord<any> = {
       version: STORAGE_CONFIG.schemaVersion,
       timestamp: new Date().toISOString(),
-      // updatedAt: new Date().toISOString(), // Optional if we strictly follow SyncRecord interface
       data: value as any
     };
 
-    try {
-      const serialized = JSON.stringify(payload);
+    const serialized = JSON.stringify(payload);
+    const writePayload = () => {
       localStorage.setItem(cacheKey, serialized);
       memoryCache.set(cacheKey, payload);
       rawCache.set(cacheKey, serialized);
-      
-      // Update modification timestamp for synchronization
-      if (email) {
+
+      const isSyncableUserKey =
+        baseKey === STORAGE_CONFIG.keys.assignments ||
+        baseKey === STORAGE_CONFIG.keys.courses ||
+        baseKey === STORAGE_CONFIG.keys.schedule ||
+        baseKey === STORAGE_CONFIG.keys.hiddenCourses;
+      if (email && isSyncableUserKey) {
         const timeKey = `classroom_hub_settings_last_updated_${email.toLowerCase().trim()}`;
         localStorage.setItem(timeKey, payload.timestamp);
       }
+    };
+
+    try {
+      writePayload();
     } catch (err: any) {
+      const isQuota =
+        err?.name === 'QuotaExceededError' ||
+        err?.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+        err?.code === 22;
+
+      if (isQuota && baseKey !== STORAGE_CONFIG.keys.resources) {
+        this.evictExpendableCaches(email, false);
+        try {
+          writePayload();
+          return;
+        } catch (retryErr: any) {
+          this.evictExpendableCaches(email, true);
+          try {
+            writePayload();
+            return;
+          } catch (finalErr: any) {
+            logger.error(`LocalStorage write retry failed after full cache eviction for key: ${cacheKey}`, finalErr || retryErr);
+            throw new StorageError(`Failed to save data (storage quota exceeded): ${finalErr?.message || 'QuotaExceededError'}`);
+          }
+        }
+      }
       logger.error(`LocalStorage write error for key: ${cacheKey}`, err);
-      throw new StorageError(`Failed to save settings data: ${err.message}`);
+      throw new StorageError(`Failed to save settings data: ${err?.message || 'Storage error'}`);
     }
   }
 
@@ -136,6 +204,8 @@ export class StorageRepository {
         logger.debug(`Cache Hit (Memory) for ${cacheKey}`);
         return cached.data as T;
       }
+      memoryCache.delete(cacheKey);
+      rawCache.delete(cacheKey);
       logger.debug(`Cache Expired (Memory) for ${cacheKey}`);
       return null;
     }
@@ -145,14 +215,22 @@ export class StorageRepository {
       const parsed = JSON.parse(stored) as SyncRecord<any>;
       
       // Verify wrap structure
-      if (parsed && parsed.data !== undefined) {
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.data !== undefined && parsed.timestamp !== undefined) {
         if (this.isValidCache(baseKey, parsed, forceIgnoreTTL)) {
           logger.debug(`Cache Hit (LocalStorage) for ${cacheKey}`);
           memoryCache.set(cacheKey, parsed);
           rawCache.set(cacheKey, stored);
           return parsed.data as T;
         }
+        memoryCache.delete(cacheKey);
+        rawCache.delete(cacheKey);
         logger.info(`Cache Expired (LocalStorage) for ${cacheKey}`);
+        return null;
+      }
+
+      // Handle legacy unwrapped records transparently
+      if (parsed !== undefined) {
+        return parsed as T;
       }
       return null;
     } catch (err) {
@@ -172,8 +250,10 @@ export class StorageRepository {
     const ttl = ttls[baseKey];
     if (!ttl) return true; // Items without configured TTL (e.g. local settings) do not expire
 
-    const age = Date.now() - new Date(cachedObject.timestamp).getTime();
-    return age < ttl;
+    const parsedTime = new Date(cachedObject?.timestamp).getTime();
+    if (!Number.isFinite(parsedTime)) return false;
+    const age = Date.now() - parsedTime;
+    return age >= 0 && age < ttl;
   }
 
   /**

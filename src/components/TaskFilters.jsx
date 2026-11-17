@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, List } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Filter, ArrowUpDown, LayoutGrid, Kanban, List, X } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -9,24 +9,33 @@ export default function TaskFilters({
   selectedStatus, setSelectedStatus,
   sortBy, setSortBy,
   viewType, setViewType,
+  clearFilters,
   visibleCourses, lang
 }) {
   const [localSearch, setLocalSearch] = useState(searchQuery);
-  const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
   const debouncedSearch = useDebounce(localSearch, 300);
+  const lastPushRef = useRef(searchQuery);
+
+  // Sync external URL changes into local input only when NOT caused by our own debounce
+  useEffect(() => {
+    if (searchQuery !== lastPushRef.current) {
+      lastPushRef.current = searchQuery;
+      setLocalSearch(searchQuery);
+    }
+  }, [searchQuery]);
 
   useEffect(() => {
     if (debouncedSearch !== searchQuery) {
+      lastPushRef.current = debouncedSearch;
       setSearchQuery(debouncedSearch);
     }
   }, [debouncedSearch, searchQuery, setSearchQuery]);
 
-  if (searchQuery !== prevSearchQuery) {
-    setPrevSearchQuery(searchQuery);
-    if (searchQuery === '') {
-      setLocalSearch('');
-    }
-  }
+  const hasActiveFilters = Boolean(
+    localSearch ||
+    (selectedCourse && selectedCourse !== 'all') ||
+    (viewType !== 'kanban' && selectedStatus && selectedStatus !== 'all')
+  );
 
   return (
     <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3">
@@ -37,11 +46,26 @@ export default function TaskFilters({
         </span>
         <input
           type="text"
+          aria-label={t('searchPlaceholder', lang)}
           placeholder={t('searchPlaceholder', lang)}
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl pl-9 pr-4 py-2 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors"
+          className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl pl-9 pr-8 py-2 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors"
         />
+        {localSearch && (
+          <button
+            type="button"
+            onClick={() => {
+              setLocalSearch('');
+              lastPushRef.current = '';
+              setSearchQuery('');
+            }}
+            aria-label="Clear search"
+            className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[#858585] hover:text-[#FFFFFF] cursor-pointer"
+          >
+            <X size={13} />
+          </button>
+        )}
       </div>
 
       {/* Filters and Sorting */}
@@ -49,9 +73,10 @@ export default function TaskFilters({
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
           <Filter size={13} className="text-[#858585]" />
           <select
+            aria-label={t('allSubjects', lang)}
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none cursor-pointer pr-1"
+            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer pr-1 rounded"
           >
             <option value="all">{t('allSubjects', lang)}</option>
             {visibleCourses.map(c => (
@@ -63,9 +88,10 @@ export default function TaskFilters({
         {viewType !== 'kanban' && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
             <select
+              aria-label={t('allStatuses', lang)}
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer rounded"
             >
               <option value="all">{t('allStatuses', lang)}</option>
               <option value="todo">{t('todo', lang)}</option>
@@ -78,9 +104,10 @@ export default function TaskFilters({
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
           <ArrowUpDown size={13} className="text-[#858585]" />
           <select
+            aria-label="Sort assignments"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none cursor-pointer"
+            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer rounded"
           >
             <option value="due-asc">{t('sortByDueAsc', lang)}</option>
             <option value="due-desc">{t('sortByDueDesc', lang)}</option>
@@ -88,11 +115,33 @@ export default function TaskFilters({
           </select>
         </div>
 
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={() => {
+              setLocalSearch('');
+              lastPushRef.current = '';
+              if (clearFilters) {
+                clearFilters();
+              } else {
+                setSearchQuery('');
+                setSelectedCourse('all');
+                setSelectedStatus('all');
+              }
+            }}
+            className="text-xs font-medium text-[#3794FF] hover:text-[#FFFFFF] bg-[#007ACC]/15 hover:bg-[#007ACC]/30 border border-[#007ACC]/40 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+          >
+            {t('clearFilters', lang)}
+          </button>
+        )}
+
         <div className="flex items-center border border-[#3C3C3C] rounded-xl p-0.5 bg-[#1E1E1E] ml-auto md:ml-1">
           <button
             type="button"
             onClick={() => setViewType('list')}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+            aria-label="List View"
+            aria-pressed={viewType === 'list'}
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] ${
               viewType === 'list' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
             }`}
             title="List View"
@@ -102,7 +151,9 @@ export default function TaskFilters({
           <button
             type="button"
             onClick={() => setViewType('grid')}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+            aria-label="Grid View"
+            aria-pressed={viewType === 'grid'}
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] ${
               viewType === 'grid' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
             }`}
             title="Grid View"
@@ -112,7 +163,9 @@ export default function TaskFilters({
           <button
             type="button"
             onClick={() => setViewType('kanban')}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+            aria-label="Kanban Board"
+            aria-pressed={viewType === 'kanban'}
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] ${
               viewType === 'kanban' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
             }`}
             title="Kanban Board"

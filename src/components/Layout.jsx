@@ -1,10 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import HeaderBar from './HeaderBar';
 import { X } from 'lucide-react';
 
 export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#1E1E1E] text-[#D4D4D4]">
@@ -13,7 +24,15 @@ export default function Layout({ children }) {
       </div>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden bg-black/60">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile Navigation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setMobileMenuOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex md:hidden bg-black/60"
+        >
           <div className="h-full w-64 bg-[#252526] shadow-lg">
             <Sidebar onLinkClick={() => setMobileMenuOpen(false)} />
           </div>

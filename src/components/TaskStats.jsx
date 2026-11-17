@@ -3,6 +3,27 @@ import { CheckCircle2, ListTodo, ClipboardList, Timer } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { parseExamDate } from '../utils/examDate';
 
+const isExamStillUpcoming = (exam, now) => {
+  const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
+  if (!parsedDate) return false;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (parsedDate > today) return true;
+  if (parsedDate < today) return false;
+  // On exam day: check whether exam end time has already elapsed
+  if (exam.time && typeof exam.time === 'string') {
+    const parts = exam.time.split(/[-–]/).map(s => s.trim());
+    const endMatch = parts[1]?.match(/^(\d{1,2})[:.](\d{2})$/);
+    if (endMatch) {
+      const endDt = new Date(
+        now.getFullYear(), now.getMonth(), now.getDate(),
+        parseInt(endMatch[1], 10), parseInt(endMatch[2], 10), 0, 0
+      );
+      return endDt >= now;
+    }
+  }
+  return true;
+};
+
 const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en', exams = [] }) {
   const total = assignments.length;
   const todo = assignments.filter(a => a.status === 'todo').length;
@@ -14,13 +35,10 @@ const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en',
   let closestExamName = '';
 
   if (exams && exams.length > 0) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const upcomingExams = exams.filter(exam => {
-      const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
-      return parsedDate ? parsedDate >= today : false;
-    });
+    const upcomingExams = exams.filter(exam => isExamStillUpcoming(exam, now));
 
     upcomingExams.sort((a, b) => {
       const dateA = parseExamDate(a.rawIsoDate || a.date) || new Date(8640000000000000);

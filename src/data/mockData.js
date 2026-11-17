@@ -100,11 +100,11 @@ export const initialAssignments = [
 ];
 
 export const initialCourses = [
-  { id: 'course-linux', name: 'Linux Administration', code: 'CS-302', instructor: 'Dr. John Doe', color: 'emerald', bgBanner: 'from-emerald-900/30 to-emerald-950/40' },
-  { id: 'course-db', name: 'Advanced Database Systems', code: 'CS-341', instructor: 'Prof. Sarah Smith', color: 'blue', bgBanner: 'from-blue-900/30 to-blue-950/40' },
-  { id: 'course-hci', name: 'Human-Computer Interaction', code: 'CS-205', instructor: 'Dr. Jane Wilson', color: 'amber', bgBanner: 'from-amber-900/30 to-amber-950/40' },
-  { id: 'course-algo', name: 'Algorithms & Complexity', code: 'CS-401', instructor: 'Prof. Alan Turing', color: 'rose', bgBanner: 'from-rose-900/30 to-rose-950/40' },
-  { id: 'course-web', name: 'Web Application Development', code: 'CS-322', instructor: 'Assoc. Prof. Tim Berners-Lee', color: 'purple', bgBanner: 'from-purple-900/30 to-purple-950/40' }
+  { id: 'course-linux', name: 'Linux Administration', code: 'CS-302', instructor: 'Dr. John Doe', color: 'emerald' },
+  { id: 'course-db', name: 'Advanced Database Systems', code: 'CS-341', instructor: 'Prof. Sarah Smith', color: 'blue' },
+  { id: 'course-hci', name: 'Human-Computer Interaction', code: 'CS-205', instructor: 'Dr. Jane Wilson', color: 'amber' },
+  { id: 'course-algo', name: 'Algorithms & Complexity', code: 'CS-401', instructor: 'Prof. Alan Turing', color: 'rose' },
+  { id: 'course-web', name: 'Web Application Development', code: 'CS-322', instructor: 'Assoc. Prof. Tim Berners-Lee', color: 'purple' }
 ];
 
 export const defaultProfile = {
@@ -112,5 +112,5 @@ export const defaultProfile = {
   studentId: '66010912345',
   email: 'alex.mercer@university.edu',
   major: 'Computer Science',
-  avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200'
+  avatarUrl: ''
 };

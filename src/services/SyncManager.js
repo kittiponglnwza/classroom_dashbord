@@ -10,7 +10,9 @@ class SyncManager {
     this.state = 'idle'; // idle | queued | uploading | success | failed | retry
     this.subscribers = new Set();
     this.debounceTimer = null;
+    this.stateResetTimer = null;
     this.activePromise = null;
+    this.pendingSyncArgs = null;
   }
 
   subscribe(callback) {
@@ -27,6 +29,23 @@ class SyncManager {
     }
   }
 
+  clearResetTimer() {
+    if (this.stateResetTimer) {
+      clearTimeout(this.stateResetTimer);
+      this.stateResetTimer = null;
+    }
+  }
+
+  cancel() {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    this.clearResetTimer();
+    this.pendingSyncArgs = null;
+    this.setState('idle');
+  }
+
   /**
    * Queue a sync operation with debouncing
    */
@@ -36,12 +55,19 @@ class SyncManager {
       return;
     }
 
+    if (this.state === 'uploading') {
+      this.pendingSyncArgs = { accessToken, email };
+      return;
+    }
+
+    this.clearResetTimer();
     this.setState('queued');
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
 
     this.debounceTimer = setTimeout(() => {
+      this.debounceTimer = null;
       this.executeSync(accessToken, email).catch(err => {
         logger.error('Background sync execution failed:', err);
       });
@@ -53,29 +79,45 @@ class SyncManager {
    */
   async executeSync(accessToken, email) {
     if (this.state === 'uploading') {
-      logger.debug('Sync already in progress. Queueing for next run.');
+      logger.debug('Sync already in progress. Scheduling follow-up run.');
+      this.pendingSyncArgs = { accessToken, email };
       return this.activePromise;
     }
 
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+    this.clearResetTimer();
     this.setState('uploading');
     this.activePromise = this.performSync(accessToken, email);
 
     try {
       const remoteModified = await this.activePromise;
       this.setState('success');
-      // Reset to idle after a short delay
-      setTimeout(() => {
+      this.stateResetTimer = setTimeout(() => {
+        this.stateResetTimer = null;
         if (this.state === 'success') this.setState('idle');
       }, 3000);
       return remoteModified;
     } catch (err) {
       this.setState('failed');
-      setTimeout(() => {
+      this.stateResetTimer = setTimeout(() => {
+        this.stateResetTimer = null;
         if (this.state === 'failed') this.setState('idle');
       }, 5000);
       throw err;
     } finally {
       this.activePromise = null;
+      const queued = this.pendingSyncArgs;
+      if (queued) {
+        this.pendingSyncArgs = null;
+        setTimeout(() => {
+          this.executeSync(queued.accessToken, queued.email).catch(err => {
+            logger.error('Queued follow-up sync failed:', err);
+          });
+        }, 0);
+      }
     }
   }
 
@@ -89,11 +131,57 @@ class SyncManager {
 
   /**
    * Merges remote and local payloads item-by-item (Assignments, Schedule, Exams, settings)
-   * based on specific field-level `updatedAt` properties.
+   * based on specific field-level `updatedAt` properties and cross-device tombstones.
+   * Preserves existing collection wrappers when merged `.data` is unchanged so background
+   * polling does not create endless Drive PATCH upload loops.
    */
   mergePayloads(localPayload, remotePayload, email) {
     logger.info(`SyncManager merging remote and local payloads for ${email}`);
     const merged = {};
+
+    const deletedIdsKey = `classroom_hub_deleted_ids_${(email || '').toLowerCase().trim()}`;
+    let mergedTombstones = [];
+    if (localPayload?.[deletedIdsKey] || remotePayload?.[deletedIdsKey]) {
+      const localTombs = this.safeParseDataArray(localPayload?.[deletedIdsKey]);
+      const remoteTombs = this.safeParseDataArray(remotePayload?.[deletedIdsKey]);
+      mergedTombstones = this.mergeDeletedIds(localTombs, remoteTombs);
+    }
+
+    const getTombstoneMap = (entityType) => {
+      const map = new Map();
+      mergedTombstones.forEach(t => {
+        if (t?.entityType === entityType && t.id) {
+          const ts = new Date(t.deletedAt || 0).getTime();
+          if (Number.isFinite(ts)) {
+            map.set(String(t.id), ts);
+          }
+        }
+      });
+      return map;
+    };
+
+    const resolveCollectionResult = (localStr, remoteStr, localParsed, remoteParsed, mergedData) => {
+      const mergedDataStr = JSON.stringify(mergedData);
+      const localDataStr = JSON.stringify(localParsed.data);
+      const remoteDataStr = JSON.stringify(remoteParsed.data);
+
+      const localMatches = mergedDataStr === localDataStr;
+      const remoteMatches = mergedDataStr === remoteDataStr;
+
+      if (localMatches && remoteMatches) {
+        const localTime = new Date(localParsed.timestamp || 0).getTime();
+        const remoteTime = new Date(remoteParsed.timestamp || 0).getTime();
+        return remoteTime >= localTime ? remoteStr : localStr;
+      }
+      if (localMatches) return localStr;
+      if (remoteMatches) return remoteStr;
+
+      return JSON.stringify({
+        version: STORAGE_CONFIG.schemaVersion,
+        timestamp: new Date().toISOString(),
+        data: mergedData
+      });
+    };
 
     const allKeys = new Set([
       ...Object.keys(localPayload || {}),
@@ -117,35 +205,33 @@ class SyncManager {
       const isAssignments = fullKey.startsWith(KEYS.assignments);
       const isSchedule = fullKey.startsWith(KEYS.schedule);
       const isExams = fullKey.startsWith(KEYS.exams);
+      const isDeletedIds = fullKey.startsWith('classroom_hub_deleted_ids');
       const isSentNotifications = fullKey.startsWith('classroom_hub_sent_notifications');
       const isNotificationHistory = fullKey.startsWith('classroom_hub_notification_history');
       const isDailyEmailLimit = fullKey.startsWith('classroom_hub_daily_email_limit');
 
       try {
-        if (isAssignments) {
+        if (isDeletedIds) {
+          const localParsed = JSON.parse(localStr);
+          const remoteParsed = JSON.parse(remoteStr);
+          const mergedArr = this.mergeDeletedIds(localParsed.data || [], remoteParsed.data || []);
+          merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedArr);
+        } else if (isAssignments) {
           const localParsed = JSON.parse(localStr);
           const remoteParsed = JSON.parse(remoteStr);
           const localArr = localParsed.data || [];
           const remoteArr = remoteParsed.data || [];
           const localIsNewer = new Date(localParsed.timestamp || 0) >= new Date(remoteParsed.timestamp || 0);
-          const mergedArr = this.mergeEntitiesById(localArr, remoteArr, localIsNewer);
-          merged[fullKey] = JSON.stringify({
-            version: STORAGE_CONFIG.schemaVersion,
-            timestamp: new Date().toISOString(),
-            data: mergedArr
-          });
+          const mergedArr = this.mergeEntitiesById(localArr, remoteArr, localIsNewer, getTombstoneMap('assignments'));
+          merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedArr);
         } else if (isSchedule) {
           const localParsed = JSON.parse(localStr);
           const remoteParsed = JSON.parse(remoteStr);
           const localArr = localParsed.data || [];
           const remoteArr = remoteParsed.data || [];
           const localIsNewer = new Date(localParsed.timestamp || 0) >= new Date(remoteParsed.timestamp || 0);
-          const mergedArr = this.mergeEntitiesById(localArr, remoteArr, localIsNewer);
-          merged[fullKey] = JSON.stringify({
-            version: STORAGE_CONFIG.schemaVersion,
-            timestamp: new Date().toISOString(),
-            data: mergedArr
-          });
+          const mergedArr = this.mergeEntitiesById(localArr, remoteArr, localIsNewer, getTombstoneMap('schedule'));
+          merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedArr);
         } else if (isExams) {
           const localParsed = JSON.parse(localStr);
           const remoteParsed = JSON.parse(remoteStr);
@@ -153,7 +239,12 @@ class SyncManager {
           const remoteObj = remoteParsed.data || { exams: [], manualExams: [], unlisted: null };
           const localIsNewer = new Date(localParsed.timestamp || 0) >= new Date(remoteParsed.timestamp || 0);
           
-          const mergedManual = this.mergeEntitiesById(localObj.manualExams || [], remoteObj.manualExams || [], localIsNewer);
+          const mergedManual = this.mergeEntitiesById(
+            localObj.manualExams || [],
+            remoteObj.manualExams || [],
+            localIsNewer,
+            getTombstoneMap('manualExams')
+          );
           
           let mergedExams;
           let mergedUnlisted;
@@ -166,52 +257,33 @@ class SyncManager {
             mergedUnlisted = remoteObj.unlisted !== undefined ? remoteObj.unlisted : localObj.unlisted;
           }
 
-          merged[fullKey] = JSON.stringify({
-            version: STORAGE_CONFIG.schemaVersion,
-            timestamp: new Date().toISOString(),
-            data: {
-              exams: mergedExams,
-              manualExams: mergedManual,
-              unlisted: mergedUnlisted
-            }
-          });
+          const mergedExamData = {
+            exams: mergedExams,
+            manualExams: mergedManual,
+            unlisted: mergedUnlisted
+          };
+          merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedExamData);
         } else if (isSentNotifications) {
-          // Union by (assignmentId, type) so a reminder sent on one device is never forgotten
-          // when merging with another device's payload.
           const localParsed = JSON.parse(localStr);
           const remoteParsed = JSON.parse(remoteStr);
           const mergedArr = this.mergeSentNotifications(localParsed.data || [], remoteParsed.data || []);
-          merged[fullKey] = JSON.stringify({
-            version: STORAGE_CONFIG.schemaVersion,
-            timestamp: new Date().toISOString(),
-            data: mergedArr
-          });
+          merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedArr);
         } else if (isNotificationHistory) {
-          // Union history logs by id and preserve read state across devices.
           const localParsed = JSON.parse(localStr);
           const remoteParsed = JSON.parse(remoteStr);
           const mergedArr = this.mergeNotificationHistory(localParsed.data || [], remoteParsed.data || []);
-          merged[fullKey] = JSON.stringify({
-            version: STORAGE_CONFIG.schemaVersion,
-            timestamp: new Date().toISOString(),
-            data: mergedArr
-          });
+          merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedArr);
         } else if (isDailyEmailLimit) {
           const localParsed = JSON.parse(localStr);
           const remoteParsed = JSON.parse(remoteStr);
           const mergedLimit = this.mergeDailyEmailLimit(localParsed.data || {}, remoteParsed.data || {});
-          merged[fullKey] = JSON.stringify({
-            version: STORAGE_CONFIG.schemaVersion,
-            timestamp: new Date().toISOString(),
-            data: mergedLimit
-          });
+          merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedLimit);
         } else {
           // General settings, profiles, lastSync metadata: LWW based on collection timestamp
           let localObj, remoteObj;
           try { localObj = JSON.parse(localStr); } catch { localObj = null; }
           try { remoteObj = JSON.parse(remoteStr); } catch { remoteObj = null; }
 
-          // If either value is a raw (non-JSON-wrapped) string, prefer the local value
           if (!localObj || !remoteObj || localObj.timestamp === undefined || remoteObj.timestamp === undefined) {
             merged[fullKey] = localStr;
           } else {
@@ -229,43 +301,92 @@ class SyncManager {
     return merged;
   }
 
+  safeParseDataArray(rawStr) {
+    if (!rawStr) return [];
+    try {
+      const parsed = JSON.parse(rawStr);
+      return Array.isArray(parsed?.data) ? parsed.data : [];
+    } catch {
+      return [];
+    }
+  }
+
+  mergeDeletedIds(localList = [], remoteList = []) {
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const map = new Map();
+    [...(remoteList || []), ...(localList || [])].forEach(entry => {
+      if (!entry || !entry.id || !entry.entityType) return;
+      const t = new Date(entry.deletedAt || 0).getTime();
+      if (!Number.isFinite(t) || t < cutoff) return;
+      const key = `${entry.entityType}::${entry.id}`;
+      const prev = map.get(key);
+      if (!prev || t > new Date(prev.deletedAt || 0).getTime()) {
+        map.set(key, entry);
+      }
+    });
+    return Array.from(map.values()).slice(-500);
+  }
+
   /**
-   * Helper to merge arrays of entities by comparing their `updatedAt` properties.
-   * When localIsNewer is true, remote-only items are skipped (they were likely deleted locally).
+   * Helper to merge arrays of entities by comparing their `updatedAt` properties
+   * and filtering against cross-device deletion tombstones.
    */
-  mergeEntitiesById(localList, remoteList, localIsNewer = false) {
+  mergeEntitiesById(localList, remoteList, localIsNewer = false, tombstones = new Map()) {
     const mergedMap = new Map();
 
-    // Map all local items
-    localList.forEach(item => {
-      if (item && item.id) {
-        mergedMap.set(String(item.id), item);
+    const resolveStatusField = (localItem, remoteItem) => {
+      const localStatusTime = localItem.statusUpdatedAt ? new Date(localItem.statusUpdatedAt).getTime() : 0;
+      const remoteStatusTime = remoteItem.statusUpdatedAt ? new Date(remoteItem.statusUpdatedAt).getTime() : 0;
+      if (remoteStatusTime > 0 || localStatusTime > 0) {
+        if (remoteStatusTime > localStatusTime) {
+          return { status: remoteItem.status || localItem.status, statusUpdatedAt: remoteItem.statusUpdatedAt };
+        }
+        return { status: localItem.status || remoteItem.status, statusUpdatedAt: localItem.statusUpdatedAt };
       }
+      return {
+        status: localItem.status === 'done' ? 'done' : (remoteItem.status || localItem.status),
+        statusUpdatedAt: undefined
+      };
+    };
+
+    // Map local items unless invalidated by a newer cross-device tombstone
+    (localList || []).forEach(item => {
+      if (!item || !item.id) return;
+      const idStr = String(item.id);
+      const tombTime = tombstones?.get(idStr) || 0;
+      const itemTime = new Date(item.updatedAt || item.timestamp || 0).getTime();
+      if (tombTime > itemTime) return;
+      mergedMap.set(idStr, item);
     });
 
     // Merge remote items
-    remoteList.forEach(remoteItem => {
+    (remoteList || []).forEach(remoteItem => {
       if (!remoteItem || !remoteItem.id) return;
       const idStr = String(remoteItem.id);
+      const tombTime = tombstones?.get(idStr) || 0;
+      const remoteTime = new Date(remoteItem.updatedAt || remoteItem.timestamp || 0).getTime();
+      if (tombTime > remoteTime) return;
+
       const localItem = mergedMap.get(idStr);
 
       if (!localItem) {
-        // Item exists in remote but not in local
-        // If local collection is newer, the item was likely deleted locally — skip it
         if (!localIsNewer) {
           mergedMap.set(idStr, remoteItem);
         }
       } else {
         const localTime = new Date(localItem.updatedAt || localItem.timestamp || 0).getTime();
-        const remoteTime = new Date(remoteItem.updatedAt || remoteItem.timestamp || 0).getTime();
-        
-        // Preserve notes and status overrides appropriately
+        const statusFields = resolveStatusField(localItem, remoteItem);
+
         if (remoteTime > localTime) {
           mergedMap.set(idStr, {
             ...localItem,
             ...remoteItem,
-            // If local status is manually set to done, keep it done
-            status: localItem.status === 'done' ? 'done' : (remoteItem.status || localItem.status)
+            ...statusFields
+          });
+        } else if (statusFields.status !== localItem.status || statusFields.statusUpdatedAt !== localItem.statusUpdatedAt) {
+          mergedMap.set(idStr, {
+            ...localItem,
+            ...statusFields
           });
         }
       }

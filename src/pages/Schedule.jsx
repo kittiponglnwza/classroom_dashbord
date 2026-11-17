@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, useId } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { CalendarDays, CalendarX2, Plus, X, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { t } from '../utils/i18n';
@@ -8,6 +8,7 @@ import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useExams } from '../hooks/useExams';
 import { parseExamDate } from '../utils/examDate';
+import { parseLocalDateInput } from '../utils/dateUtils';
 
 import { DAYS, JS_DAY_MAP } from '../constants/dateConstants';
 
@@ -56,10 +57,11 @@ function resolveHexColor(colorStr) {
 }
 
 function addHoursToTime(timeStr, hours) {
-  if (!timeStr) return '';
-  const [h, m] = timeStr.split(':').map(Number);
-  const totalMinutes = h * 60 + m + Math.round(hours * 60);
-  const newH = Math.floor(totalMinutes / 60) % 24;
+  if (!timeStr || typeof timeStr !== 'string') return '';
+  const parts = timeStr.split(/[:.]/).map(Number);
+  if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return '';
+  const totalMinutes = Math.min(23 * 60 + 59, Math.max(0, parts[0] * 60 + parts[1] + Math.round(hours * 60)));
+  const newH = Math.floor(totalMinutes / 60);
   const newM = totalMinutes % 60;
   return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
 }
@@ -73,9 +75,39 @@ function toLocalDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function normalizeClockTime(raw, fallback = null) {
+  if (!raw || typeof raw !== 'string') return fallback;
+  const match = raw.trim().match(/^(\d{1,2})[:.](\d{2})$/);
+  if (!match) return fallback;
+  const h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  if (h < 0 || h > 24 || m < 0 || m > 59 || (h === 24 && m > 0)) return fallback;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 function timeToMinutes(tStr) {
-  const [h, m] = tStr.split(':').map(Number);
-  return h * 60 + m;
+  if (!tStr || typeof tStr !== 'string') return 0;
+  const parts = tStr.trim().split(/[:.]/).map(Number);
+  if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return 0;
+  return parts[0] * 60 + parts[1];
+}
+
+function assignVerticalLanes(dayEntries) {
+  const sorted = [...dayEntries].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+  const laneEndMinutes = [];
+  const withLanes = sorted.map(entry => {
+    const startM = timeToMinutes(entry.startTime);
+    const endM = Math.max(startM + 30, timeToMinutes(entry.endTime));
+    let lane = laneEndMinutes.findIndex(end => end <= startM);
+    if (lane === -1) {
+      lane = laneEndMinutes.length;
+      laneEndMinutes.push(endM);
+    } else {
+      laneEndMinutes[lane] = endM;
+    }
+    return { ...entry, _lane: lane };
+  });
+  return { items: withLanes, laneCount: Math.max(1, laneEndMinutes.length) };
 }
 
 function formatTimeRange(start, end) {
@@ -121,8 +153,7 @@ function getWeekDates(offset, lang) {
 
 function timeToPercent(timeStr) {
   if (!timeStr) return 0;
-  const [h, m] = timeStr.split(':').map(Number);
-  const minutes = h * 60 + m;
+  const minutes = timeToMinutes(timeStr);
   const startMinutes = START_HOUR * 60;
   const totalMinutes = (END_HOUR - START_HOUR) * 60;
   return Math.min(Math.max(((minutes - startMinutes) / totalMinutes) * 100, 0), 100);
@@ -226,6 +257,7 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
           <button
             type="button"
             onClick={handlePrevMonth}
+            aria-label="Previous month"
             className="p-1.5 rounded-lg hover:bg-[#2A2D2E] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
           >
             <ChevronLeft size={15} />
@@ -233,6 +265,7 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
           <button
             type="button"
             onClick={handleNextMonth}
+            aria-label="Next month"
             className="p-1.5 rounded-lg hover:bg-[#2A2D2E] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
           >
             <ChevronRight size={15} />
@@ -302,13 +335,15 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
     const activeRegular = [];
 
     schedule.forEach(entry => {
-      if (entry.deletedAt && weekDates[entry.day] && weekDates[entry.day].dateStr >= entry.deletedAt) return;
+      const dayDateStr = weekDates[entry.day]?.dateStr;
+      if (!dayDateStr) return;
+      if (entry.deletedAt && dayDateStr >= entry.deletedAt) return;
       if (entry.isExam) {
-        if (entry.date === weekDates[entry.day].dateStr) {
+        if (entry.date === dayDateStr) {
           activeExams.push(entry);
         }
       } else {
-        if (!entry.date || entry.date === weekDates[entry.day].dateStr) {
+        if (!entry.date || entry.date === dayDateStr) {
           activeRegular.push(entry);
         }
       }
@@ -344,18 +379,24 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
   const handleRowClick = useCallback((day, e) => {
     if (e.target.closest('[data-schedule-block]')) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percent = x / rect.width;
-    const minutes = START_HOUR * 60 + percent * (END_HOUR - START_HOUR) * 60;
+    let startTime = '09:00';
+    let endTime = '10:00';
+    if (rect && rect.width > 0 && Number.isFinite(e.clientX)) {
+      const x = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
+      const percent = x / rect.width;
+      const minutes = START_HOUR * 60 + percent * (END_HOUR - START_HOUR) * 60;
 
-    const roundedMinutes = Math.round(minutes / 30) * 30;
-    const hour = Math.floor(roundedMinutes / 60);
-    const minute = roundedMinutes % 60;
-    const startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-    const endHour = Math.min(hour + 1, END_HOUR);
-    const endTime = `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      const roundedMinutes = Math.min(22 * 60 + 30, Math.max(START_HOUR * 60, Math.round(minutes / 30) * 30));
+      const hour = Math.floor(roundedMinutes / 60);
+      const minute = roundedMinutes % 60;
+      startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      const endMinutes = Math.min(23 * 60 + 59, roundedMinutes + 60);
+      const endHour = Math.floor(endMinutes / 60);
+      const endMin = endMinutes % 60;
+      endTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+    }
 
-    const specificDate = weekDates[day].dateStr;
+    const specificDate = weekDates[day]?.dateStr || '';
     onClickEmpty(day, startTime, endTime, specificDate);
   }, [onClickEmpty, weekDates]);
 
@@ -389,10 +430,13 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
           <div className="flex flex-col relative">
             {DAYS.map(day => {
               const isToday = day === todayKey && weekOffset === 0;
+              const { items: laneEntries, laneCount } = assignVerticalLanes(entriesByDay[day]);
+              const rowMinHeight = Math.max(74, laneCount * 46);
               return (
                 <div
                   key={day}
-                  className="grid grid-cols-[120px_1fr] relative border-b border-[#3C3C3C] min-h-[74px]"
+                  className="grid grid-cols-[120px_1fr] relative border-b border-[#3C3C3C]"
+                  style={{ minHeight: `${rowMinHeight}px` }}
                 >
                   <div className="flex items-center gap-2.5 p-3 border-r border-[#3C3C3C] select-none bg-[#252526] shrink-0">
                     <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: TRADITIONAL_DAY_COLORS[day] }} />
@@ -413,10 +457,11 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                     onClick={(e) => handleRowClick(day, e)}
                     role="button"
                     tabIndex={0}
+                    aria-label={`${t(DAY_KEYS[day], lang)} timetable row - add class`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        handleRowClick(day, e);
+                        onClickEmpty(day, '09:00', '10:00', weekDates[day].dateStr);
                       }
                     }}
                   >
@@ -426,15 +471,18 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                       ))}
                     </div>
 
-                    {entriesByDay[day].map(entry => {
-                      const startPercent = timeToPercent(entry.startTime);
-                      const endPercent = timeToPercent(entry.endTime);
-                      const left = startPercent;
-                      const width = Math.max(endPercent - startPercent, 1.5);
+                    {laneEntries.map(entry => {
+                      const rawStart = timeToPercent(entry.startTime);
+                      const rawEnd = timeToPercent(entry.endTime);
+                      const left = Math.min(Math.max(rawStart, 0), 96);
+                      const right = Math.min(Math.max(rawEnd, left + 2), 100);
+                      const width = Math.max(right - left, 2);
 
                       const isAssign = entry.isAssignment;
                       const isAllDay = isAssign && entry.startTime === '06:00' && entry.endTime === '24:00';
                       const accentHex = resolveHexColor(entry.color);
+                      const topPct = (entry._lane / laneCount) * 100 + 6 / laneCount;
+                      const heightPct = (100 / laneCount) - (12 / laneCount);
 
                       return (
                         <div
@@ -454,9 +502,8 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                           style={{
                             left: `${left}%`,
                             width: `${width}%`,
-                            top: isAllDay ? '6%' : (isAssign ? '14%' : '10%'),
-                            bottom: isAllDay ? 'auto' : (isAssign ? '14%' : '10%'),
-                            height: isAllDay ? '24px' : undefined,
+                            top: `${topPct}%`,
+                            height: isAllDay ? `${Math.min(28, heightPct)}%` : `${heightPct}%`,
                             border: `1px solid ${accentHex}55`,
                             borderLeft: `3px solid ${accentHex}`,
                             zIndex: isAssign ? 20 : 10,
@@ -655,6 +702,16 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
 // ─── ADD / EDIT MODAL ──────────────────────────────────────────────
 function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, onDelete, onClose }) {
   const isEdit = Boolean(entry?.id);
+  const classTypeId = useId();
+  const courseSelectId = useId();
+  const titleId = useId();
+  const codeId = useId();
+  const dateId = useId();
+  const dayId = useId();
+  const startTimeId = useId();
+  const endTimeId = useId();
+  const roomId = useId();
+  const notesId = useId();
 
   const [formData, setFormData] = useState({
     title: entry?.title || '',
@@ -672,11 +729,22 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   const [classType, setClassType] = useState(entry?.id && entry?.date ? 'one-off' : 'recurring');
   const [isCustom, setIsCustom] = useState(!entry?.courseId);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [timeError, setTimeError] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
 
   const update = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
 
   const handleApplyDuration = (hours) => {
     if (formData.startTime) {
+      setTimeError('');
       update('endTime', addHoursToTime(formData.startTime, hours));
     }
   };
@@ -736,6 +804,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.title || !formData.startTime || !formData.endTime) return;
+    if (timeToMinutes(formData.endTime) <= timeToMinutes(formData.startTime)) {
+      setTimeError(t('invalidTimeRange', lang));
+      return;
+    }
+    setTimeError('');
 
     const restEntry = { ...(entry || {}) };
     delete restEntry._clickedDateStr;
@@ -743,7 +816,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
       ...restEntry,
       ...formData,
       date: classType === 'one-off' ? formData.date : '',
-      id: entry?.id || `sched-${Date.now()}`,
+      id: entry?.id || `sched-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     };
     onSave(saved);
   };
@@ -760,17 +833,24 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in"
+      onClick={onClose}
+    >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="schedule-modal-title"
         className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 max-w-lg w-full max-h-[90vh] relative shadow-xl overflow-y-auto flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4 border-b border-[#3C3C3C] pb-3 sticky top-0 bg-[#252526] z-10">
-          <h3 className="font-semibold text-base text-[#FFFFFF]">
+          <h3 id="schedule-modal-title" className="font-semibold text-base text-[#FFFFFF]">
             {isEdit ? t('editSchedule', lang) : t('addSchedule', lang)}
           </h3>
           <button
             type="button"
+            aria-label={lang === 'en' ? 'Close modal' : 'ปิดหน้าต่าง'}
             onClick={onClose}
             className="text-[#9D9D9D] hover:text-[#FFFFFF] p-1.5 rounded-lg hover:bg-[#2A2D2E] transition-colors cursor-pointer"
           >
@@ -787,12 +867,13 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 
         <form onSubmit={handleSubmit} className="space-y-4 flex-1">
           <div>
-            <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+            <span id={classTypeId} className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
               {t('classType', lang)}
-            </label>
-            <div className="flex gap-1.5 p-1 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl">
+            </span>
+            <div role="group" aria-labelledby={classTypeId} className="flex gap-1.5 p-1 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl">
               <button
                 type="button"
+                aria-pressed={classType === 'recurring'}
                 onClick={() => handleTypeChange('recurring')}
                 className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
                   classType === 'recurring' ? 'bg-[#094771]/70 text-[#FFFFFF] font-semibold' : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
@@ -802,6 +883,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
               </button>
               <button
                 type="button"
+                aria-pressed={classType === 'one-off'}
                 onClick={() => handleTypeChange('one-off')}
                 className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
                   classType === 'one-off' ? 'bg-[#094771]/70 text-[#FFFFFF] font-semibold' : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
@@ -813,15 +895,19 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+            <label htmlFor={courseSelectId} className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
               {t('selectCourse', lang)}
             </label>
             <select
+              id={courseSelectId}
               value={isCustom ? '__custom__' : formData.courseId}
               onChange={handleCourseSelect}
               className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
             >
               <option value="__custom__">{t('customEntry', lang)}</option>
+              {!isCustom && formData.courseId && !visibleCourses.some(c => c.id === formData.courseId) && (
+                <option value={formData.courseId}>{formData.title}</option>
+              )}
               {visibleCourses.map(c => (
                 <option key={c.id} value={c.id}>
                   {c.name} {c.code ? `(${c.code})` : ''}
@@ -832,10 +918,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+              <label htmlFor={titleId} className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('courseName', lang)}
               </label>
               <input
+                id={titleId}
                 type="text"
                 required
                 value={formData.title}
@@ -845,10 +932,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+              <label htmlFor={codeId} className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('courseCodeLabel', lang)}
               </label>
               <input
+                id={codeId}
                 type="text"
                 value={formData.courseCode}
                 onChange={(e) => update('courseCode', e.target.value)}
@@ -860,10 +948,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 
           {classType === 'one-off' ? (
             <div>
-              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+              <label htmlFor={dateId} className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('selectDate', lang)}
               </label>
               <input
+                id={dateId}
                 type="date"
                 required
                 value={formData.date}
@@ -873,10 +962,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+              <label htmlFor={dayId} className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('schedule', lang)}
               </label>
               <select
+                id={dayId}
                 value={formData.day}
                 onChange={(e) => update('day', e.target.value)}
                 className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
@@ -890,27 +980,34 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+              <label htmlFor={startTimeId} className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('startTime', lang)}
               </label>
               <input
+                id={startTimeId}
                 type="time"
                 required
                 value={formData.startTime}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setFormData(prev => ({
-                    ...prev,
-                    startTime: val,
-                    endTime: addHoursToTime(val, 3)
-                  }));
+                  setTimeError('');
+                  setFormData(prev => {
+                    const prevStart = timeToMinutes(prev.startTime);
+                    const prevEnd = timeToMinutes(prev.endTime);
+                    const durationHours = prevEnd > prevStart ? (prevEnd - prevStart) / 60 : 1.5;
+                    return {
+                      ...prev,
+                      startTime: val,
+                      endTime: addHoursToTime(val, durationHours)
+                    };
+                  });
                 }}
                 className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
               />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-[#D4D4D4] leading-none">
+                <label htmlFor={endTimeId} className="block text-xs font-medium text-[#D4D4D4] leading-none">
                   {t('endTime', lang)}
                 </label>
                 <div className="flex gap-1">
@@ -933,20 +1030,29 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 </div>
               </div>
               <input
+                id={endTimeId}
                 type="time"
                 required
                 value={formData.endTime}
-                onChange={(e) => update('endTime', e.target.value)}
+                onChange={(e) => {
+                  setTimeError('');
+                  update('endTime', e.target.value);
+                }}
                 className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
               />
             </div>
           </div>
 
+          {timeError && (
+            <p role="alert" className="text-xs text-rose-400 font-medium">{timeError}</p>
+          )}
+
           <div>
-            <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
-              {t('roomLabel', lang)}
+            <label htmlFor={roomId} className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+              {t('classRoomLabel', lang)}
             </label>
             <input
+              id={roomId}
               type="text"
               value={formData.room}
               onChange={(e) => update('room', e.target.value)}
@@ -954,32 +1060,32 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
             />
           </div>
 
-          {isCustom && (
-            <div>
-              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
-                {t('colorLabel', lang)}
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {PRESET_COLORS.map(c => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => update('color', c)}
-                    className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
-                      formData.color === c ? 'ring-2 ring-offset-2 ring-offset-[#252526] ring-[#FFFFFF] scale-110' : 'hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: c }}
-                  />
-                ))}
-              </div>
+          <div>
+            <span className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+              {t('colorLabel', lang)}
+            </span>
+            <div className="flex gap-2 flex-wrap">
+              {PRESET_COLORS.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => update('color', c)}
+                  aria-label={`Select color ${c}`}
+                  className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
+                    resolveHexColor(formData.color) === c ? 'ring-2 ring-offset-2 ring-offset-[#252526] ring-[#FFFFFF] scale-110' : 'hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
             </div>
-          )}
+          </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
+            <label htmlFor={notesId} className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
               {t('scheduleNotes', lang)}
             </label>
             <textarea
+              id={notesId}
               rows="2"
               value={formData.notes}
               onChange={(e) => update('notes', e.target.value)}
@@ -1030,8 +1136,10 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 export default function Schedule() {
   const { lang } = useSettings();
   const { profile } = useAuth();
-  const { schedule, assignments, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule } = useClassroom();
-  const { visibleCourses } = useClassroomUI();
+  const { schedule, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule } = useClassroom();
+  const ui = useClassroomUI();
+  const visibleCourses = useMemo(() => ui?.visibleCourses || [], [ui?.visibleCourses]);
+  const visibleAssignments = useMemo(() => ui?.visibleAssignments || [], [ui?.visibleAssignments]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -1039,7 +1147,8 @@ export default function Schedule() {
 
   const todayKey = getTodayKey();
   const viewType = searchParams.get('view') || 'weekly';
-  const selectedDay = searchParams.get('day') || todayKey;
+  const rawSelectedDay = searchParams.get('day') || todayKey;
+  const selectedDay = DAYS.includes(rawSelectedDay) ? rawSelectedDay : todayKey;
   const weekOffset = parseInt(searchParams.get('week') || '0', 10) || 0;
 
   const updateScheduleParams = useCallback((updates) => {
@@ -1074,24 +1183,28 @@ export default function Schedule() {
   });
 
   const activeEmail = (profile?.email || '').toLowerCase().trim();
-  const { allExams } = useExams(activeEmail, lang, schedule);
+  const { allExams } = useExams(activeEmail, lang, schedule, profile?.studentId);
 
   const examScheduleEntries = useMemo(() => {
     return allExams.map(ex => {
       let startTime = '09:00';
       let endTime = '12:00';
-      if (ex.time) {
-        const parts = ex.time.split('-').map(s => s.trim());
-        if (parts.length === 2) {
+      if (ex.time && typeof ex.time === 'string') {
+        const parts = ex.time.split(/[-–]/).map(s => normalizeClockTime(s));
+        if (parts.length === 2 && parts[0] && parts[1]) {
           startTime = parts[0];
           endTime = parts[1];
         }
       }
 
       let dateVal = '';
-      if (ex.rawIsoDate) {
-        dateVal = ex.rawIsoDate.split('T')[0];
-      } else if (ex.date) {
+      if (typeof ex.rawIsoDate === 'string') {
+        const isoPrefix = ex.rawIsoDate.split('T')[0];
+        if (/^\d{4}-\d{2}-\d{2}$/.test(isoPrefix)) {
+          dateVal = isoPrefix;
+        }
+      }
+      if (!dateVal && ex.date) {
         const parsed = parseExamDate(ex.date);
         if (parsed) {
           dateVal = toLocalDateStr(parsed);
@@ -1102,6 +1215,14 @@ export default function Schedule() {
 
       const [ey, em, ed] = dateVal.split('-').map(Number);
       const d = new Date(ey, em - 1, ed);
+      if (
+        Number.isNaN(d.getTime()) ||
+        d.getFullYear() !== ey ||
+        d.getMonth() !== em - 1 ||
+        d.getDate() !== ed
+      ) {
+        return null;
+      }
       const dayIndex = d.getDay();
       const dayKey = JS_DAY_MAP[dayIndex];
 
@@ -1122,39 +1243,27 @@ export default function Schedule() {
   }, [allExams]);
 
   const assignmentScheduleEntries = useMemo(() => {
-    if (!assignments) return [];
-    return assignments
+    if (!visibleAssignments) return [];
+    return visibleAssignments
       .filter(a => a.status !== 'done' && a.dueDate)
       .map(a => {
         let dateVal;
         let startTime;
         let endTime;
 
-        const hasTime = a.dueDate.includes('T');
+        const hasTime = typeof a.dueDate === 'string' && a.dueDate.includes('T');
         if (hasTime) {
-          const isLocalEndOfDay = a.dueDate.includes('23:59:59');
-          const isLocalTimeInput = a.dueDate.length === 16;
-          const isoString = (a.dueDate.endsWith('Z') || a.dueDate.includes('+') || isLocalEndOfDay || isLocalTimeInput)
-            ? a.dueDate
-            : `${a.dueDate}Z`;
+          const dObj = parseLocalDateInput(a.dueDate);
 
-          const dObj = new Date(isoString);
-
-          if (!isNaN(dObj.getTime())) {
+          if (dObj) {
             dateVal = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
-            const h = dObj.getHours();
-            const m = dObj.getMinutes();
-            endTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-
-            const startH = Math.max(6, h - 2);
-            startTime = `${String(startH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            const endMins = dObj.getHours() * 60 + dObj.getMinutes();
+            const safeEndMins = Math.max(30, endMins);
+            const safeStartMins = Math.max(0, safeEndMins - 120);
+            startTime = `${String(Math.floor(safeStartMins / 60)).padStart(2, '0')}:${String(safeStartMins % 60).padStart(2, '0')}`;
+            endTime = `${String(Math.floor(safeEndMins / 60)).padStart(2, '0')}:${String(safeEndMins % 60).padStart(2, '0')}`;
           } else {
-            const [dPart, tPart] = a.dueDate.split('T');
-            dateVal = dPart;
-            const timePart = tPart.split('.')[0].substring(0, 5);
-            endTime = timePart;
-            const [h, m] = timePart.split(':').map(Number);
-            startTime = `${String(Math.max(6, h - 2)).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            return null;
           }
         } else {
           dateVal = a.dueDate;
@@ -1184,7 +1293,7 @@ export default function Schedule() {
           isAssignment: true
         };
       }).filter(Boolean);
-  }, [assignments]);
+  }, [visibleAssignments]);
 
   const combinedSchedule = useMemo(() => {
     return [...schedule, ...examScheduleEntries, ...assignmentScheduleEntries];
@@ -1326,25 +1435,37 @@ export default function Schedule() {
           <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">{t('scheduleDesc', lang)}</p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-end sm:self-center">
+        <div className="flex flex-wrap items-center gap-2.5 self-end sm:self-center">
           {schedule.length > 0 && (
-            <button
-              type="button"
-              onClick={handleClearAll}
-              className={`text-xs font-medium py-2.5 px-4 rounded-xl border transition-colors cursor-pointer ${
-                showClearConfirm
-                  ? 'text-rose-400 bg-rose-500/15 border-rose-500/30'
-                  : 'text-[#9D9D9D] bg-[#252526] border-[#3C3C3C] hover:text-rose-400'
-              }`}
-            >
-              {showClearConfirm ? t('clearAllConfirm', lang) : t('clearAllSchedule', lang)}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className={`text-xs font-medium py-2.5 px-4 rounded-xl border transition-colors cursor-pointer ${
+                  showClearConfirm
+                    ? 'text-white bg-rose-600 border-rose-600'
+                    : 'text-[#9D9D9D] bg-[#252526] border-[#3C3C3C] hover:text-rose-400'
+                }`}
+              >
+                {showClearConfirm ? t('confirmBtn', lang) : t('clearAllSchedule', lang)}
+              </button>
+              {showClearConfirm && (
+                <button
+                  type="button"
+                  onClick={() => setShowClearConfirm(false)}
+                  className="text-xs font-medium py-2.5 px-3 rounded-xl border border-[#3C3C3C] bg-[#252526] text-[#D4D4D4] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
+                >
+                  {t('cancelBtn', lang)}
+                </button>
+              )}
+            </div>
           )}
 
-          <div className="hidden md:flex items-center border border-[#3C3C3C] rounded-xl p-0.5 bg-[#1E1E1E]">
+          <div className="flex items-center border border-[#3C3C3C] rounded-xl p-0.5 bg-[#1E1E1E]">
             <button
               type="button"
               onClick={() => setViewType('weekly')}
+              aria-label={t('weeklyView', lang)}
               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                 viewType === 'weekly' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
               }`}
@@ -1355,6 +1476,7 @@ export default function Schedule() {
             <button
               type="button"
               onClick={() => setViewType('daily')}
+              aria-label={t('dailyView', lang)}
               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                 viewType === 'daily' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
               }`}

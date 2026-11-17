@@ -12,8 +12,8 @@ export async function triggerManualDigest(accessToken, toEmail, assignments) {
   return await NotificationService.triggerManualDigest(accessToken, toEmail, assignments);
 }
 
-export async function evaluateNotifications(accessToken, toEmail, assignments, courses, resources) {
-  return await NotificationService.evaluateNotifications(accessToken, toEmail, assignments, courses, resources);
+export async function evaluateNotifications(accessToken, toEmail, assignments, courses, resources, options = {}) {
+  return await NotificationService.evaluateNotifications(accessToken, toEmail, assignments, courses, resources, options);
 }
 
 export async function evaluateNewPostDigest(accessToken, toEmail, freshAssignments, freshResources, cachedAssignmentIds, cachedResourceIds) {

@@ -1,18 +1,23 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { parseExamDate } from '../../utils/examDate';
+import { parseLocalDateInput } from '../../utils/dateUtils';
 import { examRepository } from '../../repositories/examRepository';
 import { syncManager } from '../../services/SyncManager';
 import { calendarSyncManager } from '../../services/CalendarSyncManager';
-import { getToken } from '../../utils/storage';
+import { getToken, recordDeletedId } from '../../utils/storage';
 import { logger } from '../../utils/logger';
 
-export const useExamRoom = (activeEmail, lang) => {
+const resolveInitialStudentId = (activeEmail = '', profileStudentId = '') => {
+  const digitsMatch = activeEmail.match(/\d{13}/);
+  if (digitsMatch) return digitsMatch[0];
+  const cleanProfileId = String(profileStudentId || '').replace(/[\s-]/g, '');
+  if (/^\d{13}$/.test(cleanProfileId)) return cleanProfileId;
+  return sessionStorage.getItem('lastExamSearch') || '';
+};
+
+export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
   const [prevEmail, setPrevEmail] = useState(activeEmail);
-  const [studentId, setStudentId] = useState(() => {
-    const digitsMatch = activeEmail.match(/\d{13}/);
-    if (digitsMatch) return digitsMatch[0];
-    return sessionStorage.getItem('lastExamSearch') || '';
-  });
+  const [studentId, setStudentId] = useState(() => resolveInitialStudentId(activeEmail, profileStudentId));
   
   const [prevStudentId, setPrevStudentId] = useState(studentId);
 
@@ -27,6 +32,11 @@ export const useExamRoom = (activeEmail, lang) => {
 
   const [examList, setExamList] = useState(initialCache.exams || []);
   const [manualExamList, setManualExamList] = useState(initialCache.manualExams || []);
+  const manualExamListRef = useRef(manualExamList);
+  useEffect(() => {
+    manualExamListRef.current = manualExamList;
+  }, [manualExamList]);
+
   const [unlistedInfo, setUnlistedInfo] = useState(initialCache.unlisted || null);
   const [searchTriggered, setSearchTriggered] = useState(() => {
     const hasSearched = !!sessionStorage.getItem('lastExamSearch');
@@ -50,8 +60,7 @@ export const useExamRoom = (activeEmail, lang) => {
   // Adjust state when activeEmail prop changes
   if (activeEmail !== prevEmail) {
     setPrevEmail(activeEmail);
-    const digitsMatch = activeEmail.match(/\d{13}/);
-    const nextStudentId = digitsMatch ? digitsMatch[0] : (sessionStorage.getItem('lastExamSearch') || '');
+    const nextStudentId = resolveInitialStudentId(activeEmail, profileStudentId);
     setStudentId(nextStudentId);
     setPrevStudentId(nextStudentId);
 
@@ -93,7 +102,6 @@ export const useExamRoom = (activeEmail, lang) => {
       setError(null);
     }
   }
-  const fetchAttempted = useRef(false);
 
   const handleSearch = useCallback(async (e) => {
     if (e) e.preventDefault();
@@ -118,14 +126,26 @@ export const useExamRoom = (activeEmail, lang) => {
     const cleanId = validResult.data;
     sessionStorage.setItem('lastExamSearch', cleanId);
 
-    abortControllerRef.current = new AbortController();
+    const requestController = new AbortController();
+    abortControllerRef.current = requestController;
 
-    const result = await examRepository.fetchExams(cleanId, lang, abortControllerRef.current.signal);
+    const result = await examRepository.fetchExams(cleanId, lang, requestController.signal);
+    if (requestController.signal.aborted) {
+      if (abortControllerRef.current === requestController) {
+        setStatus('idle');
+      }
+      return;
+    }
     
     if (result.success) {
+      const freshCache = examRepository.getCachedExams(activeEmail);
+      const latestManual = (freshCache.success && freshCache.data?.manualExams)
+        ? freshCache.data.manualExams
+        : manualExamListRef.current;
       setExamList(result.data.exams);
+      setManualExamList(latestManual);
       setUnlistedInfo(result.data.unlisted);
-      examRepository.saveToCache(activeEmail, result.data.exams, manualExamList, result.data.unlisted);
+      examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
       setStatus('success');
       
       // Trigger background sync for the new seating arrangements
@@ -141,15 +161,63 @@ export const useExamRoom = (activeEmail, lang) => {
       setError(result.error.message);
       setStatus('error');
     }
-  }, [studentId, lang, activeEmail, manualExamList]);
+  }, [studentId, lang, activeEmail]);
 
-  // Auto-fetch if not searched yet but we have a valid studentId derived from email
+  // StrictMode-safe auto-fetch when a valid 13-digit studentId is pre-populated and not searched yet
   useEffect(() => {
-    if (studentId && studentId.match(/^\d{13}$/) && !searchTriggered && !fetchAttempted.current) {
-      fetchAttempted.current = true;
-      handleSearch();
-    }
-  }, [studentId, searchTriggered, handleSearch]);
+    const cleanId = String(studentId || '').replace(/[\s-]/g, '').trim();
+    if (!/^\d{13}$/.test(cleanId) || searchTriggered) return;
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    let completed = false;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStatus('loading');
+    setError(null);
+    sessionStorage.setItem('lastExamSearch', cleanId);
+
+    examRepository.fetchExams(cleanId, lang, controller.signal).then((result) => {
+      if (controller.signal.aborted) return;
+      completed = true;
+      if (result.success) {
+        const freshCache = examRepository.getCachedExams(activeEmail);
+        const latestManual = (freshCache.success && freshCache.data?.manualExams)
+          ? freshCache.data.manualExams
+          : manualExamListRef.current;
+        setExamList(result.data.exams);
+        setManualExamList(latestManual);
+        setUnlistedInfo(result.data.unlisted);
+        setSearchTriggered(true);
+        examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
+        setStatus('success');
+
+        const token = getToken();
+        if (token && activeEmail) {
+          syncManager.queueSync(token, activeEmail);
+          calendarSyncManager.queueSync(token, activeEmail);
+        }
+      } else {
+        if (result.error?.name === 'AbortError') return;
+        setSearchTriggered(true);
+        setError(result.error?.message || 'Failed to fetch exams');
+        setStatus('error');
+      }
+    }).catch((err) => {
+      if (controller.signal.aborted || err?.name === 'AbortError') return;
+      completed = true;
+      setSearchTriggered(true);
+      setError(err?.message || 'Failed to fetch exams');
+      setStatus('error');
+    });
+
+    return () => {
+      controller.abort();
+      if (!completed && abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+    };
+  }, [studentId, searchTriggered, lang, activeEmail]);
 
   const handleSaveManualExam = useCallback((examData) => {
     let updatedManual = [...manualExamList];
@@ -182,11 +250,12 @@ export const useExamRoom = (activeEmail, lang) => {
   }, [manualExamList, examList, unlistedInfo, activeEmail]);
 
   const handleDeleteManualExam = useCallback((id) => {
-    // We removed window.confirm to avoid blocking native popups in production.
-    // Component or custom UI modal can handle visual confirmations.
     logger.info(`Deleting manual exam: ${id}`);
-    const updatedManual = manualExamList.filter(ex => ex.id !== id);
+    const updatedManual = manualExamListRef.current.filter(ex => ex.id !== id);
     setManualExamList(updatedManual);
+    if (activeEmail) {
+      recordDeletedId('manualExams', id, activeEmail);
+    }
     examRepository.saveToCache(activeEmail, examList, updatedManual, unlistedInfo);
 
     // Queue synchronization with Google Drive
@@ -195,16 +264,13 @@ export const useExamRoom = (activeEmail, lang) => {
       syncManager.queueSync(token, activeEmail);
       calendarSyncManager.queueSync(token, activeEmail);
     }
-  }, [manualExamList, examList, unlistedInfo, activeEmail]);
+  }, [examList, unlistedInfo, activeEmail]);
 
   const sortedExams = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     const parseDateForSort = (exam) => {
       let dateObj;
       if (exam.rawIsoDate) {
-        dateObj = new Date(exam.rawIsoDate);
+        dateObj = parseLocalDateInput(exam.rawIsoDate);
       } else {
         dateObj = parseExamDate(exam.date);
       }
@@ -213,7 +279,7 @@ export const useExamRoom = (activeEmail, lang) => {
 
       // Extract start time from exam.time (e.g. "9:00-12:00" -> "9:00")
       if (exam.time) {
-        const timeMatch = exam.time.match(/(\d{1,2}):(\d{2})/);
+        const timeMatch = exam.time.match(/(\d{1,2})[:.](\d{2})/);
         if (timeMatch) {
           dateObj.setHours(parseInt(timeMatch[1], 10), parseInt(timeMatch[2], 10), 0, 0);
         }

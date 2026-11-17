@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { GraduationCap, Code, Mail, CheckCircle2, ChevronRight, Settings2, Layers, RefreshCw } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,40 +19,69 @@ const InstagramIcon = ({ size = 16, className = '' }) => (
   </svg>
 );
 
-const InputField = ({ label, value, onChange, type = 'text' }) => (
-  <div className="space-y-1.5">
-    <label className="block text-xs font-medium text-[#D4D4D4]">
-      {label}
-    </label>
-    <input
-      type={type}
-      required
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-sm text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors"
-    />
-  </div>
-);
+const InputField = ({ label, value, onChange, type = 'text', required = true, readOnly = false, placeholder = '', inputMode = undefined }) => {
+  const fieldId = useId();
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={fieldId} className="block text-xs font-medium text-[#D4D4D4]">
+        {label}
+      </label>
+      <input
+        id={fieldId}
+        type={type}
+        required={required}
+        readOnly={readOnly}
+        disabled={readOnly}
+        placeholder={placeholder}
+        inputMode={inputMode}
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        className={`w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-sm placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors ${
+          readOnly ? 'text-[#858585] cursor-not-allowed opacity-80' : 'text-[#D4D4D4]'
+        }`}
+      />
+    </div>
+  );
+};
 
 export default function Settings() {
   const { lang } = useSettings();
   const { profile, isLoggedIn, handleProfileSave, login, logout, accessToken } = useAuth();
 
   const [name, setName] = useState(profile.name || '');
-  const [studentId, setStudentId] = useState(profile.studentId || '');
+  const [studentId, setStudentId] = useState(
+    profile.studentId === 'Google Sync User' ? '' : (profile.studentId || '')
+  );
   const [email, setEmail] = useState(profile.email || '');
   const [major, setMajor] = useState(profile.major || '');
   const [prevProfile, setPrevProfile] = useState(profile);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [avatarError, setAvatarError] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [isResettingCalendar, setIsResettingCalendar] = useState(false);
+  const [calendarSyncState, setCalendarSyncState] = useState(calendarSyncManager.state);
   const [resetMessage, setResetMessage] = useState('');
+  const timersRef = useRef([]);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, []);
+
+  useEffect(() => {
+    return calendarSyncManager.subscribe((st) => setCalendarSyncState(st));
+  }, []);
 
   if (profile !== prevProfile) {
     setPrevProfile(profile);
     setName(profile.name || '');
-    setStudentId(profile.studentId || '');
+    setStudentId(profile.studentId === 'Google Sync User' ? '' : (profile.studentId || ''));
     setEmail(profile.email || '');
     setMajor(profile.major || '');
+    setAvatarError(false);
   }
 
   const devInfo = {
@@ -67,15 +96,27 @@ export default function Settings() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setProfileError('');
+    const normalizedId = studentId.replace(/[\s-]/g, '').trim();
+    if (normalizedId && !/^\d{13}$/.test(normalizedId)) {
+      setProfileError(
+        lang === 'en'
+          ? 'Student ID must be 13 digits (or leave empty if not using KMUTNB exam lookup).'
+          : 'รหัสนักศึกษาต้องเป็นตัวเลข 13 หลัก (หรือเว้นว่างไว้หากไม่ได้ใช้ค้นหาที่นั่งสอบ มจพ.)'
+      );
+      return;
+    }
+
     handleProfileSave({
-      name,
-      studentId,
-      email,
-      major,
+      name: name.trim(),
+      studentId: normalizedId,
+      email: isLoggedIn && profile.email ? profile.email : email,
+      major: major.trim(),
       avatarUrl: profile.avatarUrl
     });
     setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+    const id = setTimeout(() => setSaveSuccess(false), 3000);
+    timersRef.current.push(id);
   };
 
   const handleResetCalendar = async () => {
@@ -90,7 +131,23 @@ export default function Settings() {
       setResetMessage(lang === 'en' ? 'Error resetting calendar.' : 'เกิดข้อผิดพลาดในการล้างข้อมูลปฏิทิน');
     } finally {
       setIsResettingCalendar(false);
-      setTimeout(() => setResetMessage(''), 4000);
+      const id = setTimeout(() => setResetMessage(''), 4000);
+      timersRef.current.push(id);
+    }
+  };
+
+  const handleSyncCalendarNow = async () => {
+    if (!profile.email || !accessToken) return;
+    setResetMessage('');
+    try {
+      await calendarSyncManager.runSync(accessToken, profile.email);
+      setResetMessage(lang === 'en' ? 'Calendar synced & duplicates cleaned!' : 'ซิงก์ปฏิทินและลบรายการซ้ำเรียบร้อยแล้ว!');
+    } catch (e) {
+      console.error(e);
+      setResetMessage(lang === 'en' ? 'Error syncing calendar.' : 'เกิดข้อผิดพลาดในการซิงก์ปฏิทิน');
+    } finally {
+      const id = setTimeout(() => setResetMessage(''), 4000);
+      timersRef.current.push(id);
     }
   };
 
@@ -117,12 +174,19 @@ export default function Settings() {
           <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 md:p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-[#1E1E1E] border border-[#3C3C3C] shrink-0">
-                  <img
-                    src={profile.avatarUrl || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200'}
-                    alt="Avatar"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-[#1E1E1E] border border-[#3C3C3C] flex items-center justify-center shrink-0">
+                  {profile.avatarUrl && !avatarError ? (
+                    <img
+                      src={profile.avatarUrl}
+                      alt="Avatar"
+                      onError={() => setAvatarError(true)}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-2xl font-semibold text-[#D4D4D4]">
+                      {(name || profile.name || 'S').charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
                 <div className="pt-1 space-y-1">
                   <h3 className="text-lg font-semibold text-[#FFFFFF]">{name || 'Student'}</h3>
@@ -133,11 +197,35 @@ export default function Settings() {
                 </div>
               </div>
 
+              {profileError && (
+                <div role="alert" className="bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs px-3.5 py-2.5 rounded-xl">
+                  {profileError}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputField label={t('studentNameLabel', lang)} value={name} onChange={setName} />
-                <InputField label={t('studentIdLabel', lang)} value={studentId} onChange={setStudentId} />
-                <InputField label={t('studentEmailLabel', lang)} value={email} onChange={setEmail} type="email" />
-                <InputField label={t('studentMajorLabel', lang)} value={major} onChange={setMajor} />
+                <InputField
+                  label={t('studentIdLabel', lang)}
+                  value={studentId}
+                  onChange={setStudentId}
+                  required={false}
+                  inputMode="numeric"
+                  placeholder="6401012345678"
+                />
+                <InputField
+                  label={t('studentEmailLabel', lang)}
+                  value={email}
+                  onChange={setEmail}
+                  type="email"
+                  readOnly={isLoggedIn}
+                />
+                <InputField
+                  label={t('studentMajorLabel', lang)}
+                  value={major}
+                  onChange={setMajor}
+                  required={false}
+                />
               </div>
 
               <div className="pt-2">
@@ -165,13 +253,35 @@ export default function Settings() {
                 </p>
               </div>
               {isLoggedIn ? (
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="w-full sm:w-auto shrink-0 bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 px-5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
-                >
-                  {t('disconnectBtn', lang)}
-                </button>
+                confirmLogout ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmLogout(false)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-medium bg-[#1E1E1E] hover:bg-[#2A2D2E] text-[#D4D4D4] border border-[#3C3C3C] transition-colors cursor-pointer"
+                    >
+                      {t('cancelBtn', lang)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmLogout(false);
+                        logout();
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
+                    >
+                      {t('disconnectBtn', lang)}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmLogout(true)}
+                    className="w-full sm:w-auto shrink-0 bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 px-5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                  >
+                    {t('disconnectBtn', lang)}
+                  </button>
+                )
               ) : (
                 <button
                   type="button"
@@ -209,15 +319,26 @@ export default function Settings() {
                     </p>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleResetCalendar}
-                  disabled={isResettingCalendar}
-                  className="w-full sm:w-auto justify-center shrink-0 bg-[#1E1E1E] hover:bg-[#2A2D2E] text-[#D4D4D4] border border-[#3C3C3C] px-5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isResettingCalendar && <RefreshCw size={13} className="animate-spin text-[#3794FF]" />}
-                  <span>{lang === 'en' ? 'Reset Calendar' : 'ล้างแล้วลงใหม่'}</span>
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleSyncCalendarNow}
+                    disabled={calendarSyncState === 'syncing' || isResettingCalendar}
+                    className="w-full sm:w-auto justify-center shrink-0 bg-[#007ACC] hover:bg-[#1177BB] text-white px-4 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {calendarSyncState === 'syncing' && !isResettingCalendar && <RefreshCw size={13} className="animate-spin" />}
+                    <span>{calendarSyncState === 'syncing' && !isResettingCalendar ? t('syncingCalendarBtn', lang) : t('syncCalendarNowBtn', lang)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetCalendar}
+                    disabled={isResettingCalendar || calendarSyncState === 'syncing'}
+                    className="w-full sm:w-auto justify-center shrink-0 bg-[#1E1E1E] hover:bg-[#2A2D2E] text-[#D4D4D4] border border-[#3C3C3C] px-4 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isResettingCalendar && <RefreshCw size={13} className="animate-spin text-[#3794FF]" />}
+                    <span>{lang === 'en' ? 'Reset Calendar' : 'ล้างแล้วลงใหม่'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

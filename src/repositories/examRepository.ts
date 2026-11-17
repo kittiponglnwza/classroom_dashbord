@@ -13,8 +13,8 @@ export const examRepository = {
    * Validates student ID
    */
   validateStudentId(studentId: string, lang: string): Result<string, ValidationError> {
-    const cleanId = studentId.replace(/\D/g, '').trim();
-    if (cleanId.length !== 13) {
+    const cleanId = String(studentId || '').replace(/[\s-]/g, '').trim();
+    if (!/^\d{13}$/.test(cleanId)) {
       return Result.fail(new ValidationError(lang === 'en' ? 'Student ID must be exactly 13 digits.' : 'รหัสนักศึกษาต้องมีความยาว 13 หลัก'));
     }
     return Result.ok(cleanId);

@@ -1,4 +1,5 @@
-import { Calendar, Clock, MapPin, Edit, Trash2, CalendarPlus } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, Clock, MapPin, Edit, Trash2, CalendarPlus, Check, X } from 'lucide-react';
 import { getGoogleCalendarUrl } from '../../utils/calendarUrl';
 import { t } from '../../utils/i18n';
 import { EXAM_CARD_COLORS } from '../../constants';
@@ -9,6 +10,70 @@ const getCardStyle = (index) => {
 
 export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout = 'grid' }) {
   const cardStyle = getCardStyle(index);
+  const calendarUrl = getGoogleCalendarUrl(exam);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const renderActions = (iconSize) => (
+    <div className="flex items-center gap-1.5 shrink-0">
+      {calendarUrl && (
+        <a
+          href={calendarUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#3794FF] hover:bg-[#094771]/40 transition-colors cursor-pointer"
+          title={t('addToCalendarBtn', lang) || 'Add to Google Calendar'}
+          aria-label={t('addToCalendarBtn', lang) || 'Add to Google Calendar'}
+        >
+          <CalendarPlus size={iconSize} />
+        </a>
+      )}
+      {exam.isManual && (
+        confirmDelete ? (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onDelete(exam.id)}
+              className="p-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-500 transition-colors cursor-pointer"
+              title={t('confirmBtn', lang)}
+              aria-label={t('confirmBtn', lang)}
+            >
+              <Check size={iconSize} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+              title={t('cancelBtn', lang)}
+              aria-label={t('cancelBtn', lang)}
+            >
+              <X size={iconSize} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => onEdit(exam)}
+              className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+              title={t('editExamBtn', lang)}
+              aria-label={t('editExamBtn', lang)}
+            >
+              <Edit size={iconSize} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-rose-400 hover:bg-rose-500/15 transition-colors cursor-pointer"
+              title={t('deleteExamBtn', lang)}
+              aria-label={t('deleteExamBtn', lang)}
+            >
+              <Trash2 size={iconSize} />
+            </button>
+          </>
+        )
+      )}
+    </div>
+  );
 
   if (layout === 'list') {
     return (
@@ -27,7 +92,7 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
                 </span>
               )}
             </div>
-            <h4 className="font-semibold text-[#FFFFFF] text-sm leading-snug truncate">
+            <h4 className="font-semibold text-[#FFFFFF] text-sm leading-snug truncate" title={exam.courseName}>
               {exam.courseName}
             </h4>
           </div>
@@ -43,7 +108,7 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
             </div>
             <div className="flex items-center gap-1.5">
               <MapPin size={13} className={cardStyle.accentText} />
-              <span className="truncate max-w-[140px] text-[#D4D4D4] font-medium">{exam.room || '-'}</span>
+              <span className="truncate max-w-[140px] text-[#D4D4D4] font-medium" title={exam.room || '-'}>{exam.room || '-'}</span>
             </div>
           </div>
         </div>
@@ -55,37 +120,7 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
               <span className="text-xs font-semibold text-[#FFFFFF]">{exam.seat}</span>
             </div>
           )}
-          <div className="flex items-center gap-1.5">
-            <a
-              href={getGoogleCalendarUrl(exam)}
-              target="_blank"
-              rel="noreferrer"
-              className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#3794FF] hover:bg-[#094771]/40 transition-colors cursor-pointer"
-              title={t('addToCalendarBtn', lang) || 'Add to Google Calendar'}
-            >
-              <CalendarPlus size={14} />
-            </a>
-            {exam.isManual && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onEdit(exam)}
-                  className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
-                  title={t('editExamBtn', lang)}
-                >
-                  <Edit size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(exam.id)}
-                  className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-rose-400 hover:bg-rose-500/15 transition-colors cursor-pointer"
-                  title={t('deleteExamBtn', lang)}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </>
-            )}
-          </div>
+          {renderActions(14)}
         </div>
       </div>
     );
@@ -108,43 +143,12 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
                 </span>
               )}
             </div>
-            <h4 className="font-semibold text-[#FFFFFF] text-sm leading-snug truncate pt-1">
+            <h4 className="font-semibold text-[#FFFFFF] text-sm leading-snug truncate pt-1" title={exam.courseName}>
               {exam.courseName}
             </h4>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <a
-              href={getGoogleCalendarUrl(exam)}
-              target="_blank"
-              rel="noreferrer"
-              className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#3794FF] hover:bg-[#094771]/40 transition-colors cursor-pointer"
-              title={t('addToCalendarBtn', lang) || 'Add to Google Calendar'}
-            >
-              <CalendarPlus size={13} />
-            </a>
-
-            {exam.isManual && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onEdit(exam)}
-                  className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
-                  title={t('editExamBtn', lang)}
-                >
-                  <Edit size={13} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(exam.id)}
-                  className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-rose-400 hover:bg-rose-500/15 transition-colors cursor-pointer"
-                  title={t('deleteExamBtn', lang)}
-                >
-                  <Trash2 size={13} />
-                </button>
-              </>
-            )}
-          </div>
+          {renderActions(13)}
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-xs border-t border-[#3C3C3C] pt-3.5">
