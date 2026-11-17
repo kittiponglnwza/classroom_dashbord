@@ -20,8 +20,8 @@ const DAY_SHORT_KEYS = {
   fri: 'dayFriShort', sat: 'daySatShort', sun: 'daySunShort',
 };
 const PRESET_COLORS = [
-  '#0071E3', '#059669', '#D97706', '#E11D48', '#7C3AED',
-  '#0284C7', '#EA580C', '#4F46E5', '#0D9488', '#6E6E73',
+  '#007ACC', '#4EC9B0', '#CCA700', '#F14C4C', '#C586C0',
+  '#3794FF', '#CE9178', '#569CD6', '#2D9D78', '#858585',
 ];
 const START_HOUR = 6;
 const END_HOUR = 24;
@@ -37,22 +37,22 @@ const TRADITIONAL_DAY_COLORS = {
 };
 
 const COLOR_MAP = {
-  emerald: '#059669',
-  blue: '#0071E3',
-  amber: '#D97706',
-  rose: '#E11D48',
-  purple: '#7C3AED',
-  zinc: '#6E6E73',
-  gray: '#6E6E73',
-  red: '#E11D48',
-  green: '#059669',
-  orange: '#EA580C'
+  emerald: '#4EC9B0',
+  blue: '#007ACC',
+  amber: '#CCA700',
+  rose: '#F14C4C',
+  purple: '#C586C0',
+  zinc: '#858585',
+  gray: '#858585',
+  red: '#F14C4C',
+  green: '#4EC9B0',
+  orange: '#CE9178'
 };
 
 function resolveHexColor(colorStr) {
-  if (!colorStr) return '#0071E3';
+  if (!colorStr) return '#007ACC';
   if (colorStr.startsWith('#')) return colorStr;
-  return COLOR_MAP[colorStr.toLowerCase()] || '#0071E3';
+  return COLOR_MAP[colorStr.toLowerCase()] || '#007ACC';
 }
 
 function addHoursToTime(timeStr, hours) {
@@ -217,23 +217,23 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
   };
 
   return (
-    <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-4 shadow-2xs">
+    <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4">
       <div className="flex justify-between items-center mb-3">
-        <h2 className="text-[#1D1D1F] font-semibold text-sm">
+        <h2 className="text-[#FFFFFF] font-semibold text-sm">
           {monthNames[month]} {lang === 'th' ? year + 543 : year}
         </h2>
         <div className="flex gap-1">
           <button
             type="button"
             onClick={handlePrevMonth}
-            className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-[#2A2D2E] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
           >
             <ChevronLeft size={15} />
           </button>
           <button
             type="button"
             onClick={handleNextMonth}
-            className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-[#2A2D2E] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
           >
             <ChevronRight size={15} />
           </button>
@@ -242,7 +242,7 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
 
       <div className="grid grid-cols-7 gap-1 mb-1.5">
         {dayNames.map(d => (
-          <div key={d} className="text-center text-[11px] font-medium text-[#6E6E73] py-1">
+          <div key={d} className="text-center text-[11px] font-medium text-[#858585] py-1">
             {d}
           </div>
         ))}
@@ -269,10 +269,10 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
               onClick={() => handleDayClick(dayNum)}
               className={`relative h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-colors cursor-pointer ${
                 isToday
-                  ? 'bg-[#0071E3] text-white font-semibold'
+                  ? 'bg-[#007ACC] text-white font-semibold'
                   : isSelectedWeek
-                    ? 'bg-[#F5F5F7] text-[#1D1D1F] font-semibold'
-                    : 'text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7]'
+                    ? 'bg-[#2A2D2E] text-[#FFFFFF] font-semibold'
+                    : 'text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E]'
               }`}
             >
               <span>{dayNum}</span>
@@ -365,20 +365,20 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
   const showTimeLine = currentTimePercent !== null && currentTimePercent >= 0 && currentTimePercent <= 100;
 
   return (
-    <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl overflow-hidden shadow-2xs">
+    <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl overflow-hidden">
       <div className="overflow-x-auto" ref={gridRef}>
         <div className="min-w-[768px] w-full relative">
           {/* Time headers row */}
-          <div className="grid grid-cols-[120px_repeat(18,1fr)] border-b border-[#D2D2D7]/80 bg-[#F5F5F7]">
-            <div className="p-3 text-center text-[11px] font-semibold text-[#6E6E73] flex items-center justify-center border-r border-[#D2D2D7]/70 select-none">
+          <div className="grid grid-cols-[120px_repeat(18,1fr)] border-b border-[#3C3C3C] bg-[#2D2D2D]">
+            <div className="p-3 text-center text-[11px] font-semibold text-[#9D9D9D] flex items-center justify-center border-r border-[#3C3C3C] select-none">
               {lang === 'en' ? 'Day / Time' : 'วัน / เวลา'}
             </div>
             {timeLabels.map((label) => (
               <div
                 key={label}
-                className="p-2.5 text-center border-l border-[#D2D2D7]/50 flex items-center justify-center min-w-0 select-none"
+                className="p-2.5 text-center border-l border-[#3C3C3C]/70 flex items-center justify-center min-w-0 select-none"
               >
-                <span className="text-[10px] font-mono font-medium text-[#6E6E73]">
+                <span className="text-[10px] font-mono font-medium text-[#858585]">
                   {label}
                 </span>
               </div>
@@ -392,23 +392,23 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
               return (
                 <div
                   key={day}
-                  className="grid grid-cols-[120px_1fr] relative border-b border-[#D2D2D7]/60 min-h-[74px]"
+                  className="grid grid-cols-[120px_1fr] relative border-b border-[#3C3C3C] min-h-[74px]"
                 >
-                  <div className="flex items-center gap-2.5 p-3 border-r border-[#D2D2D7]/70 select-none bg-[#F5F5F7]/40 shrink-0">
+                  <div className="flex items-center gap-2.5 p-3 border-r border-[#3C3C3C] select-none bg-[#252526] shrink-0">
                     <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: TRADITIONAL_DAY_COLORS[day] }} />
                     <div className="flex flex-col items-start min-w-0">
-                      <span className={`text-xs font-semibold truncate leading-tight ${isToday ? 'text-[#0071E3]' : 'text-[#1D1D1F]'}`}>
+                      <span className={`text-xs font-semibold truncate leading-tight ${isToday ? 'text-[#3794FF]' : 'text-[#D4D4D4]'}`}>
                         {t(DAY_KEYS[day], lang)}
                       </span>
-                      <span className={`text-[10px] leading-none mt-0.5 ${isToday ? 'text-[#0071E3]' : 'text-[#6E6E73]'}`}>
+                      <span className={`text-[10px] leading-none mt-0.5 ${isToday ? 'text-[#3794FF]' : 'text-[#858585]'}`}>
                         {weekDates[day].formatted}
                       </span>
                     </div>
                   </div>
 
                   <div
-                    className={`relative cursor-pointer transition-colors hover:bg-[#F5F5F7]/60 flex-1 ${
-                      isToday ? 'bg-blue-50/30' : ''
+                    className={`relative cursor-pointer transition-colors hover:bg-[#2A2D2E] flex-1 ${
+                      isToday ? 'bg-[#094771]/20' : 'bg-[#1E1E1E]'
                     }`}
                     onClick={(e) => handleRowClick(day, e)}
                     role="button"
@@ -422,7 +422,7 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                   >
                     <div className="absolute inset-0 grid grid-cols-[repeat(18,1fr)] pointer-events-none">
                       {Array.from({ length: 18 }).map((_, idx) => (
-                        <div key={idx} className="border-l border-[#D2D2D7]/40 h-full" />
+                        <div key={idx} className="border-l border-[#3C3C3C]/40 h-full" />
                       ))}
                     </div>
 
@@ -450,38 +450,38 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                               onClickBlock(entry, weekDates[day].dateStr);
                             }
                           }}
-                          className="absolute rounded-lg overflow-hidden cursor-pointer transition-colors group flex flex-col justify-center bg-white hover:bg-[#F5F5F7] shadow-2xs"
+                          className="absolute rounded-lg overflow-hidden cursor-pointer transition-colors group flex flex-col justify-center bg-[#252526] hover:bg-[#2D2D2D]"
                           style={{
                             left: `${left}%`,
                             width: `${width}%`,
                             top: isAllDay ? '6%' : (isAssign ? '14%' : '10%'),
                             bottom: isAllDay ? 'auto' : (isAssign ? '14%' : '10%'),
                             height: isAllDay ? '24px' : undefined,
-                            border: `1px solid ${accentHex}45`,
+                            border: `1px solid ${accentHex}55`,
                             borderLeft: `3px solid ${accentHex}`,
                             zIndex: isAssign ? 20 : 10,
                           }}
                         >
                           <div className={`px-2 py-1 h-full flex flex-col justify-center ${isAllDay ? 'flex-row items-center justify-start gap-2' : 'items-start'} overflow-hidden`}>
                             <div className="flex items-center gap-1.5 min-w-0 w-full">
-                              <span className="font-semibold text-[#1D1D1F] leading-tight truncate text-[11px]">
+                              <span className="font-semibold text-[#FFFFFF] leading-tight truncate text-[11px]">
                                 {entry.courseCode ? `${entry.courseCode} ${isAssign ? '' : `(${entry.title})`}` : entry.title}
                               </span>
                               {entry.date && !isAssign && (
-                                <span className="text-[9px] px-1 py-0.25 rounded font-medium bg-amber-50 text-amber-800 border border-amber-200 shrink-0 select-none">
+                                <span className="text-[9px] px-1 py-0.25 rounded font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0 select-none">
                                   {lang === 'en' ? 'Once' : 'พิเศษ'}
                                 </span>
                               )}
                             </div>
 
                             {isAssign && !isAllDay && (
-                              <span className="text-[10px] text-[#6E6E73] font-medium mt-0.5 truncate">
+                              <span className="text-[10px] text-[#9D9D9D] font-medium mt-0.5 truncate">
                                 Due: {entry.endTime}
                               </span>
                             )}
 
                             {entry.room && !isAssign && (
-                              <span className="text-[10px] text-[#6E6E73] font-medium mt-0.5 truncate">
+                              <span className="text-[10px] text-[#9D9D9D] font-medium mt-0.5 truncate">
                                 {entry.room}
                               </span>
                             )}
@@ -495,8 +495,8 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                         className="absolute top-0 bottom-0 z-20 pointer-events-none flex flex-col items-center"
                         style={{ left: `${currentTimePercent}%` }}
                       >
-                        <div className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
-                        <div className="flex-1 w-[1.5px] bg-rose-600" />
+                        <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                        <div className="flex-1 w-[1.5px] bg-rose-500" />
                       </div>
                     )}
                   </div>
@@ -507,7 +507,7 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
         </div>
       </div>
 
-      <div className="px-4 py-2.5 text-[11px] text-[#6E6E73] border-t border-[#D2D2D7]/60 bg-[#F5F5F7]/50">
+      <div className="px-4 py-2.5 text-[11px] text-[#9D9D9D] border-t border-[#3C3C3C] bg-[#1E1E1E]">
         {lang === 'en'
           ? '* Click any class to edit, click an assignment or exam to view its details, or click an empty slot to add a class.'
           : '* คลิกวิชาเรียนเพื่อแก้ไข คลิกงานหรือวิชาสอบเพื่อเปิดดูรายละเอียด หรือคลิกช่องว่างเพื่อเพิ่มตารางเรียน'}
@@ -571,14 +571,14 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
               onClick={() => setSelectedDay(day)}
               className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors shrink-0 flex flex-col items-center min-w-[70px] cursor-pointer border ${
                 isSelected
-                  ? 'bg-[#0071E3] text-white border-[#0071E3] font-semibold'
+                  ? 'bg-[#007ACC] text-white border-[#007ACC] font-semibold'
                   : isToday
-                    ? 'bg-blue-50 text-[#0071E3] border-blue-200'
-                    : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:text-[#1D1D1F]'
+                    ? 'bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40'
+                    : 'bg-[#252526] text-[#9D9D9D] border-[#3C3C3C] hover:text-[#FFFFFF]'
               }`}
             >
               <span>{t(DAY_SHORT_KEYS[day], lang)}</span>
-              <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-white/90' : 'text-[#6E6E73]'}`}>
+              <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-white/90' : 'text-[#858585]'}`}>
                 {weekDates[day].formatted}
               </span>
             </button>
@@ -587,10 +587,10 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
       </div>
 
       <div className="flex items-center gap-2 px-1">
-        <span className="text-xs font-semibold text-[#1D1D1F]">
+        <span className="text-xs font-semibold text-[#FFFFFF]">
           {weekDates[selectedDay].dayName}
         </span>
-        <span className="text-xs text-[#6E6E73]">({weekDates[selectedDay].formatted})</span>
+        <span className="text-xs text-[#9D9D9D]">({weekDates[selectedDay].formatted})</span>
       </div>
 
       {dayEntries.length > 0 ? (
@@ -600,52 +600,52 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
               type="button"
               key={entry.id}
               onClick={() => onClickCard(entry, weekDates[selectedDay].dateStr)}
-              className="w-full text-left bg-white border border-[#D2D2D7]/80 rounded-2xl p-4 hover:border-[#0071E3]/40 transition-colors group flex items-center justify-between cursor-pointer shadow-2xs"
+              className="w-full text-left bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4 hover:border-[#007ACC]/70 transition-colors group flex items-center justify-between cursor-pointer"
             >
               <div className="flex items-start gap-3.5">
                 <div className="w-1.5 self-stretch rounded-full shrink-0" style={{ backgroundColor: resolveHexColor(entry.color) }} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-sm font-semibold text-[#1D1D1F] group-hover:text-[#0071E3] transition-colors truncate">
+                    <h4 className="text-sm font-semibold text-[#FFFFFF] group-hover:text-[#3794FF] transition-colors truncate">
                       {entry.title}
                     </h4>
                     {entry.courseCode && (
-                      <span className="text-[11px] font-medium text-[#6E6E73] bg-[#F5F5F7] px-2 py-0.5 rounded-md shrink-0 border border-[#D2D2D7]/70">
+                      <span className="text-[11px] font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md shrink-0 border border-[#3C3C3C]">
                         {entry.courseCode}
                       </span>
                     )}
                     {entry.date && !entry.isAssignment && !entry.isExam && (
-                      <span className="text-[10px] px-1.5 py-0.25 rounded-md font-medium bg-amber-50 text-amber-800 border border-amber-200 shrink-0 select-none">
+                      <span className="text-[10px] px-1.5 py-0.25 rounded-md font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0 select-none">
                         {lang === 'en' ? 'Special Class' : 'คาบเรียนพิเศษ'}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1.5 flex-wrap text-[#6E6E73]">
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap text-[#9D9D9D]">
                     <span className="text-xs font-medium flex items-center gap-1.5">
-                      <Clock size={12} className="text-[#0071E3]" />
+                      <Clock size={12} className="text-[#3794FF]" />
                       {formatTimeRange(entry.startTime, entry.endTime)}
                     </span>
                     {entry.room && (
-                      <span className="text-xs font-medium bg-[#F5F5F7] px-2 py-0.5 rounded-md border border-[#D2D2D7]/70 text-[#1D1D1F]">
+                      <span className="text-xs font-medium bg-[#1E1E1E] px-2 py-0.5 rounded-md border border-[#3C3C3C] text-[#D4D4D4]">
                         {entry.room}
                       </span>
                     )}
                   </div>
                   {entry.notes && (
-                    <p className="text-xs text-[#6E6E73] mt-1.5 max-w-xl leading-relaxed line-clamp-2">
+                    <p className="text-xs text-[#9D9D9D] mt-1.5 max-w-xl leading-relaxed line-clamp-2">
                       {entry.notes}
                     </p>
                   )}
                 </div>
               </div>
-              <ChevronRight size={16} className="text-[#6E6E73] group-hover:text-[#0071E3] transition-colors shrink-0 ml-4" />
+              <ChevronRight size={16} className="text-[#858585] group-hover:text-[#3794FF] transition-colors shrink-0 ml-4" />
             </button>
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-12 text-center">
-          <CalendarX2 size={32} className="text-[#6E6E73] mx-auto mb-2.5 opacity-60" />
-          <p className="text-xs font-medium text-[#6E6E73]">{t('noClasses', lang)}</p>
+        <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 text-center">
+          <CalendarX2 size={32} className="text-[#858585] mx-auto mb-2.5 opacity-60" />
+          <p className="text-xs font-medium text-[#9D9D9D]">{t('noClasses', lang)}</p>
         </div>
       )}
     </div>
@@ -760,42 +760,42 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white border border-[#D2D2D7] rounded-2xl p-6 max-w-lg w-full max-h-[90vh] relative shadow-lg overflow-y-auto flex flex-col"
+        className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 max-w-lg w-full max-h-[90vh] relative shadow-xl overflow-y-auto flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4 border-b border-[#D2D2D7]/70 pb-3 sticky top-0 bg-white z-10">
-          <h3 className="font-semibold text-base text-[#1D1D1F]">
+        <div className="flex items-center justify-between mb-4 border-b border-[#3C3C3C] pb-3 sticky top-0 bg-[#252526] z-10">
+          <h3 className="font-semibold text-base text-[#FFFFFF]">
             {isEdit ? t('editSchedule', lang) : t('addSchedule', lang)}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="text-[#6E6E73] hover:text-[#1D1D1F] p-1.5 rounded-lg hover:bg-[#F5F5F7] transition-colors cursor-pointer"
+            className="text-[#9D9D9D] hover:text-[#FFFFFF] p-1.5 rounded-lg hover:bg-[#2A2D2E] transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
         {conflict && (
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 mb-4">
-            <AlertTriangle size={14} className="shrink-0 text-amber-600" />
+          <div className="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 mb-4">
+            <AlertTriangle size={14} className="shrink-0 text-amber-400" />
             <span>{t('timeConflict', lang)}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 flex-1">
           <div>
-            <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+            <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
               {t('classType', lang)}
             </label>
-            <div className="flex gap-1.5 p-1 bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl">
+            <div className="flex gap-1.5 p-1 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl">
               <button
                 type="button"
                 onClick={() => handleTypeChange('recurring')}
                 className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
-                  classType === 'recurring' ? 'bg-white text-[#0071E3] shadow-2xs font-semibold' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                  classType === 'recurring' ? 'bg-[#094771]/70 text-[#FFFFFF] font-semibold' : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
                 }`}
               >
                 {t('recurringWeekly', lang)}
@@ -804,7 +804,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 type="button"
                 onClick={() => handleTypeChange('one-off')}
                 className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
-                  classType === 'one-off' ? 'bg-white text-[#0071E3] shadow-2xs font-semibold' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                  classType === 'one-off' ? 'bg-[#094771]/70 text-[#FFFFFF] font-semibold' : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
                 }`}
               >
                 {t('oneOff', lang)}
@@ -813,13 +813,13 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+            <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
               {t('selectCourse', lang)}
             </label>
             <select
               value={isCustom ? '__custom__' : formData.courseId}
               onChange={handleCourseSelect}
-              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
+              className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
             >
               <option value="__custom__">{t('customEntry', lang)}</option>
               {visibleCourses.map(c => (
@@ -832,7 +832,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('courseName', lang)}
               </label>
               <input
@@ -841,11 +841,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 value={formData.title}
                 onChange={(e) => update('title', e.target.value)}
                 readOnly={!isCustom}
-                className={`w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('courseCodeLabel', lang)}
               </label>
               <input
@@ -853,14 +853,14 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 value={formData.courseCode}
                 onChange={(e) => update('courseCode', e.target.value)}
                 readOnly={!isCustom}
-                className={`w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
             </div>
           </div>
 
           {classType === 'one-off' ? (
             <div>
-              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('selectDate', lang)}
               </label>
               <input
@@ -868,18 +868,18 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 required
                 value={formData.date}
                 onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
+                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
               />
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('schedule', lang)}
               </label>
               <select
                 value={formData.day}
                 onChange={(e) => update('day', e.target.value)}
-                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
+                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
               >
                 {DAYS.map(d => (
                   <option key={d} value={d}>{t(DAY_KEYS[d], lang)}</option>
@@ -890,7 +890,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('startTime', lang)}
               </label>
               <input
@@ -905,19 +905,19 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                     endTime: addHoursToTime(val, 3)
                   }));
                 }}
-                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
+                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
               />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-[#1D1D1F] leading-none">
+                <label className="block text-xs font-medium text-[#D4D4D4] leading-none">
                   {t('endTime', lang)}
                 </label>
                 <div className="flex gap-1">
                   <button
                     type="button"
                     onClick={() => handleApplyDuration(1.5)}
-                    className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-[#0071E3] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer leading-none"
+                    className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#007ACC]/20 text-[#3794FF] border border-[#007ACC]/40 hover:bg-[#007ACC]/30 transition-colors cursor-pointer leading-none"
                     title="+1.5 Hours"
                   >
                     +1.5h
@@ -925,7 +925,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                   <button
                     type="button"
                     onClick={() => handleApplyDuration(3)}
-                    className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-[#0071E3] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer leading-none"
+                    className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#007ACC]/20 text-[#3794FF] border border-[#007ACC]/40 hover:bg-[#007ACC]/30 transition-colors cursor-pointer leading-none"
                     title="+3 Hours"
                   >
                     +3h
@@ -937,26 +937,26 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 required
                 value={formData.endTime}
                 onChange={(e) => update('endTime', e.target.value)}
-                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
+                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+            <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
               {t('roomLabel', lang)}
             </label>
             <input
               type="text"
               value={formData.room}
               onChange={(e) => update('room', e.target.value)}
-              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white"
+              className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
             />
           </div>
 
           {isCustom && (
             <div>
-              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+              <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
                 {t('colorLabel', lang)}
               </label>
               <div className="flex gap-2 flex-wrap">
@@ -966,7 +966,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                     type="button"
                     onClick={() => update('color', c)}
                     className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
-                      formData.color === c ? 'ring-2 ring-offset-2 ring-[#1D1D1F] scale-110' : 'hover:scale-105'
+                      formData.color === c ? 'ring-2 ring-offset-2 ring-offset-[#252526] ring-[#FFFFFF] scale-110' : 'hover:scale-105'
                     }`}
                     style={{ backgroundColor: c }}
                   />
@@ -976,18 +976,18 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
           )}
 
           <div>
-            <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
+            <label className="block text-xs font-medium text-[#D4D4D4] mb-1.5">
               {t('scheduleNotes', lang)}
             </label>
             <textarea
               rows="2"
               value={formData.notes}
               onChange={(e) => update('notes', e.target.value)}
-              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white resize-none"
+              className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] resize-none"
             />
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t border-[#D2D2D7]/70 mt-4">
+          <div className="flex justify-between items-center pt-4 border-t border-[#3C3C3C] mt-4">
             <div>
               {isEdit && (
                 <button
@@ -996,7 +996,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                   className={`px-3.5 py-2 text-xs font-medium rounded-xl transition-colors cursor-pointer ${
                     showDeleteConfirm
                       ? 'bg-rose-600 text-white'
-                      : 'text-rose-600 hover:bg-rose-50'
+                      : 'text-rose-400 hover:bg-rose-500/15'
                   }`}
                 >
                   {showDeleteConfirm ? t('confirmBtn', lang) : t('deleteBtn', lang)}
@@ -1008,13 +1008,13 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-medium text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] rounded-xl transition-colors cursor-pointer"
               >
                 {t('cancelBtn', lang)}
               </button>
               <button
                 type="submit"
-                className="bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer"
+                className="bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer"
               >
                 {t('saveBtn', lang)}
               </button>
@@ -1114,7 +1114,7 @@ export default function Schedule() {
         startTime,
         endTime,
         room: ex.room ? `${ex.room} ${ex.seat ? `(${ex.seat})` : ''}` : '',
-        color: '#E11D48',
+        color: '#F14C4C',
         notes: ex.seat ? `Seat/Row: ${ex.seat}` : '',
         isExam: true
       };
@@ -1179,7 +1179,7 @@ export default function Schedule() {
           startTime,
           endTime,
           room: '',
-          color: a.courseColor || '#7C3AED',
+          color: a.courseColor || '#C586C0',
           notes: a.description || '',
           isAssignment: true
         };
@@ -1319,11 +1319,11 @@ export default function Schedule() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight flex items-center gap-2.5">
-            <CalendarDays size={22} className="text-[#0071E3]" />
+          <h1 className="text-2xl font-semibold text-[#FFFFFF] tracking-tight flex items-center gap-2.5">
+            <CalendarDays size={22} className="text-[#3794FF]" />
             <span>{t('scheduleTitle', lang)}</span>
           </h1>
-          <p className="text-xs text-[#6E6E73] mt-1 leading-relaxed">{t('scheduleDesc', lang)}</p>
+          <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">{t('scheduleDesc', lang)}</p>
         </div>
 
         <div className="flex items-center gap-2.5 self-end sm:self-center">
@@ -1333,20 +1333,20 @@ export default function Schedule() {
               onClick={handleClearAll}
               className={`text-xs font-medium py-2.5 px-4 rounded-xl border transition-colors cursor-pointer ${
                 showClearConfirm
-                  ? 'text-rose-700 bg-rose-50 border-rose-200'
-                  : 'text-[#6E6E73] bg-white border-[#D2D2D7] hover:text-rose-600'
+                  ? 'text-rose-400 bg-rose-500/15 border-rose-500/30'
+                  : 'text-[#9D9D9D] bg-[#252526] border-[#3C3C3C] hover:text-rose-400'
               }`}
             >
               {showClearConfirm ? t('clearAllConfirm', lang) : t('clearAllSchedule', lang)}
             </button>
           )}
 
-          <div className="hidden md:flex items-center border border-[#D2D2D7] rounded-xl p-0.5 bg-[#F5F5F7]">
+          <div className="hidden md:flex items-center border border-[#3C3C3C] rounded-xl p-0.5 bg-[#1E1E1E]">
             <button
               type="button"
               onClick={() => setViewType('weekly')}
               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                viewType === 'weekly' ? 'bg-white text-[#0071E3] shadow-2xs' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                viewType === 'weekly' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
               }`}
               title={t('weeklyView', lang)}
             >
@@ -1356,7 +1356,7 @@ export default function Schedule() {
               type="button"
               onClick={() => setViewType('daily')}
               className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                viewType === 'daily' ? 'bg-white text-[#0071E3] shadow-2xs' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                viewType === 'daily' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
               }`}
               title={t('dailyView', lang)}
             >
@@ -1367,7 +1367,7 @@ export default function Schedule() {
           <button
             type="button"
             onClick={openBlankAdd}
-            className="flex items-center justify-center gap-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
           >
             <Plus size={15} />
             <span>{t('addSchedule', lang)}</span>
@@ -1376,12 +1376,12 @@ export default function Schedule() {
       </div>
 
       {/* Week Navigation controls */}
-      <div className="flex items-center justify-between bg-white border border-[#D2D2D7]/80 rounded-2xl px-4 py-3 shadow-2xs">
-        <div className="flex items-center border border-[#D2D2D7] rounded-xl p-0.5 bg-[#F5F5F7] shrink-0">
+      <div className="flex items-center justify-between bg-[#252526] border border-[#3C3C3C] rounded-2xl px-4 py-3">
+        <div className="flex items-center border border-[#3C3C3C] rounded-xl p-0.5 bg-[#1E1E1E] shrink-0">
           <button
             type="button"
             onClick={() => setWeekOffset(prev => prev - 1)}
-            className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
             title={t('prevWeek', lang)}
           >
             <ChevronLeft size={15} />
@@ -1391,8 +1391,8 @@ export default function Schedule() {
             onClick={() => setWeekOffset(0)}
             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
               weekOffset === 0
-                ? 'bg-white text-[#0071E3] shadow-2xs font-semibold'
-                : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                ? 'bg-[#094771]/70 text-[#FFFFFF] font-semibold'
+                : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
             }`}
           >
             {t('thisWeek', lang)}
@@ -1400,18 +1400,18 @@ export default function Schedule() {
           <button
             type="button"
             onClick={() => setWeekOffset(prev => prev + 1)}
-            className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
             title={t('nextWeek', lang)}
           >
             <ChevronRight size={15} />
           </button>
         </div>
 
-        <div className="text-xs font-medium text-[#1D1D1F] px-3 py-1 bg-[#F5F5F7] rounded-lg border border-[#D2D2D7]/70 select-none hidden sm:block">
+        <div className="text-xs font-medium text-[#D4D4D4] px-3 py-1 bg-[#1E1E1E] rounded-lg border border-[#3C3C3C] select-none hidden sm:block">
           {weekRangeStr}
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 px-3 py-1 rounded-full text-[11px] font-medium text-[#0071E3] select-none shrink-0">
+        <div className="bg-[#007ACC]/20 border border-[#007ACC]/40 px-3 py-1 rounded-full text-[11px] font-medium text-[#3794FF] select-none shrink-0">
           {weekOffset === 0
             ? (lang === 'en' ? 'Current Week' : 'สัปดาห์ปัจจุบัน')
             : weekOffset === 1
@@ -1434,16 +1434,16 @@ export default function Schedule() {
           />
 
           {todayClasses.length > 0 && (
-            <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-5 shadow-2xs">
+            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3.5">
-                <h3 className="text-xs font-semibold text-[#1D1D1F] flex items-center gap-2">
-                  <CalendarDays size={14} className="text-[#0071E3]" />
+                <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
+                  <CalendarDays size={14} className="text-[#3794FF]" />
                   <span>{lang === 'en' ? "Today's Classes" : 'ตารางเรียนวันนี้'}</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => updateScheduleParams({ week: 0, day: todayKey, view: 'daily' })}
-                  className="text-xs font-medium text-[#0071E3] hover:underline cursor-pointer"
+                  className="text-xs font-medium text-[#3794FF] hover:underline cursor-pointer"
                 >
                   {lang === 'en' ? 'Jump to today' : 'ดูของวันนี้'}
                 </button>
@@ -1452,19 +1452,19 @@ export default function Schedule() {
                 {todayClasses.map(cls => (
                   <div
                     key={cls.id}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-[#F5F5F7]/70 border border-[#D2D2D7]/70 border-l-3"
+                    className="flex items-start gap-3 p-3 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] border-l-3"
                     style={{ borderLeftColor: resolveHexColor(cls.color) }}
                   >
-                    <div className="flex flex-col items-center justify-center shrink-0 w-12 h-11 rounded-lg bg-white border border-[#D2D2D7] text-[#0071E3]">
+                    <div className="flex flex-col items-center justify-center shrink-0 w-12 h-11 rounded-lg bg-[#252526] border border-[#3C3C3C] text-[#3794FF]">
                       <span className="text-[11px] font-semibold leading-none">{cls.startTime}</span>
-                      <span className="text-[10px] text-[#6E6E73] mt-1 leading-none">{cls.endTime}</span>
+                      <span className="text-[10px] text-[#858585] mt-1 leading-none">{cls.endTime}</span>
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h4 className="text-xs font-semibold text-[#1D1D1F] truncate w-full" title={cls.title || cls.courseCode}>
+                      <h4 className="text-xs font-semibold text-[#FFFFFF] truncate w-full" title={cls.title || cls.courseCode}>
                         {cls.title || cls.courseCode}
                       </h4>
                       {cls.room && (
-                        <p className="text-[11px] text-[#6E6E73] truncate mt-0.5 flex items-center gap-1">
+                        <p className="text-[11px] text-[#9D9D9D] truncate mt-0.5 flex items-center gap-1">
                           <MapPin size={10} className="shrink-0" />
                           <span>{cls.room}</span>
                         </p>

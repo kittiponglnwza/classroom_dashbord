@@ -9,16 +9,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#F0F7FF',
-          100: '#E0EFFF',
-          200: '#B8DCFF',
-          300: '#0071E3',
-          400: '#0071E3',
-          500: '#0071E3',
-          600: '#0062C4',
-          700: '#0051A3',
-          800: '#003F80',
-          900: '#002D5C',
+          50: '#094771',
+          100: '#0E639C',
+          200: '#1177BB',
+          300: '#3794FF',
+          400: '#3794FF',
+          500: '#007ACC',
+          600: '#1177BB',
+          700: '#0E639C',
+          800: '#094771',
+          900: '#062F4A',
         },
         dark: {
           bg: 'var(--bg)',
@@ -31,8 +31,9 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'system-ui', 'sans-serif'],
-        heading: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Inter', 'system-ui', 'sans-serif'],
+        heading: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Consolas', 'Courier New', 'monospace'],
       }
     },
   },

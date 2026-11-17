@@ -5,12 +5,12 @@ import { t } from '../utils/i18n';
 import { calculateDueState } from '../utils/dateUtils';
 
 const COURSE_DOT_COLORS = {
-  emerald: 'bg-emerald-600',
-  blue: 'bg-[#0071E3]',
-  amber: 'bg-amber-500',
-  rose: 'bg-rose-600',
-  purple: 'bg-purple-600',
-  zinc: 'bg-zinc-400'
+  emerald: 'bg-emerald-400',
+  blue: 'bg-[#3794FF]',
+  amber: 'bg-amber-400',
+  rose: 'bg-rose-400',
+  purple: 'bg-purple-400',
+  zinc: 'bg-[#858585]'
 };
 
 const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatusChange, lang = 'en', viewMode = 'grid' }) {
@@ -23,19 +23,19 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
 
   const getStatusDotColor = () => {
     switch (status) {
-      case 'todo': return 'bg-zinc-400';
-      case 'doing': return 'bg-amber-500';
-      case 'done': return 'bg-emerald-600';
-      default: return 'bg-zinc-400';
+      case 'todo': return 'bg-[#858585]';
+      case 'doing': return 'bg-amber-400';
+      case 'done': return 'bg-emerald-400';
+      default: return 'bg-[#858585]';
     }
   };
 
   const getStatusTextColor = () => {
     switch (status) {
-      case 'todo': return 'text-[#6E6E73]';
-      case 'doing': return 'text-amber-700';
-      case 'done': return 'text-emerald-700';
-      default: return 'text-[#6E6E73]';
+      case 'todo': return 'text-[#9D9D9D]';
+      case 'doing': return 'text-amber-400';
+      case 'done': return 'text-emerald-400';
+      default: return 'text-[#9D9D9D]';
     }
   };
 
@@ -46,15 +46,15 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
       case 'done':
         return {
           text: t('completed', lang),
-          colorClass: 'text-emerald-700 font-medium',
-          icon: <CheckCircle2 size={13} className="text-emerald-600" />,
+          colorClass: 'text-emerald-400 font-medium',
+          icon: <CheckCircle2 size={13} className="text-emerald-400" />,
           isOverdue: false
         };
       case 'noDate':
         return {
           text: t('noDueDate', lang),
-          colorClass: 'text-[#6E6E73] font-medium',
-          icon: <Calendar size={13} className="text-[#6E6E73]" />,
+          colorClass: 'text-[#858585] font-medium',
+          icon: <Calendar size={13} className="text-[#858585]" />,
           isOverdue: false
         };
       case 'overdue':
@@ -62,8 +62,8 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
           text: state.diffDays === 0
             ? t('overdueHrs', lang, { hrs: state.diffHrs })
             : t('overdueDays', lang, { days: state.diffDays }),
-          colorClass: 'text-rose-600 font-semibold',
-          icon: <AlertCircle size={13} className="text-rose-600 shrink-0" />,
+          colorClass: 'text-rose-400 font-semibold',
+          icon: <AlertCircle size={13} className="text-rose-400 shrink-0" />,
           isOverdue: true
         };
       case 'dueToday':
@@ -71,22 +71,22 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
           text: state.diffHrs === 0
             ? t('minsLeftToday', lang, { mins: state.diffMins })
             : t('hrsLeftToday', lang, { hrs: state.diffHrs }),
-          colorClass: 'text-amber-700 font-semibold',
-          icon: <Clock size={13} className="text-amber-600" />,
+          colorClass: 'text-amber-400 font-semibold',
+          icon: <Clock size={13} className="text-amber-400" />,
           isOverdue: false
         };
       case 'dueTomorrow':
         return {
           text: t('dueTomorrow', lang),
-          colorClass: 'text-amber-700 font-medium',
-          icon: <Calendar size={13} className="text-amber-600" />,
+          colorClass: 'text-amber-400 font-medium',
+          icon: <Calendar size={13} className="text-amber-400" />,
           isOverdue: false
         };
       case 'dueLater':
         return {
           text: t('daysLeft', lang, { days: state.diffDays }),
-          colorClass: 'text-[#0071E3] font-medium',
-          icon: <Calendar size={13} className="text-[#0071E3]" />,
+          colorClass: 'text-[#3794FF] font-medium',
+          icon: <Calendar size={13} className="text-[#3794FF]" />,
           isOverdue: false
         };
       default:
@@ -98,9 +98,9 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
 
   const getCardBorderClass = () => {
     if (dueStatus.isOverdue) {
-      return 'border-rose-200 hover:border-rose-300';
+      return 'border-rose-500/40 hover:border-rose-400/60';
     }
-    return 'border-[#D2D2D7]/80 hover:border-[#0071E3]/40';
+    return 'border-[#3C3C3C] hover:border-[#007ACC]/70';
   };
 
   const [isListExpanded, setIsListExpanded] = useState(false);
@@ -108,21 +108,21 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
   if (viewMode === 'list' && !isListExpanded) {
     return (
       <div
-        className={`group bg-white border rounded-xl px-4 py-3 flex items-center justify-between gap-4 transition-colors shadow-2xs ${getCardBorderClass()}`}
+        className={`group bg-[#252526] border rounded-xl px-4 py-3 flex items-center justify-between gap-4 transition-colors ${getCardBorderClass()}`}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-8 h-8 rounded-lg bg-[#F5F5F7] border border-[#D2D2D7]/60 flex items-center justify-center shrink-0 text-[#0071E3]">
+          <div className="w-8 h-8 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] flex items-center justify-center shrink-0 text-[#3794FF]">
             <BookOpen size={15} />
           </div>
           <div className="min-w-0 flex-1">
             <Link
               to={`/assignments/${id}`}
               state={linkState}
-              className="text-sm font-semibold text-[#1D1D1F] hover:text-[#0071E3] truncate block transition-colors"
+              className="text-sm font-semibold text-[#D4D4D4] hover:text-[#3794FF] truncate block transition-colors"
             >
               {title}
             </Link>
-            <div className="flex items-center gap-2 text-xs text-[#6E6E73] mt-0.5">
+            <div className="flex items-center gap-2 text-xs text-[#858585] mt-0.5">
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${COURSE_DOT_COLORS[courseColor] || COURSE_DOT_COLORS.zinc}`} />
               <span className="truncate">{course}</span>
             </div>
@@ -137,7 +137,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
 
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 bg-[#F5F5F7] border border-[#D2D2D7] px-2.5 py-1 rounded-lg shrink-0"
+            className="flex items-center gap-1.5 bg-[#1E1E1E] border border-[#3C3C3C] px-2.5 py-1 rounded-lg shrink-0"
           >
             <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
             <select
@@ -155,7 +155,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
             type="button"
             onClick={() => setIsListExpanded(true)}
             aria-label={lang === 'en' ? 'Expand details' : 'ดูรายละเอียด'}
-            className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
           >
             <ChevronDown size={16} />
           </button>
@@ -166,17 +166,17 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
 
   return (
     <div
-      className={`bg-white border rounded-2xl p-5 shadow-2xs transition-colors flex flex-col justify-between group ${
+      className={`bg-[#252526] border rounded-2xl p-5 transition-colors flex flex-col justify-between group ${
         viewMode === 'grid' ? 'h-full' : ''
       } ${getCardBorderClass()}`}
     >
       {viewMode === 'list' && (
-        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-[#D2D2D7]/60 pb-2.5">
-          <span className="text-xs font-medium text-[#6E6E73]">{course}</span>
+        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-[#3C3C3C] pb-2.5">
+          <span className="text-xs font-medium text-[#9D9D9D]">{course}</span>
           <button
             type="button"
             onClick={() => setIsListExpanded(false)}
-            className="p-1 text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] rounded-lg transition-colors cursor-pointer"
             title={lang === 'en' ? 'Collapse' : 'ย่อ'}
           >
             <ChevronUp size={16} />
@@ -188,17 +188,17 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <span className={`w-2 h-2 rounded-full shrink-0 ${COURSE_DOT_COLORS[courseColor] || COURSE_DOT_COLORS.zinc}`} />
-            <span className="text-xs font-medium text-[#6E6E73] truncate" title={course}>
+            <span className="text-xs font-medium text-[#9D9D9D] truncate" title={course}>
               {course}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-[#F5F5F7] border border-[#D2D2D7]/80 px-2.5 py-1 rounded-lg hover:border-[#D2D2D7] transition-colors shrink-0">
+          <div className="flex items-center gap-1.5 bg-[#1E1E1E] border border-[#3C3C3C] px-2.5 py-1 rounded-lg hover:border-[#454545] transition-colors shrink-0">
             <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
             <select
               value={status}
               onChange={(e) => onStatusChange(id, e.target.value)}
-              className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] cursor-pointer pr-1 select-none ${getStatusTextColor()}`}
+              className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer pr-1 select-none ${getStatusTextColor()}`}
             >
               <option value="todo">{t('todo', lang)}</option>
               <option value="doing">{t('doing', lang)}</option>
@@ -210,13 +210,13 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
         <Link
           to={`/assignments/${id}`}
           state={linkState}
-          className="text-[#1D1D1F] hover:text-[#0071E3] transition-colors font-semibold text-sm leading-snug block"
+          className="text-[#D4D4D4] hover:text-[#3794FF] transition-colors font-semibold text-sm leading-snug block"
         >
           {title}
         </Link>
       </div>
 
-      <div className="border-t border-[#D2D2D7]/60 pt-3.5 flex items-center justify-between mt-4">
+      <div className="border-t border-[#3C3C3C] pt-3.5 flex items-center justify-between mt-4">
         <div className="flex items-center gap-1.5 text-xs">
           {dueStatus.icon}
           <span className={`text-xs ${dueStatus.colorClass}`}>
@@ -224,10 +224,10 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
           </span>
         </div>
 
-        <div className="flex items-center gap-3 text-[#6E6E73] shrink-0">
+        <div className="flex items-center gap-3 text-[#858585] shrink-0">
           {attachments && attachments.length > 0 && (
             <span className="flex items-center gap-1 text-xs" title={`${attachments.length} attachments`}>
-              <Paperclip size={12} className="text-[#6E6E73]" />
+              <Paperclip size={12} className="text-[#858585]" />
               {attachments.length}
             </span>
           )}
@@ -237,7 +237,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
               href={googleLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-[#0071E3] hover:underline font-medium flex items-center gap-0.5 transition-colors"
+              className="text-xs text-[#3794FF] hover:underline font-medium flex items-center gap-0.5 transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               Classroom
@@ -245,7 +245,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
             </a>
           )}
 
-          <span className="text-xs font-medium text-[#6E6E73]">
+          <span className="text-xs font-medium text-[#9D9D9D]">
             {points} {lang === 'en' ? 'pts' : 'คะแนน'}
           </span>
         </div>

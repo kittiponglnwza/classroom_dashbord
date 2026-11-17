@@ -40,7 +40,7 @@ function RouterOpenAction({ targetPath, onBeforeNavigate, lang }) {
         if (onBeforeNavigate) onBeforeNavigate();
         navigate(targetPath, { state: { from: fromPath } });
       }}
-      className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[#0071E3] hover:underline shrink-0 cursor-pointer"
+      className="inline-flex items-center gap-0.5 text-[11px] font-medium text-[#3794FF] hover:underline shrink-0 cursor-pointer"
     >
       <span>{t('openRelated', lang)}</span>
       <ArrowUpRight size={11} />
@@ -117,17 +117,17 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
       role="dialog"
       aria-modal="true"
       aria-labelledby="notification-popover-title"
-      className="fixed left-4 right-4 top-20 sm:absolute sm:left-auto sm:right-0 sm:top-12 z-50 sm:w-[380px] bg-white border border-[#D2D2D7] rounded-2xl shadow-lg p-4 space-y-4 text-xs text-[#1D1D1F] animate-fade-in"
+      className="fixed left-4 right-4 top-20 sm:absolute sm:left-auto sm:right-0 sm:top-12 z-50 sm:w-[380px] bg-[#252526] border border-[#3C3C3C] rounded-2xl shadow-xl p-4 space-y-4 text-xs text-[#D4D4D4] animate-fade-in"
     >
-      <div className="flex items-center justify-between border-b border-[#D2D2D7]/70 pb-3">
-        <h3 id="notification-popover-title" className="font-semibold text-xs text-[#1D1D1F] flex items-center gap-2">
-          <Bell size={14} className="text-[#0071E3]" />
+      <div className="flex items-center justify-between border-b border-[#3C3C3C] pb-3">
+        <h3 id="notification-popover-title" className="font-semibold text-xs text-[#FFFFFF] flex items-center gap-2">
+          <Bell size={14} className="text-[#3794FF]" />
           {lang === 'en' ? 'Gmail Alerts' : 'แจ้งเตือน Gmail'}
         </h3>
 
         {isLoggedIn && (
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#6E6E73] font-medium">
+            <span className="text-[11px] text-[#9D9D9D] font-medium">
               {emailAlerts ? (lang === 'en' ? 'On' : 'เปิด') : (lang === 'en' ? 'Off' : 'ปิด')}
             </span>
             <label className="relative inline-flex items-center cursor-pointer select-none">
@@ -137,7 +137,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                 onChange={(e) => handleToggleAlerts(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-8 h-4.5 bg-[#D2D2D7] peer-focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[#0071E3]"></div>
+              <div className="w-8 h-4.5 bg-[#3C3C3C] peer-focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[#007ACC]"></div>
             </label>
           </div>
         )}
@@ -149,8 +149,8 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
             <div
               className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${
                 uiFeedback.type === 'error'
-                  ? 'bg-rose-50 border-rose-200 text-rose-700'
-                  : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                  : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
               }`}
             >
               <span>{uiFeedback.text}</span>
@@ -164,12 +164,12 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
             </div>
           )}
 
-          <div className="flex bg-[#F5F5F7] p-1 rounded-xl border border-[#D2D2D7]/70">
+          <div className="flex bg-[#1E1E1E] p-1 rounded-xl border border-[#3C3C3C]">
             <button
               type="button"
               onClick={() => setActiveTab('history')}
               className={`flex-1 py-1.5 text-center font-medium text-xs rounded-lg transition-colors cursor-pointer ${
-                activeTab === 'history' ? 'bg-white text-[#1D1D1F] shadow-2xs font-semibold' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                activeTab === 'history' ? 'bg-[#2D2D2D] text-[#FFFFFF] font-semibold' : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
               }`}
             >
               {lang === 'en' ? 'Logs' : 'ประวัติส่งเมล'}
@@ -178,7 +178,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
               type="button"
               onClick={() => setActiveTab('settings')}
               className={`flex-1 py-1.5 text-center font-medium text-xs rounded-lg transition-colors cursor-pointer ${
-                activeTab === 'settings' ? 'bg-white text-[#1D1D1F] shadow-2xs font-semibold' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                activeTab === 'settings' ? 'bg-[#2D2D2D] text-[#FFFFFF] font-semibold' : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
               }`}
             >
               {lang === 'en' ? 'Settings' : 'ตั้งค่าแจ้งเตือน'}
@@ -189,20 +189,20 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
             <div className="space-y-3">
               {emailAlerts ? (
                 <>
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#F5F5F7] border border-[#D2D2D7]/70 text-xs">
-                    <span className="text-[#6E6E73] font-medium">{t('quotaLabel', lang)}</span>
-                    <span className="text-[#1D1D1F] font-semibold">{t('quotaDesc', lang, { count: dailyLimit.count })}</span>
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] text-xs">
+                    <span className="text-[#9D9D9D] font-medium">{t('quotaLabel', lang)}</span>
+                    <span className="text-[#D4D4D4] font-semibold">{t('quotaDesc', lang, { count: dailyLimit.count })}</span>
                   </div>
                   {historyLogs.length > 0 && (
                     <div className="flex items-center justify-between text-xs px-1">
-                      <span className="text-[#6E6E73] font-medium" data-testid="notification-unread-counter">
+                      <span className="text-[#9D9D9D] font-medium" data-testid="notification-unread-counter">
                         {unreadCount} {t('unreadLabel', lang)}
                       </span>
                       {unreadCount > 0 && (
                         <button
                           type="button"
                           onClick={handleMarkAllNotificationsRead}
-                          className="text-[#0071E3] hover:underline font-medium cursor-pointer"
+                          className="text-[#3794FF] hover:underline font-medium cursor-pointer"
                         >
                           {t('markAllRead', lang)}
                         </button>
@@ -235,16 +235,16 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                             }}
                             className={`w-full p-3 rounded-xl border flex items-start justify-between gap-2 text-left transition-colors cursor-pointer ${
                               isUnread
-                                ? 'bg-[#0071E3]/5 border-[#0071E3]/30 hover:bg-[#0071E3]/10'
-                                : 'bg-[#F5F5F7]/70 border-[#D2D2D7]/70 hover:bg-[#F5F5F7]'
+                                ? 'bg-[#094771]/35 border-[#007ACC]/50 hover:bg-[#094771]/50'
+                                : 'bg-[#1E1E1E] border-[#3C3C3C] hover:bg-[#2A2D2E]'
                             }`}
                           >
                             <div className="flex flex-col gap-1 min-w-0 flex-1">
-                              <span className={`font-medium leading-snug ${isUnread ? 'text-[#1D1D1F] font-semibold' : 'text-[#6E6E73]'}`}>
+                              <span className={`font-medium leading-snug ${isUnread ? 'text-[#FFFFFF] font-semibold' : 'text-[#9D9D9D]'}`}>
                                 {log.title}
                               </span>
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-[11px] text-[#6E6E73]">{formattedLogDate}</span>
+                                <span className="text-[11px] text-[#858585]">{formattedLogDate}</span>
                                 {inRouter && targetPath && (
                                   <RouterOpenAction
                                     targetPath={targetPath}
@@ -262,21 +262,21 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                             {isUnread && (
                               <span
                                 aria-label="unread"
-                                className="w-2 h-2 rounded-full bg-[#0071E3] shrink-0 mt-1"
+                                className="w-2 h-2 rounded-full bg-[#3794FF] shrink-0 mt-1"
                               />
                             )}
                           </div>
                         );
                       })
                     ) : (
-                      <div className="text-center py-8 text-[#6E6E73] text-xs">
+                      <div className="text-center py-8 text-[#858585] text-xs">
                         {t('noHistoryLogs', lang)}
                       </div>
                     )}
                   </div>
                 </>
               ) : (
-                <div className="text-center p-6 bg-[#F5F5F7] rounded-xl border border-[#D2D2D7] text-[#6E6E73] text-xs">
+                <div className="text-center p-6 bg-[#1E1E1E] rounded-xl border border-[#3C3C3C] text-[#9D9D9D] text-xs">
                   {t('gmailDisabledMsg', lang)}
                 </div>
               )}
@@ -288,7 +288,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
               {emailAlerts ? (
                 <div className="space-y-4">
                   <div className="space-y-3">
-                    <span className="block text-xs font-semibold text-[#1D1D1F]">{t('triggersHeader', lang)}</span>
+                    <span className="block text-xs font-semibold text-[#FFFFFF]">{t('triggersHeader', lang)}</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
                       {['due3Days', 'due1Day', 'dueToday', 'overdue1Day', 'newPosts'].map((field) => (
                         <label
@@ -299,83 +299,83 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                             type="checkbox"
                             checked={alertSettings[field]}
                             onChange={() => handleToggleSetting(field)}
-                            className="w-3.5 h-3.5 rounded accent-[#0071E3] cursor-pointer mt-0.5 shrink-0"
+                            className="w-3.5 h-3.5 rounded accent-[#007ACC] cursor-pointer mt-0.5 shrink-0"
                           />
                           <div className="space-y-0.5">
-                            <span className="font-medium text-[#1D1D1F]">{t(`${field}Label`, lang)}</span>
-                            <p className="text-[11px] text-[#6E6E73] leading-tight">{t(`${field}Desc`, lang)}</p>
+                            <span className="font-medium text-[#D4D4D4]">{t(`${field}Label`, lang)}</span>
+                            <p className="text-[11px] text-[#858585] leading-tight">{t(`${field}Desc`, lang)}</p>
                           </div>
                         </label>
                       ))}
                     </div>
 
-                    <div className="border-t border-[#D2D2D7]/70 pt-3 space-y-2.5 text-left">
+                    <div className="border-t border-[#3C3C3C] pt-3 space-y-2.5 text-left">
                       <label className="flex items-start gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={alertSettings.sundayDigest}
                           onChange={() => handleToggleSetting('sundayDigest')}
-                          className="w-3.5 h-3.5 rounded accent-[#0071E3] cursor-pointer mt-0.5 shrink-0"
+                          className="w-3.5 h-3.5 rounded accent-[#007ACC] cursor-pointer mt-0.5 shrink-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-medium text-[#1D1D1F]">{t('sundayDigestLabel', lang)}</span>
-                          <p className="text-[11px] text-[#6E6E73] leading-tight">{t('sundayDigestDesc', lang)}</p>
+                          <span className="font-medium text-[#D4D4D4]">{t('sundayDigestLabel', lang)}</span>
+                          <p className="text-[11px] text-[#858585] leading-tight">{t('sundayDigestDesc', lang)}</p>
                         </div>
                       </label>
 
                       {alertSettings.sundayDigest && (
                         <div className="flex items-center gap-2 pl-5">
-                          <span className="text-[11px] text-[#6E6E73] font-medium">{t('deliveryTimeLabel', lang)}</span>
+                          <span className="text-[11px] text-[#9D9D9D] font-medium">{t('deliveryTimeLabel', lang)}</span>
                           <input
                             type="time"
                             value={sundayTime}
                             onChange={(e) => handleTimeChange(e.target.value)}
-                            className="bg-[#F5F5F7] border border-[#D2D2D7] rounded-lg px-2 py-1 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3]"
+                            className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-lg px-2 py-1 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
                           />
                         </div>
                       )}
 
-                      <label className="flex items-start gap-2 cursor-pointer border-t border-[#D2D2D7]/50 pt-2.5">
+                      <label className="flex items-start gap-2 cursor-pointer border-t border-[#3C3C3C] pt-2.5">
                         <input
                           type="checkbox"
                           checked={alertSettings.includeExams}
                           onChange={() => handleToggleSetting('includeExams')}
-                          className="w-3.5 h-3.5 rounded accent-[#0071E3] cursor-pointer mt-0.5 shrink-0"
+                          className="w-3.5 h-3.5 rounded accent-[#007ACC] cursor-pointer mt-0.5 shrink-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-medium text-[#1D1D1F]">{t('includeExamsLabel', lang)}</span>
-                          <p className="text-[11px] text-[#6E6E73] leading-tight">{t('includeExamsDesc', lang)}</p>
+                          <span className="font-medium text-[#D4D4D4]">{t('includeExamsLabel', lang)}</span>
+                          <p className="text-[11px] text-[#858585] leading-tight">{t('includeExamsDesc', lang)}</p>
                         </div>
                       </label>
 
-                      <label className="flex items-start gap-2 cursor-pointer border-t border-[#D2D2D7]/50 pt-2.5">
+                      <label className="flex items-start gap-2 cursor-pointer border-t border-[#3C3C3C] pt-2.5">
                         <input
                           type="checkbox"
                           checked={alertSettings.calendarReminderEnabled}
                           onChange={() => handleToggleSetting('calendarReminderEnabled')}
-                          className="w-3.5 h-3.5 rounded accent-[#0071E3] cursor-pointer mt-0.5 shrink-0"
+                          className="w-3.5 h-3.5 rounded accent-[#007ACC] cursor-pointer mt-0.5 shrink-0"
                         />
                         <div className="space-y-0.5">
-                          <span className="font-medium text-[#1D1D1F]">{t('calendarReminderLabel', lang)}</span>
-                          <p className="text-[11px] text-[#6E6E73] leading-tight">{t('calendarReminderDesc', lang)}</p>
+                          <span className="font-medium text-[#D4D4D4]">{t('calendarReminderLabel', lang)}</span>
+                          <p className="text-[11px] text-[#858585] leading-tight">{t('calendarReminderDesc', lang)}</p>
                         </div>
                       </label>
 
                       {alertSettings.calendarReminderEnabled && (
                         <div className="flex items-center gap-2 pl-5">
-                          <span className="text-[11px] text-[#6E6E73] font-medium">{t('notifyBeforeLabel', lang)}</span>
+                          <span className="text-[11px] text-[#9D9D9D] font-medium">{t('notifyBeforeLabel', lang)}</span>
                           <input
                             type="number"
                             min="0"
                             max="999"
                             value={alertSettings.calendarReminderValue}
                             onChange={(e) => handleUpdateSetting('calendarReminderValue', parseInt(e.target.value, 10) || 0)}
-                            className="bg-[#F5F5F7] border border-[#D2D2D7] rounded-lg px-2 py-1 w-16 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3]"
+                            className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-lg px-2 py-1 w-16 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
                           />
                           <select
                             value={alertSettings.calendarReminderUnit}
                             onChange={(e) => handleUpdateSetting('calendarReminderUnit', e.target.value)}
-                            className="bg-[#F5F5F7] border border-[#D2D2D7] rounded-lg px-2 py-1 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] cursor-pointer"
+                            className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-lg px-2 py-1 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
                           >
                             <option value="minutes">{t('minutesUnit', lang)}</option>
                             <option value="hours">{t('hoursUnit', lang)}</option>
@@ -386,12 +386,12 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[#D2D2D7]/70 flex justify-end">
+                  <div className="pt-2 border-t border-[#3C3C3C] flex justify-end">
                     <button
                       type="button"
                       disabled={digestSending}
                       onClick={handleSendDigestNow}
-                      className="w-full bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-medium px-4 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full bg-[#007ACC] hover:bg-[#1177BB] text-white text-xs font-medium px-4 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {digestSending ? (
                         <>
@@ -405,7 +405,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                   </div>
                 </div>
               ) : (
-                <div className="text-center p-6 bg-[#F5F5F7] rounded-xl border border-[#D2D2D7] text-[#6E6E73] text-xs">
+                <div className="text-center p-6 bg-[#1E1E1E] rounded-xl border border-[#3C3C3C] text-[#9D9D9D] text-xs">
                   {t('gmailDisabledMsg', lang)}
                 </div>
               )}
@@ -413,7 +413,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
           )}
         </div>
       ) : (
-        <div className="text-center p-6 text-[#6E6E73] text-xs">
+        <div className="text-center p-6 text-[#858585] text-xs">
           {lang === 'en' ? 'Connect Google Classroom to enable alerts.' : 'เชื่อมต่อบัญชี Google เพื่อใช้งานการแจ้งเตือน'}
         </div>
       )}

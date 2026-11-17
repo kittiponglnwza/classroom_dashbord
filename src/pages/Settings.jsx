@@ -21,7 +21,7 @@ const InstagramIcon = ({ size = 16, className = '' }) => (
 
 const InputField = ({ label, value, onChange, type = 'text' }) => (
   <div className="space-y-1.5">
-    <label className="block text-xs font-medium text-[#1D1D1F]">
+    <label className="block text-xs font-medium text-[#D4D4D4]">
       {label}
     </label>
     <input
@@ -29,7 +29,7 @@ const InputField = ({ label, value, onChange, type = 'text' }) => (
       required
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-sm text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white transition-colors"
+      className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-sm text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors"
     />
   </div>
 );
@@ -96,17 +96,17 @@ export default function Settings() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="border-b border-[#D2D2D7]/80 pb-5">
-        <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight flex items-center gap-2.5">
-          <Settings2 size={22} className="text-[#0071E3]" />
+      <div className="border-b border-[#3C3C3C] pb-5">
+        <h1 className="text-2xl font-semibold text-[#FFFFFF] tracking-tight flex items-center gap-2.5">
+          <Settings2 size={22} className="text-[#3794FF]" />
           <span>{t('settingsTitle', lang)}</span>
         </h1>
-        <p className="text-xs text-[#6E6E73] mt-1 leading-relaxed">{t('settingsDesc', lang)}</p>
+        <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">{t('settingsDesc', lang)}</p>
       </div>
 
       {saveSuccess && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center gap-2">
-          <CheckCircle2 size={15} className="text-emerald-600" />
+        <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs px-4 py-3 rounded-xl flex items-center gap-2">
+          <CheckCircle2 size={15} className="text-emerald-400" />
           <span>{t('profileSuccess', lang)}</span>
         </div>
       )}
@@ -114,10 +114,10 @@ export default function Settings() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column (Profile & Integrations) */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-6 md:p-8 shadow-2xs">
+          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 md:p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-[#F5F5F7] border border-[#D2D2D7] shrink-0">
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-[#1E1E1E] border border-[#3C3C3C] shrink-0">
                   <img
                     src={profile.avatarUrl || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200'}
                     alt="Avatar"
@@ -125,9 +125,9 @@ export default function Settings() {
                   />
                 </div>
                 <div className="pt-1 space-y-1">
-                  <h3 className="text-lg font-semibold text-[#1D1D1F]">{name || 'Student'}</h3>
-                  <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-emerald-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                  <h3 className="text-lg font-semibold text-[#FFFFFF]">{name || 'Student'}</h3>
+                  <div className="inline-flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-emerald-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     <span>{lang === 'en' ? 'Synced Profile' : 'ซิงค์ข้อมูลแล้ว'}</span>
                   </div>
                 </div>
@@ -143,7 +143,7 @@ export default function Settings() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full sm:w-auto bg-[#0071E3] hover:bg-[#0077ED] text-white px-6 py-2.5 rounded-xl font-medium text-xs transition-colors cursor-pointer"
+                  className="w-full sm:w-auto bg-[#007ACC] hover:bg-[#1177BB] text-white px-6 py-2.5 rounded-xl font-medium text-xs transition-colors cursor-pointer"
                 >
                   {lang === 'en' ? 'Save Preferences' : 'บันทึกการตั้งค่า'}
                 </button>
@@ -151,14 +151,14 @@ export default function Settings() {
             </form>
           </div>
 
-          <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-6 shadow-2xs">
+          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-[#1D1D1F] mb-1 flex items-center gap-2">
-                  <Layers className="text-[#0071E3] shrink-0" size={16} />
+                <h3 className="text-sm font-semibold text-[#FFFFFF] mb-1 flex items-center gap-2">
+                  <Layers className="text-[#3794FF] shrink-0" size={16} />
                   <span className="truncate">{lang === 'en' ? 'Classroom Integration' : 'บัญชี Google Classroom'}</span>
                 </h3>
-                <p className="text-xs text-[#6E6E73] leading-relaxed break-all">
+                <p className="text-xs text-[#9D9D9D] leading-relaxed break-all">
                   {isLoggedIn
                     ? (lang === 'en' ? `Connected securely as ${profile.email || email}` : `เชื่อมต่อแล้วด้วยอีเมล ${profile.email || email}`)
                     : (lang === 'en' ? 'Connect your account to sync assignments automatically.' : 'เชื่อมต่อบัญชีเพื่อซิงค์ข้อมูลการบ้านอัตโนมัติ')}
@@ -168,7 +168,7 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={logout}
-                  className="w-full sm:w-auto shrink-0 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                  className="w-full sm:w-auto shrink-0 bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 px-5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
                 >
                   {t('disconnectBtn', lang)}
                 </button>
@@ -176,7 +176,7 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={() => login()}
-                  className="w-full sm:w-auto shrink-0 bg-[#0071E3] hover:bg-[#0077ED] text-white px-5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                  className="w-full sm:w-auto shrink-0 bg-[#007ACC] hover:bg-[#1177BB] text-white px-5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
                 >
                   {t('connectBtn', lang)}
                 </button>
@@ -185,14 +185,14 @@ export default function Settings() {
           </div>
 
           {isLoggedIn && (
-            <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-6 shadow-2xs">
+            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-[#1D1D1F] mb-1 flex items-center gap-2">
-                    <RefreshCw className="text-[#0071E3] shrink-0" size={16} />
+                  <h3 className="text-sm font-semibold text-[#FFFFFF] mb-1 flex items-center gap-2">
+                    <RefreshCw className="text-[#3794FF] shrink-0" size={16} />
                     <span className="truncate">{lang === 'en' ? 'Reset Calendar Sync' : 'รีเซ็ตข้อมูลปฏิทิน'}</span>
                   </h3>
-                  <p className="text-xs text-[#6E6E73] leading-relaxed">
+                  <p className="text-xs text-[#9D9D9D] leading-relaxed">
                     {lang === 'en'
                       ? 'If your calendar events are duplicated or notifications are repeating, use this to clear and freshly re-sync all data.'
                       : 'หากการแจ้งเตือนซ้ำซ้อนหรือกิจกรรมในปฏิทินมีปัญหา คุณสามารถเลือกล้างและซิงค์ใหม่ทั้งหมดได้'}
@@ -201,8 +201,8 @@ export default function Settings() {
                     <p
                       className={`text-xs mt-2 font-medium ${
                         resetMessage.includes('Error') || resetMessage.includes('ข้อผิดพลาด')
-                          ? 'text-rose-600'
-                          : 'text-emerald-700'
+                          ? 'text-rose-400'
+                          : 'text-emerald-400'
                       }`}
                     >
                       {resetMessage}
@@ -213,9 +213,9 @@ export default function Settings() {
                   type="button"
                   onClick={handleResetCalendar}
                   disabled={isResettingCalendar}
-                  className="w-full sm:w-auto justify-center shrink-0 bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] border border-[#D2D2D7] px-5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  className="w-full sm:w-auto justify-center shrink-0 bg-[#1E1E1E] hover:bg-[#2A2D2E] text-[#D4D4D4] border border-[#3C3C3C] px-5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isResettingCalendar && <RefreshCw size={13} className="animate-spin text-[#0071E3]" />}
+                  {isResettingCalendar && <RefreshCw size={13} className="animate-spin text-[#3794FF]" />}
                   <span>{lang === 'en' ? 'Reset Calendar' : 'ล้างแล้วลงใหม่'}</span>
                 </button>
               </div>
@@ -225,33 +225,33 @@ export default function Settings() {
 
         {/* Right Column (Developer & Info) */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-6 md:p-8 shadow-2xs space-y-5">
+          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 md:p-8 space-y-5">
             <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
-                <Code size={20} className="text-[#0071E3]" />
+              <div className="w-11 h-11 rounded-xl bg-[#007ACC]/20 border border-[#007ACC]/40 flex items-center justify-center shrink-0">
+                <Code size={20} className="text-[#3794FF]" />
               </div>
               <div>
-                <h4 className="font-semibold text-[#1D1D1F] text-base tracking-tight">{t('developerHeader', lang)}</h4>
-                <p className="text-xs font-medium text-[#0071E3]">@{devInfo.nickname}</p>
+                <h4 className="font-semibold text-[#FFFFFF] text-base tracking-tight">{t('developerHeader', lang)}</h4>
+                <p className="text-xs font-medium text-[#3794FF]">@{devInfo.nickname}</p>
               </div>
             </div>
 
-            <p className="text-xs text-[#6E6E73] leading-relaxed">
+            <p className="text-xs text-[#9D9D9D] leading-relaxed">
               {devInfo.bio}
             </p>
 
             <div className="space-y-3 text-xs">
-              <div className="flex items-center gap-3 text-[#6E6E73]">
-                <div className="w-8 h-8 rounded-lg bg-[#F5F5F7] border border-[#D2D2D7]/70 flex items-center justify-center shrink-0">
-                  <GraduationCap size={14} className="text-[#0071E3]" />
+              <div className="flex items-center gap-3 text-[#9D9D9D]">
+                <div className="w-8 h-8 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] flex items-center justify-center shrink-0">
+                  <GraduationCap size={14} className="text-[#3794FF]" />
                 </div>
                 <span className="leading-snug">{devInfo.university}</span>
               </div>
-              <div className="flex items-center gap-3 text-[#6E6E73]">
-                <div className="w-8 h-8 rounded-lg bg-[#F5F5F7] border border-[#D2D2D7]/70 flex items-center justify-center shrink-0">
-                  <Mail size={14} className="text-[#0071E3]" />
+              <div className="flex items-center gap-3 text-[#9D9D9D]">
+                <div className="w-8 h-8 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] flex items-center justify-center shrink-0">
+                  <Mail size={14} className="text-[#3794FF]" />
                 </div>
-                <a href={`mailto:${devInfo.email}`} className="hover:text-[#0071E3] transition-colors">{devInfo.email}</a>
+                <a href={`mailto:${devInfo.email}`} className="hover:text-[#3794FF] transition-colors">{devInfo.email}</a>
               </div>
             </div>
 
@@ -260,26 +260,26 @@ export default function Settings() {
                 href={devInfo.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between w-full bg-[#F5F5F7] hover:bg-[#E8E8ED] border border-[#D2D2D7]/80 p-3.5 rounded-xl transition-colors"
+                className="flex items-center justify-between w-full bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] p-3.5 rounded-xl transition-colors"
               >
-                <div className="flex items-center gap-2.5 text-xs font-medium text-[#1D1D1F]">
+                <div className="flex items-center gap-2.5 text-xs font-medium text-[#D4D4D4]">
                   <GithubIcon size={15} />
                   <span>GitHub Profile</span>
                 </div>
-                <ChevronRight size={14} className="text-[#6E6E73]" />
+                <ChevronRight size={14} className="text-[#858585]" />
               </a>
 
               <a
                 href={devInfo.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between w-full bg-[#F5F5F7] hover:bg-[#E8E8ED] border border-[#D2D2D7]/80 p-3.5 rounded-xl transition-colors"
+                className="flex items-center justify-between w-full bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] p-3.5 rounded-xl transition-colors"
               >
-                <div className="flex items-center gap-2.5 text-xs font-medium text-[#1D1D1F]">
-                  <InstagramIcon size={15} className="text-[#1D1D1F]" />
+                <div className="flex items-center gap-2.5 text-xs font-medium text-[#D4D4D4]">
+                  <InstagramIcon size={15} className="text-[#D4D4D4]" />
                   <span>Instagram Profile</span>
                 </div>
-                <ChevronRight size={14} className="text-[#6E6E73]" />
+                <ChevronRight size={14} className="text-[#858585]" />
               </a>
             </div>
           </div>

@@ -41,23 +41,23 @@ export default function HeaderBar({ setMobileMenuOpen }) {
   }).length;
 
   return (
-    <header className="h-16 border-b border-[#D2D2D7]/80 bg-white px-4 md:px-8 flex items-center justify-between shrink-0 z-30">
+    <header className="h-16 border-b border-[#3C3C3C] bg-[#252526] px-4 md:px-8 flex items-center justify-between shrink-0 z-30">
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => setMobileMenuOpen(true)}
           aria-label="Open Mobile Menu"
-          className="md:hidden w-10 h-10 flex items-center justify-center text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-xl transition-colors border border-[#D2D2D7] cursor-pointer"
+          className="md:hidden w-10 h-10 flex items-center justify-center text-[#D4D4D4] hover:bg-[#2A2D2E] rounded-xl transition-colors border border-[#3C3C3C] cursor-pointer"
         >
           <Menu size={18} />
         </button>
         <div className="hidden sm:flex items-center gap-2.5">
           {isLoggedIn ? (
-            <span className="text-xs font-medium bg-[#F5F5F7] text-[#1D1D1F] border border-[#D2D2D7] px-2.5 py-1 rounded-full">
+            <span className="text-xs font-medium bg-[#1E1E1E] text-[#D4D4D4] border border-[#3C3C3C] px-2.5 py-1 rounded-full">
               {t('googleConnected', lang)}
             </span>
           ) : (
-            <span className="text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-full">
+            <span className="text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full">
               {t('mockActive', lang)}
             </span>
           )}
@@ -66,38 +66,38 @@ export default function HeaderBar({ setMobileMenuOpen }) {
 
       <div className="flex items-center gap-3">
         {isLoggedIn && (
-          <div className="flex items-center gap-3 text-xs pr-3 border-r border-[#D2D2D7]/80">
-            <span className="text-[#6E6E73] hidden lg:inline">
+          <div className="flex items-center gap-3 text-xs pr-3 border-r border-[#3C3C3C]">
+            <span className="text-[#858585] hidden lg:inline">
               {t('lastSync', lang)}{' '}
-              <span className="text-[#1D1D1F] font-medium">{formatRelativeTime(lastSyncTime, lang)}</span>
+              <span className="text-[#D4D4D4] font-medium">{formatRelativeTime(lastSyncTime, lang)}</span>
             </span>
             <button
               type="button"
               onClick={() => syncClassroom()}
               disabled={isSyncing}
               aria-label="Sync Google Classroom data"
-              className="flex items-center justify-center gap-1.5 bg-[#F5F5F7] hover:bg-[#E8E8ED] text-[#1D1D1F] font-medium px-3 h-9 rounded-xl border border-[#D2D2D7] transition-colors disabled:opacity-50 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-[#2D2D2D] hover:bg-[#37373D] text-[#D4D4D4] font-medium px-3 h-9 rounded-xl border border-[#3C3C3C] transition-colors disabled:opacity-50 cursor-pointer"
               title="Sync Google Classroom data"
             >
-              <RefreshCw size={13} className={isSyncing ? 'animate-spin text-[#0071E3]' : 'text-[#6E6E73]'} />
+              <RefreshCw size={13} className={isSyncing ? 'animate-spin text-[#3794FF]' : 'text-[#9D9D9D]'} />
               <span>{isSyncing ? t('syncing', lang) : t('sync', lang)}</span>
             </button>
           </div>
         )}
 
-        <div className="hidden lg:flex items-center gap-4 text-xs pr-3 border-r border-[#D2D2D7]/80">
+        <div className="hidden lg:flex items-center gap-4 text-xs pr-3 border-r border-[#3C3C3C]">
           <SafeLink to="/dashboard?status=todo" className="text-right hover:opacity-80 transition-opacity">
-            <span className="text-[#6E6E73] block">{t('tasksPending', lang)}</span>
-            <span className="font-semibold text-[#1D1D1F]">
+            <span className="text-[#858585] block">{t('tasksPending', lang)}</span>
+            <span className="font-semibold text-[#D4D4D4]">
               {totalActive} {totalActive === 1 ? t('taskPlural', lang) : t('tasksPlural', lang)}
             </span>
           </SafeLink>
           {overdueCount > 0 && (
             <SafeLink to="/dashboard?status=todo" className="text-right hover:opacity-80 transition-opacity">
-              <span className="text-rose-600 font-medium flex items-center gap-1">
+              <span className="text-rose-400 font-medium flex items-center gap-1">
                 <AlertTriangle size={11} /> {t('overdueHeader', lang)}
               </span>
-              <span className="font-semibold text-rose-600">
+              <span className="font-semibold text-rose-400">
                 {overdueCount} {overdueCount === 1 ? t('taskPlural', lang) : t('tasksPlural', lang)}
               </span>
             </SafeLink>
@@ -108,10 +108,10 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           type="button"
           onClick={toggleLang}
           aria-label={lang === 'en' ? 'Switch to Thai' : 'เปลี่ยนเป็นภาษาอังกฤษ'}
-          className="flex items-center justify-center gap-1.5 h-9 px-3 bg-[#F5F5F7] hover:bg-[#E8E8ED] border border-[#D2D2D7] text-xs font-medium rounded-xl text-[#1D1D1F] transition-colors cursor-pointer select-none shrink-0"
+          className="flex items-center justify-center gap-1.5 h-9 px-3 bg-[#2D2D2D] hover:bg-[#37373D] border border-[#3C3C3C] text-xs font-medium rounded-xl text-[#D4D4D4] transition-colors cursor-pointer select-none shrink-0"
           title={lang === 'en' ? 'Switch to Thai' : 'เปลี่ยนเป็นภาษาอังกฤษ'}
         >
-          <Globe size={13} className="text-[#6E6E73]" />
+          <Globe size={13} className="text-[#9D9D9D]" />
           <span>{lang === 'en' ? 'EN' : 'TH'}</span>
         </button>
 
@@ -123,8 +123,8 @@ export default function HeaderBar({ setMobileMenuOpen }) {
             aria-label="Notifications"
             className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors border relative cursor-pointer ${
               isNotificationsOpen
-                ? 'text-[#0071E3] bg-[#0071E3]/10 border-[#0071E3]/30'
-                : 'text-[#6E6E73] hover:text-[#1D1D1F] bg-[#F5F5F7] hover:bg-[#E8E8ED] border-[#D2D2D7]'
+                ? 'text-[#3794FF] bg-[#007ACC]/20 border-[#007ACC]/40'
+                : 'text-[#9D9D9D] hover:text-[#D4D4D4] bg-[#2D2D2D] hover:bg-[#37373D] border-[#3C3C3C]'
             }`}
           >
             <Bell size={16} />
@@ -146,7 +146,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
         </div>
 
         <SafeLink to="/settings" className="flex items-center gap-2.5 pl-1 hover:opacity-85 transition-opacity">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-[#F5F5F7] border border-[#D2D2D7]">
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-[#1E1E1E] border border-[#3C3C3C]">
             <img
               src={profile.avatarUrl || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200'}
               alt="Student Avatar"
@@ -154,10 +154,10 @@ export default function HeaderBar({ setMobileMenuOpen }) {
             />
           </div>
           <div className="hidden sm:flex flex-col text-left max-w-[130px]">
-            <span className="text-xs font-semibold text-[#1D1D1F] truncate">
+            <span className="text-xs font-semibold text-[#D4D4D4] truncate">
               {profile.name || 'Student'}
             </span>
-            <span className="text-[11px] text-[#6E6E73] truncate">
+            <span className="text-[11px] text-[#858585] truncate">
               {profile.email || t('connected', lang)}
             </span>
           </div>

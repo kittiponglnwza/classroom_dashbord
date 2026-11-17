@@ -1,10 +1,10 @@
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 const icons = {
-  success: <CheckCircle className="text-emerald-600" size={18} />,
-  error: <XCircle className="text-rose-600" size={18} />,
-  warning: <AlertTriangle className="text-amber-600" size={18} />,
-  info: <Info className="text-[#0071E3]" size={18} />
+  success: <CheckCircle className="text-emerald-400" size={18} />,
+  error: <XCircle className="text-rose-400" size={18} />,
+  warning: <AlertTriangle className="text-amber-400" size={18} />,
+  info: <Info className="text-[#3794FF]" size={18} />
 };
 
 export default function ToastContainer({ toasts, removeToast }) {
@@ -13,7 +13,7 @@ export default function ToastContainer({ toasts, removeToast }) {
       {toasts.map(toast => (
         <div
           key={toast.id}
-          className="pointer-events-auto flex items-start gap-3 w-80 bg-white border border-[#D2D2D7] text-[#1D1D1F] rounded-xl shadow-md p-3.5 animate-fade-in"
+          className="pointer-events-auto flex items-start gap-3 w-80 bg-[#252526] border border-[#3C3C3C] text-[#D4D4D4] rounded-xl shadow-xl p-3.5 animate-fade-in"
         >
           <div className="shrink-0 mt-0.5">{icons[toast.type] || icons.info}</div>
           <div className="flex-1 text-xs font-medium leading-snug pt-0.5">
@@ -22,7 +22,7 @@ export default function ToastContainer({ toasts, removeToast }) {
           <button
             type="button"
             onClick={() => removeToast(toast.id)}
-            className="shrink-0 text-[#6E6E73] hover:text-[#1D1D1F] transition-colors p-0.5 cursor-pointer"
+            className="shrink-0 text-[#858585] hover:text-[#FFFFFF] transition-colors p-0.5 cursor-pointer"
           >
             <X size={15} />
           </button>

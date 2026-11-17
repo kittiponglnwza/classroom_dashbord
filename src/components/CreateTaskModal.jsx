@@ -42,22 +42,22 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-task-title"
-        className="bg-white border border-[#D2D2D7] rounded-2xl w-full max-h-[90vh] max-w-lg overflow-y-auto relative shadow-lg"
+        className="bg-[#252526] border border-[#3C3C3C] rounded-2xl w-full max-h-[90vh] max-w-lg overflow-y-auto relative shadow-xl"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7]/70 sticky top-0 bg-white z-10">
-          <h3 id="create-task-title" className="text-base font-semibold text-[#1D1D1F]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#3C3C3C] sticky top-0 bg-[#252526] z-10">
+          <h3 id="create-task-title" className="text-base font-semibold text-[#FFFFFF]">
             {t('createTaskTitle', lang)}
           </h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close modal"
-            className="p-1.5 flex items-center justify-center text-[#6E6E73] hover:text-[#1D1D1F] rounded-lg hover:bg-[#F5F5F7] transition-colors cursor-pointer"
+            className="p-1.5 flex items-center justify-center text-[#9D9D9D] hover:text-[#FFFFFF] rounded-lg hover:bg-[#2A2D2E] transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -65,7 +65,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-[#1D1D1F]">
+            <label className="block text-xs font-medium text-[#D4D4D4]">
               {lang === 'en' ? 'Task Title *' : 'ชื่องาน *'}
             </label>
             <input
@@ -74,19 +74,19 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder={lang === 'en' ? 'e.g. Read Chapter 4 & Summarize' : 'เช่น อ่านบทที่ 4 และสรุปเนื้อหา'}
-              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-sm text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white transition-colors"
+              className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-sm text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-[#1D1D1F]">
+              <label className="block text-xs font-medium text-[#D4D4D4]">
                 {lang === 'en' ? 'Subject *' : 'วิชา *'}
               </label>
               <select
                 value={selectedCourse}
                 onChange={(e) => setNewCourse(e.target.value)}
-                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-sm text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer transition-colors"
+                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-sm text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer transition-colors"
               >
                 {visibleCourses.length === 0 && (
                   <option value="General">General</option>
@@ -98,7 +98,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-[#1D1D1F]">
+              <label className="block text-xs font-medium text-[#D4D4D4]">
                 {lang === 'en' ? 'Due Date *' : 'กำหนดส่ง *'}
               </label>
               <input
@@ -106,13 +106,13 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
                 required
                 value={newDueDate}
                 onChange={(e) => setNewDueDate(e.target.value)}
-                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-sm text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer transition-colors"
+                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-sm text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer transition-colors"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-[#1D1D1F]">
+            <label className="block text-xs font-medium text-[#D4D4D4]">
               {lang === 'en' ? 'Points / Weight' : 'คะแนนเต็ม'}
             </label>
             <input
@@ -121,12 +121,12 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               max="1000"
               value={newPoints}
               onChange={(e) => setNewPoints(e.target.value)}
-              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-sm text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white transition-colors"
+              className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-sm text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-[#1D1D1F]">
+            <label className="block text-xs font-medium text-[#D4D4D4]">
               {lang === 'en' ? 'Description & Instructions' : 'รายละเอียดงาน'}
             </label>
             <textarea
@@ -134,21 +134,21 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
               placeholder={lang === 'en' ? 'Add details, links, or notes...' : 'ใส่รายละเอียด ลิงก์อ้างอิง หรือบันทึกเพิ่มเติม...'}
-              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl p-3.5 text-sm text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white transition-colors resize-none"
+              className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3.5 text-sm text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors resize-none"
             />
           </div>
 
-          <div className="pt-3 border-t border-[#D2D2D7]/70 flex items-center justify-end gap-3">
+          <div className="pt-3 border-t border-[#3C3C3C] flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl text-xs font-medium text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
             >
               {lang === 'en' ? 'Cancel' : 'ยกเลิก'}
             </button>
             <button
               type="submit"
-              className="bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
+              className="bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
               {lang === 'en' ? 'Create Task' : 'บันทึกงาน'}
             </button>

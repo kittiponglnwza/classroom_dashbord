@@ -43,8 +43,8 @@ export default function Dashboard() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">{t('assignmentsTitle', lang)}</h1>
-          <p className="text-xs text-[#6E6E73] mt-1">{t('assignmentsDesc', lang)}</p>
+          <h1 className="text-2xl font-semibold text-[#FFFFFF] tracking-tight">{t('assignmentsTitle', lang)}</h1>
+          <p className="text-xs text-[#9D9D9D] mt-1">{t('assignmentsDesc', lang)}</p>
         </div>
         <div className="flex items-center gap-2.5">
           {isLoggedIn && (
@@ -52,16 +52,16 @@ export default function Dashboard() {
               type="button"
               onClick={() => syncClassroom()}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 bg-white hover:bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
+              className="flex items-center gap-1.5 bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] text-[#D4D4D4] font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw size={14} className={isSyncing ? 'animate-spin text-[#0071E3]' : 'text-[#6E6E73]'} />
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin text-[#3794FF]' : 'text-[#9D9D9D]'} />
               <span>{t('syncClassroom', lang)}</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
           >
             <Plus size={15} />
             <span>{t('createTask', lang)}</span>
@@ -84,9 +84,9 @@ export default function Dashboard() {
       {(viewType === 'grid' || viewType === 'list') && (overdueTasks.length > 0 || todayTasks.length > 0) && (
         <div className="space-y-4">
           {overdueTasks.length > 0 && (
-            <div className="space-y-3 bg-rose-50/60 border border-rose-200 rounded-2xl p-5">
-              <h3 className="text-xs font-semibold text-rose-700 flex items-center gap-2">
-                <AlertTriangle size={15} className="text-rose-600" />
+            <div className="space-y-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl p-5">
+              <h3 className="text-xs font-semibold text-rose-400 flex items-center gap-2">
+                <AlertTriangle size={15} className="text-rose-400" />
                 <span>{t('overdueTasksTitle', lang)} ({overdueTasks.length})</span>
               </h3>
               <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
@@ -98,9 +98,9 @@ export default function Dashboard() {
           )}
 
           {todayTasks.length > 0 && (
-            <div className="space-y-3 bg-amber-50/60 border border-amber-200 rounded-2xl p-5">
-              <h3 className="text-xs font-semibold text-amber-800 flex items-center gap-2">
-                <Clock size={15} className="text-amber-600" />
+            <div className="space-y-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
+              <h3 className="text-xs font-semibold text-amber-400 flex items-center gap-2">
+                <Clock size={15} className="text-amber-400" />
                 <span>{t('dueTodayTitle', lang)} ({todayTasks.length})</span>
               </h3>
               <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
@@ -116,8 +116,8 @@ export default function Dashboard() {
       {/* Grid or List View Main Content */}
       {(viewType === 'grid' || viewType === 'list') && (
         <div className="space-y-3.5">
-          <h3 className="text-xs font-semibold text-[#6E6E73] flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#0071E3]" />
+          <h3 className="text-xs font-semibold text-[#9D9D9D] flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#3794FF]" />
             <span>{t('allCourseAssignments', lang, { count: sortedAssignments.length })}</span>
           </h3>
           {sortedAssignments.length > 0 ? (
@@ -133,13 +133,13 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center">
-              <ClipboardList size={36} className="text-[#6E6E73] mb-3 opacity-60" />
-              <p className="text-[#6E6E73] text-xs font-medium mb-4">{t('noAssignmentsFound', lang)}</p>
+            <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center">
+              <ClipboardList size={36} className="text-[#858585] mb-3 opacity-60" />
+              <p className="text-[#9D9D9D] text-xs font-medium mb-4">{t('noAssignmentsFound', lang)}</p>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="bg-[#0071E3] hover:bg-[#0077ED] text-white rounded-xl px-4 py-2 text-xs font-medium transition-colors cursor-pointer"
+                className="bg-[#007ACC] hover:bg-[#1177BB] text-white rounded-xl px-4 py-2 text-xs font-medium transition-colors cursor-pointer"
               >
                 {t('createTask', lang)}
               </button>

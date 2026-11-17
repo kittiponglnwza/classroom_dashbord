@@ -53,26 +53,26 @@ const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en',
       label: t('allAssignments', lang),
       value: total,
       icon: ClipboardList,
-      color: 'text-[#0071E3] bg-blue-50 border-blue-200/70'
+      color: 'text-[#3794FF] bg-[#007ACC]/20 border-[#007ACC]/40'
     },
     {
       label: t('todo', lang),
       value: todo,
       icon: ListTodo,
-      color: 'text-[#6E6E73] bg-[#F5F5F7] border-[#D2D2D7]'
+      color: 'text-[#9D9D9D] bg-[#1E1E1E] border-[#3C3C3C]'
     },
     {
       label: lang === 'en' ? 'Exam Countdown' : 'นับถอยหลังสอบ',
       value: examCountdownStr,
       subValue: closestExamName ? (lang === 'en' ? `for ${closestExamName}` : `วิชา ${closestExamName}`) : '',
       icon: Timer,
-      color: 'text-amber-700 bg-amber-50 border-amber-200/70'
+      color: 'text-amber-400 bg-amber-500/15 border-amber-500/30'
     },
     {
       label: t('completed', lang),
       value: done,
       icon: CheckCircle2,
-      color: 'text-emerald-700 bg-emerald-50 border-emerald-200/70'
+      color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30'
     }
   ];
 
@@ -82,16 +82,16 @@ const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en',
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-5 shadow-2xs"
+            className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5"
           >
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs text-[#6E6E73] font-medium mb-1">{stat.label}</p>
-                <h4 className="text-xl font-semibold text-[#1D1D1F] truncate" title={String(stat.value)}>
+                <p className="text-xs text-[#9D9D9D] font-medium mb-1">{stat.label}</p>
+                <h4 className="text-xl font-semibold text-[#FFFFFF] truncate" title={String(stat.value)}>
                   {stat.value}
                 </h4>
                 {stat.subValue && (
-                  <p className="text-[11px] text-[#6E6E73] truncate mt-0.5" title={stat.subValue}>
+                  <p className="text-[11px] text-[#858585] truncate mt-0.5" title={stat.subValue}>
                     {stat.subValue}
                   </p>
                 )}
@@ -104,14 +104,14 @@ const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en',
         ))}
       </div>
 
-      <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-5 shadow-2xs">
+      <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5">
         <div className="flex items-center justify-between text-xs mb-2">
-          <span className="font-medium text-[#1D1D1F]">{t('completionProgress', lang)}</span>
-          <span className="font-semibold text-[#0071E3]">{percent}% ({done}/{total} {t('doneStatus', lang)})</span>
+          <span className="font-medium text-[#D4D4D4]">{t('completionProgress', lang)}</span>
+          <span className="font-semibold text-[#3794FF]">{percent}% ({done}/{total} {t('doneStatus', lang)})</span>
         </div>
-        <div className="w-full bg-[#F5F5F7] border border-[#D2D2D7]/70 rounded-full h-2.5 overflow-hidden">
+        <div className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-full h-2.5 overflow-hidden">
           <div
-            className="bg-[#0071E3] h-full rounded-full transition-all duration-300"
+            className="bg-[#007ACC] h-full rounded-full transition-all duration-300"
             style={{ width: `${percent}%` }}
           />
         </div>

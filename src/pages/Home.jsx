@@ -15,12 +15,12 @@ import NextExamWidget from '../components/NextExamWidget';
 
 const getBorderLeftColor = (color) => {
   switch (color) {
-    case 'emerald': return 'border-l-emerald-600';
-    case 'blue': return 'border-l-[#0071E3]';
+    case 'emerald': return 'border-l-emerald-500';
+    case 'blue': return 'border-l-[#007ACC]';
     case 'amber': return 'border-l-amber-500';
-    case 'rose': return 'border-l-rose-600';
-    case 'purple': return 'border-l-purple-600';
-    default: return 'border-l-zinc-400';
+    case 'rose': return 'border-l-rose-500';
+    case 'purple': return 'border-l-purple-500';
+    default: return 'border-l-[#858585]';
   }
 };
 
@@ -73,21 +73,21 @@ export default function Home() {
     <div className="space-y-8">
       {/* Welcome Banner */}
       {showWelcome && (
-        <div className="relative bg-white border border-[#D2D2D7]/80 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xs">
+        <div className="relative bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <button
             type="button"
             onClick={handleDismissWelcome}
-            className="absolute top-3.5 right-3.5 p-1.5 text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-lg transition-colors cursor-pointer"
+            className="absolute top-3.5 right-3.5 p-1.5 text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] rounded-lg transition-colors cursor-pointer"
             title={lang === 'en' ? 'Dismiss' : 'ปิด'}
           >
             <X size={16} />
           </button>
 
           <div className="pr-6 space-y-1.5">
-            <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
+            <h1 className="text-2xl font-semibold text-[#FFFFFF] tracking-tight">
               {t('welcomeBack', lang, { name: profile.name || 'Student' })}
             </h1>
-            <p className="text-[#6E6E73] text-sm max-w-xl">
+            <p className="text-[#9D9D9D] text-sm max-w-xl">
               {pendingCount === 0
                 ? t('welcomeDescZero', lang)
                 : t('welcomeDesc', lang, { count: pendingCount })}
@@ -95,7 +95,7 @@ export default function Home() {
           </div>
           <Link
             to="/dashboard"
-            className="inline-flex items-center justify-center gap-2 bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-5 py-2.5 rounded-xl transition-colors self-start md:self-auto shrink-0"
+            className="inline-flex items-center justify-center gap-2 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-5 py-2.5 rounded-xl transition-colors self-start md:self-auto shrink-0"
           >
             <span>{t('goDashboard', lang)}</span>
             <ArrowRight size={14} />
@@ -105,7 +105,7 @@ export default function Home() {
 
       {/* Task Statistics */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-[#1D1D1F] tracking-tight">{t('progressOverview', lang)}</h2>
+        <h2 className="text-lg font-semibold text-[#FFFFFF] tracking-tight">{t('progressOverview', lang)}</h2>
         <TaskStats assignments={visibleAssignments} lang={lang} exams={allExams} />
       </section>
 
@@ -115,14 +115,14 @@ export default function Home() {
         <div className="lg:col-span-2 space-y-8">
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#1D1D1F] flex items-center gap-2">
-                <Calendar size={16} className="text-[#0071E3]" />
+              <h2 className="text-base font-semibold text-[#FFFFFF] flex items-center gap-2">
+                <Calendar size={16} className="text-[#3794FF]" />
                 <span>{t('latestAssignments', lang)}</span>
               </h2>
               {pendingCount > 0 && (
                 <Link
                   to="/dashboard"
-                  className="text-xs text-[#0071E3] hover:underline font-medium inline-flex items-center gap-1"
+                  className="text-xs text-[#3794FF] hover:underline font-medium inline-flex items-center gap-1"
                 >
                   <span>{t('viewAll', lang)}</span>
                   <ArrowRight size={12} />
@@ -142,9 +142,9 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center">
-                <CheckCircle size={28} className="text-[#6E6E73] mb-2.5 opacity-60" />
-                <p className="text-[#6E6E73] text-xs font-medium">{t('noUpcoming', lang)}</p>
+              <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+                <CheckCircle size={28} className="text-[#858585] mb-2.5 opacity-60" />
+                <p className="text-[#9D9D9D] text-xs font-medium">{t('noUpcoming', lang)}</p>
               </div>
             )}
           </div>
@@ -152,14 +152,14 @@ export default function Home() {
           {/* Recent Announcements */}
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#1D1D1F] flex items-center gap-2">
-                <Megaphone size={16} className="text-[#0071E3]" />
+              <h2 className="text-base font-semibold text-[#FFFFFF] flex items-center gap-2">
+                <Megaphone size={16} className="text-[#3794FF]" />
                 <span>{t('recentAnnouncements', lang)}</span>
               </h2>
               {recentAnnouncements.length > 0 && (
                 <Link
                   to="/courses"
-                  className="text-xs text-[#0071E3] hover:underline font-medium inline-flex items-center gap-1"
+                  className="text-xs text-[#3794FF] hover:underline font-medium inline-flex items-center gap-1"
                 >
                   <span>{t('viewAll', lang)}</span>
                   <ArrowRight size={12} />
@@ -184,7 +184,7 @@ export default function Home() {
                       key={ann.id}
                       to={`/courses?selected=${encodeURIComponent(ann.course)}&tab=resources`}
                       state={{ from: '/' }}
-                      className={`p-4 rounded-2xl bg-white border border-[#D2D2D7]/80 hover:border-[#0071E3]/40 transition-colors group border-l-3 ${borderLeft} flex flex-col justify-between h-full shadow-2xs`}
+                      className={`p-4 rounded-2xl bg-[#252526] border border-[#3C3C3C] hover:border-[#007ACC]/70 transition-colors group border-l-3 ${borderLeft} flex flex-col justify-between h-full`}
                     >
                       <div className="space-y-2.5 flex-1 flex flex-col justify-between">
                         <div className="space-y-2">
@@ -195,19 +195,19 @@ export default function Home() {
                             >
                               {ann.courseCode && ann.courseCode !== 'CLASSROOM' ? ann.courseCode : ann.course}
                             </span>
-                            <span className="text-[11px] text-[#6E6E73] flex items-center gap-1 shrink-0">
+                            <span className="text-[11px] text-[#858585] flex items-center gap-1 shrink-0">
                               <Clock size={11} />
                               {formattedDate}
                             </span>
                           </div>
 
-                          <p className="text-xs text-[#1D1D1F] group-hover:text-[#0071E3] font-semibold line-clamp-3 leading-relaxed transition-colors">
+                          <p className="text-xs text-[#D4D4D4] group-hover:text-[#3794FF] font-semibold line-clamp-3 leading-relaxed transition-colors">
                             {ann.title}
                           </p>
                         </div>
 
                         {ann.attachments && ann.attachments.length > 0 && (
-                          <div className="flex items-center gap-1 text-[11px] text-[#6E6E73] pt-2 border-t border-[#D2D2D7]/60 mt-2">
+                          <div className="flex items-center gap-1 text-[11px] text-[#858585] pt-2 border-t border-[#3C3C3C] mt-2">
                             <Paperclip size={11} className="shrink-0" />
                             <span>
                               {t(ann.attachments.length === 1 ? 'attachmentsCount' : 'attachmentsCountPlural', lang, {
@@ -222,9 +222,9 @@ export default function Home() {
                 })}
               </div>
             ) : (
-              <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center">
-                <Megaphone size={28} className="text-[#6E6E73] mb-2.5 opacity-60" />
-                <p className="text-xs font-medium text-[#6E6E73]">{t('noAnnouncements', lang)}</p>
+              <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+                <Megaphone size={28} className="text-[#858585] mb-2.5 opacity-60" />
+                <p className="text-xs font-medium text-[#9D9D9D]">{t('noAnnouncements', lang)}</p>
               </div>
             )}
           </div>
@@ -232,13 +232,13 @@ export default function Home() {
 
         {/* Right Column: Today's Classes & Next Exam Widget */}
         <div className="space-y-6">
-          <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-6 space-y-4 shadow-2xs">
-            <div className="flex items-center justify-between border-b border-[#D2D2D7]/60 pb-3">
-              <h3 className="text-xs font-semibold text-[#1D1D1F] flex items-center gap-2">
-                <CalendarDays size={15} className="text-[#0071E3]" />
+          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#3C3C3C] pb-3">
+              <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
+                <CalendarDays size={15} className="text-[#3794FF]" />
                 <span>{lang === 'en' ? "Today's Classes" : 'ตารางเรียนวันนี้'}</span>
               </h3>
-              <Link to="/schedule" className="text-xs text-[#0071E3] hover:underline font-medium">
+              <Link to="/schedule" className="text-xs text-[#3794FF] hover:underline font-medium">
                 {lang === 'en' ? 'View Schedule' : 'ดูตารางเรียน'}
               </Link>
             </div>
@@ -251,27 +251,27 @@ export default function Home() {
                     <Link
                       key={cls.id || idx}
                       to="/schedule"
-                      className={`flex items-start gap-3.5 p-3.5 rounded-xl bg-[#F5F5F7]/70 hover:bg-[#F5F5F7] border border-[#D2D2D7]/70 transition-colors border-l-3 ${borderLeft}`}
+                      className={`flex items-start gap-3.5 p-3.5 rounded-xl bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] transition-colors border-l-3 ${borderLeft}`}
                     >
-                      <div className="flex flex-col items-center justify-center shrink-0 w-13 h-12 rounded-lg bg-white border border-[#D2D2D7]/80 text-[#0071E3]">
+                      <div className="flex flex-col items-center justify-center shrink-0 w-13 h-12 rounded-lg bg-[#252526] border border-[#3C3C3C] text-[#3794FF]">
                         <span className="text-[11px] font-semibold leading-none">{cls.startTime}</span>
-                        <span className="text-[10px] text-[#6E6E73] mt-1 leading-none">{cls.endTime}</span>
+                        <span className="text-[10px] text-[#858585] mt-1 leading-none">{cls.endTime}</span>
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <div className="flex items-center gap-1.5">
                           {cls.courseCode && (
                             <span
-                              className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-white text-[#6E6E73] border border-[#D2D2D7] truncate max-w-[80px]"
+                              className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#252526] text-[#9D9D9D] border border-[#3C3C3C] truncate max-w-[80px]"
                               title={cls.courseCode}
                             >
                               {cls.courseCode}
                             </span>
                           )}
-                          <h4 className="text-xs font-semibold text-[#1D1D1F] truncate flex-1" title={cls.title || cls.courseName}>
+                          <h4 className="text-xs font-semibold text-[#FFFFFF] truncate flex-1" title={cls.title || cls.courseName}>
                             {cls.title || cls.courseName}
                           </h4>
                         </div>
-                        <p className="text-[11px] text-[#6E6E73] truncate mt-1 flex items-center gap-1">
+                        <p className="text-[11px] text-[#9D9D9D] truncate mt-1 flex items-center gap-1">
                           <MapPin size={11} className="shrink-0" />
                           {cls.room || (lang === 'en' ? 'TBA' : 'ไม่ระบุห้อง')}
                         </p>
@@ -281,9 +281,9 @@ export default function Home() {
                 })}
               </div>
             ) : (
-              <div className="py-8 text-center border border-dashed border-[#D2D2D7] rounded-xl bg-[#F5F5F7]/50 flex flex-col items-center justify-center">
-                <CalendarDays size={24} className="text-[#6E6E73] mb-2 opacity-60" />
-                <p className="text-xs text-[#6E6E73] font-medium">
+              <div className="py-8 text-center border border-dashed border-[#3C3C3C] rounded-xl bg-[#1E1E1E]/60 flex flex-col items-center justify-center">
+                <CalendarDays size={24} className="text-[#858585] mb-2 opacity-60" />
+                <p className="text-xs text-[#9D9D9D] font-medium">
                   {lang === 'en' ? 'No classes scheduled today.' : 'วันนี้ไม่มีตารางเรียน'}
                 </p>
               </div>

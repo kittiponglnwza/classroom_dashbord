@@ -62,18 +62,18 @@ export default function ExamRoom() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="border-b border-[#D2D2D7]/80 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-[#3C3C3C] pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1D1D1F] flex items-center gap-2.5 tracking-tight">
-            <ClipboardCheck size={22} className="text-[#0071E3]" />
+          <h1 className="text-2xl font-semibold text-[#FFFFFF] flex items-center gap-2.5 tracking-tight">
+            <ClipboardCheck size={22} className="text-[#3794FF]" />
             <span>{t('examTitle', lang)}</span>
           </h1>
-          <p className="text-xs text-[#6E6E73] mt-1 leading-relaxed">{t('examDesc', lang)}</p>
+          <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">{t('examDesc', lang)}</p>
         </div>
         <button
           type="button"
           onClick={openNewModal}
-          className="flex items-center gap-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
+          className="flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
         >
           <Plus size={15} />
           <span>{t('addExamBtn', lang)}</span>
@@ -82,8 +82,8 @@ export default function ExamRoom() {
 
       {/* Security Notice */}
       {isSearchVisible && (
-        <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-4 flex items-start gap-3 text-xs max-w-2xl text-[#6E6E73] leading-relaxed shadow-2xs">
-          <Lock size={15} className="text-[#0071E3] shrink-0 mt-0.5" />
+        <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4 flex items-start gap-3 text-xs max-w-2xl text-[#9D9D9D] leading-relaxed">
+          <Lock size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
           <p>{t('securityWarning', lang)}</p>
         </div>
       )}
@@ -101,7 +101,7 @@ export default function ExamRoom() {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-4 py-3 rounded-xl flex items-center gap-2 max-w-2xl">
+        <div className="bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs px-4 py-3 rounded-xl flex items-center gap-2 max-w-2xl">
           <AlertCircle size={15} />
           <span>{error}</span>
         </div>
@@ -110,8 +110,8 @@ export default function ExamRoom() {
       {/* Loading Widget */}
       {loading && (
         <div className="py-14 text-center space-y-3 max-w-2xl">
-          <div className="w-6 h-6 rounded-full border-2 border-[#D2D2D7] border-t-[#0071E3] animate-spin mx-auto" />
-          <p className="text-xs text-[#6E6E73] font-medium">{t('fetchingExam', lang)}</p>
+          <div className="w-6 h-6 rounded-full border-2 border-[#3C3C3C] border-t-[#007ACC] animate-spin mx-auto" />
+          <p className="text-xs text-[#9D9D9D] font-medium">{t('fetchingExam', lang)}</p>
         </div>
       )}
 
@@ -119,8 +119,8 @@ export default function ExamRoom() {
       {((studentId.trim() !== '' && searchTriggered) || sortedExams.length > 0 || unlistedInfo) && !loading && (
         <div className="space-y-6">
           {isOutdatedData && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium p-4 rounded-2xl flex items-start gap-3">
-              <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium p-4 rounded-2xl flex items-start gap-3">
+              <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
               <p className="leading-relaxed">
                 {lang === 'en'
                   ? 'The system currently shows exam schedules from the previous semester. It seems the university has not updated the exam database for the new semester yet.'
@@ -132,18 +132,18 @@ export default function ExamRoom() {
           {sortedExams.length > 0 && (
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <h3 className="font-semibold text-xs text-[#1D1D1F] flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-600" />
+                <h3 className="font-semibold text-xs text-[#FFFFFF] flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-emerald-400" />
                   <span>{lang === 'en' ? 'Your Exam Seating Schedule' : 'ตารางและที่นั่งสอบของคุณ'}</span>
                 </h3>
 
                 <div className="flex items-center gap-2.5">
-                  <div className="flex items-center bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl p-0.5">
+                  <div className="flex items-center bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-0.5">
                     <button
                       type="button"
                       onClick={() => toggleLayout('grid')}
                       className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        layoutView === 'grid' ? 'bg-white text-[#0071E3] shadow-2xs' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                        layoutView === 'grid' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
                       }`}
                       title={lang === 'en' ? 'Grid View' : 'มุมมองแบบกริด'}
                     >
@@ -153,7 +153,7 @@ export default function ExamRoom() {
                       type="button"
                       onClick={() => toggleLayout('list')}
                       className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        layoutView === 'list' ? 'bg-white text-[#0071E3] shadow-2xs' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+                        layoutView === 'list' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
                       }`}
                       title={lang === 'en' ? 'List View' : 'มุมมองแบบรายการ'}
                     >
@@ -165,9 +165,9 @@ export default function ExamRoom() {
                     <button
                       type="button"
                       onClick={() => setIsSearchVisible(true)}
-                      className="text-xs bg-white border border-[#D2D2D7] px-3 py-1.5 rounded-xl text-[#1D1D1F] hover:bg-[#F5F5F7] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+                      className="text-xs bg-[#252526] border border-[#3C3C3C] px-3 py-1.5 rounded-xl text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Search size={12} className="text-[#0071E3]" />
+                      <Search size={12} className="text-[#3794FF]" />
                       <span>{lang === 'en' ? 'Search Another ID' : 'ค้นหารหัสอื่น'}</span>
                     </button>
                   )}
@@ -191,10 +191,10 @@ export default function ExamRoom() {
           )}
 
           {sortedExams.length === 0 && !unlistedInfo && (
-            <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-10 text-center max-w-2xl mx-auto">
-              <ClipboardCheck size={32} className="text-[#6E6E73] mx-auto mb-3 opacity-60" />
-              <h3 className="font-semibold text-[#1D1D1F] text-base mb-1.5">{t('noUpcomingExams', lang)}</h3>
-              <p className="text-xs text-[#6E6E73] leading-relaxed">
+            <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-10 text-center max-w-2xl mx-auto">
+              <ClipboardCheck size={32} className="text-[#858585] mx-auto mb-3 opacity-60" />
+              <h3 className="font-semibold text-[#FFFFFF] text-base mb-1.5">{t('noUpcomingExams', lang)}</h3>
+              <p className="text-xs text-[#9D9D9D] leading-relaxed">
                 {lang === 'en'
                   ? 'There are no upcoming exams found in the database. If you have custom exam schedules, you can add them manually.'
                   : 'ไม่พบรายชื่อการสอบที่กำลังจะมาถึงในระบบ คุณสามารถเพิ่มวิชาสอบของคุณเองได้โดยใช้ปุ่มเพิ่มวิชาสอบด้านบน'}

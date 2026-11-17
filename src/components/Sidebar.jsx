@@ -33,21 +33,21 @@ export default function Sidebar({ onLinkClick = null }) {
 
   return (
     <aside
-      className={`bg-white border-r border-[#D2D2D7]/80 flex flex-col transition-all duration-200 relative h-screen select-none ${
+      className={`bg-[#252526] border-r border-[#3C3C3C] flex flex-col transition-all duration-200 relative h-screen select-none ${
         isCollapsed ? 'w-18' : 'w-64'
       }`}
     >
-      <div className="h-16 px-4 flex items-center justify-between border-b border-[#D2D2D7]/70">
+      <div className="h-16 px-4 flex items-center justify-between border-b border-[#3C3C3C]">
         <Link to="/" onClick={onLinkClick} className="flex items-center gap-2.5 overflow-hidden">
-          <div className="w-8 h-8 rounded-lg bg-[#0071E3] text-white font-semibold text-xs flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-[#007ACC] text-white font-semibold text-xs flex items-center justify-center shrink-0">
             CH
           </div>
           {!isCollapsed && (
             <div className="flex flex-col items-start min-w-0">
-              <span className="font-semibold text-sm text-[#1D1D1F] tracking-tight truncate">
+              <span className="font-semibold text-sm text-[#FFFFFF] tracking-tight truncate">
                 Classroom Hub
               </span>
-              <span className="text-[11px] text-[#6E6E73] truncate">
+              <span className="text-[11px] text-[#858585] truncate">
                 {lang === 'en' ? 'Student Workspace' : 'พื้นที่จัดการการเรียน'}
               </span>
             </div>
@@ -57,7 +57,7 @@ export default function Sidebar({ onLinkClick = null }) {
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden md:flex w-7 h-7 bg-white border border-[#D2D2D7] text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-lg transition-colors items-center justify-center cursor-pointer shrink-0"
+          className="hidden md:flex w-7 h-7 bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] rounded-lg transition-colors items-center justify-center cursor-pointer shrink-0"
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -75,8 +75,8 @@ export default function Sidebar({ onLinkClick = null }) {
                 const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
                 return `flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-[#0071E3]/10 text-[#0071E3] font-semibold'
-                    : 'text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7]'
+                    ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50 font-semibold'
+                    : 'text-[#9D9D9D] hover:text-[#D4D4D4] hover:bg-[#2A2D2E]'
                 }`;
               }}
             >
@@ -85,7 +85,7 @@ export default function Sidebar({ onLinkClick = null }) {
                 {!isCollapsed && <span className="truncate">{t(item.key, lang)}</span>}
               </div>
               {!isCollapsed && item.count !== null && item.count > 0 && (
-                <span className="bg-[#F5F5F7] text-[#1D1D1F] text-xs px-2 py-0.5 rounded-full font-medium border border-[#D2D2D7]/80">
+                <span className="bg-[#1E1E1E] text-[#D4D4D4] text-xs px-2 py-0.5 rounded-full font-medium border border-[#3C3C3C]">
                   {item.count}
                 </span>
               )}
@@ -95,7 +95,7 @@ export default function Sidebar({ onLinkClick = null }) {
 
         {!isCollapsed && visibleCourses.length > 0 && (
           <div className="space-y-1.5">
-            <h3 className="px-3 text-xs font-medium text-[#6E6E73] flex items-center justify-between">
+            <h3 className="px-3 text-xs font-medium text-[#858585] flex items-center justify-between">
               <span>{t('myCourses', lang)}</span>
             </h3>
             <nav aria-label="Courses Navigation" className="space-y-0.5">
@@ -109,8 +109,8 @@ export default function Sidebar({ onLinkClick = null }) {
                     onClick={onLinkClick}
                     className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors ${
                       isCourseActive
-                        ? 'bg-[#0071E3]/10 text-[#0071E3] font-semibold'
-                        : 'text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] font-medium'
+                        ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50 font-semibold'
+                        : 'text-[#9D9D9D] hover:text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 overflow-hidden">
@@ -118,7 +118,7 @@ export default function Sidebar({ onLinkClick = null }) {
                       <span className="truncate">{course.name}</span>
                     </div>
                     {count > 0 && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[#F5F5F7] text-[#6E6E73] border border-[#D2D2D7]/70 font-medium shrink-0">
+                      <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[#1E1E1E] text-[#9D9D9D] border border-[#3C3C3C] font-medium shrink-0">
                         {count}
                       </span>
                     )}
@@ -130,15 +130,15 @@ export default function Sidebar({ onLinkClick = null }) {
         )}
       </div>
 
-      <div className="px-3 py-2 border-t border-[#D2D2D7]/70 shrink-0">
+      <div className="px-3 py-2 border-t border-[#3C3C3C] shrink-0">
         <NavLink
           to="/exam-room"
           onClick={onLinkClick}
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
               isActive
-                ? 'bg-[#0071E3]/10 text-[#0071E3] font-semibold'
-                : 'text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7]'
+                ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50 font-semibold'
+                : 'text-[#9D9D9D] hover:text-[#D4D4D4] hover:bg-[#2A2D2E]'
             }`
           }
         >
@@ -151,34 +151,34 @@ export default function Sidebar({ onLinkClick = null }) {
         to="/settings"
         onClick={onLinkClick}
         className={({ isActive }) =>
-          `px-4 py-3.5 border-t border-[#D2D2D7]/70 overflow-hidden flex items-center justify-between hover:bg-[#F5F5F7] transition-colors cursor-pointer ${
-            isActive ? 'bg-[#0071E3]/5' : ''
+          `px-4 py-3.5 border-t border-[#3C3C3C] overflow-hidden flex items-center justify-between hover:bg-[#2A2D2E] transition-colors cursor-pointer ${
+            isActive ? 'bg-[#094771]/40' : ''
           }`
         }
       >
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-[#D2D2D7] bg-[#F5F5F7] flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-[#3C3C3C] bg-[#1E1E1E] flex items-center justify-center shrink-0">
             {profile.avatarUrl ? (
               <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-[#1D1D1F] text-xs font-semibold">
+              <span className="text-[#D4D4D4] text-xs font-semibold">
                 {profile.name ? profile.name.charAt(0).toUpperCase() : 'S'}
               </span>
             )}
           </div>
           {!isCollapsed && (
             <div className="text-left overflow-hidden">
-              <p className="text-xs font-semibold text-[#1D1D1F] truncate">
+              <p className="text-xs font-semibold text-[#D4D4D4] truncate">
                 {profile.name || 'Student'}
               </p>
-              <p className="text-[11px] text-[#6E6E73] truncate">
+              <p className="text-[11px] text-[#858585] truncate">
                 {profile.email || t('notConnected', lang)}
               </p>
             </div>
           )}
         </div>
         {!isCollapsed && (
-          <Settings size={15} className="text-[#6E6E73] shrink-0 ml-1" />
+          <Settings size={15} className="text-[#858585] shrink-0 ml-1" />
         )}
       </NavLink>
     </aside>

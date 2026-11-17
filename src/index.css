@@ -1,50 +1,52 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
 :root {
-  /* Apple-Inspired Light Design System */
-  --bg: #F5F5F7;          /* Light neutral background */
-  --sidebar: #FFFFFF;     /* Pure white sidebar surface */
-  --card: #FFFFFF;        /* Pure white card surface */
-  --border: #D2D2D7;      /* Subtle Apple border */
-  --hover: #F5F5F7;       /* Restrained hover state */
-  --text: #1D1D1F;        /* Primary ink text */
-  --muted: #6E6E73;       /* Secondary muted text */
-  --accent: #0071E3;      /* Restrained Apple blue */
+  color-scheme: dark;
+  /* VS Code Dark+ / Dark Modern Design System */
+  --bg: #1E1E1E;          /* VS Code Editor background */
+  --sidebar: #252526;     /* VS Code Side Bar / Activity surface */
+  --card: #252526;        /* VS Code Panel / Widget surface */
+  --border: #3C3C3C;      /* VS Code Widget / Panel border */
+  --hover: #2A2D2E;       /* VS Code List hover background */
+  --text: #D4D4D4;        /* VS Code Editor primary foreground */
+  --muted: #858585;       /* VS Code Line number / secondary foreground */
+  --accent: #007ACC;      /* VS Code Status Bar / Focus accent blue */
 }
 
 @layer base {
   body {
     background-color: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
     margin: 0;
     padding: 0;
+    color-scheme: dark;
   }
 }
 
-/* Subtle scrollbar */
+/* VS Code Dark Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #1E1E1E;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D2D2D7;
-  border-radius: 3px;
+  background: #424242;
+  border-radius: 0px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #86868B;
+  background: #4F4F4F;
 }
 
 /* Restrained transition helper */
@@ -62,6 +64,6 @@
 }
 
 select option {
-  background-color: #FFFFFF !important;
-  color: #1D1D1F !important;
+  background-color: #252526 !important;
+  color: #D4D4D4 !important;
 }

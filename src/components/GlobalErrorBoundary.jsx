@@ -55,29 +55,29 @@ export class GlobalErrorBoundary extends React.Component {
       const errorCode = this.getErrorCode(this.state.error);
 
       return (
-        <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6 text-[#1D1D1F]">
-          <div className="max-w-md w-full bg-white border border-[#D2D2D7] rounded-2xl p-8 shadow-xs flex flex-col items-center text-center">
-            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mb-4">
+        <div className="min-h-screen bg-[#1E1E1E] flex items-center justify-center p-6 text-[#D4D4D4]">
+          <div className="max-w-md w-full bg-[#252526] border border-[#3C3C3C] rounded-2xl p-8 shadow-xl flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-rose-500/15 text-rose-400 border border-rose-500/30 rounded-full flex items-center justify-center mb-4">
               <AlertCircle size={24} />
             </div>
 
-            <h1 className="text-xl font-semibold text-[#1D1D1F] mb-2">
+            <h1 className="text-xl font-semibold text-[#FFFFFF] mb-2">
               Something went wrong
             </h1>
 
-            <p className="text-xs text-[#6E6E73] mb-5">
+            <p className="text-xs text-[#9D9D9D] mb-5">
               The application encountered an unexpected error. Please refresh the page to try again.
             </p>
 
-            <div className="bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl p-3.5 text-center w-full mb-6">
-              <p className="text-xs font-medium text-rose-700">{errorMsg}</p>
-              {errorCode && <p className="text-[11px] text-[#6E6E73] mt-1">{errorCode}</p>}
+            <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3.5 text-center w-full mb-6">
+              <p className="text-xs font-medium text-rose-400">{errorMsg}</p>
+              {errorCode && <p className="text-[11px] text-[#858585] mt-1">{errorCode}</p>}
             </div>
 
             <button
               type="button"
               onClick={this.handleReset}
-              className="w-full py-2.5 px-4 bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-medium rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 px-4 bg-[#007ACC] hover:bg-[#1177BB] text-white text-xs font-medium rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <RefreshCw size={15} />
               Refresh Application

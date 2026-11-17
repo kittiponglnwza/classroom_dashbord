@@ -64,44 +64,44 @@ export const COURSE_COLOR_PALETTE = ['emerald', 'blue', 'amber', 'rose', 'purple
 export const EXAM_CARD_COLORS = [
   {
     theme: 'blue',
-    strip: 'bg-[#0071E3]',
+    strip: 'bg-[#007ACC]',
     glow: '',
-    badge: 'bg-blue-50 text-[#0071E3] border-blue-200',
-    accentText: 'text-[#0071E3]'
+    badge: 'bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40',
+    accentText: 'text-[#3794FF]'
   },
   {
     theme: 'purple',
-    strip: 'bg-purple-600',
+    strip: 'bg-purple-500',
     glow: '',
-    badge: 'bg-purple-50 text-purple-700 border-purple-200',
-    accentText: 'text-purple-700'
+    badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    accentText: 'text-purple-400'
   },
   {
     theme: 'emerald',
-    strip: 'bg-emerald-600',
+    strip: 'bg-emerald-500',
     glow: '',
-    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    accentText: 'text-emerald-700'
+    badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    accentText: 'text-emerald-400'
   },
   {
     theme: 'amber',
     strip: 'bg-amber-500',
     glow: '',
-    badge: 'bg-amber-50 text-amber-700 border-amber-200',
-    accentText: 'text-amber-700'
+    badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    accentText: 'text-amber-400'
   },
   {
     theme: 'rose',
-    strip: 'bg-rose-600',
+    strip: 'bg-rose-500',
     glow: '',
-    badge: 'bg-rose-50 text-rose-700 border-rose-200',
-    accentText: 'text-rose-700'
+    badge: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+    accentText: 'text-rose-400'
   },
   {
     theme: 'indigo',
-    strip: 'bg-[#0071E3]',
+    strip: 'bg-[#007ACC]',
     glow: '',
-    badge: 'bg-blue-50 text-[#0071E3] border-blue-200',
-    accentText: 'text-[#0071E3]'
+    badge: 'bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40',
+    accentText: 'text-[#3794FF]'
   }
 ];

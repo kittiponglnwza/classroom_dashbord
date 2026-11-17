@@ -27,7 +27,7 @@ function AppContent() {
   const { lang, toggleLang } = useSettings();
 
   useEffect(() => {
-    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('dark');
   }, []);
 
   // Initialize Google Auth Client
@@ -38,32 +38,32 @@ function AppContent() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-[#F5F5F7] text-[#1D1D1F] relative px-4">
+      <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-[#1E1E1E] text-[#D4D4D4] relative px-4">
         {/* Language Toggle */}
         <div className="absolute top-5 right-5 z-20">
           <button
             type="button"
             onClick={toggleLang}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#D2D2D7] text-xs font-medium rounded-lg text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#252526] border border-[#3C3C3C] text-xs font-medium rounded-lg text-[#D4D4D4] hover:bg-[#2A2D2E] transition-colors cursor-pointer select-none"
           >
-            <Globe size={14} className="text-[#6E6E73]" />
+            <Globe size={14} className="text-[#858585]" />
             <span>{lang === 'en' ? 'EN' : 'TH'}</span>
           </button>
         </div>
 
-        {/* Minimalist Apple-Inspired Sign-In Card */}
-        <div className="w-full max-w-sm bg-white border border-[#D2D2D7]/80 rounded-2xl p-8 space-y-6 text-center shadow-xs">
+        {/* VS Code Dark Sign-In Card */}
+        <div className="w-full max-w-sm bg-[#252526] border border-[#3C3C3C] rounded-2xl p-8 space-y-6 text-center shadow-lg">
           <div className="flex flex-col items-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-[#0071E3]/10 text-[#0071E3] flex items-center justify-center mb-1">
+            <div className="w-12 h-12 rounded-2xl bg-[#007ACC]/20 text-[#3794FF] border border-[#007ACC]/30 flex items-center justify-center mb-1">
               <BookOpen size={22} />
             </div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-[#1D1D1F] tracking-tight">Classroom Hub</h1>
-              <span className="bg-[#F5F5F7] border border-[#D2D2D7] text-[#6E6E73] text-[10px] px-2 py-0.5 rounded-full font-medium">
+              <h1 className="text-xl font-semibold text-[#FFFFFF] tracking-tight">Classroom Hub</h1>
+              <span className="bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] text-[10px] px-2 py-0.5 rounded-full font-medium">
                 Beta
               </span>
             </div>
-            <p className="text-xs text-[#6E6E73]">
+            <p className="text-xs text-[#9D9D9D]">
               {lang === 'en'
                 ? 'Academic workspace for Google Classroom, schedules, and exams.'
                 : 'พื้นที่จัดการงานเรียน ตารางเรียน และตารางสอบในที่เดียว'}
@@ -74,7 +74,7 @@ function AppContent() {
             <button
               type="button"
               onClick={() => login()}
-              className="w-full flex items-center justify-center gap-2.5 bg-[#0071E3] hover:bg-[#0077ED] active:bg-[#0062C4] text-white font-medium text-sm py-3 px-5 rounded-xl transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-2.5 bg-[#007ACC] hover:bg-[#1177BB] active:bg-[#0E639C] text-white font-medium text-sm py-3 px-5 rounded-xl transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4 shrink-0 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -93,23 +93,23 @@ function AppContent() {
               <button
                 type="button"
                 onClick={() => login({ selectAccount: true })}
-                className="text-xs text-[#0071E3] hover:underline cursor-pointer"
+                className="text-xs text-[#3794FF] hover:underline cursor-pointer"
               >
                 {t('useAnotherAccount', lang)}
               </button>
             )}
 
-            <label className="flex items-center justify-center gap-2 text-xs text-[#6E6E73] cursor-pointer select-none pt-1">
+            <label className="flex items-center justify-center gap-2 text-xs text-[#9D9D9D] cursor-pointer select-none pt-1">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => handleRememberMeChange && handleRememberMeChange(e.target.checked)}
-                className="w-3.5 h-3.5 rounded accent-[#0071E3] cursor-pointer"
+                className="w-3.5 h-3.5 rounded accent-[#007ACC] cursor-pointer"
               />
               <span>{lang === 'en' ? 'Remember my account on this device' : 'จดจำบัญชีของฉันไว้ในอุปกรณ์นี้'}</span>
             </label>
 
-            <p className="text-xs text-[#6E6E73] leading-relaxed pt-2 border-t border-[#D2D2D7]/60">
+            <p className="text-xs text-[#858585] leading-relaxed pt-2 border-t border-[#3C3C3C]">
               {t('loginFooterText', lang)}
             </p>
           </div>
@@ -124,8 +124,8 @@ function AppContent() {
       <Layout>
         <Suspense
           fallback={
-            <div className="flex h-64 items-center justify-center text-[#6E6E73]">
-              <div className="w-6 h-6 rounded-full border-2 border-[#D2D2D7] border-t-[#0071E3] animate-spin" />
+            <div className="flex h-64 items-center justify-center text-[#858585]">
+              <div className="w-6 h-6 rounded-full border-2 border-[#3C3C3C] border-t-[#007ACC] animate-spin" />
             </div>
           }
         >

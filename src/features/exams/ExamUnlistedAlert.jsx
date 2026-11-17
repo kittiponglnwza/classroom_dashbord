@@ -5,16 +5,16 @@ export default function ExamUnlistedAlert({ unlistedInfo, lang }) {
   if (!unlistedInfo) return null;
 
   return (
-    <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-6 space-y-5 max-w-2xl shadow-2xs">
+    <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 space-y-5 max-w-2xl">
       <div className="flex items-start gap-3.5">
-        <div className="p-2.5 bg-white border border-rose-200 rounded-xl text-rose-600 shrink-0">
+        <div className="p-2.5 bg-[#1E1E1E] border border-rose-500/30 rounded-xl text-rose-400 shrink-0">
           <AlertCircle size={20} />
         </div>
         <div className="space-y-1 min-w-0">
-          <h3 className="font-semibold text-[#1D1D1F] text-sm leading-snug">
+          <h3 className="font-semibold text-[#FFFFFF] text-sm leading-snug">
             {t('noSeatingAlert', lang)}
           </h3>
-          <p className="text-xs text-rose-700 leading-relaxed">
+          <p className="text-xs text-rose-300 leading-relaxed">
             {lang === 'en'
               ? 'You are not registered in the exam listing for this semester. Please submit a petition request before the university deadline.'
               : 'ไม่พบรายชื่อผู้มีสิทธิ์เข้าสอบของท่านในระบบประจำภาคการศึกษานี้ โปรดยื่นเอกสารคำร้องขอเข้าสอบตามขั้นตอนให้เสร็จสิ้นภายในกำหนดเวลา'}
@@ -22,16 +22,16 @@ export default function ExamUnlistedAlert({ unlistedInfo, lang }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-rose-200/70 pt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-rose-500/25 pt-4">
         <a
           href={unlistedInfo.pdfLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 bg-white hover:bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] font-medium text-xs py-2.5 px-4 rounded-xl transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-2 bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] text-[#D4D4D4] font-medium text-xs py-2.5 px-4 rounded-xl transition-colors cursor-pointer"
         >
-          <FileText size={14} className="text-rose-600" />
+          <FileText size={14} className="text-rose-400" />
           <span>{t('noSeatingAction1', lang)}</span>
-          <ExternalLink size={11} className="text-[#6E6E73]" />
+          <ExternalLink size={11} className="text-[#858585]" />
         </a>
         <a
           href={unlistedInfo.formLink}
