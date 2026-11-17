@@ -117,7 +117,8 @@ export const parseExamHtml = (htmlText, lang) => {
     let formLink = EXAM_CONFIG.fallbackFormLink;
 
     links.forEach(a => {
-      const href = a.getAttribute('href') || '';
+      const href = (a.getAttribute('href') || '').trim();
+      if (!/^https?:\/\//i.test(href)) return;
       if (href.includes('drive.google.com')) {
         pdfLink = href;
       } else if (href.includes('forms.gle') || href.includes('docs.google.com/forms')) {

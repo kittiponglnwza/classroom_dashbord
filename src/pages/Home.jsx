@@ -43,11 +43,20 @@ export default function Home() {
     localStorage.setItem('hide_welcome_banner', 'true');
   };
 
-  // Filter out completed and get nearest due dates
+  // Filter out completed and get nearest due dates (items with valid dueDate first)
   const upcomingAssignments = useMemo(() => {
     return visibleAssignments
       .filter(a => a.status !== 'done')
-      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      .sort((a, b) => {
+        const timeA = a.dueDate ? new Date(a.dueDate).getTime() : NaN;
+        const timeB = b.dueDate ? new Date(b.dueDate).getTime() : NaN;
+        const validA = Number.isFinite(timeA);
+        const validB = Number.isFinite(timeB);
+        if (validA && validB) return timeA - timeB;
+        if (validA) return -1;
+        if (validB) return 1;
+        return 0;
+      })
       .slice(0, 4);
   }, [visibleAssignments]);
 

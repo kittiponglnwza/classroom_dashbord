@@ -6,6 +6,7 @@ import {
 } from '../utils/storage';
 import { initGoogleClient } from '../services/googleClassroomClient';
 import { StorageRepository } from '../repositories/StorageRepository';
+import { syncManager } from '../services/SyncManager';
 import { httpClient } from '../utils/httpClient';
 import { logger } from '../utils/logger';
 
@@ -13,7 +14,7 @@ const SILENT_REFRESH_TIMEOUT_MS = 30 * 1000;
 
 const buildRememberedAccount = (email) => {
   const stored = getProfile(email) || {};
-  return { email, name: stored.name || '', picture: stored.picture || '' };
+  return { email, name: stored.name || '', picture: stored.avatarUrl || stored.picture || '' };
 };
 
 /**
@@ -201,10 +202,14 @@ export const AuthProvider = ({ children }) => {
 
   const handleProfileSave = useCallback((updatedProfile) => {
     const email = getActiveEmail();
+    if (!email) return;
     const profileToSave = { ...updatedProfile, isCustomized: true };
     saveProfile(profileToSave, email);
     setProfile(profileToSave);
-  }, []);
+    if (accessToken) {
+      syncManager.queueSync(accessToken, email);
+    }
+  }, [accessToken]);
 
   const updateProfileFromGoogle = useCallback((userProfile) => {
     const userEmail = userProfile.email;

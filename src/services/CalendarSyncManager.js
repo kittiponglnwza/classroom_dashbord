@@ -41,6 +41,10 @@ class CalendarSyncManager {
   }
 
   async runSync(accessToken, email) {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
     this.setState('syncing');
     try {
       const lowerEmail = email.toLowerCase().trim();
@@ -66,6 +70,10 @@ class CalendarSyncManager {
    * and then triggers a fresh sync.
    */
   async resetAndSync(accessToken, email) {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
     this.setState('syncing');
     try {
       const lowerEmail = email.toLowerCase().trim();

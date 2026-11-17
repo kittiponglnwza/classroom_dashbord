@@ -86,6 +86,7 @@ function hasConflict(entry, allEntries, excludeId = null) {
   const end = timeToMinutes(entry.endTime);
   return allEntries.some(e => {
     if (e.id === excludeId) return false;
+    if (e.deletedAt) return false;
     if (e.day !== entry.day) return false;
     
     // If one is a one-off and the other is a one-off, check if dates match
@@ -691,7 +692,7 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
 
 // ─── ADD / EDIT MODAL ──────────────────────────────────────────────
 function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, onDelete, onClose }) {
-  const isEdit = !!entry;
+  const isEdit = Boolean(entry?.id);
 
   const [formData, setFormData] = useState({
     title: entry?.title || '',
@@ -706,7 +707,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
     notes: entry?.notes || '',
   });
 
-  const [classType, setClassType] = useState(entry?.date ? 'one-off' : 'recurring');
+  const [classType, setClassType] = useState(entry?.id && entry?.date ? 'one-off' : 'recurring');
   const [isCustom, setIsCustom] = useState(!entry?.courseId);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -775,8 +776,10 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
     e.preventDefault();
     if (!formData.title || !formData.startTime || !formData.endTime) return;
     
+    const restEntry = { ...(entry || {}) };
+    delete restEntry._clickedDateStr;
     const saved = {
-      ...(entry || {}),
+      ...restEntry,
       ...formData,
       // Ensure one-off type saves date, recurring doesn't
       date: classType === 'one-off' ? formData.date : '',

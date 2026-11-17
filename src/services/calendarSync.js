@@ -61,10 +61,12 @@ function saveEventMap(email, map) {
 function signatureOf(body) {
   return JSON.stringify({
     s: body.summary,
+    d: body.description || '',
     l: body.location || '',
     st: body.start,
     en: body.end,
-    r: body.recurrence || null
+    r: body.recurrence || null,
+    rem: body.reminders || null
   });
 }
 
@@ -125,8 +127,11 @@ function buildAssignmentEvent(assignment) {
   let start, end;
 
   if (hasTime) {
-    start = { dateTime: assignment.dueDate, timeZone: TIMEZONE };
-    const endDate = new Date(assignment.dueDate);
+    const normalizedDue = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(assignment.dueDate)
+      ? `${assignment.dueDate}:00`
+      : assignment.dueDate;
+    start = { dateTime: normalizedDue, timeZone: TIMEZONE };
+    const endDate = new Date(normalizedDue);
     endDate.setMinutes(endDate.getMinutes() + 30);
     end = { dateTime: `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}T${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}:00`, timeZone: TIMEZONE };
   } else {

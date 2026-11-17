@@ -9,13 +9,15 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
   const [newPoints, setNewPoints] = useState(100);
   const [newDescription, setNewDescription] = useState('');
 
+  const selectedCourse = newCourse || visibleCourses[0]?.name || 'General';
+
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!newTitle || !newCourse || !newDueDate) return;
+    if (!newTitle || !selectedCourse || !newDueDate) return;
 
-    const courseObj = visibleCourses.find(c => c.name === newCourse);
+    const courseObj = visibleCourses.find(c => c.name === selectedCourse);
     const color = courseObj ? courseObj.color : 'blue';
 
     // Format newDueDate to date with end of day time
@@ -23,7 +25,9 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
 
     onAddAssignment({
       title: newTitle,
-      course: newCourse,
+      course: selectedCourse,
+      courseCode: courseObj?.code || '',
+      courseId: courseObj?.id || '',
       dueDate: formattedDueDate,
       status: 'todo',
       points: Number(newPoints),
@@ -75,10 +79,13 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
             <div className="space-y-1.5 group/input relative">
               <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Subject *' : 'วิชา *'}</label>
               <select
-                value={newCourse}
+                value={selectedCourse}
                 onChange={(e) => setNewCourse(e.target.value)}
                 className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 cursor-pointer transition-all rounded-none"
               >
+                {visibleCourses.length === 0 && (
+                  <option value="General" className="bg-dark-sidebar">General</option>
+                )}
                 {visibleCourses.map(c => (
                   <option key={c.id} value={c.name} className="bg-dark-sidebar">{c.name}</option>
                 ))}

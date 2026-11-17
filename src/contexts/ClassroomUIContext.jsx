@@ -27,6 +27,26 @@ export const ClassroomUIProvider = ({ children }) => {
     }
   }, [isLoggedIn, profile?.email, loadHiddenCourses]);
 
+  useEffect(() => {
+    const unsub = syncManager.subscribe((newState) => {
+      if (newState === 'success') {
+        const activeEmail = profile?.email || getActiveEmail();
+        if (activeEmail) loadHiddenCourses(activeEmail);
+      }
+    });
+    const handleStorage = (e) => {
+      if (e.key && e.key.startsWith('classroom_hub_hidden_courses')) {
+        const activeEmail = profile?.email || getActiveEmail();
+        if (activeEmail) loadHiddenCourses(activeEmail);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      unsub();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [profile?.email, loadHiddenCourses]);
+
   const handleToggleCourseVisibility = useCallback((courseId) => {
     const email = getActiveEmail();
     const updated = hiddenCourseIds.includes(courseId)

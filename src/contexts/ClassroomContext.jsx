@@ -120,10 +120,10 @@ export const ClassroomProvider = ({ children }) => {
       const implicitStudentId = userEmail.match(/\d{13}/) ? userEmail.match(/\d{13}/)[0] : null;
       if (implicitStudentId) {
         examRepository.fetchExams(implicitStudentId, lang).then(result => {
-          if (result.success && result.data.exams && result.data.exams.length > 0) {
+          if (result.success && ((result.data.exams && result.data.exams.length > 0) || result.data.unlisted)) {
             const currentCache = examRepository.getCachedExams(userEmail);
             const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
-            examRepository.saveToCache(userEmail, result.data.exams, currentManual, result.data.unlisted);
+            examRepository.saveToCache(userEmail, result.data.exams || [], currentManual, result.data.unlisted);
             sessionStorage.setItem('lastExamSearch', implicitStudentId);
             syncManager.queueSync(tokenToUse, userEmail);
             calendarSyncManager.queueSync(tokenToUse, userEmail);

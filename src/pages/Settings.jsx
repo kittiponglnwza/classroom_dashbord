@@ -44,9 +44,18 @@ export default function Settings() {
   const [studentId, setStudentId] = useState(profile.studentId || '');
   const [email, setEmail] = useState(profile.email || '');
   const [major, setMajor] = useState(profile.major || '');
+  const [prevProfile, setPrevProfile] = useState(profile);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isResettingCalendar, setIsResettingCalendar] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
+
+  if (profile !== prevProfile) {
+    setPrevProfile(profile);
+    setName(profile.name || '');
+    setStudentId(profile.studentId || '');
+    setEmail(profile.email || '');
+    setMajor(profile.major || '');
+  }
 
 
   const devInfo = {

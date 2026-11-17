@@ -22,12 +22,17 @@ export function useDashboardFilters(visibleAssignments) {
   // Sort assignments
   const sortedAssignments = useMemo(() => {
     return [...filteredAssignments].sort((a, b) => {
-      if (sortBy === 'due-asc') {
-        return new Date(a.dueDate) - new Date(b.dueDate);
-      } else if (sortBy === 'due-desc') {
-        return new Date(b.dueDate) - new Date(a.dueDate);
+      if (sortBy === 'due-asc' || sortBy === 'due-desc') {
+        const timeA = a.dueDate ? new Date(a.dueDate).getTime() : NaN;
+        const timeB = b.dueDate ? new Date(b.dueDate).getTime() : NaN;
+        const validA = Number.isFinite(timeA);
+        const validB = Number.isFinite(timeB);
+        if (!validA && !validB) return 0;
+        if (!validA) return 1;
+        if (!validB) return -1;
+        return sortBy === 'due-asc' ? timeA - timeB : timeB - timeA;
       } else if (sortBy === 'points-desc') {
-        return b.points - a.points;
+        return (b.points || 0) - (a.points || 0);
       }
       return 0;
     });

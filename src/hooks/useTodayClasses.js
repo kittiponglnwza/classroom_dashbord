@@ -4,11 +4,19 @@ import { parseExamDate } from '../utils/examDate';
 import { JS_DAY_MAP } from '../constants/dateConstants';
 import { matchSchedulesAndExams } from '../utils/scheduleMatcher';
 
+const toLocalDateStr = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 export function useTodayClasses(schedule, profile) {
   return useMemo(() => {
-    const d = new Date().getDay(); // 0=Sun
+    const now = new Date();
+    const d = now.getDay(); // 0=Sun
     const todayKey = JS_DAY_MAP[d];
-    const todayDateStr = new Date().toISOString().split('T')[0];
+    const todayDateStr = toLocalDateStr(now);
     const activeEmail = (profile?.email || '').toLowerCase().trim();
 
     // 1. Load cached exams
@@ -37,13 +45,14 @@ export function useTodayClasses(schedule, profile) {
           } else if (ex.date) {
             const parsed = parseExamDate(ex.date);
             if (parsed) {
-              dateVal = parsed.toISOString().split('T')[0];
+              dateVal = toLocalDateStr(parsed);
             }
           }
 
           if (!dateVal) return null;
 
-          const ed = new Date(dateVal);
+          const [yy, mm, dd] = dateVal.split('-').map(Number);
+          const ed = (yy && mm && dd) ? new Date(yy, mm - 1, dd) : new Date(dateVal);
           const dayIndex = ed.getDay();
           const dayKey = JS_DAY_MAP[dayIndex];
 
@@ -64,9 +73,12 @@ export function useTodayClasses(schedule, profile) {
       }
     }
 
-    // 2. Separate today's exams and today's classes
+    // 2. Separate today's exams and today's classes (excluding soft-deleted recurring classes)
     const todayExams = examEntries.filter(entry => entry.day === todayKey && entry.date === todayDateStr);
-    const todayRegular = (schedule || []).filter(entry => entry.day === todayKey && (!entry.date || entry.date === todayDateStr));
+    const todayRegular = (schedule || []).filter(entry => {
+      if (entry.deletedAt && todayDateStr >= entry.deletedAt) return false;
+      return entry.day === todayKey && (!entry.date || entry.date === todayDateStr);
+    });
 
     // 3. Override class if exam for the same course is today
     return matchSchedulesAndExams(todayRegular, todayExams);

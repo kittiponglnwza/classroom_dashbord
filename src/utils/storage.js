@@ -139,10 +139,12 @@ export const syncClassroomAssignments = (apiAssignments, email) => {
   const merged = apiAssignments.map(apiAssign => {
     const localAssign = localAssignments.find(la => String(la.id) === String(apiAssign.id));
     
-    // Merge logic: preserve notes and status modifications
+    // Merge logic: preserve notes, status, and custom dueDate modifications
     if (localAssign) {
       return {
         ...apiAssign,
+        dueDate: localAssign.customDueDate ? localAssign.dueDate : apiAssign.dueDate,
+        customDueDate: Boolean(localAssign.customDueDate),
         notes: localAssign.notes || '',
         status: apiAssign.status === 'done' ? 'done' : (localAssign.status || apiAssign.status),
         updatedAt: localAssign.updatedAt || new Date().toISOString()
@@ -174,7 +176,7 @@ export const updateAssignmentStatus = (id, status, email) => {
 
 export const updateAssignmentDueDate = (id, dueDate, email) => {
   const assignments = getAssignments(email);
-  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, dueDate, updatedAt: new Date().toISOString() } : a);
+  const updated = assignments.map(a => String(a.id) === String(id) ? { ...a, dueDate, customDueDate: true, updatedAt: new Date().toISOString() } : a);
   saveAssignments(updated, email);
   return updated;
 };

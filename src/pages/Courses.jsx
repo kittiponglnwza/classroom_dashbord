@@ -297,6 +297,11 @@ export default function Courses() {
   const [viewMode, setViewMode] = useState('grid');
   const [showHidden, setShowHidden] = useState(false);
   const [selectedTopicId, setSelectedTopicId] = useState('all');
+  const [prevSelectedCourseName, setPrevSelectedCourseName] = useState(selectedCourseName);
+  if (selectedCourseName !== prevSelectedCourseName) {
+    setPrevSelectedCourseName(selectedCourseName);
+    setSelectedTopicId('all');
+  }
   const selectedCourseObj = courses.find(c => c.name === selectedCourseName) || { color: 'blue' };
   const themeColor = selectedCourseObj.color || 'blue';
 

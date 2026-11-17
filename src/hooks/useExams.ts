@@ -79,10 +79,10 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
       setIsFetching(true);
       examRepository.fetchExams(implicitStudentId, lang, controller.signal).then(result => {
         if (controller.signal.aborted) return;
-        if (result.success && result.data.exams && result.data.exams.length > 0) {
+        if (result.success && ((result.data.exams && result.data.exams.length > 0) || result.data.unlisted)) {
           const currentCache = examRepository.getCachedExams(activeEmail);
           const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
-          examRepository.saveToCache(activeEmail, result.data.exams, currentManual, result.data.unlisted);
+          examRepository.saveToCache(activeEmail, result.data.exams || [], currentManual, result.data.unlisted);
           sessionStorage.setItem('lastExamSearch', implicitStudentId);
           
           const token = getToken();
@@ -92,7 +92,7 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
           }
           
           setExamState({
-            allExams: [...result.data.exams, ...currentManual],
+            allExams: [...(result.data.exams || []), ...currentManual],
             hasCheckedExams: true,
             unlistedInfo: result.data.unlisted
           });

@@ -52,16 +52,22 @@ export default function AssignmentDetail() {
   };
 
   const getDaysLeft = () => {
+    if (status === 'done') {
+      return { text: t('completed', lang), color: 'text-emerald-400' };
+    }
+    if (!dueDate) {
+      return { text: lang === 'en' ? 'No due date' : 'ไม่มีกำหนดส่ง', color: 'text-dark-muted' };
+    }
     const today = new Date();
     today.setHours(0,0,0,0);
     const due = new Date(dueDate);
+    if (Number.isNaN(due.getTime())) {
+      return { text: lang === 'en' ? 'No due date' : 'ไม่มีกำหนดส่ง', color: 'text-dark-muted' };
+    }
     due.setHours(0,0,0,0);
     const diffTime = due - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (status === 'done') {
-      return { text: t('completed', lang), color: 'text-emerald-400' };
-    }
     if (diffDays < 0) {
       return { text: t('overdueDays', lang, { days: Math.abs(diffDays) }), color: 'text-rose-400' };
     } else if (diffDays === 0) {
