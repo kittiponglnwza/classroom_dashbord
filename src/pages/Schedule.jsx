@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { CalendarDays, CalendarX2, Plus, X, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useSettings } from '../contexts/SettingsContext';
@@ -9,6 +10,7 @@ import { useExams } from '../hooks/useExams';
 import { parseExamDate } from '../utils/examDate';
 
 import { DAYS, JS_DAY_MAP } from '../constants/dateConstants';
+
 const DAY_KEYS = {
   mon: 'dayMon', tue: 'dayTue', wed: 'dayWed', thu: 'dayThu',
   fri: 'dayFri', sat: 'daySat', sun: 'daySun',
@@ -18,39 +20,39 @@ const DAY_SHORT_KEYS = {
   fri: 'dayFriShort', sat: 'daySatShort', sun: 'daySunShort',
 };
 const PRESET_COLORS = [
-  '#4597ff', '#34d399', '#f472b6', '#fbbf24', '#a78bfa',
-  '#fb923c', '#38bdf8', '#f87171', '#4ade80', '#c084fc',
+  '#0071E3', '#059669', '#D97706', '#E11D48', '#7C3AED',
+  '#0284C7', '#EA580C', '#4F46E5', '#0D9488', '#6E6E73',
 ];
 const START_HOUR = 6;
 const END_HOUR = 24;
 
 const TRADITIONAL_DAY_COLORS = {
-  mon: '#fbbf24', // Yellow
-  tue: '#f472b6', // Pink
-  wed: '#34d399', // Green
-  thu: '#fb923c', // Orange
-  fri: '#38bdf8', // Blue
-  sat: '#a78bfa', // Purple
-  sun: '#f87171'  // Red
+  mon: '#F59E0B',
+  tue: '#EC4899',
+  wed: '#10B981',
+  thu: '#F97316',
+  fri: '#0EA5E9',
+  sat: '#8B5CF6',
+  sun: '#EF4444'
 };
 
 const COLOR_MAP = {
-  emerald: '#10b981',
-  blue: '#3b82f6',
-  amber: '#f59e0b',
-  rose: '#f43f5e',
-  purple: '#a855f7',
-  zinc: '#71717a',
-  gray: '#6b7280',
-  red: '#ef4444',
-  green: '#22c55e',
-  orange: '#f97316'
+  emerald: '#059669',
+  blue: '#0071E3',
+  amber: '#D97706',
+  rose: '#E11D48',
+  purple: '#7C3AED',
+  zinc: '#6E6E73',
+  gray: '#6E6E73',
+  red: '#E11D48',
+  green: '#059669',
+  orange: '#EA580C'
 };
 
 function resolveHexColor(colorStr) {
-  if (!colorStr) return '#71717a';
+  if (!colorStr) return '#0071E3';
   if (colorStr.startsWith('#')) return colorStr;
-  return COLOR_MAP[colorStr.toLowerCase()] || colorStr;
+  return COLOR_MAP[colorStr.toLowerCase()] || '#0071E3';
 }
 
 function addHoursToTime(timeStr, hours) {
@@ -63,7 +65,7 @@ function addHoursToTime(timeStr, hours) {
 }
 
 function getTodayKey() {
-  const d = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const d = new Date().getDay();
   return JS_DAY_MAP[d];
 }
 
@@ -71,11 +73,10 @@ function toLocalDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function timeToMinutes(t) {
-  const [h, m] = t.split(':').map(Number);
+function timeToMinutes(tStr) {
+  const [h, m] = tStr.split(':').map(Number);
   return h * 60 + m;
 }
-
 
 function formatTimeRange(start, end) {
   return `${start} – ${end}`;
@@ -88,25 +89,22 @@ function hasConflict(entry, allEntries, excludeId = null) {
     if (e.id === excludeId) return false;
     if (e.deletedAt) return false;
     if (e.day !== entry.day) return false;
-    
-    // If one is a one-off and the other is a one-off, check if dates match
     if (e.date && entry.date && e.date !== entry.date) return false;
-    
+
     const eStart = timeToMinutes(e.startTime);
     const eEnd = timeToMinutes(e.endTime);
     return start < eEnd && end > eStart;
   });
 }
 
-// Helper to calculate current week offset dates
 function getWeekDates(offset, lang) {
   const today = new Date();
   today.setDate(today.getDate() + (offset * 7));
-  const currentDay = today.getDay(); // 0=Sun, 1=Mon...
+  const currentDay = today.getDay();
   const mondayDiff = currentDay === 0 ? -6 : 1 - currentDay;
   const monday = new Date(today);
   monday.setDate(today.getDate() + mondayDiff);
-  
+
   const map = {};
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
@@ -121,7 +119,6 @@ function getWeekDates(offset, lang) {
   return map;
 }
 
-// Helper for horizontal time scale mapping
 function timeToPercent(timeStr) {
   if (!timeStr) return 0;
   const [h, m] = timeStr.split(':').map(Number);
@@ -134,17 +131,18 @@ function timeToPercent(timeStr) {
 // ─── MINI CALENDAR WIDGET ──────────────────────────────────────────
 function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [prevWeekOffset, setPrevWeekOffset] = useState(weekOffset);
 
-  useEffect(() => {
+  if (weekOffset !== prevWeekOffset) {
+    setPrevWeekOffset(weekOffset);
     if (weekDates && weekDates['mon']) {
       const [yy, mm, dd] = weekDates['mon'].dateStr.split('-').map(Number);
       const monDate = new Date(yy, mm - 1, dd);
       if (monDate.getMonth() !== currentDate.getMonth() || monDate.getFullYear() !== currentDate.getFullYear()) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCurrentDate(new Date(monDate.getFullYear(), monDate.getMonth(), 1));
       }
     }
-  }, [weekOffset, weekDates, currentDate]);
+  }
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -156,7 +154,7 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year, month) => {
     const d = new Date(year, month, 1).getDay();
-    return d === 0 ? 6 : d - 1; // 0=Mon, 6=Sun
+    return d === 0 ? 6 : d - 1;
   };
 
   const year = currentDate.getFullYear();
@@ -164,29 +162,28 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
 
-  const monthNames = lang === 'en' 
+  const monthNames = lang === 'en'
     ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
     : ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-    
-  const dayNames = lang === 'en' ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] : ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
 
+  const dayNames = lang === 'en' ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] : ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
   const todayStr = toLocalDateStr(new Date());
 
   const handleDayClick = (dayNum) => {
     const clickedDate = new Date(year, month, dayNum);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const cDay = clickedDate.getDay();
     const cDiff = cDay === 0 ? -6 : 1 - cDay;
     const cMonday = new Date(clickedDate);
     cMonday.setDate(clickedDate.getDate() + cDiff);
-    
+
     const tDay = today.getDay();
     const tDiff = tDay === 0 ? -6 : 1 - tDay;
     const tMonday = new Date(today);
     tMonday.setDate(today.getDate() + tDiff);
-    
+
     const diffTime = cMonday.getTime() - tMonday.getTime();
     const diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
     setWeekOffset(diffWeeks);
@@ -207,42 +204,50 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
     });
 
     if (dayEntries.length === 0) return null;
-    
-    const colors = Array.from(new Set(dayEntries.map(e => e.color || '#3b82f6'))).slice(0, 3);
-    
+
+    const colors = Array.from(new Set(dayEntries.map(e => resolveHexColor(e.color)))).slice(0, 3);
+
     return (
       <div className="flex gap-0.5 justify-center mt-0.5 absolute bottom-1 left-1/2 -translate-x-1/2">
         {colors.map((c, i) => (
-          <div key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: c }}></div>
+          <div key={i} className="w-1 h-1 rounded-full" style={{ backgroundColor: c }} />
         ))}
       </div>
     );
   };
 
   return (
-    <div className="bg-dark-card border border-dark-border rounded-2xl p-4 shadow-lg sticky top-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-white font-semibold text-sm">
+    <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-4 shadow-2xs">
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-[#1D1D1F] font-semibold text-sm">
           {monthNames[month]} {lang === 'th' ? year + 543 : year}
         </h2>
         <div className="flex gap-1">
-          <button onClick={handlePrevMonth} className="p-1.5 rounded-lg hover:bg-dark-hover text-dark-muted transition-colors">
-            <ChevronLeft size={16} />
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F] transition-colors cursor-pointer"
+          >
+            <ChevronLeft size={15} />
           </button>
-          <button onClick={handleNextMonth} className="p-1.5 rounded-lg hover:bg-dark-hover text-dark-muted transition-colors">
-            <ChevronRight size={16} />
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className="p-1.5 rounded-lg hover:bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F] transition-colors cursor-pointer"
+          >
+            <ChevronRight size={15} />
           </button>
         </div>
       </div>
-      
-      <div className="grid grid-cols-7 gap-1 mb-2">
+
+      <div className="grid grid-cols-7 gap-1 mb-1.5">
         {dayNames.map(d => (
-          <div key={d} className="text-center text-[10px] font-semibold text-dark-muted py-1">
+          <div key={d} className="text-center text-[11px] font-medium text-[#6E6E73] py-1">
             {d}
           </div>
         ))}
       </div>
-      
+
       <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: firstDay }).map((_, i) => (
           <div key={`empty-${i}`} className="p-2" />
@@ -251,23 +256,26 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
           const dayNum = i + 1;
           const dateStr = toLocalDateStr(new Date(year, month, dayNum));
           const isToday = dateStr === todayStr;
-          
+
           let isSelectedWeek = false;
           if (weekDates) {
             isSelectedWeek = Object.values(weekDates).some(w => w.dateStr === dateStr);
           }
-          
+
           return (
             <button
+              type="button"
               key={dayNum}
               onClick={() => handleDayClick(dayNum)}
-              className={`
-                relative h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-all
-                ${isToday ? 'bg-brand-500/20 text-brand-400 ring-1 ring-brand-500/50' : 
-                  isSelectedWeek ? 'bg-dark-hover text-white' : 'text-dark-muted hover:text-white hover:bg-dark-hover'}
-              `}
+              className={`relative h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-colors cursor-pointer ${
+                isToday
+                  ? 'bg-[#0071E3] text-white font-semibold'
+                  : isSelectedWeek
+                    ? 'bg-[#F5F5F7] text-[#1D1D1F] font-semibold'
+                    : 'text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7]'
+              }`}
             >
-              <span className={isSelectedWeek && !isToday ? 'opacity-100' : ''}>{dayNum}</span>
+              <span>{dayNum}</span>
               {renderDots(dayNum)}
             </button>
           );
@@ -280,18 +288,16 @@ function MiniCalendar({ schedule, lang, weekOffset, setWeekOffset, weekDates }) 
 // ─── WEEKLY GRID VIEW ──────────────────────────────────────────────
 function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekOffset, onClickBlock, onClickEmpty }) {
   const gridRef = useRef(null);
-  
+
   const timeLabels = [];
   for (let h = START_HOUR; h < END_HOUR; h++) {
     timeLabels.push(`${String(h).padStart(2, '0')}:00`);
   }
 
-  // Filter schedule based on current week offset dates
   const entriesByDay = useMemo(() => {
     const map = {};
     DAYS.forEach(d => { map[d] = []; });
-    
-    // Separate exams and regular classes for the current week context
+
     const activeExams = [];
     const activeRegular = [];
 
@@ -308,32 +314,24 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
       }
     });
 
-    // Filter out regular classes if they match the exam subject OR overlap in time
     const filteredRegular = activeRegular.filter(regEntry => {
-      const hasConflict = activeExams.some(exam => {
+      const conflictFound = activeExams.some(exam => {
         if (exam.day !== regEntry.day) return false;
-        
-        // 1. Match by code or title
-        const codeMatch = regEntry.courseCode && exam.courseCode && 
+        const codeMatch = regEntry.courseCode && exam.courseCode &&
           regEntry.courseCode.toLowerCase().trim() === exam.courseCode.toLowerCase().trim();
-          
-        const titleMatch = regEntry.title && exam.title && 
+        const titleMatch = regEntry.title && exam.title &&
           regEntry.title.toLowerCase().trim() === exam.title.toLowerCase().trim();
-          
         if (codeMatch || titleMatch) return true;
 
-        // 2. Match by time overlap
         const startReg = timeToMinutes(regEntry.startTime);
         const endReg = timeToMinutes(regEntry.endTime);
         const startExam = timeToMinutes(exam.startTime);
         const endExam = timeToMinutes(exam.endTime);
-
         return startReg < endExam && endReg > startExam;
       });
-      return !hasConflict;
+      return !conflictFound;
     });
 
-    // Populate the day grid map
     [...filteredRegular, ...activeExams].forEach(entry => {
       if (map[entry.day]) {
         map[entry.day].push(entry);
@@ -349,41 +347,38 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
     const x = e.clientX - rect.left;
     const percent = x / rect.width;
     const minutes = START_HOUR * 60 + percent * (END_HOUR - START_HOUR) * 60;
-    
-    // Round to nearest 30 mins
+
     const roundedMinutes = Math.round(minutes / 30) * 30;
     const hour = Math.floor(roundedMinutes / 60);
     const minute = roundedMinutes % 60;
     const startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
     const endHour = Math.min(hour + 1, END_HOUR);
     const endTime = `${String(endHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-    
+
     const specificDate = weekDates[day].dateStr;
     onClickEmpty(day, startTime, endTime, specificDate);
   }, [onClickEmpty, weekDates]);
 
-  // Current time position percent (only show if viewing current week offset = 0)
   const currentTimePercent = (currentMinutes !== null && weekOffset === 0)
     ? timeToPercent(`${Math.floor(currentMinutes / 60)}:${currentMinutes % 60}`)
     : null;
   const showTimeLine = currentTimePercent !== null && currentTimePercent >= 0 && currentTimePercent <= 100;
 
   return (
-    <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden animate-fade-in shadow-2xl">
+    <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl overflow-hidden shadow-2xs">
       <div className="overflow-x-auto" ref={gridRef}>
         <div className="min-w-[768px] w-full relative">
-          
           {/* Time headers row */}
-          <div className="grid grid-cols-[120px_repeat(18,1fr)] border-b border-dark-border/60 bg-dark-sidebar/40">
-            <div className="p-3 text-center text-[10px] font-extrabold uppercase tracking-widest text-dark-muted flex items-center justify-center border-r border-dark-border/40 select-none">
+          <div className="grid grid-cols-[120px_repeat(18,1fr)] border-b border-[#D2D2D7]/80 bg-[#F5F5F7]">
+            <div className="p-3 text-center text-[11px] font-semibold text-[#6E6E73] flex items-center justify-center border-r border-[#D2D2D7]/70 select-none">
               {lang === 'en' ? 'Day / Time' : 'วัน / เวลา'}
             </div>
             {timeLabels.map((label) => (
               <div
                 key={label}
-                className="p-3 text-center border-l border-dark-border/40 flex items-center justify-center min-w-0 select-none"
+                className="p-2.5 text-center border-l border-[#D2D2D7]/50 flex items-center justify-center min-w-0 select-none"
               >
-                <span className="text-[10px] font-mono font-bold text-dark-muted">
+                <span className="text-[10px] font-mono font-medium text-[#6E6E73]">
                   {label}
                 </span>
               </div>
@@ -397,25 +392,23 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
               return (
                 <div
                   key={day}
-                  className="grid grid-cols-[120px_1fr] relative border-b border-dark-border/40 min-h-[75px]"
+                  className="grid grid-cols-[120px_1fr] relative border-b border-[#D2D2D7]/60 min-h-[74px]"
                 >
-                  {/* Day label cell on left */}
-                  <div className="flex items-center gap-2.5 p-3.5 border-r border-dark-border/40 select-none bg-dark-sidebar/10 shrink-0">
+                  <div className="flex items-center gap-2.5 p-3 border-r border-[#D2D2D7]/70 select-none bg-[#F5F5F7]/40 shrink-0">
                     <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: TRADITIONAL_DAY_COLORS[day] }} />
                     <div className="flex flex-col items-start min-w-0">
-                      <span className={`text-[11px] font-bold truncate leading-tight ${isToday ? 'text-brand-400 font-extrabold' : 'text-white'}`}>
+                      <span className={`text-xs font-semibold truncate leading-tight ${isToday ? 'text-[#0071E3]' : 'text-[#1D1D1F]'}`}>
                         {t(DAY_KEYS[day], lang)}
                       </span>
-                      <span className={`text-[9px] font-mono leading-none mt-0.5 ${isToday ? 'text-brand-400/80' : 'text-dark-muted/60'}`}>
+                      <span className={`text-[10px] leading-none mt-0.5 ${isToday ? 'text-[#0071E3]' : 'text-[#6E6E73]'}`}>
                         {weekDates[day].formatted}
                       </span>
                     </div>
                   </div>
 
-                  {/* Day timetable slots area */}
                   <div
-                    className={`relative cursor-pointer transition-all hover:bg-white/[0.005] flex-1 ${
-                      isToday ? 'bg-brand-500/[0.02]' : ''
+                    className={`relative cursor-pointer transition-colors hover:bg-[#F5F5F7]/60 flex-1 ${
+                      isToday ? 'bg-blue-50/30' : ''
                     }`}
                     onClick={(e) => handleRowClick(day, e)}
                     role="button"
@@ -427,17 +420,12 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                       }
                     }}
                   >
-                    {/* Hour grid vertical lines */}
                     <div className="absolute inset-0 grid grid-cols-[repeat(18,1fr)] pointer-events-none">
                       {Array.from({ length: 18 }).map((_, idx) => (
-                        <div
-                          key={idx}
-                          className="border-l border-dark-border/40 h-full"
-                        />
+                        <div key={idx} className="border-l border-[#D2D2D7]/40 h-full" />
                       ))}
                     </div>
 
-                    {/* Schedule entry blocks */}
                     {entriesByDay[day].map(entry => {
                       const startPercent = timeToPercent(entry.startTime);
                       const endPercent = timeToPercent(entry.endTime);
@@ -446,6 +434,7 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
 
                       const isAssign = entry.isAssignment;
                       const isAllDay = isAssign && entry.startTime === '06:00' && entry.endTime === '24:00';
+                      const accentHex = resolveHexColor(entry.color);
 
                       return (
                         <div
@@ -461,59 +450,38 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                               onClickBlock(entry, weekDates[day].dateStr);
                             }
                           }}
-                          className={`absolute rounded-lg overflow-hidden cursor-pointer shadow-md transition-all group flex flex-col justify-center ${
-                            isAssign 
-                              ? 'hover:ring-2 hover:ring-white/40 hover:scale-[1.02] hover:z-30' 
-                              : 'hover:ring-2 hover:ring-white/30 hover:scale-[1.01] z-10'
-                          }`}
+                          className="absolute rounded-lg overflow-hidden cursor-pointer transition-colors group flex flex-col justify-center bg-white hover:bg-[#F5F5F7] shadow-2xs"
                           style={{
                             left: `${left}%`,
                             width: `${width}%`,
-                            top: isAllDay ? '4%' : (isAssign ? '15%' : '10%'),
-                            bottom: isAllDay ? 'auto' : (isAssign ? '15%' : '10%'),
+                            top: isAllDay ? '6%' : (isAssign ? '14%' : '10%'),
+                            bottom: isAllDay ? 'auto' : (isAssign ? '14%' : '10%'),
                             height: isAllDay ? '24px' : undefined,
-                            backgroundColor: isAssign ? `${resolveHexColor(entry.color)}20` : `${resolveHexColor(entry.color)}35`,
-                            border: isAssign ? `1px solid ${resolveHexColor(entry.color)}80` : undefined,
-                            borderLeft: isAssign ? `1px solid ${resolveHexColor(entry.color)}80` : `4px solid ${resolveHexColor(entry.color)}`,
-                            borderTop: isAssign ? undefined : `1px solid ${resolveHexColor(entry.color)}60`,
-                            borderRight: isAssign ? undefined : `1px solid ${resolveHexColor(entry.color)}60`,
-                            borderBottom: isAssign ? undefined : `1px solid ${resolveHexColor(entry.color)}60`,
-                            boxShadow: isAssign 
-                              ? `0 4px 12px ${resolveHexColor(entry.color)}30, inset 0 0 20px ${resolveHexColor(entry.color)}10` 
-                              : `inset 0 0 12px 0 ${resolveHexColor(entry.color)}15, 0 3px 5px -1px rgba(0,0,0,0.25)`,
-                            backdropFilter: isAssign ? 'blur(6px)' : undefined,
+                            border: `1px solid ${accentHex}45`,
+                            borderLeft: `3px solid ${accentHex}`,
                             zIndex: isAssign ? 20 : 10,
                           }}
                         >
-                          <div className={`p-1 h-full flex flex-col justify-center ${isAssign && !isAllDay ? 'items-start px-2' : (isAllDay ? 'flex-row items-center justify-start px-3' : 'text-center')} overflow-hidden relative`}>
-                            {isAssign && (
-                              <div className="absolute inset-0 opacity-30 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/40 via-transparent to-transparent pointer-events-none" />
-                            )}
-                            <div className="flex items-center justify-center gap-1.5 min-w-0 z-10">
-                              {isAssign && (
-                                <span className="flex h-2 w-2 relative shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: resolveHexColor(entry.color) }}></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: resolveHexColor(entry.color) }}></span>
-                                </span>
-                              )}
-                              <span className={`font-bold text-white leading-tight truncate group-hover:text-brand-300 transition-colors ${isAssign ? 'text-[11px]' : 'text-[10.5px]'}`}>
+                          <div className={`px-2 py-1 h-full flex flex-col justify-center ${isAllDay ? 'flex-row items-center justify-start gap-2' : 'items-start'} overflow-hidden`}>
+                            <div className="flex items-center gap-1.5 min-w-0 w-full">
+                              <span className="font-semibold text-[#1D1D1F] leading-tight truncate text-[11px]">
                                 {entry.courseCode ? `${entry.courseCode} ${isAssign ? '' : `(${entry.title})`}` : entry.title}
                               </span>
                               {entry.date && !isAssign && (
-                                <span className="text-[7.5px] px-1 py-0.25 rounded font-extrabold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0 select-none">
+                                <span className="text-[9px] px-1 py-0.25 rounded font-medium bg-amber-50 text-amber-800 border border-amber-200 shrink-0 select-none">
                                   {lang === 'en' ? 'Once' : 'พิเศษ'}
                                 </span>
                               )}
                             </div>
-                            
+
                             {isAssign && !isAllDay && (
-                              <span className="text-[8.5px] text-white/90 font-mono font-medium mt-1 truncate z-10 bg-black/30 px-1.5 py-0.5 rounded shadow-sm border border-white/5">
+                              <span className="text-[10px] text-[#6E6E73] font-medium mt-0.5 truncate">
                                 Due: {entry.endTime}
                               </span>
                             )}
-                            
+
                             {entry.room && !isAssign && (
-                              <span className="text-[9px] text-dark-muted font-mono font-medium mt-0.5 truncate group-hover:text-dark-text/70 transition-colors">
+                              <span className="text-[10px] text-[#6E6E73] font-medium mt-0.5 truncate">
                                 {entry.room}
                               </span>
                             )}
@@ -522,14 +490,13 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
                       );
                     })}
 
-                    {/* Current time indicator — only on today's row */}
                     {isToday && showTimeLine && (
                       <div
                         className="absolute top-0 bottom-0 z-20 pointer-events-none flex flex-col items-center"
                         style={{ left: `${currentTimePercent}%` }}
                       >
-                        <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 shadow-lg shadow-rose-500/50 ring-2 ring-white/20 animate-pulse" />
-                        <div className="flex-1 w-[2px] bg-rose-500 shadow-[0_0_8px_1px_rgba(239,68,68,0.3)]" />
+                        <div className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
+                        <div className="flex-1 w-[1.5px] bg-rose-600" />
                       </div>
                     )}
                   </div>
@@ -540,11 +507,10 @@ function WeeklyGrid({ schedule, lang, todayKey, currentMinutes, weekDates, weekO
         </div>
       </div>
 
-      {/* Timetable key note at bottom */}
-      <div className="p-3 text-[10px] text-dark-muted font-medium italic border-t border-dark-border/40 bg-dark-sidebar/10 rounded-b-2xl">
-        {lang === 'en' 
-          ? '* Note: Information displayed is Course Code (Sec.) Room' 
-          : '* หมายเหตุ: ข้อมูลที่แสดงคือ รหัสวิชา (Sec.) ห้องเรียน'}
+      <div className="px-4 py-2.5 text-[11px] text-[#6E6E73] border-t border-[#D2D2D7]/60 bg-[#F5F5F7]/50">
+        {lang === 'en'
+          ? '* Click any class to edit, click an assignment or exam to view its details, or click an empty slot to add a class.'
+          : '* คลิกวิชาเรียนเพื่อแก้ไข คลิกงานหรือวิชาสอบเพื่อเปิดดูรายละเอียด หรือคลิกช่องว่างเพื่อเพิ่มตารางเรียน'}
       </div>
     </div>
   );
@@ -555,7 +521,7 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
   const dayEntries = useMemo(() => {
     const dayExams = [];
     const dayRegular = [];
-    
+
     schedule.forEach(e => {
       if (e.day === selectedDay) {
         if (e.deletedAt && weekDates[selectedDay] && weekDates[selectedDay].dateStr >= e.deletedAt) return;
@@ -572,25 +538,20 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
     });
 
     const filteredRegular = dayRegular.filter(regEntry => {
-      const hasConflict = dayExams.some(exam => {
-        // 1. Match by code or title
-        const codeMatch = regEntry.courseCode && exam.courseCode && 
+      const conflictFound = dayExams.some(exam => {
+        const codeMatch = regEntry.courseCode && exam.courseCode &&
           regEntry.courseCode.toLowerCase().trim() === exam.courseCode.toLowerCase().trim();
-          
-        const titleMatch = regEntry.title && exam.title && 
+        const titleMatch = regEntry.title && exam.title &&
           regEntry.title.toLowerCase().trim() === exam.title.toLowerCase().trim();
-          
         if (codeMatch || titleMatch) return true;
 
-        // 2. Match by time overlap
         const startReg = timeToMinutes(regEntry.startTime);
         const endReg = timeToMinutes(regEntry.endTime);
         const startExam = timeToMinutes(exam.startTime);
         const endExam = timeToMinutes(exam.endTime);
-
         return startReg < endExam && endReg > startExam;
       });
-      return !hasConflict;
+      return !conflictFound;
     });
 
     return [...filteredRegular, ...dayExams]
@@ -598,26 +559,26 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
   }, [schedule, selectedDay, weekDates]);
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      {/* Day selector buttons */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+    <div className="space-y-4">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {DAYS.map(day => {
           const isSelected = selectedDay === day;
           const isToday = day === todayKey;
           return (
             <button
+              type="button"
               key={day}
               onClick={() => setSelectedDay(day)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 flex flex-col items-center min-w-[70px] cursor-pointer ${
+              className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors shrink-0 flex flex-col items-center min-w-[70px] cursor-pointer border ${
                 isSelected
-                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
+                  ? 'bg-[#0071E3] text-white border-[#0071E3] font-semibold'
                   : isToday
-                    ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20 hover:bg-brand-500/20'
-                    : 'bg-dark-card/30 text-dark-muted border border-dark-border/40 hover:border-dark-border/80 hover:text-white'
+                    ? 'bg-blue-50 text-[#0071E3] border-blue-200'
+                    : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:text-[#1D1D1F]'
               }`}
             >
               <span>{t(DAY_SHORT_KEYS[day], lang)}</span>
-              <span className={`text-[8.5px] font-mono mt-0.5 ${isSelected ? 'text-white/80' : 'text-dark-muted/50'}`}>
+              <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-white/90' : 'text-[#6E6E73]'}`}>
                 {weekDates[day].formatted}
               </span>
             </button>
@@ -625,65 +586,66 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
         })}
       </div>
 
-      {/* Selected day header */}
       <div className="flex items-center gap-2 px-1">
-        <span className="text-[11px] font-extrabold uppercase tracking-widest text-brand-400 font-heading">
+        <span className="text-xs font-semibold text-[#1D1D1F]">
           {weekDates[selectedDay].dayName}
         </span>
-        <span className="text-xs text-dark-muted font-mono font-medium">({weekDates[selectedDay].formatted})</span>
+        <span className="text-xs text-[#6E6E73]">({weekDates[selectedDay].formatted})</span>
       </div>
 
-      {/* Entries list */}
       {dayEntries.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {dayEntries.map(entry => (
             <button
+              type="button"
               key={entry.id}
               onClick={() => onClickCard(entry, weekDates[selectedDay].dateStr)}
-              className="w-full text-left bg-dark-card/20 border border-dark-border/30 rounded-xl p-4 hover:border-brand-500/30 hover:bg-dark-card/30 transition-all group flex items-center justify-between cursor-pointer"
+              className="w-full text-left bg-white border border-[#D2D2D7]/80 rounded-2xl p-4 hover:border-[#0071E3]/40 transition-colors group flex items-center justify-between cursor-pointer shadow-2xs"
             >
-              <div className="flex items-start gap-4">
-                <div className="w-1.5 self-stretch rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+              <div className="flex items-start gap-3.5">
+                <div className="w-1.5 self-stretch rounded-full shrink-0" style={{ backgroundColor: resolveHexColor(entry.color) }} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-sm font-bold text-white group-hover:text-brand-300 transition-colors truncate">{entry.title}</h4>
+                    <h4 className="text-sm font-semibold text-[#1D1D1F] group-hover:text-[#0071E3] transition-colors truncate">
+                      {entry.title}
+                    </h4>
                     {entry.courseCode && (
-                      <span className="text-[10px] font-mono font-bold text-dark-muted bg-dark-bg/60 px-2 py-0.5 rounded-md shrink-0 border border-dark-border/30">
+                      <span className="text-[11px] font-medium text-[#6E6E73] bg-[#F5F5F7] px-2 py-0.5 rounded-md shrink-0 border border-[#D2D2D7]/70">
                         {entry.courseCode}
                       </span>
                     )}
-                    {entry.date && (
-                      <span className="text-[9px] px-1.5 py-0.25 rounded font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0 select-none">
+                    {entry.date && !entry.isAssignment && !entry.isExam && (
+                      <span className="text-[10px] px-1.5 py-0.25 rounded-md font-medium bg-amber-50 text-amber-800 border border-amber-200 shrink-0 select-none">
                         {lang === 'en' ? 'Special Class' : 'คาบเรียนพิเศษ'}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3.5 mt-2 flex-wrap text-dark-muted">
-                    <span className="text-xs font-mono font-bold flex items-center gap-1.5">
-                      <Clock size={12} className="text-brand-400" />
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap text-[#6E6E73]">
+                    <span className="text-xs font-medium flex items-center gap-1.5">
+                      <Clock size={12} className="text-[#0071E3]" />
                       {formatTimeRange(entry.startTime, entry.endTime)}
                     </span>
                     {entry.room && (
-                      <span className="text-xs font-semibold bg-dark-bg/40 px-2 py-0.5 rounded-md border border-dark-border/30">
+                      <span className="text-xs font-medium bg-[#F5F5F7] px-2 py-0.5 rounded-md border border-[#D2D2D7]/70 text-[#1D1D1F]">
                         {entry.room}
                       </span>
                     )}
                   </div>
                   {entry.notes && (
-                    <p className="text-[11px] text-dark-muted/80 mt-2 italic font-medium max-w-xl leading-relaxed">
+                    <p className="text-xs text-[#6E6E73] mt-1.5 max-w-xl leading-relaxed line-clamp-2">
                       {entry.notes}
                     </p>
                   )}
                 </div>
               </div>
-              <ChevronRight size={16} className="text-dark-muted group-hover:text-white transition-colors shrink-0 ml-4" />
+              <ChevronRight size={16} className="text-[#6E6E73] group-hover:text-[#0071E3] transition-colors shrink-0 ml-4" />
             </button>
           ))}
         </div>
       ) : (
-        <div className="bg-dark-card/20 border border-dark-border/30 rounded-2xl p-12 text-center animate-fade-in shadow-inner">
-          <CalendarX2 size={36} className="text-dark-muted/40 mx-auto mb-3" />
-          <p className="text-xs font-semibold text-dark-muted">{t('noClasses', lang)}</p>
+        <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-12 text-center">
+          <CalendarX2 size={32} className="text-[#6E6E73] mx-auto mb-2.5 opacity-60" />
+          <p className="text-xs font-medium text-[#6E6E73]">{t('noClasses', lang)}</p>
         </div>
       )}
     </div>
@@ -749,7 +711,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
     if (dateVal) {
       const [yy, mm, dd] = dateVal.split('-').map(Number);
       const d = new Date(yy, mm - 1, dd);
-      const dayIndex = d.getDay(); // 0 = Sun
+      const dayIndex = d.getDay();
       const dayKey = JS_DAY_MAP[dayIndex];
       update('day', dayKey);
     }
@@ -760,7 +722,6 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
     if (type === 'recurring') {
       update('date', '');
     } else {
-      // Prefill with today's date if empty
       const todayStr = toLocalDateStr(new Date());
       handleDateChange(todayStr);
     }
@@ -775,13 +736,12 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.title || !formData.startTime || !formData.endTime) return;
-    
+
     const restEntry = { ...(entry || {}) };
     delete restEntry._clickedDateStr;
     const saved = {
       ...restEntry,
       ...formData,
-      // Ensure one-off type saves date, recurring doesn't
       date: classType === 'one-off' ? formData.date : '',
       id: entry?.id || `sched-${Date.now()}`,
     };
@@ -800,45 +760,42 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-dark-card sm:border border-dark-border rounded-none sm:rounded-2xl p-0 sm:p-6 sm:max-w-lg w-full h-full sm:h-auto sm:max-h-[90vh] relative shadow-none sm:shadow-2xl overflow-y-auto custom-scrollbar flex flex-col"
+        className="bg-white border border-[#D2D2D7] rounded-2xl p-6 max-w-lg w-full max-h-[90vh] relative shadow-lg overflow-y-auto flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-0 mb-0 sm:mb-5 border-b border-dark-border/40 sm:pb-3 sticky top-0 bg-dark-card/95 backdrop-blur-md z-10">
-          <h3 className="font-bold font-heading text-base text-white">
+        <div className="flex items-center justify-between mb-4 border-b border-[#D2D2D7]/70 pb-3 sticky top-0 bg-white z-10">
+          <h3 className="font-semibold text-base text-[#1D1D1F]">
             {isEdit ? t('editSchedule', lang) : t('addSchedule', lang)}
           </h3>
           <button
+            type="button"
             onClick={onClose}
-            className="text-dark-muted hover:text-white w-11 h-11 flex items-center justify-center rounded-lg hover:bg-dark-hover transition-colors cursor-pointer"
+            className="text-[#6E6E73] hover:text-[#1D1D1F] p-1.5 rounded-lg hover:bg-[#F5F5F7] transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Conflict warning */}
         {conflict && (
-          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 mb-4 animate-fade-in">
-            <AlertTriangle size={14} className="shrink-0" />
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 mb-4">
+            <AlertTriangle size={14} className="shrink-0 text-amber-600" />
             <span>{t('timeConflict', lang)}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-0 space-y-4 flex-1">
-          
-          {/* Class Type Selector */}
+        <form onSubmit={handleSubmit} className="space-y-4 flex-1">
           <div>
-            <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
               {t('classType', lang)}
             </label>
-            <div className="flex gap-2 p-0.5 bg-dark-sidebar border border-dark-border rounded-lg">
+            <div className="flex gap-1.5 p-1 bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl">
               <button
                 type="button"
                 onClick={() => handleTypeChange('recurring')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
-                  classType === 'recurring' ? 'bg-dark-card text-brand-400 shadow-sm' : 'text-dark-muted hover:text-white'
+                className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                  classType === 'recurring' ? 'bg-white text-[#0071E3] shadow-2xs font-semibold' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                 }`}
               >
                 {t('recurringWeekly', lang)}
@@ -846,8 +803,8 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
               <button
                 type="button"
                 onClick={() => handleTypeChange('one-off')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
-                  classType === 'one-off' ? 'bg-dark-card text-brand-400 shadow-sm' : 'text-dark-muted hover:text-white'
+                className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                  classType === 'one-off' ? 'bg-white text-[#0071E3] shadow-2xs font-semibold' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                 }`}
               >
                 {t('oneOff', lang)}
@@ -855,15 +812,14 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
             </div>
           </div>
 
-          {/* Course selector (Google Classroom picker — lists non-hidden courses) */}
           <div>
-            <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
               {t('selectCourse', lang)}
             </label>
             <select
               value={isCustom ? '__custom__' : formData.courseId}
               onChange={handleCourseSelect}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
+              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
             >
               <option value="__custom__">{t('customEntry', lang)}</option>
               {visibleCourses.map(c => (
@@ -874,10 +830,9 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
             </select>
           </div>
 
-          {/* Title & Code — editable when custom */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
                 {t('courseName', lang)}
               </label>
               <input
@@ -886,11 +841,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 value={formData.title}
                 onChange={(e) => update('title', e.target.value)}
                 readOnly={!isCustom}
-                className={`w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
                 {t('courseCodeLabel', lang)}
               </label>
               <input
@@ -898,15 +853,14 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 value={formData.courseCode}
                 onChange={(e) => update('courseCode', e.target.value)}
                 readOnly={!isCustom}
-                className={`w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white ${!isCustom ? 'opacity-60 cursor-not-allowed' : ''}`}
               />
             </div>
           </div>
 
-          {/* Date Picker or Day Selector */}
           {classType === 'one-off' ? (
             <div>
-              <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
                 {t('selectDate', lang)}
               </label>
               <input
@@ -914,18 +868,18 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 required
                 value={formData.date}
                 onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
               />
             </div>
           ) : (
             <div>
-              <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
                 {t('schedule', lang)}
               </label>
               <select
                 value={formData.day}
                 onChange={(e) => update('day', e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
               >
                 {DAYS.map(d => (
                   <option key={d} value={d}>{t(DAY_KEYS[d], lang)}</option>
@@ -934,10 +888,9 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
             </div>
           )}
 
-          {/* Start / End time */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
                 {t('startTime', lang)}
               </label>
               <input
@@ -949,22 +902,22 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                   setFormData(prev => ({
                     ...prev,
                     startTime: val,
-                    endTime: addHoursToTime(val, 3) // Auto default +3 hours
+                    endTime: addHoursToTime(val, 3)
                   }));
                 }}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
               />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[10px] font-semibold text-dark-muted uppercase tracking-wider leading-none">
+                <label className="block text-xs font-medium text-[#1D1D1F] leading-none">
                   {t('endTime', lang)}
                 </label>
                 <div className="flex gap-1">
                   <button
                     type="button"
                     onClick={() => handleApplyDuration(1.5)}
-                    className="text-[8px] font-extrabold px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/25 hover:bg-brand-500/20 transition-all cursor-pointer leading-none"
+                    className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-[#0071E3] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer leading-none"
                     title="+1.5 Hours"
                   >
                     +1.5h
@@ -972,7 +925,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                   <button
                     type="button"
                     onClick={() => handleApplyDuration(3)}
-                    className="text-[8px] font-extrabold px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/25 hover:bg-brand-500/20 transition-all cursor-pointer leading-none"
+                    className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-[#0071E3] border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer leading-none"
                     title="+3 Hours"
                   >
                     +3h
@@ -984,28 +937,26 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                 required
                 value={formData.endTime}
                 onChange={(e) => update('endTime', e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
               />
             </div>
           </div>
 
-          {/* Room */}
           <div>
-            <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
               {t('roomLabel', lang)}
             </label>
             <input
               type="text"
               value={formData.room}
               onChange={(e) => update('room', e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white"
             />
           </div>
 
-          {/* Color picker — only show when custom entry is selected */}
           {isCustom && (
             <div>
-              <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
                 {t('colorLabel', lang)}
               </label>
               <div className="flex gap-2 flex-wrap">
@@ -1014,63 +965,56 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
                     key={c}
                     type="button"
                     onClick={() => update('color', c)}
-                    className={`w-7 h-7 rounded-full transition-all cursor-pointer ${
-                      formData.color === c
-                        ? 'ring-2 ring-offset-2 ring-offset-dark-card scale-110'
-                        : 'hover:scale-110'
+                    className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
+                      formData.color === c ? 'ring-2 ring-offset-2 ring-[#1D1D1F] scale-110' : 'hover:scale-105'
                     }`}
-                    style={{
-                      backgroundColor: c,
-                      ...(formData.color === c ? { ringColor: c } : {}),
-                    }}
+                    style={{ backgroundColor: c }}
                   />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Notes */}
           <div>
-            <label className="block text-[10px] font-semibold text-dark-muted mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-[#1D1D1F] mb-1.5">
               {t('scheduleNotes', lang)}
             </label>
             <textarea
               rows="2"
               value={formData.notes}
               onChange={(e) => update('notes', e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-3 text-xs text-white focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 resize-none"
+              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white resize-none"
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-between items-center pt-5 pb-5 sm:pb-0 border-t border-dark-border/40 mt-6">
+          <div className="flex justify-between items-center pt-4 border-t border-[#D2D2D7]/70 mt-4">
             <div>
               {isEdit && (
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className={`px-4 py-2 min-h-[44px] sm:min-h-0 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                  className={`px-3.5 py-2 text-xs font-medium rounded-xl transition-colors cursor-pointer ${
                     showDeleteConfirm
-                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      : 'text-dark-muted hover:text-rose-400 hover:bg-rose-500/10'
+                      ? 'bg-rose-600 text-white'
+                      : 'text-rose-600 hover:bg-rose-50'
                   }`}
                 >
                   {showDeleteConfirm ? t('confirmBtn', lang) : t('deleteBtn', lang)}
                 </button>
               )}
             </div>
-            
-            <div className="flex items-center gap-3">
+
+            <div className="flex items-center gap-2.5">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 min-h-[44px] sm:min-h-0 text-xs font-semibold text-dark-muted hover:text-white transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-xl transition-colors cursor-pointer"
               >
                 {t('cancelBtn', lang)}
               </button>
               <button
                 type="submit"
-                className="bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors cursor-pointer shadow-md shadow-brand-500/10"
+                className="bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer"
               >
                 {t('saveBtn', lang)}
               </button>
@@ -1089,29 +1033,51 @@ export default function Schedule() {
   const { schedule, assignments, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule } = useClassroom();
   const { visibleCourses } = useClassroomUI();
 
-  const [viewType, setViewType] = useState('weekly');
-  const [selectedDay, setSelectedDay] = useState(getTodayKey());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const todayKey = getTodayKey();
+  const viewType = searchParams.get('view') || 'weekly';
+  const selectedDay = searchParams.get('day') || todayKey;
+  const weekOffset = parseInt(searchParams.get('week') || '0', 10) || 0;
+
+  const updateScheduleParams = useCallback((updates) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([k, v]) => {
+        if (v === null || v === undefined || (k === 'view' && v === 'weekly') || (k === 'week' && Number(v) === 0)) {
+          next.delete(k);
+        } else {
+          next.set(k, String(v));
+        }
+      });
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const setViewType = useCallback((v) => updateScheduleParams({ view: v }), [updateScheduleParams]);
+  const setSelectedDay = useCallback((d) => updateScheduleParams({ day: d }), [updateScheduleParams]);
+  const setWeekOffset = useCallback((updater) => {
+    const nextVal = typeof updater === 'function' ? updater(weekOffset) : updater;
+    updateScheduleParams({ week: nextVal });
+  }, [updateScheduleParams, weekOffset]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [prefillData, setPrefillData] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [warningMessage, setWarningMessage] = useState('');
-  
-  const [weekOffset, setWeekOffset] = useState(0); // 0 = current week, 1 = next week, -1 = previous week
+
   const [currentMinutes, setCurrentMinutes] = useState(() => {
     const now = new Date();
     return now.getHours() * 60 + now.getMinutes();
   });
 
-  const todayKey = getTodayKey();
   const activeEmail = (profile?.email || '').toLowerCase().trim();
-
   const { allExams } = useExams(activeEmail, lang, schedule);
 
-  // Load cached exams and map to schedule entries
   const examScheduleEntries = useMemo(() => {
     return allExams.map(ex => {
-      // Find time range (default 09:00 - 12:00 if not parsed)
       let startTime = '09:00';
       let endTime = '12:00';
       if (ex.time) {
@@ -1122,7 +1088,6 @@ export default function Schedule() {
         }
       }
 
-      // Find YYYY-MM-DD date string
       let dateVal = '';
       if (ex.rawIsoDate) {
         dateVal = ex.rawIsoDate.split('T')[0];
@@ -1149,50 +1114,44 @@ export default function Schedule() {
         startTime,
         endTime,
         room: ex.room ? `${ex.room} ${ex.seat ? `(${ex.seat})` : ''}` : '',
-        color: '#ef4444', // Red color for exams
+        color: '#E11D48',
         notes: ex.seat ? `Seat/Row: ${ex.seat}` : '',
         isExam: true
       };
     }).filter(Boolean);
   }, [allExams]);
 
-  // Load assignments and map to schedule entries
   const assignmentScheduleEntries = useMemo(() => {
     if (!assignments) return [];
-    // Only show assignments that are not yet completed and have a due date
     return assignments
       .filter(a => a.status !== 'done' && a.dueDate)
       .map(a => {
         let dateVal;
         let startTime;
         let endTime;
-        
+
         const hasTime = a.dueDate.includes('T');
         if (hasTime) {
-          // Fix timezone: Google Classroom API provides UTC time but older cached data might miss 'Z'.
-          // Ensure we treat it as UTC if it's a full time string.
-          const isLocalEndOfDay = a.dueDate.includes('23:59:59'); 
+          const isLocalEndOfDay = a.dueDate.includes('23:59:59');
           const isLocalTimeInput = a.dueDate.length === 16;
-          const isoString = (a.dueDate.endsWith('Z') || a.dueDate.includes('+') || isLocalEndOfDay || isLocalTimeInput) 
-            ? a.dueDate 
+          const isoString = (a.dueDate.endsWith('Z') || a.dueDate.includes('+') || isLocalEndOfDay || isLocalTimeInput)
+            ? a.dueDate
             : `${a.dueDate}Z`;
-            
+
           const dObj = new Date(isoString);
-          
+
           if (!isNaN(dObj.getTime())) {
             dateVal = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
             const h = dObj.getHours();
             const m = dObj.getMinutes();
             endTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-            
-            // Give it a 2-hour width ending at the deadline for better visibility
+
             const startH = Math.max(6, h - 2);
             startTime = `${String(startH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
           } else {
-            // fallback
-            const [d, t] = a.dueDate.split('T');
-            dateVal = d;
-            const timePart = t.split('.')[0].substring(0, 5);
+            const [dPart, tPart] = a.dueDate.split('T');
+            dateVal = dPart;
+            const timePart = tPart.split('.')[0].substring(0, 5);
             endTime = timePart;
             const [h, m] = timePart.split(':').map(Number);
             startTime = `${String(Math.max(6, h - 2)).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -1200,38 +1159,37 @@ export default function Schedule() {
         } else {
           dateVal = a.dueDate;
           startTime = '06:00';
-          endTime = '24:00'; // All-day span
+          endTime = '24:00';
         }
-        
+
         if (!dateVal) return null;
 
-      const [ay, am, ad] = dateVal.split('-').map(Number);
-      const d = new Date(ay, am - 1, ad);
-      const dayIndex = d.getDay();
-      const dayKey = JS_DAY_MAP[dayIndex];
+        const [ay, am, ad] = dateVal.split('-').map(Number);
+        const d = new Date(ay, am - 1, ad);
+        const dayIndex = d.getDay();
+        const dayKey = JS_DAY_MAP[dayIndex];
 
-      return {
-        id: `assignment-${a.id}`,
-        title: a.title.replace('📌 ', ''), // Clean up the title, we use glowing dot instead
-        courseCode: a.course || '',
-        day: dayKey,
-        date: dateVal,
-        startTime,
-        endTime,
-        room: '',
-        color: a.courseColor || '#a855f7',
-        notes: a.description || '',
-        isAssignment: true
-      };
-    }).filter(Boolean);
+        return {
+          id: `assignment-${a.id}`,
+          rawAssignmentId: a.id,
+          title: a.title,
+          courseCode: a.course || '',
+          day: dayKey,
+          date: dateVal,
+          startTime,
+          endTime,
+          room: '',
+          color: a.courseColor || '#7C3AED',
+          notes: a.description || '',
+          isAssignment: true
+        };
+      }).filter(Boolean);
   }, [assignments]);
 
-  // Combine standard schedule, auto-loaded exams, and assignments
   const combinedSchedule = useMemo(() => {
     return [...schedule, ...examScheduleEntries, ...assignmentScheduleEntries];
   }, [schedule, examScheduleEntries, assignmentScheduleEntries]);
 
-  // Dynamic week offset dates mapping
   const weekDates = useMemo(() => {
     return getWeekDates(weekOffset, lang);
   }, [weekOffset, lang]);
@@ -1241,7 +1199,6 @@ export default function Schedule() {
     return `${weekDates.mon.formatted} – ${weekDates.sun.formatted}`;
   }, [weekDates]);
 
-  // Update current time indicator position every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
@@ -1250,7 +1207,6 @@ export default function Schedule() {
     return () => clearInterval(interval);
   }, []);
 
-  // Calculate today's classes for the top banner
   const todayClasses = useMemo(() => {
     const today = new Date();
     const todayIdx = today.getDay();
@@ -1262,7 +1218,7 @@ export default function Schedule() {
 
     combinedSchedule.forEach(entry => {
       if (entry.deletedAt && todayDateStr >= entry.deletedAt) return;
-      if (entry.isAssignment) return; // Skip assignments in the banner
+      if (entry.isAssignment) return;
       if (entry.isExam) {
         if (entry.date === todayDateStr) activeExams.push(entry);
       } else {
@@ -1274,9 +1230,9 @@ export default function Schedule() {
 
     const filteredRegular = activeRegular.filter(regEntry => {
       return !activeExams.some(exam => {
-        const codeMatch = regEntry.courseCode && exam.courseCode && 
+        const codeMatch = regEntry.courseCode && exam.courseCode &&
           regEntry.courseCode.toLowerCase().trim() === exam.courseCode.toLowerCase().trim();
-        const titleMatch = regEntry.title && exam.title && 
+        const titleMatch = regEntry.title && exam.title &&
           regEntry.title.toLowerCase().trim() === exam.title.toLowerCase().trim();
         if (codeMatch || titleMatch) return true;
 
@@ -1284,7 +1240,6 @@ export default function Schedule() {
         const endReg = timeToMinutes(regEntry.endTime);
         const startExam = timeToMinutes(exam.startTime);
         const endExam = timeToMinutes(exam.endTime);
-
         return startReg < endExam && endReg > startExam;
       });
     });
@@ -1294,35 +1249,29 @@ export default function Schedule() {
 
   const openAddModal = useCallback((day, startTime, endTime, dateVal = '') => {
     setEditingEntry(null);
-    setPrefillData({ 
-      day, 
-      startTime, 
+    setPrefillData({
+      day,
+      startTime,
       endTime,
-      // Only default a date if the entry type is one-off
-      date: dateVal 
+      date: dateVal
     });
     setIsModalOpen(true);
   }, []);
 
   const openEditModal = useCallback((entry, clickedDateStr) => {
-    if (entry.isExam) {
-      setWarningMessage(lang === 'th' 
-        ? `วิชาสอบนี้ถูกดึงมาจากระบบค้นหาห้องสอบโดยอัตโนมัติ\nต้องการแก้ไขหรือลบ กรุณาไปที่เมนู "ตารางสอบ/ค้นหาห้องสอบ"` 
-        : `This exam is automatically loaded from the Exam Seating room.\nTo edit or delete it, please go to the "Exam Seating" menu.`
-      );
+    const currentFrom = `${location.pathname}${location.search}`;
+    if (entry.isAssignment && entry.rawAssignmentId) {
+      navigate(`/assignments/${entry.rawAssignmentId}`, { state: { from: currentFrom } });
       return;
     }
-    if (entry.isAssignment) {
-      setWarningMessage(lang === 'th' 
-        ? `งานนี้ถูกดึงมาจาก Google Classroom โดยอัตโนมัติ\nไม่สามารถแก้ไขหรือลบจากที่นี่ได้ครับ` 
-        : `This assignment is automatically loaded from Google Classroom.\nIt cannot be edited or deleted from here.`
-      );
+    if (entry.isExam) {
+      navigate('/exam-room', { state: { from: currentFrom } });
       return;
     }
     setEditingEntry({ ...entry, _clickedDateStr: clickedDateStr });
     setPrefillData(null);
     setIsModalOpen(true);
-  }, [lang]);
+  }, [location.pathname, location.search, navigate]);
 
   const openBlankAdd = useCallback(() => {
     setEditingEntry(null);
@@ -1352,7 +1301,6 @@ export default function Schedule() {
     setShowClearConfirm(false);
   };
 
-  // Build modal entry with prefill data
   const modalEntry = editingEntry || (prefillData ? {
     title: '',
     courseCode: '',
@@ -1366,133 +1314,117 @@ export default function Schedule() {
     notes: '',
   } : null);
 
-  // Auto-collapse / switch to Daily view on small screens
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setViewType('daily');
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   return (
-    <div className="space-y-8 relative max-w-7xl mx-auto py-4 animate-fade-in">
-      {/* Abstract Background Elements */}
-      <div className="fixed top-20 right-1/4 w-[600px] h-[600px] ambient-glow-brand rounded-full pointer-events-none -z-10"></div>
-      <div className="fixed bottom-0 left-1/4 w-[600px] h-[600px] ambient-glow-rose rounded-full pointer-events-none -z-10"></div>
-
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-heading text-white tracking-tight flex items-center gap-3">
-            <CalendarDays size={28} className="text-brand-400" />
-            {t('scheduleTitle', lang)}
+          <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight flex items-center gap-2.5">
+            <CalendarDays size={22} className="text-[#0071E3]" />
+            <span>{t('scheduleTitle', lang)}</span>
           </h1>
-          <p className="text-sm text-dark-muted mt-2 leading-relaxed">{t('scheduleDesc', lang)}</p>
+          <p className="text-xs text-[#6E6E73] mt-1 leading-relaxed">{t('scheduleDesc', lang)}</p>
         </div>
 
-        <div className="flex items-center gap-3 self-end sm:self-center">
-          {/* Clear All */}
+        <div className="flex items-center gap-2.5 self-end sm:self-center">
           {schedule.length > 0 && (
             <button
+              type="button"
               onClick={handleClearAll}
-              className={`text-xs font-bold py-3 px-5 rounded-2xl border transition-all duration-300 cursor-pointer ${
+              className={`text-xs font-medium py-2.5 px-4 rounded-xl border transition-colors cursor-pointer ${
                 showClearConfirm
-                  ? 'text-rose-400 bg-rose-500/10 border-rose-500/30'
-                  : 'text-zinc-400 border-white/5 hover:bg-white/5 hover:text-rose-400'
+                  ? 'text-rose-700 bg-rose-50 border-rose-200'
+                  : 'text-[#6E6E73] bg-white border-[#D2D2D7] hover:text-rose-600'
               }`}
             >
               {showClearConfirm ? t('clearAllConfirm', lang) : t('clearAllSchedule', lang)}
             </button>
           )}
 
-          {/* View toggle — hidden on mobile since mobile only supports list view */}
-          <div className="hidden md:flex items-center border border-white/5 rounded-2xl p-1 bg-white/5">
+          <div className="hidden md:flex items-center border border-[#D2D2D7] rounded-xl p-0.5 bg-[#F5F5F7]">
             <button
+              type="button"
               onClick={() => setViewType('weekly')}
-              className={`p-2 rounded-xl transition-all duration-300 cursor-pointer ${viewType === 'weekly' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewType === 'weekly' ? 'bg-white text-[#0071E3] shadow-2xs' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+              }`}
               title={t('weeklyView', lang)}
             >
-              <LayoutGrid size={18} />
+              <LayoutGrid size={16} />
             </button>
             <button
+              type="button"
               onClick={() => setViewType('daily')}
-              className={`p-2 rounded-xl transition-all duration-300 cursor-pointer ${viewType === 'daily' ? 'bg-white/10 text-brand-400 shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewType === 'daily' ? 'bg-white text-[#0071E3] shadow-2xs' : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+              }`}
               title={t('dailyView', lang)}
             >
-              <List size={18} />
+              <List size={16} />
             </button>
           </div>
 
-          {/* Add button */}
           <button
+            type="button"
             onClick={openBlankAdd}
-            className="flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-brand-500/20 hover:-translate-y-0.5 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
           >
-            <Plus size={18} />
-            {t('addSchedule', lang)}
+            <Plus size={15} />
+            <span>{t('addSchedule', lang)}</span>
           </button>
         </div>
       </div>
 
-
-
       {/* Week Navigation controls */}
-      <div className="flex items-center justify-between bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl px-6 py-4 hover:border-white/10 transition-colors opacity-0 animate-fade-in shadow-lg" style={{ animationDelay: '100ms' }}>
-        {/* Grouped Navigator Buttons (cohesive look matching view toggle) */}
-        <div className="flex items-center border border-white/5 rounded-2xl p-1 bg-white/5 shrink-0">
+      <div className="flex items-center justify-between bg-white border border-[#D2D2D7]/80 rounded-2xl px-4 py-3 shadow-2xs">
+        <div className="flex items-center border border-[#D2D2D7] rounded-xl p-0.5 bg-[#F5F5F7] shrink-0">
           <button
+            type="button"
             onClick={() => setWeekOffset(prev => prev - 1)}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+            className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-white transition-colors cursor-pointer"
             title={t('prevWeek', lang)}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={15} />
           </button>
           <button
+            type="button"
             onClick={() => setWeekOffset(0)}
-            className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
-              weekOffset === 0 
-                ? 'bg-white/10 text-brand-400 shadow-sm' 
-                : 'text-zinc-400 hover:text-white'
+            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              weekOffset === 0
+                ? 'bg-white text-[#0071E3] shadow-2xs font-semibold'
+                : 'text-[#6E6E73] hover:text-[#1D1D1F]'
             }`}
           >
             {t('thisWeek', lang)}
           </button>
           <button
+            type="button"
             onClick={() => setWeekOffset(prev => prev + 1)}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+            className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-white transition-colors cursor-pointer"
             title={t('nextWeek', lang)}
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={15} />
           </button>
         </div>
 
-        {/* Center: Dynamic date range representation */}
-        <div className="text-xs font-bold text-white/90 font-mono tracking-wide px-3 py-1.5 bg-dark-sidebar/45 rounded-lg border border-dark-border/20 shadow-inner select-none hidden sm:block">
+        <div className="text-xs font-medium text-[#1D1D1F] px-3 py-1 bg-[#F5F5F7] rounded-lg border border-[#D2D2D7]/70 select-none hidden sm:block">
           {weekRangeStr}
         </div>
 
-        {/* Right: Relative Week Indicator Label (styled pill) */}
-        <div className="bg-brand-500/10 border border-brand-500/20 px-3 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-widest text-brand-400 shadow-[0_0_12px_rgba(99,102,241,0.05)] select-none shrink-0">
-          {weekOffset === 0 
+        <div className="bg-blue-50 border border-blue-200 px-3 py-1 rounded-full text-[11px] font-medium text-[#0071E3] select-none shrink-0">
+          {weekOffset === 0
             ? (lang === 'en' ? 'Current Week' : 'สัปดาห์ปัจจุบัน')
-            : weekOffset === 1 
+            : weekOffset === 1
               ? (lang === 'en' ? 'Next Week' : 'สัปดาห์ถัดไป')
-              : weekOffset === -1 
+              : weekOffset === -1
                 ? (lang === 'en' ? 'Last Week' : 'สัปดาห์ที่แล้ว')
-                : (lang === 'en' ? `Week ${weekOffset > 0 ? '+' : ''}${weekOffset}` : `สัปดาห์ ${weekOffset > 0 ? '+' : ''}${weekOffset}`)
-          }
+                : (lang === 'en' ? `Week ${weekOffset > 0 ? '+' : ''}${weekOffset}` : `สัปดาห์ ${weekOffset > 0 ? '+' : ''}${weekOffset}`)}
         </div>
       </div>
 
       {/* Mini Calendar + Views Layout */}
-      <div className="flex flex-col xl:flex-row gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '200ms' }}>
-        
-        {/* Left Column: Mini Calendar & Today's Classes */}
-        <div className="xl:w-[320px] shrink-0 space-y-6">
+      <div className="flex flex-col xl:flex-row gap-6">
+        <div className="xl:w-[300px] shrink-0 space-y-6">
           <MiniCalendar
             schedule={combinedSchedule}
             lang={lang}
@@ -1501,38 +1433,40 @@ export default function Schedule() {
             weekDates={weekDates}
           />
 
-          {/* Today's Classes Box */}
           {todayClasses.length > 0 && (
-            <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-                  <CalendarDays size={14} className="text-brand-400" />
-                  <span>{lang === 'en' ? "Today's Classes" : "ตารางเรียนวันนี้"}</span>
+            <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-5 shadow-2xs">
+              <div className="flex items-center justify-between mb-3.5">
+                <h3 className="text-xs font-semibold text-[#1D1D1F] flex items-center gap-2">
+                  <CalendarDays size={14} className="text-[#0071E3]" />
+                  <span>{lang === 'en' ? "Today's Classes" : 'ตารางเรียนวันนี้'}</span>
                 </h3>
-                <button 
-                  onClick={() => {
-                    setWeekOffset(0);
-                    setSelectedDay(todayKey);
-                    setViewType('daily');
-                  }}
-                  className="text-[10px] font-bold text-brand-400 hover:text-brand-300 transition-colors cursor-pointer"
+                <button
+                  type="button"
+                  onClick={() => updateScheduleParams({ week: 0, day: todayKey, view: 'daily' })}
+                  className="text-xs font-medium text-[#0071E3] hover:underline cursor-pointer"
                 >
-                  {lang === 'en' ? 'Jump to today' : 'ดูของวันนี้'} &rarr;
+                  {lang === 'en' ? 'Jump to today' : 'ดูของวันนี้'}
                 </button>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {todayClasses.map(cls => (
-                  <div key={cls.id} className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 border-l-[3px]" style={{ borderLeftColor: resolveHexColor(cls.color) }}>
-                    <div className="flex flex-col items-center justify-center shrink-0 w-12 h-12 rounded-xl bg-black/20 border border-white/5 text-brand-400">
-                      <span className="text-[10px] font-bold leading-none">{cls.startTime}</span>
-                      <span className="text-[8px] font-medium text-dark-muted mt-1 leading-none">{cls.endTime}</span>
+                  <div
+                    key={cls.id}
+                    className="flex items-start gap-3 p-3 rounded-xl bg-[#F5F5F7]/70 border border-[#D2D2D7]/70 border-l-3"
+                    style={{ borderLeftColor: resolveHexColor(cls.color) }}
+                  >
+                    <div className="flex flex-col items-center justify-center shrink-0 w-12 h-11 rounded-lg bg-white border border-[#D2D2D7] text-[#0071E3]">
+                      <span className="text-[11px] font-semibold leading-none">{cls.startTime}</span>
+                      <span className="text-[10px] text-[#6E6E73] mt-1 leading-none">{cls.endTime}</span>
                     </div>
-                    <div className="flex-1 min-w-0 flex flex-col justify-center h-12">
-                      <h4 className="text-xs font-bold text-white truncate w-full" title={cls.title || cls.courseCode}>{cls.title || cls.courseCode}</h4>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <h4 className="text-xs font-semibold text-[#1D1D1F] truncate w-full" title={cls.title || cls.courseCode}>
+                        {cls.title || cls.courseCode}
+                      </h4>
                       {cls.room && (
-                        <p className="text-[9px] text-dark-muted truncate mt-1 flex items-center gap-1">
-                          <MapPin size={9} className="shrink-0" />
-                          {cls.room}
+                        <p className="text-[11px] text-[#6E6E73] truncate mt-0.5 flex items-center gap-1">
+                          <MapPin size={10} className="shrink-0" />
+                          <span>{cls.room}</span>
                         </p>
                       )}
                     </div>
@@ -1543,7 +1477,6 @@ export default function Schedule() {
           )}
         </div>
 
-        {/* Views */}
         <div className="flex-1 min-w-0">
           {viewType === 'weekly' ? (
             <WeeklyGrid
@@ -1570,8 +1503,6 @@ export default function Schedule() {
         </div>
       </div>
 
-
-      {/* Add / Edit Modal */}
       {isModalOpen && (
         <ScheduleModal
           key={editingEntry?.id || 'new'}
@@ -1589,29 +1520,6 @@ export default function Schedule() {
             setShowClearConfirm(false);
           }}
         />
-      )}
-
-      {/* Warning Modal */}
-      {warningMessage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-dark-card border border-dark-border rounded-xl w-full max-w-sm overflow-hidden p-6 space-y-4 text-center">
-            <div className="flex justify-center text-amber-400">
-              <AlertTriangle size={36} />
-            </div>
-            <h3 className="font-bold text-sm text-white">
-              {lang === 'th' ? 'การแจ้งเตือนระบบ' : 'System Notification'}
-            </h3>
-            <p className="text-xs text-dark-muted leading-relaxed whitespace-pre-line">
-              {warningMessage}
-            </p>
-            <button
-              onClick={() => setWarningMessage('')}
-              className="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              {lang === 'th' ? 'ตกลง' : 'OK'}
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );

@@ -1,89 +1,93 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Paperclip, AlertCircle, CheckCircle2, Clock, ExternalLink, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { calculateDueState } from '../utils/dateUtils';
 
 const COURSE_DOT_COLORS = {
-  emerald: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]',
-  blue: 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]',
-  amber: 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]',
-  rose: 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]',
-  purple: 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]',
-  zinc: 'bg-zinc-500'
+  emerald: 'bg-emerald-600',
+  blue: 'bg-[#0071E3]',
+  amber: 'bg-amber-500',
+  rose: 'bg-rose-600',
+  purple: 'bg-purple-600',
+  zinc: 'bg-zinc-400'
 };
 
 const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatusChange, lang = 'en', viewMode = 'grid' }) {
   const { id, title, course, dueDate, status, points, attachments, courseColor, googleLink } = assignment;
+  const location = useLocation();
+  const linkState = {
+    from: `${location.pathname}${location.search}`,
+    fromCourse: course
+  };
 
   const getStatusDotColor = () => {
     switch (status) {
       case 'todo': return 'bg-zinc-400';
-      case 'doing': return 'bg-amber-400';
-      case 'done': return 'bg-emerald-400';
+      case 'doing': return 'bg-amber-500';
+      case 'done': return 'bg-emerald-600';
       default: return 'bg-zinc-400';
     }
   };
 
   const getStatusTextColor = () => {
     switch (status) {
-      case 'todo': return 'text-zinc-400';
-      case 'doing': return 'text-amber-400';
-      case 'done': return 'text-emerald-400';
-      default: return 'text-zinc-400';
+      case 'todo': return 'text-[#6E6E73]';
+      case 'doing': return 'text-amber-700';
+      case 'done': return 'text-emerald-700';
+      default: return 'text-[#6E6E73]';
     }
   };
 
-  // Calculate detailed due status and display elements
   const getDueStatus = () => {
     const state = calculateDueState(dueDate, status);
 
     switch (state.type) {
       case 'done':
-        return { 
-          text: t('completed', lang), 
-          colorClass: 'text-emerald-400 font-semibold', 
-          icon: <CheckCircle2 size={13} className="text-emerald-400" />,
-          isOverdue: false 
+        return {
+          text: t('completed', lang),
+          colorClass: 'text-emerald-700 font-medium',
+          icon: <CheckCircle2 size={13} className="text-emerald-600" />,
+          isOverdue: false
         };
       case 'noDate':
-        return { 
-          text: t('noDueDate', lang), 
-          colorClass: 'text-dark-muted font-medium', 
-          icon: <Calendar size={13} className="text-dark-muted" />,
-          isOverdue: false 
+        return {
+          text: t('noDueDate', lang),
+          colorClass: 'text-[#6E6E73] font-medium',
+          icon: <Calendar size={13} className="text-[#6E6E73]" />,
+          isOverdue: false
         };
       case 'overdue':
-        return { 
-          text: state.diffDays === 0 
+        return {
+          text: state.diffDays === 0
             ? t('overdueHrs', lang, { hrs: state.diffHrs })
-            : t('overdueDays', lang, { days: state.diffDays }), 
-          colorClass: 'text-rose-400 font-extrabold animate-pulse', 
-          icon: <AlertCircle size={13} className="text-rose-400 shrink-0" />, 
-          isOverdue: true 
+            : t('overdueDays', lang, { days: state.diffDays }),
+          colorClass: 'text-rose-600 font-semibold',
+          icon: <AlertCircle size={13} className="text-rose-600 shrink-0" />,
+          isOverdue: true
         };
       case 'dueToday':
-        return { 
-          text: state.diffHrs === 0 
+        return {
+          text: state.diffHrs === 0
             ? t('minsLeftToday', lang, { mins: state.diffMins })
-            : t('hrsLeftToday', lang, { hrs: state.diffHrs }), 
-          colorClass: 'text-amber-400 font-bold', 
-          icon: <Clock size={13} className="text-amber-400" />, 
-          isOverdue: false 
+            : t('hrsLeftToday', lang, { hrs: state.diffHrs }),
+          colorClass: 'text-amber-700 font-semibold',
+          icon: <Clock size={13} className="text-amber-600" />,
+          isOverdue: false
         };
       case 'dueTomorrow':
-        return { 
-          text: t('dueTomorrow', lang), 
-          colorClass: 'text-amber-400/90 font-semibold', 
-          icon: <Calendar size={13} className="text-amber-400/90" />, 
-          isOverdue: false 
+        return {
+          text: t('dueTomorrow', lang),
+          colorClass: 'text-amber-700 font-medium',
+          icon: <Calendar size={13} className="text-amber-600" />,
+          isOverdue: false
         };
       case 'dueLater':
-        return { 
-          text: t('daysLeft', lang, { days: state.diffDays }), 
-          colorClass: 'text-brand-300 font-medium', 
-          icon: <Calendar size={13} className="text-brand-300" />, 
-          isOverdue: false 
+        return {
+          text: t('daysLeft', lang, { days: state.diffDays }),
+          colorClass: 'text-[#0071E3] font-medium',
+          icon: <Calendar size={13} className="text-[#0071E3]" />,
+          isOverdue: false
         };
       default:
         return { text: '', colorClass: '', icon: null, isOverdue: false };
@@ -92,146 +96,156 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
 
   const dueStatus = getDueStatus();
 
-  // Border and background shadow effects
   const getCardBorderClass = () => {
     if (dueStatus.isOverdue) {
-      return 'border-rose-500/20 hover:border-rose-500/40 shadow-[0_4px_20px_rgba(239,68,68,0.04)]';
+      return 'border-rose-200 hover:border-rose-300';
     }
-    
-    switch (courseColor) {
-      case 'emerald': return 'hover:border-emerald-500/35 hover:shadow-[0_4px_20px_rgba(16,185,129,0.04)]';
-      case 'blue': return 'hover:border-blue-500/35 hover:shadow-[0_4px_20px_rgba(59,130,246,0.04)]';
-      case 'amber': return 'hover:border-amber-500/35 hover:shadow-[0_4px_20px_rgba(245,158,11,0.04)]';
-      case 'rose': return 'hover:border-rose-500/35 hover:shadow-[0_4px_20px_rgba(244,63,94,0.04)]';
-      case 'purple': return 'hover:border-purple-500/35 hover:shadow-[0_4px_20px_rgba(168,85,247,0.04)]';
-      default: return 'hover:border-brand-500/35 hover:shadow-[0_4px_20px_rgba(99,102,241,0.04)]';
-    }
+    return 'border-[#D2D2D7]/80 hover:border-[#0071E3]/40';
   };
 
   const [isListExpanded, setIsListExpanded] = useState(false);
 
   if (viewMode === 'list' && !isListExpanded) {
     return (
-      <div 
-        onClick={() => setIsListExpanded(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setIsListExpanded(true);
-          }
-        }}
-        className={`group bg-dark-card/20 hover:bg-dark-card/40 border border-dark-border/30 rounded-xl p-3.5 flex items-center justify-between cursor-pointer transition-all ${getCardBorderClass()}`}
+      <div
+        className={`group bg-white border rounded-xl px-4 py-3 flex items-center justify-between gap-4 transition-colors shadow-2xs ${getCardBorderClass()}`}
       >
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-dark-sidebar border border-dark-border/60 flex items-center justify-center shrink-0 text-brand-400 group-hover:bg-brand-500/10 group-hover:border-brand-500/20 transition-all">
-            <BookOpen size={16} />
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-8 h-8 rounded-lg bg-[#F5F5F7] border border-[#D2D2D7]/60 flex items-center justify-center shrink-0 text-[#0071E3]">
+            <BookOpen size={15} />
           </div>
-          <span className="text-[14.5px] font-semibold text-white/90 truncate group-hover:text-brand-400 transition-colors">{title}</span>
+          <div className="min-w-0 flex-1">
+            <Link
+              to={`/assignments/${id}`}
+              state={linkState}
+              className="text-sm font-semibold text-[#1D1D1F] hover:text-[#0071E3] truncate block transition-colors"
+            >
+              {title}
+            </Link>
+            <div className="flex items-center gap-2 text-xs text-[#6E6E73] mt-0.5">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${COURSE_DOT_COLORS[courseColor] || COURSE_DOT_COLORS.zinc}`} />
+              <span className="truncate">{course}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-4 shrink-0">
-           <div className="flex items-center gap-1.5 hidden sm:flex">
-             {dueStatus.icon}
-             <span className={`text-xs ${dueStatus.colorClass}`}>{dueStatus.text}</span>
-           </div>
-           <div className="p-1 rounded-md text-zinc-500 group-hover:text-white transition-colors">
-             <ChevronDown size={16} />
-           </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5">
+            {dueStatus.icon}
+            <span className={`text-xs ${dueStatus.colorClass}`}>{dueStatus.text}</span>
+          </div>
+
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1.5 bg-[#F5F5F7] border border-[#D2D2D7] px-2.5 py-1 rounded-lg shrink-0"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
+            <select
+              value={status}
+              onChange={(e) => onStatusChange(id, e.target.value)}
+              className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none cursor-pointer select-none ${getStatusTextColor()}`}
+            >
+              <option value="todo">{t('todo', lang)}</option>
+              <option value="doing">{t('doing', lang)}</option>
+              <option value="done">{t('done', lang)}</option>
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsListExpanded(true)}
+            aria-label={lang === 'en' ? 'Expand details' : 'ดูรายละเอียด'}
+            className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors cursor-pointer"
+          >
+            <ChevronDown size={16} />
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`bg-dark-card/40 backdrop-blur-sm border border-dark-border/40 rounded-xl p-5 hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-all duration-300 flex flex-col justify-between group ${viewMode === 'grid' ? 'h-full' : ''} ${getCardBorderClass()}`}>
+    <div
+      className={`bg-white border rounded-2xl p-5 shadow-2xs transition-colors flex flex-col justify-between group ${
+        viewMode === 'grid' ? 'h-full' : ''
+      } ${getCardBorderClass()}`}
+    >
       {viewMode === 'list' && (
-        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-white/5 pb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-dark-sidebar flex items-center justify-center shrink-0 text-brand-400">
-              <BookOpen size={14} />
-            </div>
-            <span className="text-sm font-bold text-white">{title}</span>
-          </div>
-          <button 
-            onClick={() => setIsListExpanded(false)} 
-            className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-[#D2D2D7]/60 pb-2.5">
+          <span className="text-xs font-medium text-[#6E6E73]">{course}</span>
+          <button
+            type="button"
+            onClick={() => setIsListExpanded(false)}
+            className="p-1 text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-lg transition-colors cursor-pointer"
             title={lang === 'en' ? 'Collapse' : 'ย่อ'}
           >
             <ChevronUp size={16} />
           </button>
         </div>
       )}
-      <div className="space-y-4">
-        {/* Header: Course Name & Status Dropdown */}
+
+      <div className="space-y-3.5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <span className={`w-2 h-2 rounded-full shrink-0 ${COURSE_DOT_COLORS[courseColor] || COURSE_DOT_COLORS.zinc}`} />
-            <span className="text-[11px] font-bold text-zinc-300 truncate" title={course}>
+            <span className="text-xs font-medium text-[#6E6E73] truncate" title={course}>
               {course}
             </span>
           </div>
 
-          <div className="flex items-center gap-1 bg-dark-sidebar/50 border border-dark-border/30 pl-3 pr-2 py-2 sm:pl-2.5 sm:pr-1 sm:py-0.5 rounded-lg hover:border-dark-border/60 transition-colors shrink-0">
+          <div className="flex items-center gap-1.5 bg-[#F5F5F7] border border-[#D2D2D7]/80 px-2.5 py-1 rounded-lg hover:border-[#D2D2D7] transition-colors shrink-0">
             <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
             <select
               value={status}
               onChange={(e) => onStatusChange(id, e.target.value)}
-              className={`text-[10px] font-extrabold bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:ring-0 cursor-pointer pr-4 select-none ${getStatusTextColor()}`}
-              style={{
-                backgroundImage: 'none',
-                paddingRight: '2px'
-              }}
+              className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] cursor-pointer pr-1 select-none ${getStatusTextColor()}`}
             >
-              <option value="todo" className="bg-dark-card text-zinc-400">{t('todo', lang)}</option>
-              <option value="doing" className="bg-dark-card text-amber-400">{t('doing', lang)}</option>
-              <option value="done" className="bg-dark-card text-emerald-400">{t('done', lang)}</option>
+              <option value="todo">{t('todo', lang)}</option>
+              <option value="doing">{t('doing', lang)}</option>
+              <option value="done">{t('done', lang)}</option>
             </select>
           </div>
         </div>
 
-        {/* Title */}
-        <Link 
+        <Link
           to={`/assignments/${id}`}
-          className="text-white/90 hover:text-brand-400 transition-colors font-semibold text-[14.5px] leading-snug block group-hover:translate-x-0.5 transform duration-200"
+          state={linkState}
+          className="text-[#1D1D1F] hover:text-[#0071E3] transition-colors font-semibold text-sm leading-snug block"
         >
           {title}
         </Link>
       </div>
 
-      {/* Footer Info */}
-      <div className="border-t border-dark-border/20 pt-4 flex items-center justify-between mt-5">
-        {/* Due Date Indicator (Borderless) */}
+      <div className="border-t border-[#D2D2D7]/60 pt-3.5 flex items-center justify-between mt-4">
         <div className="flex items-center gap-1.5 text-xs">
           {dueStatus.icon}
-          <span className={`text-[11px] ${dueStatus.colorClass}`}>
+          <span className={`text-xs ${dueStatus.colorClass}`}>
             {dueStatus.text}
           </span>
         </div>
 
-        {/* Points & Source Link */}
-        <div className="flex items-center gap-3 text-dark-muted shrink-0">
+        <div className="flex items-center gap-3 text-[#6E6E73] shrink-0">
           {attachments && attachments.length > 0 && (
-            <span className="flex items-center gap-1 text-[11.5px]" title={`${attachments.length} attachments`}>
-              <Paperclip size={11} className="text-dark-muted/80" />
+            <span className="flex items-center gap-1 text-xs" title={`${attachments.length} attachments`}>
+              <Paperclip size={12} className="text-[#6E6E73]" />
               {attachments.length}
             </span>
           )}
-          
+
           {googleLink && (
-            <a 
+            <a
               href={googleLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10.5px] text-brand-400 hover:text-brand-300 font-bold flex items-center gap-0.5 hover:underline transition-all"
+              className="text-xs text-[#0071E3] hover:underline font-medium flex items-center gap-0.5 transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               Classroom
-              <ExternalLink size={8} />
+              <ExternalLink size={10} />
             </a>
           )}
-          
-          <span className="text-[11px] font-bold text-zinc-400">
+
+          <span className="text-xs font-medium text-[#6E6E73]">
             {points} {lang === 'en' ? 'pts' : 'คะแนน'}
           </span>
         </div>

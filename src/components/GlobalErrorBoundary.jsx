@@ -10,23 +10,21 @@ export class GlobalErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
-    // You can also log the error to an error reporting service
     logger.error('GlobalErrorBoundary caught an error:', error, errorInfo);
   }
 
   handleReset = () => {
     this.setState({ hasError: false, error: null });
-    window.location.reload(); // Force refresh to clear bad state
+    window.location.reload();
   };
 
   getErrorMessage(error) {
     if (!error) return 'An unknown error occurred.';
-    
+
     if (error instanceof NetworkError || error.name === 'NetworkError') {
       return 'Network connection failed. Please check your internet connection.';
     }
@@ -42,7 +40,7 @@ export class GlobalErrorBoundary extends React.Component {
     if (error instanceof ParserError || error.name === 'ParserError' || error instanceof ValidationError || error.name === 'ValidationError') {
       return 'Data processing failed. The application received unexpected data.';
     }
-    
+
     return error.message || 'An unexpected application error occurred.';
   }
 
@@ -57,30 +55,31 @@ export class GlobalErrorBoundary extends React.Component {
       const errorCode = this.getErrorCode(this.state.error);
 
       return (
-        <div className="min-h-screen bg-dark-bg flex items-center justify-center p-6 text-dark-text">
-          <div className="max-w-md w-full bg-dark-card border border-dark-border rounded-2xl p-8 shadow-2xl flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mb-6">
-              <AlertCircle size={32} />
+        <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6 text-[#1D1D1F]">
+          <div className="max-w-md w-full bg-white border border-[#D2D2D7] rounded-2xl p-8 shadow-xs flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mb-4">
+              <AlertCircle size={24} />
             </div>
-            
-            <h1 className="text-2xl font-bold text-dark-text mb-3">
+
+            <h1 className="text-xl font-semibold text-[#1D1D1F] mb-2">
               Something went wrong
             </h1>
-            
-            <p className="text-dark-muted mb-6">
+
+            <p className="text-xs text-[#6E6E73] mb-5">
               The application encountered an unexpected error. Please refresh the page to try again.
             </p>
 
-            <div className="bg-dark-bg border border-dark-border rounded p-4 text-center w-full mb-8">
-              <p className="text-sm font-medium text-rose-400 mb-1">{errorMsg}</p>
-              {errorCode && <p className="text-xs text-dark-muted mt-2">{errorCode}</p>}
+            <div className="bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl p-3.5 text-center w-full mb-6">
+              <p className="text-xs font-medium text-rose-700">{errorMsg}</p>
+              {errorCode && <p className="text-[11px] text-[#6E6E73] mt-1">{errorCode}</p>}
             </div>
-            
+
             <button
+              type="button"
               onClick={this.handleReset}
-              className="w-full py-3 px-4 bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-medium rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
-              <RefreshCw size={18} />
+              <RefreshCw size={15} />
               Refresh Application
             </button>
           </div>
@@ -88,6 +87,6 @@ export class GlobalErrorBoundary extends React.Component {
       );
     }
 
-    return this.props.children; 
+    return this.props.children;
   }
 }

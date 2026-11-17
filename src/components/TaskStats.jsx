@@ -10,7 +10,6 @@ const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en',
 
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
 
-  // Find next upcoming exam countdown
   let examCountdownStr = lang === 'en' ? 'No Exam' : 'ไม่มีสอบ';
   let closestExamName = '';
 
@@ -20,7 +19,7 @@ const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en',
 
     const upcomingExams = exams.filter(exam => {
       const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
-      return parsedDate ? parsedDate >= today : true;
+      return parsedDate ? parsedDate >= today : false;
     });
 
     upcomingExams.sort((a, b) => {
@@ -31,13 +30,13 @@ const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en',
 
     if (upcomingExams.length > 0) {
       const closest = upcomingExams[0];
-      closestExamName = closest.courseName;
       const targetDate = parseExamDate(closest.rawIsoDate || closest.date);
-      
+
       if (targetDate) {
+        closestExamName = closest.courseName;
         const diffTime = targetDate - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
+
         if (diffDays === 0) {
           examCountdownStr = lang === 'en' ? 'Today' : 'วันนี้';
         } else if (diffDays === 1) {
@@ -54,65 +53,65 @@ const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en',
       label: t('allAssignments', lang),
       value: total,
       icon: ClipboardList,
-      color: 'text-brand-400 bg-brand-500/10 border-brand-500/10'
+      color: 'text-[#0071E3] bg-blue-50 border-blue-200/70'
     },
     {
       label: t('todo', lang),
       value: todo,
       icon: ListTodo,
-      color: 'text-zinc-400 bg-zinc-500/10 border-zinc-500/10'
+      color: 'text-[#6E6E73] bg-[#F5F5F7] border-[#D2D2D7]'
     },
     {
       label: lang === 'en' ? 'Exam Countdown' : 'นับถอยหลังสอบ',
       value: examCountdownStr,
       subValue: closestExamName ? (lang === 'en' ? `for ${closestExamName}` : `วิชา ${closestExamName}`) : '',
       icon: Timer,
-      color: 'text-amber-400 bg-amber-500/10 border-amber-500/10'
+      color: 'text-amber-700 bg-amber-50 border-amber-200/70'
     },
     {
       label: t('completed', lang),
       value: done,
       icon: CheckCircle2,
-      color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/10'
+      color: 'text-emerald-700 bg-emerald-50 border-emerald-200/70'
     }
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards Grid */}
+    <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div 
+          <div
             key={stat.label}
-            className="bg-dark-card border border-dark-border rounded-xl p-5 hover:border-dark-border/80 transition-all duration-300 relative overflow-hidden"
+            className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-5 shadow-2xs"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-dark-muted font-medium mb-1">{stat.label}</p>
-                <h4 className="text-xl font-bold font-heading text-white truncate max-w-[125px]" title={stat.value}>{stat.value}</h4>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs text-[#6E6E73] font-medium mb-1">{stat.label}</p>
+                <h4 className="text-xl font-semibold text-[#1D1D1F] truncate" title={String(stat.value)}>
+                  {stat.value}
+                </h4>
                 {stat.subValue && (
-                  <p className="text-[9px] text-dark-muted truncate mt-0.5 max-w-[125px]" title={stat.subValue}>
+                  <p className="text-[11px] text-[#6E6E73] truncate mt-0.5" title={stat.subValue}>
                     {stat.subValue}
                   </p>
                 )}
               </div>
-              <div className={`p-2.5 rounded-lg border ${stat.color} shrink-0`}>
-                <stat.icon size={20} />
+              <div className={`p-2.5 rounded-xl border ${stat.color} shrink-0`}>
+                <stat.icon size={18} />
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Progress Bar Container */}
-      <div className="bg-dark-card border border-dark-border rounded-xl p-5">
-        <div className="flex items-center justify-between text-sm mb-2.5">
-          <span className="font-semibold text-white">{t('completionProgress', lang)}</span>
-          <span className="font-bold text-brand-400">{percent}% ({done}/{total} {t('doneStatus', lang)})</span>
+      <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-5 shadow-2xs">
+        <div className="flex items-center justify-between text-xs mb-2">
+          <span className="font-medium text-[#1D1D1F]">{t('completionProgress', lang)}</span>
+          <span className="font-semibold text-[#0071E3]">{percent}% ({done}/{total} {t('doneStatus', lang)})</span>
         </div>
-        <div className="w-full bg-dark-sidebar border border-dark-border rounded-full h-3 overflow-hidden">
-          <div 
-            className="bg-gradient-to-r from-brand-600 to-brand-400 h-full rounded-full transition-all duration-500"
+        <div className="w-full bg-[#F5F5F7] border border-[#D2D2D7]/70 rounded-full h-2.5 overflow-hidden">
+          <div
+            className="bg-[#0071E3] h-full rounded-full transition-all duration-300"
             style={{ width: `${percent}%` }}
           />
         </div>

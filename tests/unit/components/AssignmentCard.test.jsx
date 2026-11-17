@@ -66,7 +66,7 @@ describe('AssignmentCard', () => {
 
     const overdueText = screen.getByText(/overdue.*2/i);
     expect(overdueText).toBeInTheDocument();
-    expect(overdueText).toHaveClass('text-rose-400');
+    expect(overdueText).toHaveClass('text-rose-600');
   });
 });
 

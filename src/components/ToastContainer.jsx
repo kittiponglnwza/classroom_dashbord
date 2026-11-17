@@ -1,10 +1,10 @@
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 const icons = {
-  success: <CheckCircle className="text-emerald-500" size={20} />,
-  error: <XCircle className="text-rose-500" size={20} />,
-  warning: <AlertTriangle className="text-amber-500" size={20} />,
-  info: <Info className="text-brand-500" size={20} />
+  success: <CheckCircle className="text-emerald-600" size={18} />,
+  error: <XCircle className="text-rose-600" size={18} />,
+  warning: <AlertTriangle className="text-amber-600" size={18} />,
+  info: <Info className="text-[#0071E3]" size={18} />
 };
 
 export default function ToastContainer({ toasts, removeToast }) {
@@ -13,30 +13,21 @@ export default function ToastContainer({ toasts, removeToast }) {
       {toasts.map(toast => (
         <div
           key={toast.id}
-          className="pointer-events-auto flex items-start gap-3 w-80 shadow-lg p-4 animate-fade-in"
-          style={{ 
-            backgroundColor: 'var(--card)', 
-            borderColor: 'var(--border)', 
-            color: 'var(--text)',
-            borderWidth: '1px',
-            borderStyle: 'solid',
-            borderRadius: '0.75rem'
-          }}
+          className="pointer-events-auto flex items-start gap-3 w-80 bg-white border border-[#D2D2D7] text-[#1D1D1F] rounded-xl shadow-md p-3.5 animate-fade-in"
         >
-          <div className="shrink-0">{icons[toast.type] || icons.info}</div>
-          <div className="flex-1 text-sm font-medium leading-tight pt-0.5">
+          <div className="shrink-0 mt-0.5">{icons[toast.type] || icons.info}</div>
+          <div className="flex-1 text-xs font-medium leading-snug pt-0.5">
             {toast.message}
           </div>
           <button
+            type="button"
             onClick={() => removeToast(toast.id)}
-            className="shrink-0 text-gray-400 hover:text-white transition-colors p-0.5"
-            style={{ color: 'var(--muted)' }}
+            className="shrink-0 text-[#6E6E73] hover:text-[#1D1D1F] transition-colors p-0.5 cursor-pointer"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
       ))}
     </div>
   );
 }
-

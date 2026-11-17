@@ -4,7 +4,7 @@ import KanbanBoard from '../components/KanbanBoard';
 import TaskFilters from '../components/TaskFilters';
 import TodayScheduleWidget from '../components/TodayScheduleWidget';
 import CreateTaskModal from '../components/CreateTaskModal';
-import { Plus, RefreshCw, AlertTriangle, ClipboardList } from 'lucide-react';
+import { Plus, RefreshCw, AlertTriangle, ClipboardList, Clock } from 'lucide-react';
 import { t } from '../utils/i18n';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -21,7 +21,7 @@ export default function Dashboard() {
   const { visibleAssignments, visibleCourses } = useClassroomUI();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   const {
     searchQuery, setSearchQuery,
     selectedCourse, setSelectedCourse,
@@ -39,41 +39,39 @@ export default function Dashboard() {
   const todayClasses = useTodayClasses(schedule, profile);
 
   return (
-    <div className="space-y-8 relative max-w-7xl mx-auto py-4">
-      {/* Abstract Background Elements */}
-      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] ambient-glow-brand rounded-full pointer-events-none -z-10"></div>
-      <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] ambient-glow-emerald rounded-full pointer-events-none -z-10"></div>
-
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-heading text-white tracking-tight">{t('assignmentsTitle', lang)}</h1>
-          <p className="text-sm text-dark-muted mt-1">{t('assignmentsDesc', lang)}</p>
+          <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">{t('assignmentsTitle', lang)}</h1>
+          <p className="text-xs text-[#6E6E73] mt-1">{t('assignmentsDesc', lang)}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {isLoggedIn && (
             <button
-              onClick={syncClassroom}
+              type="button"
+              onClick={() => syncClassroom()}
               disabled={isSyncing}
-              className="flex items-center gap-2 hover:bg-white/5 text-brand-400 hover:text-brand-300 font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-300 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 bg-white hover:bg-[#F5F5F7] border border-[#D2D2D7] text-[#1D1D1F] font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
             >
-              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-              {t('syncClassroom', lang)}
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin text-[#0071E3]' : 'text-[#6E6E73]'} />
+              <span>{t('syncClassroom', lang)}</span>
             </button>
           )}
           <button
+            type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all duration-300 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
           >
-            <Plus size={16} />
-            {t('createTask', lang)}
+            <Plus size={15} />
+            <span>{t('createTask', lang)}</span>
           </button>
         </div>
       </div>
 
       <TodayScheduleWidget todayClasses={todayClasses} lang={lang} />
 
-      <TaskFilters 
+      <TaskFilters
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         selectedCourse={selectedCourse} setSelectedCourse={setSelectedCourse}
         selectedStatus={selectedStatus} setSelectedStatus={setSelectedStatus}
@@ -83,17 +81,15 @@ export default function Dashboard() {
       />
 
       {/* Critical Rows (Visible in Grid and List views) */}
-      {(viewType === 'grid' || viewType === 'list') && (
-        <div className="space-y-6">
+      {(viewType === 'grid' || viewType === 'list') && (overdueTasks.length > 0 || todayTasks.length > 0) && (
+        <div className="space-y-4">
           {overdueTasks.length > 0 && (
-            <div className="space-y-4 bg-rose-500/5 backdrop-blur-md border border-rose-500/10 rounded-3xl p-6 lg:p-8 opacity-0 animate-fade-in" style={{ animationDelay: '350ms' }}>
-              <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center">
-                  <AlertTriangle size={16} className="animate-bounce" />
-                </div>
-                {t('overdueTasksTitle', lang)}
+            <div className="space-y-3 bg-rose-50/60 border border-rose-200 rounded-2xl p-5">
+              <h3 className="text-xs font-semibold text-rose-700 flex items-center gap-2">
+                <AlertTriangle size={15} className="text-rose-600" />
+                <span>{t('overdueTasksTitle', lang)} ({overdueTasks.length})</span>
               </h3>
-              <div className={viewType === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-3"}>
+              <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
                 {overdueTasks.map(task => (
                   <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode={viewType} />
                 ))}
@@ -102,14 +98,12 @@ export default function Dashboard() {
           )}
 
           {todayTasks.length > 0 && (
-            <div className="space-y-4 bg-amber-500/5 backdrop-blur-md border border-amber-500/10 rounded-3xl p-6 lg:p-8 opacity-0 animate-fade-in" style={{ animationDelay: '400ms' }}>
-              <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                  <AlertTriangle size={16} />
-                </div>
-                {t('dueTodayTitle', lang)}
+            <div className="space-y-3 bg-amber-50/60 border border-amber-200 rounded-2xl p-5">
+              <h3 className="text-xs font-semibold text-amber-800 flex items-center gap-2">
+                <Clock size={15} className="text-amber-600" />
+                <span>{t('dueTodayTitle', lang)} ({todayTasks.length})</span>
               </h3>
-              <div className={viewType === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-3"}>
+              <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
                 {todayTasks.map(task => (
                   <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode={viewType} />
                 ))}
@@ -121,13 +115,13 @@ export default function Dashboard() {
 
       {/* Grid or List View Main Content */}
       {(viewType === 'grid' || viewType === 'list') && (
-        <div className="space-y-5 opacity-0 animate-fade-in" style={{ animationDelay: '450ms' }}>
-          <h3 className="text-sm font-bold text-zinc-300 flex items-center gap-3">
-            <span className="w-2 h-2 rounded-full bg-brand-500"></span>
-            {t('allCourseAssignments', lang, { count: sortedAssignments.length })}
+        <div className="space-y-3.5">
+          <h3 className="text-xs font-semibold text-[#6E6E73] flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#0071E3]" />
+            <span>{t('allCourseAssignments', lang, { count: sortedAssignments.length })}</span>
           </h3>
           {sortedAssignments.length > 0 ? (
-            <div className={viewType === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
+            <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
               {sortedAssignments.map((assignment) => (
                 <AssignmentCard
                   key={assignment.id}
@@ -139,12 +133,13 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="bg-dark-card/30 backdrop-blur-md border border-white/5 rounded-3xl p-16 flex flex-col items-center justify-center text-center shadow-lg">
-              <ClipboardList size={48} className="text-zinc-600 mb-4 opacity-50" />
-              <p className="text-zinc-400 text-sm font-medium mb-6">{t('noAssignmentsFound', lang)}</p>
+            <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center">
+              <ClipboardList size={36} className="text-[#6E6E73] mb-3 opacity-60" />
+              <p className="text-[#6E6E73] text-xs font-medium mb-4">{t('noAssignmentsFound', lang)}</p>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-4 py-2 text-sm font-semibold transition-colors cursor-pointer"
+                className="bg-[#0071E3] hover:bg-[#0077ED] text-white rounded-xl px-4 py-2 text-xs font-medium transition-colors cursor-pointer"
               >
                 {t('createTask', lang)}
               </button>
@@ -155,14 +150,14 @@ export default function Dashboard() {
 
       {/* Kanban Board View */}
       {viewType === 'kanban' && (
-        <KanbanBoard 
+        <KanbanBoard
           todoTasks={todoTasks} doingTasks={doingTasks} doneTasks={doneTasks}
           handleStatusChange={handleStatusChange} lang={lang}
         />
       )}
 
       {/* Create Task Modal */}
-      <CreateTaskModal 
+      <CreateTaskModal
         isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}
         visibleCourses={visibleCourses} lang={lang} onAddAssignment={handleAddAssignment}
       />

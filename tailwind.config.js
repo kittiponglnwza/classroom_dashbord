@@ -4,21 +4,21 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class', // Support class-based theme toggling
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         brand: {
-          50: '#f2f7ff',
-          100: '#e1eeff',
-          200: '#bcdbff',
-          300: '#84beff',
-          400: '#4597ff',
-          500: '#1a73e8',
-          600: '#0b57d0',
-          700: '#0845a7',
-          800: '#0b3985',
-          900: '#0f3069',
+          50: '#F0F7FF',
+          100: '#E0EFFF',
+          200: '#B8DCFF',
+          300: '#0071E3',
+          400: '#0071E3',
+          500: '#0071E3',
+          600: '#0062C4',
+          700: '#0051A3',
+          800: '#003F80',
+          900: '#002D5C',
         },
         dark: {
           bg: 'var(--bg)',
@@ -31,7 +31,8 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'Outfit', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'system-ui', 'sans-serif'],
+        heading: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'system-ui', 'sans-serif'],
       }
     },
   },

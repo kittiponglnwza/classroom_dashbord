@@ -110,7 +110,7 @@ function sendClassroomDigest() {
       '<div style="max-width: 600px; margin: 0 auto; background-color: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
       '<div style="text-align: center; border-bottom: 1px solid #1f2937; padding-bottom: 20px; margin-bottom: 20px;">' +
       '<div style="font-size: 16px; font-weight: bold; color: #6366f1; text-transform: uppercase; letter-spacing: 2px;">Classroom Hub</div>' +
-      '<div style="font-size: 20px; font-weight: bold; color: #ffffff; margin-top: 10px;">🚨 สรุปงานค้างส่งใกล้วันกำหนดส่ง (เหลือเวลาไม่ถึง 3 วัน)</div>' +
+      '<div style="font-size: 20px; font-weight: bold; color: #ffffff; margin-top: 10px;">สรุปงานค้างส่งใกล้วันกำหนดส่ง (เหลือเวลาไม่ถึง 3 วัน)</div>' +
       '</div><div>';
 
     for (var k = 0; k < pendingAssignments.length; k++) {
@@ -119,7 +119,7 @@ function sendClassroomDigest() {
         '<div style="display: inline-block; background-color: rgba(99, 102, 241, 0.1); color: #818cf8; font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 99px; margin-bottom: 8px;">' + item.courseName + '</div>' +
         '<div style="font-size: 14px; font-weight: bold; color: #ffffff; margin-bottom: 10px;">' + item.title + '</div>' +
         '<div style="font-size: 11px; color: #9ca3af; margin-bottom: 15px;">' +
-        '📅 กำหนดส่ง: <strong style="color: #fb923c;">' + item.dueDate + '</strong> (' + item.daysLeft + ' วันที่เหลือ) &nbsp;|&nbsp; 💯 ' + item.points + ' คะแนน' +
+        'กำหนดส่ง: <strong style="color: #fb923c;">' + item.dueDate + '</strong> (' + item.daysLeft + ' วันที่เหลือ) &nbsp;|&nbsp; ' + item.points + ' คะแนน' +
         '</div>' +
         '<a href="' + item.link + '" target="_blank" style="display: inline-block; background-color: #4f46e5; color: #ffffff !important; text-decoration: none; padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: bold;">เปิดทำการบ้านใน Classroom</a>' +
         '</div>';
@@ -133,7 +133,7 @@ function sendClassroomDigest() {
 
     MailApp.sendEmail({
       to: email,
-      subject: "🚨 สรุปงานค้างส่ง (เหลือเวลาไม่ถึง 3 วัน) - Classroom Hub",
+      subject: "สรุปงานค้างส่ง (เหลือเวลาไม่ถึง 3 วัน) - Classroom Hub",
       htmlBody: htmlBody
     });
     Logger.log("Notification email sent successfully to: " + email);

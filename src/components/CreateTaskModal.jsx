@@ -19,8 +19,6 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
 
     const courseObj = visibleCourses.find(c => c.name === selectedCourse);
     const color = courseObj ? courseObj.color : 'blue';
-
-    // Format newDueDate to date with end of day time
     const formattedDueDate = `${newDueDate}T23:59:59`;
 
     onAddAssignment({
@@ -44,104 +42,115 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
-      <div 
-        role="dialog" 
-        aria-modal="true" 
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 animate-fade-in">
+      <div
+        role="dialog"
+        aria-modal="true"
         aria-labelledby="create-task-title"
-        className="bg-dark-card sm:border sm:border-white/10 rounded-none sm:rounded-3xl w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg overflow-y-auto custom-scrollbar animate-fade-in relative shadow-none sm:shadow-[0_0_40px_rgba(0,0,0,0.5)]"
+        className="bg-white border border-[#D2D2D7] rounded-2xl w-full max-h-[90vh] max-w-lg overflow-y-auto relative shadow-lg"
       >
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/5 sticky top-0 bg-dark-card/90 backdrop-blur-md z-10">
-          <h3 id="create-task-title" className="font-bold text-xl text-white tracking-tight">{t('createTaskTitle', lang)}</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D2D2D7]/70 sticky top-0 bg-white z-10">
+          <h3 id="create-task-title" className="text-base font-semibold text-[#1D1D1F]">
+            {t('createTaskTitle', lang)}
+          </h3>
           <button
+            type="button"
             onClick={onClose}
-            className="text-zinc-400 hover:text-white w-11 h-11 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Close modal"
+            className="p-1.5 flex items-center justify-center text-[#6E6E73] hover:text-[#1D1D1F] rounded-lg hover:bg-[#F5F5F7] transition-colors cursor-pointer"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div className="space-y-1.5 group/input relative">
-            <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Title *' : 'หัวข้อการบ้าน *'}</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-[#1D1D1F]">
+              {lang === 'en' ? 'Task Title *' : 'ชื่องาน *'}
+            </label>
             <input
               type="text"
               required
-              placeholder="e.g. Linux Lab 5"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 transition-all rounded-none"
+              placeholder={lang === 'en' ? 'e.g. Read Chapter 4 & Summarize' : 'เช่น อ่านบทที่ 4 และสรุปเนื้อหา'}
+              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-sm text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white transition-colors"
             />
-            <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-1.5 group/input relative">
-              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Subject *' : 'วิชา *'}</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-[#1D1D1F]">
+                {lang === 'en' ? 'Subject *' : 'วิชา *'}
+              </label>
               <select
                 value={selectedCourse}
                 onChange={(e) => setNewCourse(e.target.value)}
-                className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 cursor-pointer transition-all rounded-none"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-sm text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer transition-colors"
               >
                 {visibleCourses.length === 0 && (
-                  <option value="General" className="bg-dark-sidebar">General</option>
+                  <option value="General">General</option>
                 )}
                 {visibleCourses.map(c => (
-                  <option key={c.id} value={c.name} className="bg-dark-sidebar">{c.name}</option>
+                  <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
               </select>
-              <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
             </div>
-            <div className="space-y-1.5 group/input relative">
-              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Due Date *' : 'กำหนดส่ง *'}</label>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-[#1D1D1F]">
+                {lang === 'en' ? 'Due Date *' : 'กำหนดส่ง *'}
+              </label>
               <input
                 type="date"
                 required
                 value={newDueDate}
                 onChange={(e) => setNewDueDate(e.target.value)}
-                className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 cursor-pointer transition-all rounded-none"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-sm text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer transition-colors"
               />
-              <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
             </div>
           </div>
 
-          <div className="space-y-1.5 group/input relative">
-            <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Points' : 'คะแนนเต็ม'}</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-[#1D1D1F]">
+              {lang === 'en' ? 'Points / Weight' : 'คะแนนเต็ม'}
+            </label>
             <input
               type="number"
               min="0"
+              max="1000"
               value={newPoints}
               onChange={(e) => setNewPoints(e.target.value)}
-              className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 transition-all rounded-none"
+              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3.5 py-2.5 text-sm text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white transition-colors"
             />
-            <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
           </div>
 
-          <div className="space-y-1.5 group/input relative">
-            <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider group-focus-within/input:text-brand-400 transition-colors">{lang === 'en' ? 'Description' : 'คำอธิบาย'}</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-[#1D1D1F]">
+              {lang === 'en' ? 'Description & Instructions' : 'รายละเอียดงาน'}
+            </label>
             <textarea
-              rows="3"
-              placeholder={lang === 'en' ? 'Describe details about this assignment...' : 'อธิบายรายละเอียดของการบ้านนี้...'}
+              rows="4"
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
-              className="w-full bg-transparent border-b border-white/20 pb-2 pt-1 text-sm text-white placeholder-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 resize-none transition-all rounded-none"
+              placeholder={lang === 'en' ? 'Add details, links, or notes...' : 'ใส่รายละเอียด ลิงก์อ้างอิง หรือบันทึกเพิ่มเติม...'}
+              className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl p-3.5 text-sm text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white transition-colors resize-none"
             />
-            <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-brand-500 transition-all duration-300 group-focus-within/input:w-full"></div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-6 mt-6">
+          <div className="pt-3 border-t border-[#D2D2D7]/70 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 rounded-2xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors cursor-pointer"
             >
               {lang === 'en' ? 'Cancel' : 'ยกเลิก'}
             </button>
             <button
               type="submit"
-              className="bg-brand-500 hover:bg-brand-400 text-white font-bold text-sm px-6 py-3 rounded-2xl transition-all duration-300 shadow-lg shadow-brand-500/20 hover:-translate-y-0.5"
+              className="bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-5 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
-              {lang === 'en' ? 'Create Task' : 'สร้างงาน'}
+              {lang === 'en' ? 'Create Task' : 'บันทึกงาน'}
             </button>
           </div>
         </form>

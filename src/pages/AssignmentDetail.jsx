@@ -1,24 +1,52 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Calendar, Paperclip, FileText, Sparkles, 
-  FileCode, Award, BookOpen
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import {
+  ArrowLeft, Calendar, Paperclip, FileText, Clock,
+  FileCode, Award, BookOpen, ExternalLink, Check
 } from 'lucide-react';
 import { t } from '../utils/i18n';
-import { getCourseTextColor } from '../utils/colors';
+import { getCourseBadgeColor } from '../utils/colors';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
+
+function formatDueDateDisplay(dueDate, lang) {
+  if (!dueDate) return null;
+  const parsed = new Date(dueDate);
+  if (Number.isNaN(parsed.getTime())) return dueDate;
+  return parsed.toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function toDatetimeLocalValue(dueDate) {
+  if (!dueDate) return '';
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dueDate)) return dueDate;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dueDate)) return dueDate.slice(0, 16);
+  const d = new Date(dueDate);
+  if (Number.isNaN(d.getTime())) return '';
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
 
 export default function AssignmentDetail() {
   const { lang } = useSettings();
   const { assignments, handleStatusChange, handleNotesChange, handleDueDateChange } = useClassroom();
-  
+
   const { id } = useParams();
   const navigate = useNavigate();
-  const assignment = assignments.find(a => a.id === id);
+  const location = useLocation();
+  const assignment = assignments.find(a => String(a.id) === String(id));
 
   const [noteContent, setNoteContent] = useState(assignment?.notes || '');
-  const [downloadingFile, setDownloadingFile] = useState('');
+  const [noteSaved, setNoteSaved] = useState(false);
   const [isEditingDueDate, setIsEditingDueDate] = useState(false);
   const [tempDueDate, setTempDueDate] = useState('');
 
@@ -29,105 +57,151 @@ export default function AssignmentDetail() {
     }
   }, [assignment?.notes, assignment]);
 
+  const fromPath = location.state?.from || '';
+
+  const getBackLabel = () => {
+    if (fromPath === '/') {
+      return t('backToHome', lang);
+    }
+    if (fromPath.startsWith('/courses')) {
+      const courseName = location.state?.fromCourse || assignment?.course;
+      if (courseName && fromPath.includes('selected=')) {
+        return t('backToCourse', lang, { course: courseName });
+      }
+      return t('courses', lang);
+    }
+    if (fromPath.startsWith('/schedule')) {
+      return t('backToSchedule', lang);
+    }
+    return t('backDashboard', lang);
+  };
+
+  const handleBack = () => {
+    if (fromPath) {
+      navigate(fromPath);
+    } else if (assignment?.course) {
+      navigate('/dashboard');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
   if (!assignment) {
     return (
-      <div className="bg-dark-card border border-dark-border rounded-xl p-12 text-center max-w-lg mx-auto mt-10 space-y-4">
-        <h3 className="text-lg font-bold text-white font-heading">{t('detailNotFound', lang)}</h3>
-        <p className="text-dark-muted text-sm">{t('detailNotFoundDesc', lang)}</p>
+      <div className="bg-white border border-[#D2D2D7] rounded-2xl p-10 text-center max-w-lg mx-auto mt-10 space-y-4 shadow-2xs">
+        <h3 className="text-lg font-semibold text-[#1D1D1F]">{t('detailNotFound', lang)}</h3>
+        <p className="text-[#6E6E73] text-xs">{t('detailNotFoundDesc', lang)}</p>
         <button
-          onClick={() => navigate('/dashboard')}
-          className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium text-xs px-4 py-2 rounded-lg transition-colors"
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
         >
           <ArrowLeft size={14} />
-          {t('backDashboard', lang)}
+          <span>{getBackLabel()}</span>
         </button>
       </div>
     );
   }
 
-  const { title, course, courseCode, dueDate, status, points, attachments, description, courseColor } = assignment;
+  const { title, course, courseCode, dueDate, status, points, attachments, description, courseColor, googleLink } = assignment;
 
   const handleNotesBlur = () => {
-    handleNotesChange(id, noteContent);
+    if (noteContent !== (assignment.notes || '')) {
+      handleNotesChange(id, noteContent);
+      setNoteSaved(true);
+      setTimeout(() => setNoteSaved(false), 2000);
+    }
   };
 
   const getDaysLeft = () => {
     if (status === 'done') {
-      return { text: t('completed', lang), color: 'text-emerald-400' };
+      return { text: t('completed', lang), color: 'text-emerald-700' };
     }
     if (!dueDate) {
-      return { text: lang === 'en' ? 'No due date' : 'ไม่มีกำหนดส่ง', color: 'text-dark-muted' };
+      return { text: lang === 'en' ? 'No due date' : 'ไม่มีกำหนดส่ง', color: 'text-[#6E6E73]' };
     }
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
     const due = new Date(dueDate);
     if (Number.isNaN(due.getTime())) {
-      return { text: lang === 'en' ? 'No due date' : 'ไม่มีกำหนดส่ง', color: 'text-dark-muted' };
+      return { text: lang === 'en' ? 'No due date' : 'ไม่มีกำหนดส่ง', color: 'text-[#6E6E73]' };
     }
-    due.setHours(0,0,0,0);
+    due.setHours(0, 0, 0, 0);
     const diffTime = due - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      return { text: t('overdueDays', lang, { days: Math.abs(diffDays) }), color: 'text-rose-400' };
+      return { text: t('overdueDays', lang, { days: Math.abs(diffDays) }), color: 'text-rose-600' };
     } else if (diffDays === 0) {
-      return { text: lang === 'en' ? 'Due today' : 'ส่งภายในวันนี้', color: 'text-amber-400 font-semibold' };
+      return { text: lang === 'en' ? 'Due today' : 'ส่งภายในวันนี้', color: 'text-amber-700 font-semibold' };
     } else if (diffDays === 1) {
-      return { text: t('dueTomorrow', lang), color: 'text-amber-400' };
+      return { text: t('dueTomorrow', lang), color: 'text-amber-700' };
     } else {
-      return { text: t('daysLeft', lang, { days: diffDays }), color: 'text-dark-muted' };
+      return { text: t('daysLeft', lang, { days: diffDays }), color: 'text-[#1D1D1F]' };
     }
   };
 
   const daysInfo = getDaysLeft();
-
-  const handleSimulatedDownload = (fileName) => {
-    setDownloadingFile(fileName);
-    setTimeout(() => {
-      setDownloadingFile('');
-    }, 2500);
-  };
+  const formattedDue = formatDueDateDisplay(dueDate, lang);
 
   return (
-    <div className="space-y-8 relative max-w-7xl mx-auto py-4 animate-fade-in">
-      {/* Abstract Background Elements */}
-      <div className="fixed top-0 left-1/4 w-[600px] h-[600px] ambient-glow-brand rounded-full pointer-events-none -z-10"></div>
-      <div className="fixed bottom-0 right-1/4 w-[600px] h-[600px] ambient-glow-indigo rounded-full pointer-events-none -z-10"></div>
-      {downloadingFile && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold text-xs px-4.5 py-3 rounded-xl shadow-xl animate-fade-in">
-          <span className="animate-pulse">⚡</span>
-          <span>Simulating download: Starting download for "{downloadingFile}"</span>
-        </div>
-      )}
-      <button
-        onClick={() => navigate('/dashboard')}
-        className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-all duration-300 bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10 px-5 py-2.5 rounded-2xl self-start backdrop-blur-md shadow-lg"
-      >
-        <ArrowLeft size={16} />
-        {t('backDashboard', lang)}
-      </button>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={handleBack}
+          data-testid="assignment-back-button"
+          className="inline-flex items-center gap-2 text-xs font-medium text-[#1D1D1F] bg-white hover:bg-[#F5F5F7] border border-[#D2D2D7] px-4 py-2 rounded-xl transition-colors cursor-pointer shadow-2xs"
+        >
+          <ArrowLeft size={15} />
+          <span>{getBackLabel()}</span>
+        </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        <div className="lg:col-span-2 space-y-8">
-          <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-8 lg:p-10 space-y-8 shadow-2xl hover:border-white/10 transition-all duration-500 relative overflow-hidden group">
-            {/* Ambient inner glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-            
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-6 relative z-10">
+        <div className="flex items-center gap-2">
+          {course && (
+            <Link
+              to={`/courses?selected=${encodeURIComponent(course)}&tab=assignments`}
+              state={{ from: `${location.pathname}${location.search}` }}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0071E3] bg-white hover:bg-[#F5F5F7] border border-[#D2D2D7] px-3.5 py-2 rounded-xl transition-colors"
+            >
+              <BookOpen size={14} />
+              <span>{t('openCoursePage', lang)}</span>
+            </Link>
+          )}
+          {googleLink && (
+            <a
+              href={googleLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1D1D1F] bg-white hover:bg-[#F5F5F7] border border-[#D2D2D7] px-3.5 py-2 rounded-xl transition-colors"
+            >
+              <span>Google Classroom</span>
+              <ExternalLink size={13} className="text-[#6E6E73]" />
+            </a>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xs">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#D2D2D7]/60 pb-5">
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-bold px-4 py-1.5 rounded-xl bg-black/20 border border-white/10 shadow-sm ${getCourseTextColor(courseColor)}`}>
-                  {courseCode} • {course}
+                <span className={`text-xs font-medium px-3 py-1 rounded-lg ${getCourseBadgeColor(courseColor)}`}>
+                  {courseCode ? `${courseCode} • ${course}` : course}
                 </span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider">{t('statusLabel', lang)}</span>
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs text-[#6E6E73] font-medium">{t('statusLabel', lang)}</span>
                 <select
                   value={status}
                   onChange={(e) => handleStatusChange(id, e.target.value)}
-                  className={`text-sm px-4 py-2 rounded-xl bg-black/20 border border-white/10 text-white cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 font-bold shadow-sm transition-all duration-300 hover:bg-white/5 ${
-                    status === 'todo' ? 'text-zinc-400' :
-                    status === 'doing' ? 'text-amber-400' : 'text-emerald-400'
+                  className={`text-xs px-3.5 py-2 rounded-xl bg-[#F5F5F7] border border-[#D2D2D7] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] font-semibold transition-colors ${
+                    status === 'todo'
+                      ? 'text-[#1D1D1F]'
+                      : status === 'doing'
+                        ? 'text-amber-700'
+                        : 'text-emerald-700'
                   }`}
                 >
                   <option value="todo">{t('todo', lang)}</option>
@@ -137,152 +211,176 @@ export default function AssignmentDetail() {
               </div>
             </div>
 
-            <div className="space-y-6 relative z-10">
-              <h1 className="text-3xl md:text-4xl font-bold font-heading text-white tracking-tight leading-snug">
+            <div className="space-y-5">
+              <h1 className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] tracking-tight leading-snug">
                 {title}
               </h1>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                <div className="bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white/10 group/card">
-                  <div className="p-3 bg-black/20 rounded-xl text-brand-400 group-hover/card:scale-110 transition-transform">
-                    <Calendar size={18} />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-[#F5F5F7]/80 border border-[#D2D2D7]/70 rounded-xl p-4 flex items-center gap-3.5">
+                  <div className="p-2.5 bg-white border border-[#D2D2D7]/70 rounded-xl text-[#0071E3] shrink-0">
+                    <Calendar size={17} />
                   </div>
-                  <div className="flex-1">
-                    <span className="text-[10px] text-zinc-500 block font-bold uppercase tracking-wider">{t('dueDateLabel', lang)}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[11px] text-[#6E6E73] block font-medium">{t('dueDateLabel', lang)}</span>
                     {isEditingDueDate ? (
-                      <input 
-                        type="datetime-local" 
-                        className="w-full bg-black/20 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500"
+                      <input
+                        type="datetime-local"
+                        className="w-full bg-white border border-[#D2D2D7] rounded-lg px-2 py-1 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3]"
                         value={tempDueDate}
                         onChange={(e) => setTempDueDate(e.target.value)}
                         onBlur={() => {
-                          if (tempDueDate !== dueDate) {
+                          if (tempDueDate && tempDueDate !== toDatetimeLocalValue(dueDate)) {
                             handleDueDateChange(id, tempDueDate);
                           }
                           setIsEditingDueDate(false);
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          } else if (e.key === 'Escape') {
+                            setIsEditingDueDate(false);
+                          }
+                        }}
                         autoFocus
                       />
                     ) : (
-                      <span 
-                        className="text-sm font-bold text-zinc-200 cursor-pointer border-b border-dashed border-zinc-500 hover:text-brand-400 hover:border-brand-400"
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-[#1D1D1F] hover:text-[#0071E3] border-b border-dashed border-[#6E6E73] text-left truncate max-w-full cursor-pointer"
                         onClick={() => {
-                          setTempDueDate(dueDate || '');
+                          setTempDueDate(toDatetimeLocalValue(dueDate));
                           setIsEditingDueDate(true);
                         }}
                       >
-                        {dueDate || t('noDueDate', lang)}
-                      </span>
+                        {formattedDue || t('noDueDate', lang)}
+                      </button>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white/10 group/card">
-                  <div className="p-3 bg-black/20 rounded-xl text-amber-400 group-hover/card:scale-110 transition-transform">
-                    <Award size={18} />
+                <div className="bg-[#F5F5F7]/80 border border-[#D2D2D7]/70 rounded-xl p-4 flex items-center gap-3.5">
+                  <div className="p-2.5 bg-white border border-[#D2D2D7]/70 rounded-xl text-amber-600 shrink-0">
+                    <Award size={17} />
                   </div>
                   <div>
-                    <span className="text-[10px] text-zinc-500 block font-bold uppercase tracking-wider">{t('gradeWeightLabel', lang)}</span>
-                    <span className="text-sm font-bold text-zinc-200">{points} {lang === 'en' ? 'Points' : 'คะแนน'}</span>
+                    <span className="text-[11px] text-[#6E6E73] block font-medium">{t('gradeWeightLabel', lang)}</span>
+                    <span className="text-xs font-semibold text-[#1D1D1F]">{points} {lang === 'en' ? 'Points' : 'คะแนน'}</span>
                   </div>
                 </div>
 
-                <div className="bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl p-4 col-span-2 sm:col-span-1 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1 hover:bg-white/10 group/card">
-                  <div className="p-3 bg-black/20 rounded-xl text-zinc-400 group-hover/card:scale-110 transition-transform">
-                    <Sparkles size={18} className={daysInfo.color} />
+                <div className="bg-[#F5F5F7]/80 border border-[#D2D2D7]/70 rounded-xl p-4 flex items-center gap-3.5">
+                  <div className="p-2.5 bg-white border border-[#D2D2D7]/70 rounded-xl text-[#0071E3] shrink-0">
+                    <Clock size={17} />
                   </div>
                   <div>
-                    <span className="text-[10px] text-zinc-500 block font-bold uppercase tracking-wider">{t('countdownLabel', lang)}</span>
-                    <span className={`text-sm font-bold ${daysInfo.color}`}>{daysInfo.text}</span>
+                    <span className="text-[11px] text-[#6E6E73] block font-medium">{t('countdownLabel', lang)}</span>
+                    <span className={`text-xs font-semibold ${daysInfo.color}`}>{daysInfo.text}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4 pt-4 relative z-10">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t('descriptionHeader', lang)}</h3>
-              <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line bg-black/20 border border-white/5 rounded-2xl p-6 shadow-inner">
+            <div className="space-y-2.5 pt-2">
+              <h3 className="text-xs font-semibold text-[#1D1D1F]">{t('descriptionHeader', lang)}</h3>
+              <p className="text-sm text-[#1D1D1F] leading-relaxed whitespace-pre-line bg-[#F5F5F7]/70 border border-[#D2D2D7]/70 rounded-xl p-5">
                 {description || t('noDescription', lang)}
               </p>
             </div>
 
             {attachments && attachments.length > 0 && (
-              <div className="space-y-4 pt-4 relative z-10">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Paperclip size={16} className="text-brand-400" />
-                  {t('attachmentsHeader', lang)}
+              <div className="space-y-3 pt-2">
+                <h3 className="text-xs font-semibold text-[#1D1D1F] flex items-center gap-2">
+                  <Paperclip size={15} className="text-[#0071E3]" />
+                  <span>{t('attachmentsHeader', lang)}</span>
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {attachments.map((file, i) => {
                     const hasLink = file.link && file.link.trim() !== '';
+                    if (hasLink) {
+                      return (
+                        <a
+                          key={i}
+                          href={file.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-[#F5F5F7]/70 hover:bg-[#F5F5F7] border border-[#D2D2D7]/80 rounded-xl p-3.5 flex items-center justify-between gap-3 transition-colors group"
+                        >
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <FileCode size={18} className="text-[#0071E3] shrink-0" />
+                            <div className="text-left overflow-hidden">
+                              <p className="text-xs font-semibold text-[#1D1D1F] truncate group-hover:text-[#0071E3] transition-colors">
+                                {file.name}
+                              </p>
+                              <p className="text-[11px] text-[#6E6E73] mt-0.5">{file.size}</p>
+                            </div>
+                          </div>
+                          <span className="text-[11px] font-medium text-[#0071E3] border border-blue-200 bg-blue-50 px-2.5 py-1 rounded-lg shrink-0">
+                            {t('downloadBtn', lang)}
+                          </span>
+                        </a>
+                      );
+                    }
                     return (
-                      <a 
-                        key={i} 
-                        href={hasLink ? file.link : '#'}
-                        target={hasLink ? "_blank" : undefined}
-                        rel={hasLink ? "noopener noreferrer" : undefined}
-                        onClick={(e) => {
-                          if (!hasLink) {
-                            e.preventDefault();
-                            handleSimulatedDownload(file.name);
-                          }
-                        }}
-                        className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:border-brand-500/40 hover:bg-white/10 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+                      <div
+                        key={i}
+                        className="bg-[#F5F5F7]/50 border border-[#D2D2D7]/70 rounded-xl p-3.5 flex items-center justify-between gap-3"
                       >
-                        <div className="flex items-center gap-4 overflow-hidden">
-                          <FileCode size={20} className="text-brand-400 flex-shrink-0" />
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <FileCode size={18} className="text-[#6E6E73] shrink-0" />
                           <div className="text-left overflow-hidden">
-                            <p className="text-sm font-bold text-zinc-200 truncate group-hover:text-brand-400 transition-colors">
-                              {file.name}
-                            </p>
-                            <p className="text-[11px] text-zinc-500 font-medium mt-0.5">{file.size}</p>
+                            <p className="text-xs font-medium text-[#1D1D1F] truncate">{file.name}</p>
+                            <p className="text-[11px] text-[#6E6E73] mt-0.5">{file.size}</p>
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold text-brand-400 border border-brand-500/30 bg-brand-500/10 px-3 py-1 rounded-lg group-hover:bg-brand-500 group-hover:text-white transition-all uppercase tracking-wide shadow-sm">
-                          {t('downloadBtn', lang)}
-                        </span>
-                      </a>
+                      </div>
                     );
                   })}
                 </div>
               </div>
             )}
-
           </div>
         </div>
 
-        <div className="space-y-8">
-          <div className="bg-dark-card/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 lg:p-8 h-full flex flex-col justify-between shadow-2xl hover:border-white/10 transition-all duration-500 relative overflow-hidden">
-            <div className="space-y-5 relative z-10">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <FileText size={16} className="text-brand-400" />
-                {t('workspaceHeader', lang)}
-              </h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
+        <div>
+          <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-6 h-full flex flex-col justify-between shadow-2xs">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-[#1D1D1F] flex items-center gap-2">
+                  <FileText size={15} className="text-[#0071E3]" />
+                  <span>{t('workspaceHeader', lang)}</span>
+                </h3>
+                {noteSaved && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
+                    <Check size={12} />
+                    {lang === 'en' ? 'Saved' : 'บันทึกแล้ว'}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[#6E6E73] leading-relaxed">
                 {t('workspaceDesc', lang)}
               </p>
-              
-              <div className="relative pt-3">
+
+              <div className="pt-1">
                 <textarea
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
                   onBlur={handleNotesBlur}
                   rows="16"
                   placeholder={t('workspacePlaceholder', lang)}
-                  className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60 focus:ring-1 focus:ring-brand-500/20 transition-all duration-300 font-mono resize-none leading-relaxed shadow-inner"
+                  className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-4 py-3 text-xs text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white transition-colors font-mono resize-none leading-relaxed"
                 />
               </div>
             </div>
 
-            <div className="border-t border-white/5 pt-5 mt-8 text-center relative z-10">
-              <p className="text-xs text-zinc-500 font-medium flex items-center justify-center gap-1.5">
+            <div className="border-t border-[#D2D2D7]/60 pt-4 mt-6 text-center">
+              <p className="text-[11px] text-[#6E6E73] flex items-center justify-center gap-1.5">
                 <BookOpen size={12} />
-                {t('savedLocally', lang)}
+                <span>{t('savedLocally', lang)}</span>
               </p>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

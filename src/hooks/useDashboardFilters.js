@@ -1,12 +1,90 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useInRouterContext, useSearchParams } from 'react-router-dom';
 import { isDueToday, isOverdue } from '../utils/dateUtils';
 
-export function useDashboardFilters(visibleAssignments) {
+function useUrlOrStateFilters() {
+  const inRouter = useInRouterContext();
+  if (inRouter) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const [searchParams, setSearchParams] = useSearchParams();
+    const searchQuery = searchParams.get('q') || '';
+    const selectedCourse = searchParams.get('course') || 'all';
+    const selectedStatus = searchParams.get('status') || 'all';
+    const sortBy = searchParams.get('sort') || 'due-asc';
+    const viewType = searchParams.get('view') || 'list';
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const updateParam = useCallback((key, defaultVal, nextValue) => {
+      setSearchParams(prev => {
+        const currentVal = prev.get(key) || defaultVal;
+        const normalizedNext = nextValue || defaultVal;
+        if (currentVal === normalizedNext) {
+          return prev;
+        }
+        const next = new URLSearchParams(prev);
+        if (!nextValue || nextValue === defaultVal) {
+          next.delete(key);
+        } else {
+          next.set(key, nextValue);
+        }
+        return next;
+      }, { replace: true });
+    }, [setSearchParams]);
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const setSearchQuery = useCallback((v) => updateParam('q', '', v), [updateParam]);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const setSelectedCourse = useCallback((v) => updateParam('course', 'all', v), [updateParam]);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const setSelectedStatus = useCallback((v) => updateParam('status', 'all', v), [updateParam]);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const setSortBy = useCallback((v) => updateParam('sort', 'due-asc', v), [updateParam]);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const setViewType = useCallback((v) => updateParam('view', 'list', v), [updateParam]);
+
+    return {
+      searchQuery,
+      setSearchQuery,
+      selectedCourse,
+      setSelectedCourse,
+      selectedStatus,
+      setSelectedStatus,
+      sortBy,
+      setSortBy,
+      viewType,
+      setViewType,
+    };
+  }
+
+  // Fallback for standalone unit tests outside Router
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [searchQuery, setSearchQuery] = useState('');
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [selectedCourse, setSelectedCourse] = useState('all');
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [selectedStatus, setSelectedStatus] = useState('all');
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [sortBy, setSortBy] = useState('due-asc');
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [viewType, setViewType] = useState('list');
+
+  return {
+    searchQuery, setSearchQuery,
+    selectedCourse, setSelectedCourse,
+    selectedStatus, setSelectedStatus,
+    sortBy, setSortBy,
+    viewType, setViewType,
+  };
+}
+
+export function useDashboardFilters(visibleAssignments) {
+  const {
+    searchQuery, setSearchQuery,
+    selectedCourse, setSelectedCourse,
+    selectedStatus, setSelectedStatus,
+    sortBy, setSortBy,
+    viewType, setViewType
+  } = useUrlOrStateFilters();
 
   // Filter assignments
   const filteredAssignments = useMemo(() => {
@@ -38,7 +116,18 @@ export function useDashboardFilters(visibleAssignments) {
     });
   }, [filteredAssignments, sortBy]);
 
-  // Extract critical groups (not filtered by general status filter to avoid missing overdue alerts)
+  // Critical groups respect active status filter (so filtering by 'done' never shows overdue todo items)
+  const overdueTasks = useMemo(() => {
+    if (selectedStatus === 'done') return [];
+    return filteredAssignments.filter(a => a.status !== 'done' && isOverdue(a.dueDate));
+  }, [filteredAssignments, selectedStatus]);
+
+  const todayTasks = useMemo(() => {
+    if (selectedStatus === 'done') return [];
+    return filteredAssignments.filter(a => a.status !== 'done' && !isOverdue(a.dueDate) && isDueToday(a.dueDate));
+  }, [filteredAssignments, selectedStatus]);
+
+  // Kanban columns
   const allFilteredAssignments = useMemo(() => {
     return visibleAssignments.filter(a => {
       const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -48,13 +137,9 @@ export function useDashboardFilters(visibleAssignments) {
     });
   }, [visibleAssignments, searchQuery, selectedCourse]);
 
-  const overdueTasks = useMemo(() => allFilteredAssignments.filter(a => isOverdue(a.dueDate) && a.status !== 'done'), [allFilteredAssignments]);
-  const todayTasks = useMemo(() => allFilteredAssignments.filter(a => isDueToday(a.dueDate) && !isOverdue(a.dueDate) && a.status !== 'done'), [allFilteredAssignments]);
-
-  // Split assignments for Kanban columns
-  const todoTasks = useMemo(() => sortedAssignments.filter(a => a.status === 'todo'), [sortedAssignments]);
-  const doingTasks = useMemo(() => sortedAssignments.filter(a => a.status === 'doing'), [sortedAssignments]);
-  const doneTasks = useMemo(() => sortedAssignments.filter(a => a.status === 'done'), [sortedAssignments]);
+  const todoTasks = useMemo(() => allFilteredAssignments.filter(a => a.status === 'todo'), [allFilteredAssignments]);
+  const doingTasks = useMemo(() => allFilteredAssignments.filter(a => a.status === 'doing'), [allFilteredAssignments]);
+  const doneTasks = useMemo(() => allFilteredAssignments.filter(a => a.status === 'done'), [allFilteredAssignments]);
 
   return {
     searchQuery, setSearchQuery,
@@ -62,7 +147,6 @@ export function useDashboardFilters(visibleAssignments) {
     selectedStatus, setSelectedStatus,
     sortBy, setSortBy,
     viewType, setViewType,
-    filteredAssignments,
     sortedAssignments,
     overdueTasks,
     todayTasks,

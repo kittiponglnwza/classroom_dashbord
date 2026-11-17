@@ -1,202 +1,183 @@
-import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState, useMemo, useCallback } from 'react';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import AssignmentCard from '../components/AssignmentCard';
-import { 
-  User, BookOpen, ChevronRight, Eye, EyeOff, ArrowLeft, 
-  Megaphone, FileText, ExternalLink, Calendar, 
-  Check, Trash2, Pin, Search, ChevronDown, ChevronUp, 
+import {
+  User, BookOpen, ChevronRight, Eye, EyeOff, ArrowLeft,
+  Megaphone, FileText, ExternalLink, Calendar,
+  Check, Trash2, Pin, Search, ChevronDown, ChevronUp,
   LayoutGrid, List, Hash, Filter, FolderOpen
 } from 'lucide-react';
 import { t } from '../utils/i18n';
-import { 
-  getCourseBorderTopColor, getCourseTextColor, getTabStyles, 
-  getTabBadgeStyles, getTrackButtonStyles, getCourseBadgeColor 
+import {
+  getCourseBorderTopColor, getCourseTextColor, getTabStyles,
+  getTabBadgeStyles, getTrackButtonStyles, getCourseBadgeColor, getCourseDotClass
 } from '../utils/colors';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
-function ResourceCard({ 
-  resource, 
-  assignments = [], 
-  onTrackAsAssignment, 
-  onUntrackAssignment, 
+function ResourceCard({
+  resource,
+  assignments = [],
+  onTrackAsAssignment,
+  onUntrackAssignment,
   courseColor,
   lang = 'en',
   viewMode = 'grid'
 }) {
   const { id, title, description, type, creationTime, attachments, googleLink } = resource;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isListExpanded, setIsListExpanded] = useState(false);
 
   const formattedDate = new Date(creationTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
     day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit'
   });
 
-  const getResourceTypeStyles = () => {
-    if (type === 'announcement') {
-      return {
+  const resourceType = type === 'announcement'
+    ? {
         label: t('announcementType', lang),
-        badge: 'text-amber-400 bg-amber-500/10 border border-amber-500/20',
-        icon: <Megaphone size={14} className="text-amber-400" />
-      };
-    } else {
-      return {
+        badge: 'text-amber-700 bg-amber-50 border border-amber-200',
+        icon: <Megaphone size={13} className="text-amber-600" />
+      }
+    : {
         label: t('materialType', lang),
-        badge: 'text-blue-400 bg-blue-500/10 border border-blue-500/20',
-        icon: <FileText size={14} className="text-blue-400" />
+        badge: 'text-[#0071E3] bg-blue-50 border border-blue-200',
+        icon: <FileText size={13} className="text-[#0071E3]" />
       };
-    }
-  };
-
-  const resourceType = getResourceTypeStyles();
-
-  const getAttachmentIcon = (size) => {
-    if (size === 'Video') {
-      return (
-        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" fill="#FF0000" xmlns="http://www.w3.org/2000/svg">
-          <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11C4.483 20.455 12 20.455 12 20.455s7.517 0 9.388-.508a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837z"/>
-          <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="#FFFFFF"/>
-        </svg>
-      );
-    }
-    if (size === 'Google Drive File') {
-      return (
-        <svg viewBox="0 0 360 360" className="w-3.5 h-3.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M124.516 60.003L49.196 190.457L114.516 303.543L189.836 173.088L124.516 60.003Z" fill="#0066DA"/>
-          <path d="M235.484 60.003H104.836L170.156 173.088H300.804L235.484 60.003Z" fill="#00AA47"/>
-          <path d="M189.836 173.088L255.156 286.173L320.476 173.088H189.836Z" fill="#FFBA00"/>
-        </svg>
-      );
-    }
-    return <ExternalLink size={12} className="text-blue-400 shrink-0" />;
-  };
 
   const isTracked = assignments.some(a => a.parentResourceId === id);
 
   const shouldTruncate = description && description.length > 180;
-  const displayText = shouldTruncate && !isExpanded 
+  const displayText = shouldTruncate && !isExpanded
     ? description.substring(0, 180) + '...'
     : description;
 
-  const [isListExpanded, setIsListExpanded] = useState(false);
-
   if (viewMode === 'list' && !isListExpanded) {
     return (
-      <div 
+      <div
         onClick={() => setIsListExpanded(true)}
-        className="group bg-dark-card/20 hover:bg-dark-card/40 border border-dark-border/30 rounded-xl p-3.5 flex items-center justify-between cursor-pointer transition-all hover:border-dark-border/60"
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsListExpanded(true);
+          }
+        }}
+        className="group bg-white hover:bg-[#F5F5F7]/60 border border-[#D2D2D7]/80 rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer transition-colors shadow-2xs"
       >
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-dark-sidebar border border-dark-border/60 group-hover:bg-white/5 transition-all ${resourceType.badge.split(' ')[0]}`}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#F5F5F7] border border-[#D2D2D7]/70">
             {resourceType.icon}
           </div>
-          <span className="text-[14.5px] font-semibold text-white/90 truncate group-hover:text-brand-400 transition-colors">{title}</span>
+          <span className="text-sm font-semibold text-[#1D1D1F] truncate group-hover:text-[#0071E3] transition-colors">
+            {title}
+          </span>
         </div>
-        <div className="flex items-center gap-4 shrink-0">
-           <div className="flex items-center gap-1.5 hidden sm:flex text-dark-muted">
-             <Calendar size={13} />
-             <span className="text-xs">{formattedDate}</span>
-           </div>
-           <div className="p-1 rounded-md text-zinc-500 group-hover:text-white transition-colors">
-             <ChevronDown size={16} />
-           </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5 text-[#6E6E73]">
+            <Calendar size={12} />
+            <span className="text-xs">{formattedDate}</span>
+          </div>
+          <div className="p-1 rounded-md text-[#6E6E73] group-hover:text-[#1D1D1F] transition-colors">
+            <ChevronDown size={15} />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-dark-card border border-dark-border rounded-xl p-5 hover:border-dark-border/80 transition-all duration-300 flex flex-col justify-between hover:shadow-lg">
+    <div className="bg-white border border-[#D2D2D7]/80 rounded-2xl p-5 transition-colors flex flex-col justify-between shadow-2xs">
       {viewMode === 'list' && (
-        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-white/5 pb-3">
-          <div className="flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-full bg-dark-sidebar flex items-center justify-center shrink-0 ${resourceType.badge.split(' ')[0]}`}>
-              {resourceType.icon}
-            </div>
-            <span className="text-sm font-bold text-white">{title}</span>
-          </div>
-          <button 
-            onClick={() => setIsListExpanded(false)} 
-            className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-[#D2D2D7]/60 pb-2.5">
+          <span className="text-xs font-medium text-[#6E6E73]">{resourceType.label}</span>
+          <button
+            type="button"
+            onClick={() => setIsListExpanded(false)}
+            className="p-1 text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-lg transition-colors cursor-pointer"
             title={lang === 'en' ? 'Collapse' : 'ย่อ'}
           >
-            <ChevronUp size={16} />
+            <ChevronUp size={15} />
           </button>
         </div>
       )}
+
       <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3 text-[11px] mb-2">
-          <span className={`px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 ${resourceType.badge}`}>
+        <div className="flex items-center justify-between gap-3 text-xs">
+          <span className={`px-2 py-0.5 rounded-md font-medium flex items-center gap-1.5 ${resourceType.badge}`}>
             {resourceType.icon}
             {resourceType.label}
           </span>
-          <span className="text-dark-muted flex items-center gap-1">
+          <span className="text-[#6E6E73] flex items-center gap-1 text-[11px]">
             <Calendar size={11} />
             {formattedDate}
           </span>
         </div>
 
-        <h3 className="text-white font-semibold text-[15px] leading-snug">{title}</h3>
+        <h3 className="text-[#1D1D1F] font-semibold text-sm leading-snug">{title}</h3>
 
         {description && description !== title && (
           <div className="space-y-1">
-            <p className="text-xs text-dark-muted whitespace-pre-line leading-relaxed break-words break-all">{displayText}</p>
+            <p className="text-xs text-[#6E6E73] whitespace-pre-line leading-relaxed break-words">{displayText}</p>
             {shouldTruncate && (
               <button
+                type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-[11px] text-brand-400 hover:text-brand-300 font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer mt-1"
+                className="text-xs text-[#0071E3] hover:underline font-medium cursor-pointer mt-1"
               >
-                {isExpanded ? 'Show Less' : 'Read More'}
+                {isExpanded ? (lang === 'en' ? 'Show Less' : 'ย่อข้อความ') : (lang === 'en' ? 'Read More' : 'อ่านเพิ่มเติม')}
               </button>
             )}
           </div>
         )}
       </div>
 
-      {attachments.length > 0 && (
-        <div className="border-t border-dark-border/60 pt-4 mt-4 space-y-1.5">
-          <span className="text-[10px] text-dark-muted font-semibold uppercase tracking-wider block mb-1">
-            Attachments ({attachments.length})
+      {attachments && attachments.length > 0 && (
+        <div className="border-t border-[#D2D2D7]/60 pt-3.5 mt-4 space-y-1.5">
+          <span className="text-[11px] text-[#6E6E73] font-medium block mb-1">
+            {lang === 'en' ? `Attachments (${attachments.length})` : `ไฟล์แนบ (${attachments.length})`}
           </span>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {attachments.map((att, idx) => (
               <a
                 key={idx}
                 href={att.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between p-2 rounded-lg bg-dark-sidebar border border-dark-border/40 hover:border-dark-border/80 text-[11px] text-zinc-300 hover:text-white transition-colors"
+                className="flex items-center justify-between p-2 rounded-xl bg-[#F5F5F7] border border-[#D2D2D7]/70 hover:border-[#0071E3]/40 text-xs text-[#1D1D1F] transition-colors"
               >
                 <div className="flex items-center gap-2 truncate">
-                  {getAttachmentIcon(att.size)}
-                  <span className="truncate">{att.name}</span>
+                  <ExternalLink size={12} className="text-[#0071E3] shrink-0" />
+                  <span className="truncate font-medium">{att.name}</span>
                 </div>
-                <span className="text-[9px] text-dark-muted shrink-0 ml-2">{att.size}</span>
+                <span className="text-[11px] text-[#6E6E73] shrink-0 ml-2">{att.size}</span>
               </a>
             ))}
           </div>
         </div>
       )}
 
-      <div className="border-t border-dark-border/60 pt-4 mt-4 flex items-center justify-between gap-4">
+      <div className="border-t border-[#D2D2D7]/60 pt-3.5 mt-4 flex items-center justify-between gap-3">
         <button
-          onClick={() => isTracked ? onUntrackAssignment(id) : onTrackAsAssignment(resource)}
-          className={`text-[10px] font-semibold px-3 py-1.5 rounded-lg border transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
-            isTracked 
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 group' 
+          type="button"
+          onClick={() => (isTracked ? onUntrackAssignment(id) : onTrackAsAssignment(resource))}
+          className={`text-xs font-medium px-3 py-1.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 ${
+            isTracked
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 group'
               : getTrackButtonStyles(courseColor, isTracked)
           }`}
         >
           {isTracked ? (
             <>
-              <Check size={11} className="group-hover:hidden text-emerald-400" />
-              <Trash2 size={11} className="hidden group-hover:inline text-rose-400" />
+              <Check size={12} className="group-hover:hidden text-emerald-600" />
+              <Trash2 size={12} className="hidden group-hover:inline text-rose-600" />
               <span className="group-hover:hidden">{t('trackedAsTask', lang)}</span>
               <span className="hidden group-hover:inline">{t('untrackTask', lang)}</span>
             </>
           ) : (
             <>
-              <Pin size={11} />
+              <Pin size={12} />
               <span>{t('trackAsTask', lang)}</span>
             </>
           )}
@@ -207,9 +188,10 @@ function ResourceCard({
             href={googleLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10px] text-brand-400 hover:text-brand-300 font-medium inline-flex items-center gap-1 shrink-0"
+            className="text-xs text-[#0071E3] hover:underline font-medium inline-flex items-center gap-1 shrink-0"
           >
-            {t('viewOnClassroom', lang)} <ExternalLink size={10} />
+            <span>{t('viewOnClassroom', lang)}</span>
+            <ExternalLink size={11} />
           </a>
         )}
       </div>
@@ -218,62 +200,62 @@ function ResourceCard({
 }
 
 function CourseRow({ course, activeCount, totalAssignments, totalResources, isHidden, onSelect, onToggleVisibility, lang }) {
-  const getColorDot = (color) => {
-    switch (color) {
-      case 'emerald': return 'bg-emerald-500';
-      case 'blue': return 'bg-blue-500';
-      case 'amber': return 'bg-amber-500';
-      case 'rose': return 'bg-rose-500';
-      case 'purple': return 'bg-purple-500';
-      default: return 'bg-brand-500';
-    }
-  };
-
   return (
     <div
       onClick={onSelect}
-      className={`flex items-center gap-4 px-4 py-3.5 bg-dark-card/20 border border-dark-border/30 rounded-xl cursor-pointer transition-all duration-200 hover:border-dark-border/60 hover:bg-dark-card/40 group ${
-        isHidden ? 'opacity-40 saturate-50' : ''
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className={`flex items-center gap-4 px-4 py-3.5 bg-white border border-[#D2D2D7]/80 rounded-xl cursor-pointer transition-colors hover:border-[#0071E3]/40 group shadow-2xs ${
+        isHidden ? 'opacity-60' : ''
       }`}
     >
-      <div className={`w-2 h-2 rounded-full shrink-0 ${getColorDot(course.color)}`} />
-      
+      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getCourseDotClass(course.color)}`} />
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-dark-muted">{course.code}</span>
+          <span className="text-[11px] font-medium text-[#6E6E73]">{course.code}</span>
           {activeCount > 0 && !isHidden && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
               {activeCount} {lang === 'en' ? 'active' : 'งานค้าง'}
             </span>
           )}
           {isHidden && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-[#F5F5F7] text-[#6E6E73] border border-[#D2D2D7]">
               {t('hiddenLabel', lang)}
             </span>
           )}
         </div>
-        <p className="text-sm font-semibold text-white truncate group-hover:text-brand-400 transition-colors">{course.name}</p>
+        <p className="text-sm font-semibold text-[#1D1D1F] truncate group-hover:text-[#0071E3] transition-colors">
+          {course.name}
+        </p>
       </div>
 
-      <div className="hidden sm:flex items-center gap-4 text-[10px] text-dark-muted shrink-0">
-        <span className="flex items-center gap-1"><BookOpen size={11} /> {totalAssignments}</span>
-        <span className="flex items-center gap-1"><FileText size={11} /> {totalResources}</span>
+      <div className="hidden sm:flex items-center gap-4 text-xs text-[#6E6E73] shrink-0">
+        <span className="flex items-center gap-1"><BookOpen size={12} /> {totalAssignments}</span>
+        <span className="flex items-center gap-1"><FileText size={12} /> {totalResources}</span>
       </div>
 
-      <div className="hidden md:flex items-center gap-1.5 text-[10px] text-dark-muted shrink-0 max-w-[140px]">
-        <User size={11} className="shrink-0" />
+      <div className="hidden md:flex items-center gap-1.5 text-xs text-[#6E6E73] shrink-0 max-w-[160px]">
+        <User size={12} className="shrink-0" />
         <span className="truncate">{course.instructor}</span>
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onToggleVisibility(course.id); }}
-          className="p-1.5 rounded-lg text-dark-muted hover:text-white hover:bg-dark-hover transition-all cursor-pointer"
+          className="p-1.5 rounded-lg text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors cursor-pointer"
           title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
         >
-          {isHidden ? <EyeOff size={13} className="text-rose-400" /> : <Eye size={13} />}
+          {isHidden ? <EyeOff size={14} className="text-rose-600" /> : <Eye size={14} />}
         </button>
-        <ChevronRight size={14} className="text-dark-muted group-hover:text-brand-400 transition-colors" />
+        <ChevronRight size={15} className="text-[#6E6E73] group-hover:text-[#0071E3] transition-colors" />
       </div>
     </div>
   );
@@ -281,28 +263,59 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
 
 export default function Courses() {
   const { lang } = useSettings();
-  const { 
+  const {
     courses, assignments, resources, topics,
     handleStatusChange, handleTrackAsAssignment, handleUntrackAssignment
   } = useClassroom();
-  
-  const { 
-    hiddenCourseIds, handleToggleCourseVisibility, handleToggleBulkCourses 
+
+  const {
+    hiddenCourseIds, handleToggleCourseVisibility, handleToggleBulkCourses
   } = useClassroomUI();
-  
+
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const selectedCourseName = searchParams.get('selected');
-  const [activeTab, setActiveTab] = useState('resources');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('grid');
+  const activeTab = searchParams.get('tab') || 'resources';
+  const selectedTopicId = searchParams.get('topic') || 'all';
+  const viewMode = searchParams.get('view') || 'grid';
+  const searchQuery = searchParams.get('q') || '';
   const [showHidden, setShowHidden] = useState(false);
-  const [selectedTopicId, setSelectedTopicId] = useState('all');
-  const [prevSelectedCourseName, setPrevSelectedCourseName] = useState(selectedCourseName);
-  if (selectedCourseName !== prevSelectedCourseName) {
-    setPrevSelectedCourseName(selectedCourseName);
-    setSelectedTopicId('all');
-  }
-  const selectedCourseObj = courses.find(c => c.name === selectedCourseName) || { color: 'blue' };
+
+  const updateParams = useCallback((updates, replace = true) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, val]) => {
+        if (!val || (key === 'tab' && val === 'resources') || (key === 'topic' && val === 'all') || (key === 'view' && val === 'grid')) {
+          next.delete(key);
+        } else {
+          next.set(key, val);
+        }
+      });
+      return next;
+    }, { replace });
+  }, [setSearchParams]);
+
+  const handleSelectCourse = (courseName) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams();
+      next.set('selected', courseName);
+      const currentView = prev.get('view');
+      if (currentView && currentView !== 'grid') next.set('view', currentView);
+      return next;
+    });
+  };
+
+  const handleBackToAllCourses = () => {
+    if (location.state?.from && location.state.from !== '/courses') {
+      navigate(location.state.from);
+      return;
+    }
+    setSearchParams({});
+  };
+
+  const selectedCourseObj = courses.find(c => c.name === selectedCourseName) || { color: 'blue', name: selectedCourseName, code: '', instructor: '' };
   const themeColor = selectedCourseObj.color || 'blue';
 
   const visibleCourses = useMemo(() => courses.filter(c => !hiddenCourseIds.includes(c.id)), [courses, hiddenCourseIds]);
@@ -311,8 +324,8 @@ export default function Courses() {
   const filteredVisible = useMemo(() => {
     if (!searchQuery.trim()) return visibleCourses;
     const q = searchQuery.toLowerCase();
-    return visibleCourses.filter(c => 
-      c.name.toLowerCase().includes(q) || 
+    return visibleCourses.filter(c =>
+      c.name.toLowerCase().includes(q) ||
       c.code.toLowerCase().includes(q) ||
       (c.instructor && c.instructor.toLowerCase().includes(q))
     );
@@ -321,8 +334,8 @@ export default function Courses() {
   const filteredHidden = useMemo(() => {
     if (!searchQuery.trim()) return hiddenCourses;
     const q = searchQuery.toLowerCase();
-    return hiddenCourses.filter(c => 
-      c.name.toLowerCase().includes(q) || 
+    return hiddenCourses.filter(c =>
+      c.name.toLowerCase().includes(q) ||
       c.code.toLowerCase().includes(q) ||
       (c.instructor && c.instructor.toLowerCase().includes(q))
     );
@@ -334,7 +347,7 @@ export default function Courses() {
 
   const courseAssignments = assignments.filter((assignment) => assignment.course === selectedCourseName);
   const courseResources = resources.filter((resource) => resource.course === selectedCourseName);
-  const courseTopics = topics ? topics.filter(t => t.courseId === selectedCourseObj.id) : [];
+  const courseTopics = topics ? topics.filter(tItem => tItem.courseId === selectedCourseObj.id) : [];
 
   const filterByTopic = (items) => {
     if (selectedTopicId === 'all') return items;
@@ -345,11 +358,8 @@ export default function Courses() {
   const groupItemsByTopic = (items) => {
     const grouped = {};
     const filteredItems = filterByTopic(items);
-    
-    // Create 'none' group for items without topic
     grouped['none'] = filteredItems.filter(item => !item.topicId);
-    
-    // Group by existing topics
+
     courseTopics.forEach(topic => {
       const itemsInTopic = filteredItems.filter(item => item.topicId === topic.id);
       if (itemsInTopic.length > 0) {
@@ -368,21 +378,31 @@ export default function Courses() {
     return (
       <div
         key={course.id}
-        onClick={() => setSearchParams({ selected: course.name })}
-        className={`bg-dark-card/30 backdrop-blur-xl border border-white/5 rounded-3xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 ${
-          isHidden ? 'opacity-45 saturate-50' : ''
-        } hover:border-${course.color}-500/30`}
+        onClick={() => handleSelectCourse(course.name)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleSelectCourse(course.name);
+          }
+        }}
+        className={`bg-white border border-[#D2D2D7]/80 hover:border-[#0071E3]/40 rounded-2xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-colors shadow-2xs ${
+          isHidden ? 'opacity-60' : ''
+        }`}
       >
         <div className={`w-full h-1.5 ${getCourseBorderTopColor(course.color)}`} />
-        
-        <div className="p-5 md:p-6 flex-1 space-y-4">
-          <div className="flex items-center justify-between gap-3 text-[10px] font-bold text-dark-muted">
-            <span className="tracking-wider uppercase">{course.code}</span>
+
+        <div className="p-5 flex-1 space-y-3">
+          <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#6E6E73]">
+            <span>{course.code}</span>
             <div>
               {isHidden ? (
-                <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2 py-0.5 rounded-md">{t('hiddenLabel', lang)}</span>
+                <span className="bg-[#F5F5F7] text-[#6E6E73] border border-[#D2D2D7] px-2 py-0.5 rounded-md text-[11px]">
+                  {t('hiddenLabel', lang)}
+                </span>
               ) : activeCount > 0 ? (
-                <span className={`px-2 py-0.5 rounded-md border ${getCourseBadgeColor(course.color)}`}>
+                <span className={`px-2 py-0.5 rounded-md text-[11px] ${getCourseBadgeColor(course.color)}`}>
                   {t('activeCount', lang, { count: activeCount })}
                 </span>
               ) : null}
@@ -390,32 +410,33 @@ export default function Courses() {
           </div>
 
           <div className="space-y-1.5">
-            <h3 className="font-semibold text-sm md:text-base font-heading text-white group-hover:text-brand-400 transition-colors leading-snug truncate" title={course.name}>
+            <h3 className="font-semibold text-base text-[#1D1D1F] group-hover:text-[#0071E3] transition-colors leading-snug truncate" title={course.name}>
               {course.name}
             </h3>
-            <div className="flex items-center gap-1.5 text-[10px] text-dark-muted font-medium">
-              <span className="flex items-center gap-1"><BookOpen size={10} /> {t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
+            <div className="flex items-center gap-2 text-xs text-[#6E6E73]">
+              <span className="flex items-center gap-1"><BookOpen size={12} /> {t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
               <span>•</span>
-              <span className="flex items-center gap-1"><FileText size={10} /> {t('postsMaterialsCount', lang, { count: totalResources })}</span>
+              <span className="flex items-center gap-1"><FileText size={12} /> {t('postsMaterialsCount', lang, { count: totalResources })}</span>
             </div>
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-dark-border/20 bg-dark-sidebar/20 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[10px] text-dark-muted min-w-0">
-            <User size={12} className="shrink-0" />
+        <div className="px-5 py-3 border-t border-[#D2D2D7]/60 bg-[#F5F5F7]/50 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-[#6E6E73] min-w-0">
+            <User size={13} className="shrink-0" />
             <span className="truncate">{course.instructor}</span>
           </div>
-          
+
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               handleToggleCourseVisibility(course.id);
             }}
-            className="p-1.5 rounded-lg bg-dark-sidebar/40 border border-dark-border/40 text-dark-muted hover:text-white hover:bg-dark-hover transition-all duration-200 cursor-pointer"
+            className="p-1.5 rounded-lg bg-white border border-[#D2D2D7] text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors cursor-pointer"
             title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
           >
-            {isHidden ? <EyeOff size={11} className="text-rose-400" /> : <Eye size={11} />}
+            {isHidden ? <EyeOff size={13} className="text-rose-600" /> : <Eye size={13} />}
           </button>
         </div>
       </div>
@@ -423,136 +444,156 @@ export default function Courses() {
   };
 
   return (
-    <div className="space-y-8 relative max-w-7xl mx-auto py-4">
-      {/* Abstract Background Elements */}
-      <div className="fixed top-0 right-1/4 w-[600px] h-[600px] ambient-glow-brand rounded-full pointer-events-none -z-10"></div>
-      <div className="fixed bottom-0 left-1/4 w-[600px] h-[600px] ambient-glow-blue rounded-full pointer-events-none -z-10"></div>
-
+    <div className="space-y-6">
       {selectedCourseName ? (
-        <div className="space-y-8 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
-          <button
-            onClick={() => setSearchParams({})}
-            className="flex items-center gap-2 text-xs uppercase font-bold tracking-wider text-zinc-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 border border-white/5 px-5 py-3 rounded-2xl cursor-pointer w-fit"
-          >
-            <ArrowLeft size={16} />
-            {lang === 'en' ? 'Back to All Courses' : 'กลับไปที่รายวิชาทั้งหมด'}
-          </button>
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={handleBackToAllCourses}
+              data-testid="course-back-button"
+              className="inline-flex items-center gap-2 text-xs font-medium text-[#1D1D1F] bg-white hover:bg-[#F5F5F7] border border-[#D2D2D7] px-4 py-2 rounded-xl cursor-pointer transition-colors shadow-2xs"
+            >
+              <ArrowLeft size={15} />
+              <span>
+                {location.state?.from === '/'
+                  ? t('backToHome', lang)
+                  : (lang === 'en' ? 'Back to All Courses' : 'กลับไปที่รายวิชาทั้งหมด')}
+              </span>
+            </button>
 
-          {(() => {
-            if (!selectedCourseObj) return null;
-            return (
-              <div className={`border border-white/10 bg-dark-card/40 backdrop-blur-xl rounded-3xl relative overflow-hidden p-8 md:p-10 space-y-5 shadow-2xl opacity-0 animate-fade-in`} style={{ animationDelay: '150ms' }}>
-                <div className={`absolute top-0 left-0 right-0 h-2 ${getCourseBorderTopColor(selectedCourseObj.color)}`} />
-                <div className="space-y-2">
-                  <span className={`text-xs font-bold tracking-widest uppercase ${getCourseTextColor(selectedCourseObj.color)}`}>
-                    {selectedCourseObj.code}
-                  </span>
-                  <h1 className="text-3xl md:text-4xl font-bold font-heading text-white tracking-tight">
-                    {selectedCourseObj.name}
-                  </h1>
-                </div>
-                <div className="flex items-center gap-3 text-sm font-medium text-zinc-300">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center bg-white/5 border border-white/5 ${getCourseTextColor(selectedCourseObj.color)}`}>
-                    <User size={16} />
-                  </div>
-                  <span>{t('instructorLabel', lang)} {selectedCourseObj.instructor}</span>
-                </div>
-              </div>
-            );
-          })()}
-
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex bg-dark-sidebar/60 border border-dark-border/40 p-1 rounded-xl w-fit gap-1 select-none">
+            {location.state?.from && location.state.from !== '/courses' && (
               <button
-                onClick={() => setActiveTab('resources')}
-                className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'resources')}`}
+                type="button"
+                onClick={() => setSearchParams({})}
+                className="text-xs font-medium text-[#0071E3] hover:underline cursor-pointer"
+              >
+                {lang === 'en' ? 'View All Courses' : 'ดูรายวิชาทั้งหมด'}
+              </button>
+            )}
+          </div>
+
+          <div className="border border-[#D2D2D7]/80 bg-white rounded-2xl relative overflow-hidden p-6 md:p-8 space-y-3 shadow-2xs">
+            <div className={`
+              absolute top-0 left-0 right-0 h-1.5 ${getCourseBorderTopColor(selectedCourseObj.color)}
+            `} />
+            <div className="space-y-1">
+              {selectedCourseObj.code && (
+                <span className={`text-xs font-semibold ${getCourseTextColor(selectedCourseObj.color)}`}>
+                  {selectedCourseObj.code}
+                </span>
+              )}
+              <h1 className="text-2xl md:text-3xl font-semibold text-[#1D1D1F] tracking-tight">
+                {selectedCourseObj.name}
+              </h1>
+            </div>
+            {selectedCourseObj.instructor && (
+              <div className="flex items-center gap-2.5 text-xs font-medium text-[#6E6E73]">
+                <User size={14} className="text-[#6E6E73]" />
+                <span>{t('instructorLabel', lang)} {selectedCourseObj.instructor}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex bg-[#E8E8ED]/70 border border-[#D2D2D7]/80 p-1 rounded-xl w-fit gap-1 select-none">
+              <button
+                type="button"
+                onClick={() => updateParams({ tab: 'resources' })}
+                className={`px-4 py-1.5 rounded-lg text-xs flex items-center gap-2 transition-colors cursor-pointer border ${getTabStyles(themeColor, activeTab === 'resources')}`}
               >
                 <Megaphone size={13} />
                 <span>{t('announcementsMaterialsTab', lang)}</span>
-                <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'resources')}`}>
+                <span className={`text-[11px] px-1.5 py-0.25 rounded-md border font-medium ${getTabBadgeStyles(themeColor, activeTab === 'resources')}`}>
                   {courseResources.length}
                 </span>
               </button>
               <button
-                onClick={() => setActiveTab('assignments')}
-                className={`px-4.5 py-2 rounded-lg text-xs flex items-center gap-2 transition-all duration-300 cursor-pointer ${getTabStyles(themeColor, activeTab === 'assignments')}`}
+                type="button"
+                onClick={() => updateParams({ tab: 'assignments' })}
+                className={`px-4 py-1.5 rounded-lg text-xs flex items-center gap-2 transition-colors cursor-pointer border ${getTabStyles(themeColor, activeTab === 'assignments')}`}
               >
                 <BookOpen size={13} />
                 <span>{t('assignmentsTab', lang)}</span>
-                <span className={`text-[10px] px-1.5 py-0.25 rounded-md border font-semibold ${getTabBadgeStyles(themeColor, activeTab === 'assignments')}`}>
+                <span className={`text-[11px] px-1.5 py-0.25 rounded-md border font-medium ${getTabBadgeStyles(themeColor, activeTab === 'assignments')}`}>
                   {courseAssignments.length}
                 </span>
               </button>
             </div>
 
-            <div className="flex items-center bg-dark-card border border-white/5 rounded-[20px] p-1.5 shrink-0 shadow-inner">
+            <div className="flex items-center bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl p-0.5 shrink-0">
               <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-2xl transition-all duration-300 ease-out cursor-pointer flex items-center justify-center ${
-                  viewMode === 'grid' 
-                    ? 'bg-white/10 text-brand-400 shadow-md transform scale-100' 
-                    : 'text-zinc-500 hover:text-white transform scale-95 hover:scale-100'
+                type="button"
+                onClick={() => updateParams({ view: 'grid' })}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                  viewMode === 'grid'
+                    ? 'bg-white text-[#0071E3] shadow-2xs'
+                    : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                 }`}
                 title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
               >
-                <LayoutGrid size={18} strokeWidth={2.5} />
+                <LayoutGrid size={16} />
               </button>
               <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-2xl transition-all duration-300 ease-out cursor-pointer flex items-center justify-center ${
-                  viewMode === 'list' 
-                    ? 'bg-white/10 text-brand-400 shadow-md transform scale-100' 
-                    : 'text-zinc-500 hover:text-white transform scale-95 hover:scale-100'
+                type="button"
+                onClick={() => updateParams({ view: 'list' })}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                  viewMode === 'list'
+                    ? 'bg-white text-[#0071E3] shadow-2xs'
+                    : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                 }`}
                 title={lang === 'en' ? 'List view' : 'แบบรายการ'}
               >
-                <List size={18} strokeWidth={2.5} />
+                <List size={16} />
               </button>
             </div>
           </div>
 
-          <div className="animate-fade-in pt-4 space-y-8">
+          <div className="space-y-6">
             {courseTopics.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-dark-muted px-1 uppercase tracking-wider">
-                  <Filter size={14} className={`text-${themeColor}-400`} />
-                  {lang === 'en' ? 'Topics' : 'หัวข้อ'}
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] px-1">
+                  <Filter size={13} className="text-[#0071E3]" />
+                  <span>{lang === 'en' ? 'Topics' : 'หัวข้อ'}</span>
                 </div>
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
                   <button
-                    onClick={() => setSelectedTopicId('all')}
-                    className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center gap-2 border cursor-pointer ${
+                    type="button"
+                    onClick={() => updateParams({ topic: 'all' })}
+                    className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 border cursor-pointer ${
                       selectedTopicId === 'all'
-                        ? `bg-${themeColor}-500/20 text-${themeColor}-300 border-${themeColor}-500/30 shadow-[0_0_15px_rgba(var(--color-${themeColor}-500),0.1)]`
-                        : 'bg-dark-card/50 text-dark-muted border-white/5 hover:bg-white/5 hover:text-white'
+                        ? 'bg-[#0071E3] text-white border-[#0071E3]'
+                        : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:text-[#1D1D1F]'
                     }`}
                   >
                     <FolderOpen size={13} />
-                    {lang === 'en' ? 'All' : 'ทั้งหมด'}
+                    <span>{lang === 'en' ? 'All' : 'ทั้งหมด'}</span>
                   </button>
                   <button
-                    onClick={() => setSelectedTopicId('none')}
-                    className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center gap-2 border cursor-pointer ${
+                    type="button"
+                    onClick={() => updateParams({ topic: 'none' })}
+                    className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 border cursor-pointer ${
                       selectedTopicId === 'none'
-                        ? `bg-${themeColor}-500/20 text-${themeColor}-300 border-${themeColor}-500/30 shadow-[0_0_15px_rgba(var(--color-${themeColor}-500),0.1)]`
-                        : 'bg-dark-card/50 text-dark-muted border-white/5 hover:bg-white/5 hover:text-white'
+                        ? 'bg-[#0071E3] text-white border-[#0071E3]'
+                        : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:text-[#1D1D1F]'
                     }`}
                   >
                     <Hash size={13} />
-                    {lang === 'en' ? 'No Topic' : 'ไม่มีหัวข้อ'}
+                    <span>{lang === 'en' ? 'No Topic' : 'ไม่มีหัวข้อ'}</span>
                   </button>
                   {courseTopics.map(topic => (
                     <button
+                      type="button"
                       key={topic.id}
-                      onClick={() => setSelectedTopicId(topic.id)}
-                      className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center gap-2 border cursor-pointer ${
+                      onClick={() => updateParams({ topic: topic.id })}
+                      className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 border cursor-pointer ${
                         selectedTopicId === topic.id
-                          ? `bg-${themeColor}-500/20 text-${themeColor}-300 border-${themeColor}-500/30 shadow-[0_0_15px_rgba(var(--color-${themeColor}-500),0.1)]`
-                          : 'bg-dark-card/50 text-dark-muted border-white/5 hover:bg-white/5 hover:text-white'
+                          ? 'bg-[#0071E3] text-white border-[#0071E3]'
+                          : 'bg-white text-[#6E6E73] border-[#D2D2D7] hover:text-[#1D1D1F]'
                       }`}
                     >
                       <Hash size={13} />
-                      {topic.name}
+                      <span>{topic.name}</span>
                     </button>
                   ))}
                 </div>
@@ -560,28 +601,26 @@ export default function Courses() {
             )}
 
             {activeTab === 'assignments' ? (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {courseAssignments.length > 0 ? (
                   Object.entries(groupItemsByTopic(courseAssignments)).map(([topicId, items]) => {
                     if (items.length === 0) return null;
-                    const topicName = topicId === 'none' 
-                      ? (lang === 'en' ? 'Other Assignments' : 'งานอื่นๆ') 
-                      : courseTopics.find(t => t.id === topicId)?.name || 'Unknown Topic';
-                    
+                    const topicName = topicId === 'none'
+                      ? (lang === 'en' ? 'Other Assignments' : 'งานอื่นๆ')
+                      : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
+
                     return (
-                      <div key={topicId} className="space-y-4">
-                        {topicId !== 'none' || courseTopics.length > 0 ? (
-                          <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl bg-dark-sidebar/40 border border-white/5 border-l-4 border-l-${themeColor}-500`}>
-                            <div className={`p-1.5 rounded-lg bg-${themeColor}-500/10 text-${themeColor}-400`}>
-                              <Hash size={16} />
-                            </div>
-                            <h4 className="text-base font-bold text-white tracking-wide">{topicName}</h4>
-                            <span className="text-xs font-semibold text-dark-muted bg-black/20 px-2 py-0.5 rounded-md ml-auto">
+                      <div key={topicId} className="space-y-3">
+                        {(topicId !== 'none' || courseTopics.length > 0) && (
+                          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white border border-[#D2D2D7]/80">
+                            <Hash size={15} className="text-[#0071E3]" />
+                            <h4 className="text-sm font-semibold text-[#1D1D1F]">{topicName}</h4>
+                            <span className="text-xs font-medium text-[#6E6E73] bg-[#F5F5F7] px-2 py-0.5 rounded-md ml-auto border border-[#D2D2D7]/60">
                               {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
                             </span>
                           </div>
-                        ) : null}
-                        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
+                        )}
+                        <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
                           {items.map((assignment) => (
                             <AssignmentCard
                               key={assignment.id}
@@ -596,35 +635,33 @@ export default function Courses() {
                     );
                   })
                 ) : (
-                  <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 flex flex-col items-center justify-center text-center text-dark-muted text-xs">
-                    <BookOpen size={32} className="text-zinc-600 mb-3 opacity-50" />
+                  <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#6E6E73] text-xs">
+                    <BookOpen size={28} className="text-[#6E6E73] mb-2.5 opacity-60" />
                     {t('noTasksCourse', lang)}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {courseResources.length > 0 ? (
                   Object.entries(groupItemsByTopic(courseResources)).map(([topicId, items]) => {
                     if (items.length === 0) return null;
-                    const topicName = topicId === 'none' 
-                      ? (lang === 'en' ? 'Other Resources' : 'สื่ออื่นๆ') 
-                      : courseTopics.find(t => t.id === topicId)?.name || 'Unknown Topic';
-                    
+                    const topicName = topicId === 'none'
+                      ? (lang === 'en' ? 'Other Resources' : 'สื่ออื่นๆ')
+                      : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
+
                     return (
-                      <div key={topicId} className="space-y-4">
-                        {topicId !== 'none' || courseTopics.length > 0 ? (
-                          <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl bg-dark-sidebar/40 border border-white/5 border-l-4 border-l-${themeColor}-500`}>
-                            <div className={`p-1.5 rounded-lg bg-${themeColor}-500/10 text-${themeColor}-400`}>
-                              <Hash size={16} />
-                            </div>
-                            <h4 className="text-base font-bold text-white tracking-wide">{topicName}</h4>
-                            <span className="text-xs font-semibold text-dark-muted bg-black/20 px-2 py-0.5 rounded-md ml-auto">
+                      <div key={topicId} className="space-y-3">
+                        {(topicId !== 'none' || courseTopics.length > 0) && (
+                          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white border border-[#D2D2D7]/80">
+                            <Hash size={15} className="text-[#0071E3]" />
+                            <h4 className="text-sm font-semibold text-[#1D1D1F]">{topicName}</h4>
+                            <span className="text-xs font-medium text-[#6E6E73] bg-[#F5F5F7] px-2 py-0.5 rounded-md ml-auto border border-[#D2D2D7]/60">
                               {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
                             </span>
                           </div>
-                        ) : null}
-                        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" : "flex flex-col gap-4"}>
+                        )}
+                        <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
                           {items.map((resource) => (
                             <ResourceCard
                               key={resource.id}
@@ -642,8 +679,8 @@ export default function Courses() {
                     );
                   })
                 ) : (
-                  <div className="bg-dark-card/25 border border-dark-border/40 rounded-2xl p-12 flex flex-col items-center justify-center text-center text-dark-muted text-xs">
-                    <Megaphone size={32} className="text-zinc-600 mb-3 opacity-50" />
+                  <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#6E6E73] text-xs">
+                    <Megaphone size={28} className="text-[#6E6E73] mb-2.5 opacity-60" />
                     {t('noAnnouncementsCourse', lang)}
                   </div>
                 )}
@@ -652,66 +689,66 @@ export default function Courses() {
           </div>
         </div>
       ) : (
-        <div className="space-y-8 opacity-0 animate-fade-in" style={{ animationDelay: '50ms' }}>
-          <div className="flex flex-col gap-6">
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4">
             <div>
-              <h1 className="text-3xl font-bold font-heading text-white tracking-tight">{t('enrolledCoursesTitle', lang)}</h1>
-              <p className="text-sm text-dark-muted mt-1 leading-relaxed">{t('enrolledCoursesDesc', lang)}</p>
+              <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">{t('enrolledCoursesTitle', lang)}</h1>
+              <p className="text-xs text-[#6E6E73] mt-1">{t('enrolledCoursesDesc', lang)}</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-white border border-[#D2D2D7]/80 rounded-2xl p-3 shadow-2xs">
               <div className="relative flex-1 max-w-md">
-                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-muted" />
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E6E73]" />
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => updateParams({ q: e.target.value })}
                   placeholder={lang === 'en' ? 'Search courses by name, code, or instructor...' : 'ค้นหาวิชาจากชื่อ, รหัส หรือ อาจารย์...'}
-                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/5 rounded-2xl text-sm text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/40 focus:bg-white/10 transition-all duration-300 shadow-sm"
+                  className="w-full pl-9 pr-4 py-2 bg-[#F5F5F7] border border-[#D2D2D7]/80 rounded-xl text-xs text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white transition-colors"
                 />
               </div>
 
-              <div className="flex items-center bg-dark-card border border-white/5 rounded-[20px] p-1.5 shrink-0 shadow-inner">
+              <div className="flex items-center bg-[#F5F5F7] border border-[#D2D2D7]/80 rounded-xl p-0.5 shrink-0 self-end sm:self-auto">
                 <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-2xl transition-all duration-300 ease-out cursor-pointer flex items-center justify-center ${
-                    viewMode === 'grid' 
-                      ? 'bg-white/10 text-brand-400 shadow-md transform scale-100' 
-                      : 'text-zinc-500 hover:text-white transform scale-95 hover:scale-100'
+                  type="button"
+                  onClick={() => updateParams({ view: 'grid' })}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                    viewMode === 'grid'
+                      ? 'bg-white text-[#0071E3] shadow-2xs'
+                      : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                   }`}
                   title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
                 >
-                  <LayoutGrid size={18} strokeWidth={2.5} />
+                  <LayoutGrid size={15} />
                 </button>
                 <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-2xl transition-all duration-300 ease-out cursor-pointer flex items-center justify-center ${
-                    viewMode === 'list' 
-                      ? 'bg-white/10 text-brand-400 shadow-md transform scale-100' 
-                      : 'text-zinc-500 hover:text-white transform scale-95 hover:scale-100'
+                  type="button"
+                  onClick={() => updateParams({ view: 'list' })}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                    viewMode === 'list'
+                      ? 'bg-white text-[#0071E3] shadow-2xs'
+                      : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                   }`}
                   title={lang === 'en' ? 'List view' : 'แบบรายการ'}
                 >
-                  <List size={18} strokeWidth={2.5} />
+                  <List size={15} />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="space-y-6 opacity-0 animate-fade-in" style={{ animationDelay: '150ms' }}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                  {lang === 'en' ? 'Active Courses' : 'วิชาที่แสดง'}
-                </h2>
-                <span className="text-[10px] text-dark-muted font-medium">({filteredVisible.length})</span>
-              </div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-600" />
+              <h2 className="text-xs font-semibold text-[#1D1D1F]">
+                {lang === 'en' ? 'Active Courses' : 'วิชาที่แสดง'}
+              </h2>
+              <span className="text-xs text-[#6E6E73]">({filteredVisible.length})</span>
             </div>
 
             {filteredVisible.length > 0 ? (
               viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredVisible.map((course) => renderCourseCard(course, false))}
                 </div>
               ) : (
@@ -724,7 +761,7 @@ export default function Courses() {
                       totalAssignments={assignments.filter(a => a.course === course.name).length}
                       totalResources={resources.filter(r => r.course === course.name).length}
                       isHidden={false}
-                      onSelect={() => setSearchParams({ selected: course.name })}
+                      onSelect={() => handleSelectCourse(course.name)}
                       onToggleVisibility={handleToggleCourseVisibility}
                       lang={lang}
                     />
@@ -732,12 +769,11 @@ export default function Courses() {
                 </div>
               )
             ) : (
-              <div className="bg-dark-card/20 border border-dark-border/30 rounded-xl p-12 flex flex-col items-center justify-center text-center text-dark-muted text-xs">
-                <Search size={32} className="text-zinc-600 mb-3 opacity-50" />
+              <div className="bg-white border border-[#D2D2D7] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#6E6E73] text-xs">
+                <Search size={28} className="text-[#6E6E73] mb-2.5 opacity-60" />
                 {searchQuery
                   ? (lang === 'en' ? 'No courses match your search.' : 'ไม่พบวิชาที่ตรงกับคำค้นหา')
-                  : (lang === 'en' ? 'No active courses.' : 'ไม่มีวิชาที่แสดง')
-                }
+                  : (lang === 'en' ? 'No active courses.' : 'ไม่มีวิชาที่แสดง')}
               </div>
             )}
           </div>
@@ -745,39 +781,41 @@ export default function Courses() {
           {hiddenCourses.length > 0 && (
             <div className="space-y-3">
               <button
+                type="button"
                 onClick={() => setShowHidden(!showHidden)}
                 className="flex items-center gap-2 group cursor-pointer w-full"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-zinc-600 shadow-[0_0_8px_rgba(82,82,91,0.5)]" />
-                  <h2 className="text-sm font-bold text-zinc-500 uppercase tracking-wider group-hover:text-zinc-400 transition-colors">
+                  <div className="w-2 h-2 rounded-full bg-zinc-400" />
+                  <h2 className="text-xs font-semibold text-[#6E6E73] group-hover:text-[#1D1D1F] transition-colors">
                     {lang === 'en' ? 'Hidden Courses' : 'วิชาที่ซ่อน'}
                   </h2>
-                  <span className="text-xs text-zinc-600 font-bold">({filteredHidden.length})</span>
+                  <span className="text-xs text-[#6E6E73]">({filteredHidden.length})</span>
                 </div>
-                <div className="flex-1 h-px bg-dark-border/20" />
+                <div className="flex-1 h-px bg-[#D2D2D7]/70" />
                 {showHidden ? (
-                  <ChevronUp size={14} className="text-zinc-500 group-hover:text-zinc-400 transition-colors shrink-0" />
+                  <ChevronUp size={14} className="text-[#6E6E73] shrink-0" />
                 ) : (
-                  <ChevronDown size={14} className="text-zinc-500 group-hover:text-zinc-400 transition-colors shrink-0" />
+                  <ChevronDown size={14} className="text-[#6E6E73] shrink-0" />
                 )}
               </button>
 
               {showHidden && (
-                <div className="animate-fade-in space-y-4">
+                <div className="space-y-4">
                   <div className="flex justify-end">
                     <button
+                      type="button"
                       onClick={() => handleToggleBulkCourses([], false)}
-                      className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                      className="text-xs font-medium text-[#0071E3] hover:underline cursor-pointer bg-white border border-[#D2D2D7] px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5"
                     >
-                      <Eye size={11} />
-                      {t('showAll', lang)}
+                      <Eye size={12} />
+                      <span>{t('showAll', lang)}</span>
                     </button>
                   </div>
 
                   {filteredHidden.length > 0 ? (
                     viewMode === 'grid' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {filteredHidden.map((course) => renderCourseCard(course, true))}
                       </div>
                     ) : (
@@ -790,7 +828,7 @@ export default function Courses() {
                             totalAssignments={assignments.filter(a => a.course === course.name).length}
                             totalResources={resources.filter(r => r.course === course.name).length}
                             isHidden={true}
-                            onSelect={() => setSearchParams({ selected: course.name })}
+                            onSelect={() => handleSelectCourse(course.name)}
                             onToggleVisibility={handleToggleCourseVisibility}
                             lang={lang}
                           />
@@ -798,7 +836,7 @@ export default function Courses() {
                       </div>
                     )
                   ) : (
-                    <div className="bg-dark-card/20 border border-dark-border/30 rounded-xl p-6 text-center text-dark-muted text-xs">
+                    <div className="bg-white border border-[#D2D2D7] rounded-xl p-6 text-center text-[#6E6E73] text-xs">
                       {lang === 'en' ? 'No hidden courses match your search.' : 'ไม่พบวิชาที่ซ่อนที่ตรงกับคำค้นหา'}
                     </div>
                   )}

@@ -1,72 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
 :root {
-  /* Minimalist Dark Theme (โทนมืดถ่าน พรีเมียมมินิมอล) */
-  --bg: #0E0E10;          /* Deep dark slate */
-  --sidebar: #17171A;     /* Sidebar dark slate */
-  --card: #1E1E22;        /* Dark grey cards */
-  --border: #2B2B31;      /* Subtle dark border */
-  --hover: #26262B;       /* Dark hover background */
-  --text: #F3F4F6;        /* Off-white text */
-  --muted: #9CA3AF;       /* Muted grey text */
+  /* Apple-Inspired Light Design System */
+  --bg: #F5F5F7;          /* Light neutral background */
+  --sidebar: #FFFFFF;     /* Pure white sidebar surface */
+  --card: #FFFFFF;        /* Pure white card surface */
+  --border: #D2D2D7;      /* Subtle Apple border */
+  --hover: #F5F5F7;       /* Restrained hover state */
+  --text: #1D1D1F;        /* Primary ink text */
+  --muted: #6E6E73;       /* Secondary muted text */
+  --accent: #0071E3;      /* Restrained Apple blue */
 }
 
 @layer base {
   body {
-    @apply bg-dark-bg text-dark-text font-sans antialiased selection:bg-brand-500/30 selection:text-brand-200 overflow-x-hidden transition-colors duration-200;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
     margin: 0;
     padding: 0;
   }
 }
 
-/* Custom Scrollbar for premium feel */
+/* Subtle scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--sidebar);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: #D2D2D7;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4597ff;
+  background: #86868B;
 }
 
-/* Ambient Glows (Optimized for performance) */
-.ambient-glow-brand { background: radial-gradient(circle at center, rgba(26, 115, 232, 0.15) 0%, transparent 65%); }
-.ambient-glow-indigo { background: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, transparent 65%); }
-.ambient-glow-blue { background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 65%); }
-.ambient-glow-emerald { background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 65%); }
-.ambient-glow-rose { background: radial-gradient(circle at center, rgba(244, 63, 94, 0.15) 0%, transparent 65%); }
-
-/* Custom Animations */
+/* Restrained transition helper */
 .animate-fade-in {
-  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
+  animation: fadeIn 0.18s ease-out forwards;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(16px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
-/* Fix dropdown option contrast issues in Dark/Light themes */
 select option {
-  background-color: var(--sidebar) !important;
-  color: var(--text) !important;
+  background-color: #FFFFFF !important;
+  color: #1D1D1F !important;
 }

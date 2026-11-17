@@ -273,12 +273,12 @@ export class NotificationService {
 
       let highlightHtml = `
         <div style="margin-top: 25px; border: 1px dashed #f59e0b; background-color: rgba(245, 158, 11, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
-          <span style="font-size: 10px; color: #f59e0b; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">🔥 Next Exam</span>
+          <span style="font-size: 10px; color: #f59e0b; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Next Exam</span>
           <h4 style="color: #ffffff; margin: 6px 0 2px 0; font-size: 14px;">${escapeHtml(nextExam.courseCode)} • ${escapeHtml(nextExam.courseName)}</h4>
           <div style="font-size: 12px; color: #9ca3af; margin-top: 4px; line-height: 1.5;">
-            📅 <strong>Date:</strong> ${escapeHtml(nextExam.date)} (${nextExamRemaining})<br/>
-            ⏱️ <strong>Time:</strong> ${escapeHtml(nextExam.time || '-')}<br/>
-            📍 <strong>Room:</strong> ${escapeHtml(nextExam.room || '-')} ${nextExam.seat ? `• 🪑 <strong>Seat:</strong> ${escapeHtml(nextExam.seat)}` : ''}
+            <strong>Date:</strong> ${escapeHtml(nextExam.date)} (${nextExamRemaining})<br/>
+            <strong>Time:</strong> ${escapeHtml(nextExam.time || '-')}<br/>
+            <strong>Room:</strong> ${escapeHtml(nextExam.room || '-')} ${nextExam.seat ? `• <strong>Seat:</strong> ${escapeHtml(nextExam.seat)}` : ''}
           </div>
         </div>
       `;
@@ -321,7 +321,7 @@ export class NotificationService {
       if (hiddenCount > 0) {
         extraFooterHtml = `
           <div style="text-align: center; font-size: 12px; color: #a855f7; padding: 10px; font-weight: 600;">
-            ➕ And ${hiddenCount} more upcoming exam${hiddenCount > 1 ? 's' : ''}...
+            + And ${hiddenCount} more upcoming exam${hiddenCount > 1 ? 's' : ''}...
           </div>
         `;
       }
@@ -329,7 +329,7 @@ export class NotificationService {
       return `
         <div style="margin-top: 25px; border-top: 1px solid #1f2937; padding-top: 20px;">
           <h3 style="color: #ffffff; margin: 0 0 15px 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-            📅 Upcoming Exam Schedule (${upcomingExams.length})
+            Upcoming Exam Schedule (${upcomingExams.length})
           </h3>
           
           ${highlightHtml}
@@ -371,30 +371,31 @@ export class NotificationService {
     const time = getSundayDigestTime(toEmail);
 
     const body = `
-      <h2 class="title" style="color: #10b981;">🎉 Gmail Integration Success</h2>
+      <h2 class="title" style="color: #10b981;">Gmail Integration Success</h2>
       <p class="desc">
         The connection between Classroom Hub and your Gmail account has been successfully established! Going forward, you will receive notifications based on your settings.
       </p>
       <div style="border-top: 1px solid #1f2937; padding-top: 15px; margin-top: 15px;">
         <h3 style="font-size: 13px; color: #ffffff; margin-top: 0;">Active Trigger Summary:</h3>
         <ul style="font-size: 12px; color: #9ca3af; padding-left: 20px; line-height: 1.8;">
-          <li>3 Days Before Due: <strong>${alertSettings.due3Days ? '✓ Enabled' : '✗ Disabled'}</strong></li>
-          <li>1 Day Before Due: <strong>${alertSettings.due1Day ? '✓ Enabled' : '✗ Disabled'}</strong></li>
-          <li>Due Today: <strong>${alertSettings.dueToday ? '✓ Enabled' : '✗ Disabled'}</strong></li>
-          <li>1 Day Overdue (Once): <strong>${alertSettings.overdue1Day ? '✓ Enabled' : '✗ Disabled'}</strong></li>
-          <li>New Posts (Consolidated): <strong>${alertSettings.newPosts ? '✓ Enabled' : '✗ Disabled'}</strong></li>
-          <li>Sunday Digest (No Due Date): <strong>${alertSettings.sundayDigest ? `✓ Every Sunday at ${time}` : '✗ Disabled'}</strong></li>
+          <li>3 Days Before Due: <strong>${alertSettings.due3Days ? 'Enabled' : 'Disabled'}</strong></li>
+          <li>1 Day Before Due: <strong>${alertSettings.due1Day ? 'Enabled' : 'Disabled'}</strong></li>
+          <li>Due Today: <strong>${alertSettings.dueToday ? 'Enabled' : 'Disabled'}</strong></li>
+          <li>1 Day Overdue (Once): <strong>${alertSettings.overdue1Day ? 'Enabled' : 'Disabled'}</strong></li>
+          <li>New Posts (Consolidated): <strong>${alertSettings.newPosts ? 'Enabled' : 'Disabled'}</strong></li>
+          <li>Sunday Digest (No Due Date): <strong>${alertSettings.sundayDigest ? `Every Sunday at ${time}` : 'Disabled'}</strong></li>
         </ul>
       </div>
     `;
 
     const html = this.wrapHtmlEmail('Classroom Hub: Gmail Integration Success', body);
-    await GoogleRepository.sendEmail(accessToken, toEmail, '🎉 Classroom Hub: Gmail Integration Success', html);
+    await GoogleRepository.sendEmail(accessToken, toEmail, 'Classroom Hub: Gmail Integration Success', html);
     this.recordEmailSent(toEmail);
     
     addNotificationHistoryLog({
       title: 'Sent connection test email successfully',
-      type: 'test_email'
+      type: 'test_email',
+      targetPath: '/settings'
     }, toEmail);
   }
 
@@ -437,7 +438,7 @@ export class NotificationService {
         
         tasksHtml += `
           <div style="margin-top: 16px; border: 1px solid rgba(148, 163, 184, 0.08); border-left: 4px solid ${borderHex}; background-color: #131b2e; border-radius: 12px; padding: 16px;">
-            <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">📚 ${escapeHtml(courseName)}</h4>
+            <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">${escapeHtml(courseName)}</h4>
             <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-top: 8px;">
         `;
         
@@ -469,12 +470,13 @@ export class NotificationService {
     `;
 
     const html = this.wrapHtmlEmail('Pending Assignments Digest', body);
-    await GoogleRepository.sendEmail(accessToken, toEmail, '📝 Pending Assignments Digest - Classroom Hub', html);
+    await GoogleRepository.sendEmail(accessToken, toEmail, 'Pending Assignments Digest - Classroom Hub', html);
     this.recordEmailSent(toEmail);
     
     addNotificationHistoryLog({
       title: `Sent pending assignments digest (Total ${todoTasks.length} items)`,
-      type: 'manual_digest'
+      type: 'manual_digest',
+      targetPath: '/dashboard'
     }, toEmail);
   }
 
@@ -521,28 +523,23 @@ export class NotificationService {
 
       let triggerType = null;
       let subject = '';
-      let emoji = '';
       let warningLabel = '';
 
       if (diffDays === 3 && alertSettings.due3Days) {
         triggerType = 'due_3_days';
-        subject = `[Classroom Hub] ⚠️ Reminder: 3 Days Before Due: ${task.title}`;
-        emoji = '⚠️';
+        subject = `[Classroom Hub] Reminder: 3 Days Before Due: ${task.title}`;
         warningLabel = 'Due in 3 days';
       } else if (diffDays === 1 && alertSettings.due1Day) {
         triggerType = 'due_1_day';
-        subject = `[Classroom Hub] 🚨 Urgent: Due Tomorrow: ${task.title}`;
-        emoji = '🚨';
+        subject = `[Classroom Hub] Urgent: Due Tomorrow: ${task.title}`;
         warningLabel = 'Due tomorrow';
       } else if (diffDays === 0 && alertSettings.dueToday) {
         triggerType = 'due_today';
-        subject = `[Classroom Hub] ⏱️ Due Today: ${task.title}`;
-        emoji = '⏱️';
+        subject = `[Classroom Hub] Due Today: ${task.title}`;
         warningLabel = 'Due today!';
       } else if (diffDays === -1 && alertSettings.overdue1Day) {
         triggerType = 'overdue_1_day';
-        subject = `[Classroom Hub] 🔴 Overdue: ${task.title}`;
-        emoji = '🔴';
+        subject = `[Classroom Hub] Overdue: ${task.title}`;
         warningLabel = 'Overdue by 1 day! Action required';
       }
 
@@ -554,7 +551,7 @@ export class NotificationService {
         }
         const body = `
           <h2 class="title" style="color: ${triggerType.includes('overdue') ? '#f43f5e' : '#f59e0b'};">
-            ${emoji} ${warningLabel}
+            ${warningLabel}
           </h2>
           <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #1f2937; border-radius: 8px; padding: 15px; margin-top: 15px;">
             <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">${escapeHtml(task.courseCode)} • ${escapeHtml(task.course)}</span>
@@ -571,6 +568,8 @@ export class NotificationService {
         addNotificationHistoryLog({
           title: `Sent reminder for '${task.title}' (${warningLabel})`,
           type: triggerType,
+          assignmentId: task.id,
+          targetPath: `/assignments/${task.id}`,
           read: false
         }, toEmail);
       }
@@ -618,7 +617,7 @@ export class NotificationService {
                 
                 itemsHtml += `
                   <div style="margin-top: 16px; border: 1px solid rgba(148, 163, 184, 0.08); border-left: 4px solid ${borderHex}; background-color: #131b2e; border-radius: 12px; padding: 16px;">
-                    <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">📚 ${escapeHtml(courseName)}</h4>
+                    <h4 style="color: #ffffff; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">${escapeHtml(courseName)}</h4>
                     <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-top: 8px;">
                 `;
                 list.forEach(t => {
@@ -637,7 +636,7 @@ export class NotificationService {
             const examsHtml = alertSettings.includeExams ? this.buildExamsHtml(toEmail, true) : '';
 
             const body = `
-              <h2 class="title" style="color: #6366f1;">📅 Sunday Digest: Weekly Summary</h2>
+              <h2 class="title" style="color: #6366f1;">Sunday Digest: Weekly Summary</h2>
               <p class="desc">
                 Here is your weekly summary of pending tasks and upcoming exams.
               </p>
@@ -645,7 +644,7 @@ export class NotificationService {
               ${examsHtml}
             `;
 
-            const digestSubject = `[Classroom Hub] 📅 Sunday Digest: Weekly summary`;
+            const digestSubject = `[Classroom Hub] Sunday Digest: Weekly summary`;
             const html = this.wrapHtmlEmail(digestSubject, body);
             await GoogleRepository.sendEmail(accessToken, toEmail, digestSubject, html);
             this.recordEmailSent(toEmail);
@@ -654,6 +653,7 @@ export class NotificationService {
             addNotificationHistoryLog({
               title: `Sent Sunday Digest email (Total ${noDueDateTasks.length} tasks)`,
               type: 'sunday_digest',
+              targetPath: '/dashboard',
               read: false
             }, toEmail);
           }
@@ -719,11 +719,11 @@ export class NotificationService {
       
       groupHtml += `
         <div style="margin-top: 15px; border-left: 4px solid ${borderHex}; background-color: #1f2937; border-radius: 8px; padding: 12px 15px;">
-          <h4 style="color: #ffffff; margin: 0 0 8px 0; font-size: 13px;">📚 ${escapeHtml(courseName)}</h4>
+          <h4 style="color: #ffffff; margin: 0 0 8px 0; font-size: 13px;">${escapeHtml(courseName)}</h4>
       `;
       
       if (group.assigns.length > 0) {
-        groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #a855f7; margin: 8px 0 4px 0;">📝 New Assignments (${group.assigns.length})</p>`;
+        groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #a855f7; margin: 8px 0 4px 0;">New Assignments (${group.assigns.length})</p>`;
         group.assigns.forEach(t => {
           groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${escapeHtml(t.title)}</strong></div>`;
         });
@@ -734,14 +734,14 @@ export class NotificationService {
         const mats = group.resources.filter(r => r.type === 'material');
         
         if (anns.length > 0) {
-          groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #f59e0b; margin: 10px 0 4px 0;">📢 New Announcements (${anns.length})</p>`;
+          groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #f59e0b; margin: 10px 0 4px 0;">New Announcements (${anns.length})</p>`;
           anns.forEach(r => {
             groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${escapeHtml(r.title)}</strong></div>`;
           });
         }
         
         if (mats.length > 0) {
-          groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #3b82f6; margin: 10px 0 4px 0;">📖 New Course Materials (${mats.length})</p>`;
+          groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #3b82f6; margin: 10px 0 4px 0;">New Course Materials (${mats.length})</p>`;
           mats.forEach(r => {
             groupHtml += `<div style="font-size: 12px; color: #ffffff; padding: 4px 0; border-bottom: 1px solid #374151;">• <strong>${escapeHtml(r.title)}</strong></div>`;
           });
@@ -750,9 +750,9 @@ export class NotificationService {
       groupHtml += `</div>`;
     });
 
-    const subject = `[Classroom Hub] 🆕 Detected ${totalNew} new items in classroom`;
+    const subject = `[Classroom Hub] Detected ${totalNew} new items in classroom`;
     const body = `
-      <h2 class="title" style="color: #6366f1;">🆕 New Classroom Activity Detected</h2>
+      <h2 class="title" style="color: #6366f1;">New Classroom Activity Detected</h2>
       <p class="desc">
         Detected ${totalNew} new assignment(s), announcement(s), or material(s) uploaded by your instructors.
       </p>
@@ -772,6 +772,7 @@ export class NotificationService {
     addNotificationHistoryLog({
       title: `Detected and sent new posts email (Total ${totalNew} items)`,
       type: 'new_posts_digest',
+      targetPath: newAssignments.length === 1 && newResources.length === 0 ? `/assignments/${newAssignments[0].id}` : '/dashboard',
       read: false
     }, toEmail);
   }

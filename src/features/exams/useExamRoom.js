@@ -74,35 +74,23 @@ export const useExamRoom = (activeEmail, lang) => {
         const data = cachedResult.data;
         const hasExams = data.exams && data.exams.length > 0;
         const hasManual = data.manualExams && data.manualExams.length > 0;
-        if (hasExams || hasManual) {
+        if (hasExams || hasManual || data.unlisted) {
           // eslint-disable-next-line react-hooks/set-state-in-effect
           setExamList(data.exams || []);
           setManualExamList(data.manualExams || []);
           setUnlistedInfo(data.unlisted || null);
           setSearchTriggered(true);
-          if (hasExams) setStatus('success');
+          if (hasExams || data.unlisted) setStatus('success');
         }
       }
     }
   }, [activeEmail]);
 
-  // Adjust state when studentId changes
+  // Clear validation error when user edits studentId (without wiping cached exams on backspace)
   if (studentId !== prevStudentId) {
     setPrevStudentId(studentId);
-    if (studentId.trim() === '') {
-      setExamList([]);
-      setUnlistedInfo(null);
-      setSearchTriggered(false);
-      setStatus('idle');
+    if (error) {
       setError(null);
-      sessionStorage.removeItem('lastExamSearch');
-      examRepository.clearExamsCache(activeEmail);
-      
-      // Sync deletion
-      const token = getToken();
-      if (token && activeEmail) {
-        syncManager.queueSync(token, activeEmail);
-      }
     }
   }
   const fetchAttempted = useRef(false);

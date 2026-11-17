@@ -14,103 +14,75 @@ export const getStableColor = (str) => {
 };
 
 export const getCourseBadgeColor = (color) => {
-  switch(color) {
-    case 'emerald': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-    case 'blue': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
-    case 'amber': return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-    case 'rose': return 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
-    case 'purple': return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
-    default: return 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20';
+  switch (color) {
+    case 'emerald': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+    case 'blue': return 'bg-blue-50 text-[#0071E3] border border-blue-200';
+    case 'amber': return 'bg-amber-50 text-amber-700 border border-amber-200';
+    case 'rose': return 'bg-rose-50 text-rose-700 border border-rose-200';
+    case 'purple': return 'bg-purple-50 text-purple-700 border border-purple-200';
+    default: return 'bg-zinc-100 text-[#6E6E73] border border-[#D2D2D7]';
   }
 };
 
 export const getCourseBorderTopColor = (color) => {
-  switch(color) {
-    case 'emerald': return 'border-t-emerald-500';
-    case 'blue': return 'border-t-blue-500';
-    case 'amber': return 'border-t-amber-500';
-    case 'rose': return 'border-t-rose-500';
-    case 'purple': return 'border-t-purple-500';
-    default: return 'border-t-zinc-500';
+  switch (color) {
+    case 'emerald': return 'bg-emerald-600';
+    case 'blue': return 'bg-[#0071E3]';
+    case 'amber': return 'bg-amber-500';
+    case 'rose': return 'bg-rose-600';
+    case 'purple': return 'bg-purple-600';
+    default: return 'bg-zinc-400';
   }
 };
 
 export const getCourseTextColor = (color) => {
-  switch(color) {
-    case 'emerald': return 'text-emerald-400';
-    case 'blue': return 'text-blue-400';
-    case 'amber': return 'text-amber-400';
-    case 'rose': return 'text-rose-400';
-    case 'purple': return 'text-purple-400';
-    default: return 'text-zinc-400';
+  switch (color) {
+    case 'emerald': return 'text-emerald-700';
+    case 'blue': return 'text-[#0071E3]';
+    case 'amber': return 'text-amber-700';
+    case 'rose': return 'text-rose-700';
+    case 'purple': return 'text-purple-700';
+    default: return 'text-[#6E6E73]';
   }
 };
 
 export const getCourseDotClass = (color) => {
-  switch(color) {
-    case 'emerald': return 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]';
-    case 'blue': return 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]';
-    case 'amber': return 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]';
-    case 'rose': return 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]';
-    case 'purple': return 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]';
-    default: return 'bg-zinc-500';
+  switch (color) {
+    case 'emerald': return 'bg-emerald-600';
+    case 'blue': return 'bg-[#0071E3]';
+    case 'amber': return 'bg-amber-500';
+    case 'rose': return 'bg-rose-600';
+    case 'purple': return 'bg-purple-600';
+    default: return 'bg-zinc-400';
   }
 };
 
-export const getTabStyles = (color, isActive) => {
-  if (!isActive) return 'text-dark-muted hover:text-white hover:bg-dark-hover border-transparent';
-  switch(color) {
-    case 'emerald': return 'text-emerald-400 border-emerald-500 bg-emerald-500/10';
-    case 'blue': return 'text-blue-400 border-blue-500 bg-blue-500/10';
-    case 'amber': return 'text-amber-400 border-amber-500 bg-amber-500/10';
-    case 'rose': return 'text-rose-400 border-rose-500 bg-rose-500/10';
-    case 'purple': return 'text-purple-400 border-purple-500 bg-purple-500/10';
-    default: return 'text-zinc-400 border-zinc-500 bg-zinc-500/10';
-  }
+export const getTabStyles = (_color, isActive) => {
+  if (!isActive) return 'text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] border-transparent';
+  return 'text-[#1D1D1F] bg-white shadow-xs border-[#D2D2D7]/60 font-semibold';
 };
 
-export const getTabBadgeStyles = (color, isActive) => {
-  if (!isActive) return 'bg-dark-hover text-dark-muted';
-  switch(color) {
-    case 'emerald': return 'bg-emerald-500/20 text-emerald-400';
-    case 'blue': return 'bg-blue-500/20 text-blue-400';
-    case 'amber': return 'bg-amber-500/20 text-amber-400';
-    case 'rose': return 'bg-rose-500/20 text-rose-400';
-    case 'purple': return 'bg-purple-500/20 text-purple-400';
-    default: return 'bg-zinc-500/20 text-zinc-400';
-  }
+export const getTabBadgeStyles = (_color, isActive) => {
+  if (!isActive) return 'bg-[#F5F5F7] text-[#6E6E73] border-[#D2D2D7]';
+  return 'bg-blue-50 text-[#0071E3] border-blue-200';
 };
 
-export const getTrackButtonStyles = (color, isTracked) => {
-  if (!isTracked) return 'text-dark-muted hover:text-white hover:bg-dark-hover border border-dark-border';
-  switch(color) {
-    case 'emerald': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
-    case 'blue': return 'bg-blue-500/10 text-blue-400 border border-blue-500/30';
-    case 'amber': return 'bg-amber-500/10 text-amber-400 border border-amber-500/30';
-    case 'rose': return 'bg-rose-500/10 text-rose-400 border border-rose-500/30';
-    case 'purple': return 'bg-purple-500/10 text-purple-400 border border-purple-500/30';
-    default: return 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/30';
-  }
+export const getTrackButtonStyles = (_color, isTracked) => {
+  if (!isTracked) return 'text-[#1D1D1F] bg-[#F5F5F7] hover:bg-[#E8E8ED] border border-[#D2D2D7]';
+  return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
 };
 
-export const getCourseCardBorder = (color) => {
-  switch(color) {
-    case 'emerald': return 'border-emerald-500/30';
-    case 'blue': return 'border-blue-500/30';
-    case 'amber': return 'border-amber-500/30';
-    case 'rose': return 'border-rose-500/30';
-    case 'purple': return 'border-purple-500/30';
-    default: return 'border-dark-border';
-  }
+export const getCourseCardBorder = () => {
+  return 'border-[#D2D2D7]';
 };
 
 export const getHexColor = (colorString) => {
   switch (colorString) {
-    case 'emerald': return '#10b981';
-    case 'blue': return '#3b82f6';
-    case 'amber': return '#f59e0b';
-    case 'rose': return '#f43f5e';
-    case 'purple': return '#a855f7';
-    default: return '#10b981'; // default emerald
+    case 'emerald': return '#059669';
+    case 'blue': return '#0071E3';
+    case 'amber': return '#D97706';
+    case 'rose': return '#E11D48';
+    case 'purple': return '#7C3AED';
+    default: return '#0071E3';
   }
 };

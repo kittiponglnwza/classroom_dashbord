@@ -142,7 +142,7 @@ function buildAssignmentEvent(assignment) {
   }
 
   return {
-    summary: `📌 ${assignment.title}`,
+    summary: `[Assignment] ${assignment.title}`,
     description: [assignment.course, assignment.description].filter(Boolean).join('\n'),
     start,
     end,

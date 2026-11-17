@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, X } from 'lucide-react';
 import { t } from '../../utils/i18n';
 
 const formatDisplayDate = (isoDateStr, lang) => {
   if (!isoDateStr) return '';
   const date = new Date(isoDateStr);
   if (isNaN(date.getTime())) return isoDateStr;
-  
+
   if (lang === 'th') {
     const thaiMonthsAbbr = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
     const day = date.getDate();
@@ -37,7 +37,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
     if (!formName || !formDate || !formTime) return;
 
     const displayDate = formatDisplayDate(formDate, lang);
-    
+
     onSave({
       id: initialData ? initialData.id : 'new',
       courseCode: formCode.trim() || 'CLASSROOM',
@@ -52,106 +52,110 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
-      <div 
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 animate-fade-in">
+      <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="exam-manual-title"
-        className="bg-dark-card sm:border border-dark-border rounded-none sm:rounded-2xl w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-md overflow-y-auto custom-scrollbar relative shadow-none sm:shadow-2xl flex flex-col"
+        className="bg-white border border-[#D2D2D7] rounded-2xl w-full max-h-[90vh] max-w-md overflow-y-auto relative shadow-lg flex flex-col"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-dark-border/40">
-          <h3 id="exam-manual-title" className="font-semibold font-heading text-sm text-white flex items-center gap-2">
-            <ClipboardCheck size={16} className="text-brand-400" />
-            {initialData ? t('examFormEditTitle', lang) : t('examFormTitle', lang)}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#D2D2D7]/70">
+          <h3 id="exam-manual-title" className="font-semibold text-sm text-[#1D1D1F] flex items-center gap-2">
+            <ClipboardCheck size={16} className="text-[#0071E3]" />
+            <span>{initialData ? t('examFormEditTitle', lang) : t('examFormTitle', lang)}</span>
           </h3>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="p-1 text-[#6E6E73] hover:text-[#1D1D1F] rounded-lg hover:bg-[#F5F5F7] transition-colors cursor-pointer"
+          >
+            <X size={16} />
+          </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-1">
-              <label className="block text-[10px] font-bold text-dark-muted mb-1 uppercase tracking-wider">{t('courseCodeLabel', lang)}</label>
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1">{t('courseCodeLabel', lang)}</label>
               <input
                 type="text"
                 placeholder="e.g. 40613502"
                 value={formCode}
                 onChange={(e) => setFormCode(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3 py-2 text-xs text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white"
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-[10px] font-bold text-dark-muted mb-1 uppercase tracking-wider">{t('courseNameLabel', lang)} *</label>
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1">{t('courseNameLabel', lang)} *</label>
               <input
                 type="text"
                 required
                 placeholder="e.g. COMPUTER NETWORK"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3 py-2 text-xs text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-dark-muted mb-1 uppercase tracking-wider">{t('examDateLabel', lang)} *</label>
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1">{t('examDateLabel', lang)} *</label>
               <input
                 type="date"
                 required
                 value={formDate}
                 onChange={(e) => setFormDate(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60 cursor-pointer"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3 py-2 text-xs text-[#1D1D1F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white cursor-pointer"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-dark-muted mb-1 uppercase tracking-wider">{t('examTimeLabel', lang)} *</label>
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1">{t('examTimeLabel', lang)} *</label>
               <input
                 type="text"
                 required
                 placeholder="09:00 - 12:00"
                 value={formTime}
                 onChange={(e) => setFormTime(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3 py-2 text-xs text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-dark-muted mb-1 uppercase tracking-wider">{t('roomLabel', lang)}</label>
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1">{t('roomLabel', lang)}</label>
               <input
                 type="text"
                 placeholder="e.g. 81-506"
                 value={formRoom}
                 onChange={(e) => setFormRoom(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3 py-2 text-xs text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-dark-muted mb-1 uppercase tracking-wider">{t('seatNoLabel', lang)}</label>
+              <label className="block text-xs font-medium text-[#1D1D1F] mb-1">{t('seatNoLabel', lang)}</label>
               <input
                 type="text"
                 placeholder="e.g. Row 5, Seat 20"
                 value={formSeat}
                 onChange={(e) => setFormSeat(e.target.value)}
-                className="w-full bg-dark-sidebar border border-dark-border rounded-xl px-3 py-2 text-xs text-white placeholder-dark-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus:border-brand-500/60"
+                className="w-full bg-[#F5F5F7] border border-[#D2D2D7] rounded-xl px-3 py-2 text-xs text-[#1D1D1F] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0071E3] focus:bg-white"
               />
             </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-dark-border/40 pb-4 sm:pb-0">
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-[#D2D2D7]/70">
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 min-h-[44px] sm:min-h-0 text-xs font-semibold text-dark-muted hover:text-white transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl text-xs font-medium text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors cursor-pointer"
             >
               {t('cancelBtn', lang)}
             </button>
             <button
               type="submit"
-              className="bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs px-5 py-2 min-h-[44px] sm:min-h-0 rounded-xl transition-all cursor-pointer shadow-md shadow-brand-500/10 active:scale-95"
+              className="bg-[#0071E3] hover:bg-[#0077ED] text-white font-medium text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer"
             >
               {t('saveExamBtn', lang)}
             </button>
