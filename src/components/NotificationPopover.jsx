@@ -5,12 +5,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { triggerManualDigest } from '../utils/notifications';
+import { syncManager } from '../services/SyncManager';
 
 export default function NotificationPopover({ isNotificationsOpen, setIsNotificationsOpen, bellButtonRef }) {
   const { isLoggedIn, accessToken, profile } = useAuth();
   const { 
     lang, emailAlerts, handleToggleAlerts, alertSettings, handleToggleSetting, handleUpdateSetting,
-    sundayTime, handleTimeChange, historyLogs, dailyLimit, refreshNotificationData 
+    sundayTime, handleTimeChange, historyLogs, unreadCount = 0, dailyLimit, refreshNotificationData,
+    handleMarkNotificationRead, handleMarkAllNotificationsRead
   } = useSettings();
   const { assignments } = useClassroom();
   
@@ -48,6 +50,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
     try {
       await triggerManualDigest(accessToken, profile.email, assignments);
       refreshNotificationData();
+      syncManager.queueSync(accessToken, profile.email);
       setUiFeedback({
         text: lang === 'en' ? 'Digest sent successfully!' : 'ส่งสรุปผลงานไปที่ Gmail เรียบร้อยแล้ว!',
         type: 'success'
@@ -134,17 +137,51 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                     <span className="text-dark-muted font-semibold">{t('quotaLabel', lang)}</span>
                     <span className="text-brand-400 font-bold">{t('quotaDesc', lang, { count: dailyLimit.count })}</span>
                   </div>
+                  {historyLogs.length > 0 && (
+                    <div className="flex items-center justify-between text-[10px] px-1">
+                      <span className="text-dark-muted font-semibold" data-testid="notification-unread-counter">
+                        {unreadCount} {t('unreadLabel', lang)}
+                      </span>
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleMarkAllNotificationsRead}
+                          className="text-brand-400 hover:text-brand-300 font-semibold cursor-pointer"
+                        >
+                          {t('markAllRead', lang)}
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <div className="max-h-[180px] overflow-y-auto pr-1 space-y-2 text-xs custom-scrollbar">
                     {historyLogs.length > 0 ? (
                       historyLogs.map(log => {
                         const formattedLogDate = new Date(log.sentAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
                           day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
                         });
+                        const isUnread = !log.read;
                         return (
-                          <div key={log.id} className="p-2.5 rounded-xl bg-dark-sidebar/30 border border-dark-border/25 flex flex-col gap-0.5 text-left">
-                            <span className="font-semibold text-zinc-100">{log.title}</span>
-                            <span className="text-[9px] text-dark-muted">{formattedLogDate}</span>
-                          </div>
+                          <button
+                            type="button"
+                            key={log.id}
+                            onClick={() => handleMarkNotificationRead && handleMarkNotificationRead(log.id, !log.read)}
+                            className={`w-full p-2.5 rounded-xl border flex items-start justify-between gap-2 text-left transition-colors cursor-pointer ${
+                              isUnread
+                                ? 'bg-brand-500/10 border-brand-500/30 hover:bg-brand-500/15'
+                                : 'bg-dark-sidebar/30 border-dark-border/25 opacity-75 hover:opacity-100'
+                            }`}
+                          >
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              <span className={`font-semibold ${isUnread ? 'text-white' : 'text-zinc-300'}`}>{log.title}</span>
+                              <span className="text-[9px] text-dark-muted">{formattedLogDate}</span>
+                            </div>
+                            {isUnread && (
+                              <span
+                                aria-label="unread"
+                                className="w-2 h-2 rounded-full bg-brand-400 shrink-0 mt-1"
+                              />
+                            )}
+                          </button>
                         );
                       })
                     ) : (

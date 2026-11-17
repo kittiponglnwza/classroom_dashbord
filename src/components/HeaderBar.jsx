@@ -10,7 +10,7 @@ import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
 export default function HeaderBar({ setMobileMenuOpen }) {
   const { isLoggedIn, profile } = useAuth();
-  const { lang, toggleLang } = useSettings();
+  const { lang, toggleLang, unreadCount = 0 } = useSettings();
   const { isSyncing, lastSyncTime, syncClassroom } = useClassroom();
   const { visibleAssignments } = useClassroomUI();
   
@@ -102,8 +102,13 @@ export default function HeaderBar({ setMobileMenuOpen }) {
             }`}
           >
             <Bell size={18} />
-            {overdueCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-bounce" />
+            {unreadCount > 0 && (
+              <span
+                data-testid="notification-unread-badge"
+                className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none"
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             )}
           </button>
 

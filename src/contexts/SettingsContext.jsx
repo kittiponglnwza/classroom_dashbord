@@ -4,10 +4,12 @@ import {
   getEnableEmailAlerts, setEnableEmailAlerts, getAlertSettings, 
   saveAlertSettings, getSundayDigestTime, setSundayDigestTime, 
   getNotificationHistory, getDailyEmailLimit, addNotificationHistoryLog,
+  markNotificationRead, markAllNotificationsRead,
   getActiveEmail
 } from '../utils/storage';
 import { useAuth } from './AuthContext';
 import { syncManager } from '../services/SyncManager';
+import { getCookieConsent } from '../utils/cookieConsent';
 
 export const SettingsContext = createContext(null);
 
@@ -47,10 +49,13 @@ export const SettingsProvider = ({ children }) => {
   const toggleLang = useCallback(() => {
     const nextLang = lang === 'en' ? 'th' : 'en';
     setLang(nextLang);
-    localStorage.setItem('classroom_hub_language', nextLang);
-    if (userEmail) {
-      localStorage.setItem(`classroom_hub_${userEmail}_language`, nextLang);
-      syncManager.queueSync(accessToken, userEmail);
+    const consent = getCookieConsent();
+    if (!consent || consent.preferences !== false) {
+      localStorage.setItem('classroom_hub_language', nextLang);
+      if (userEmail) {
+        localStorage.setItem(`classroom_hub_${userEmail}_language`, nextLang);
+        syncManager.queueSync(accessToken, userEmail);
+      }
     }
   }, [lang, userEmail, accessToken]);
 
@@ -88,26 +93,67 @@ export const SettingsProvider = ({ children }) => {
   }, [userEmail, accessToken]);
 
   const refreshNotificationData = useCallback(() => {
-    if (userEmail) {
-      setHistoryLogs(getNotificationHistory(userEmail));
-      setDailyLimit(getDailyEmailLimit(userEmail));
+    const email = getActiveEmail() || userEmail;
+    if (email) {
+      setHistoryLogs(getNotificationHistory(email));
+      setDailyLimit(getDailyEmailLimit(email));
     }
   }, [userEmail]);
 
+  const handleMarkNotificationRead = useCallback((id, read = true) => {
+    const email = getActiveEmail() || userEmail;
+    if (!email) return;
+    const updated = markNotificationRead(id, email, read);
+    setHistoryLogs(updated);
+    syncManager.queueSync(accessToken, email);
+  }, [userEmail, accessToken]);
+
+  const handleMarkAllNotificationsRead = useCallback(() => {
+    const email = getActiveEmail() || userEmail;
+    if (!email) return;
+    const updated = markAllNotificationsRead(email);
+    setHistoryLogs(updated);
+    syncManager.queueSync(accessToken, email);
+  }, [userEmail, accessToken]);
+
+  useEffect(() => {
+    const handleSameTabNotificationUpdate = () => {
+      refreshNotificationData();
+    };
+    const handleCrossTabStorage = (e) => {
+      if (!e.key) return;
+      if (e.key.startsWith('classroom_hub_')) {
+        reloadSettings();
+      }
+    };
+    window.addEventListener('classroom_hub_notifications_updated', handleSameTabNotificationUpdate);
+    window.addEventListener('storage', handleCrossTabStorage);
+    return () => {
+      window.removeEventListener('classroom_hub_notifications_updated', handleSameTabNotificationUpdate);
+      window.removeEventListener('storage', handleCrossTabStorage);
+    };
+  }, [refreshNotificationData, reloadSettings]);
+
+  const unreadCount = React.useMemo(
+    () => historyLogs.filter(log => !log.read).length,
+    [historyLogs]
+  );
 
   const value = React.useMemo(() => ({
     lang, toggleLang, setLang,
     emailAlerts, handleToggleAlerts,
     alertSettings, handleToggleSetting, handleUpdateSetting,
     sundayTime, handleTimeChange,
-    historyLogs, dailyLimit, refreshNotificationData,
+    historyLogs, unreadCount, dailyLimit, refreshNotificationData,
+    handleMarkNotificationRead, handleMarkAllNotificationsRead,
     reloadSettings
   }), [
     lang, toggleLang,
     emailAlerts, handleToggleAlerts,
     alertSettings, handleToggleSetting, handleUpdateSetting,
     sundayTime, handleTimeChange,
-    historyLogs, dailyLimit, refreshNotificationData,
+    historyLogs, unreadCount, dailyLimit, refreshNotificationData,
+    handleMarkNotificationRead, handleMarkAllNotificationsRead,
     reloadSettings
   ]);
 

@@ -26,5 +26,10 @@ export const initGoogleClient = (onSuccess, onError) => {
         onSuccess(tokenResponse);
       }
     },
+    // Non-OAuth failures (popup blocked / closed by user). Without this handler GIS never
+    // invokes `callback`, leaving any pending token request unresolved forever.
+    error_callback: (err) => {
+      onError({ error: err?.type || 'popup_error', error_description: err?.message || '' });
+    },
   });
 };

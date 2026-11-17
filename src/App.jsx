@@ -19,6 +19,7 @@ import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ClassroomProvider } from './contexts/ClassroomContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import CookieConsentBanner from './components/CookieConsentBanner';
 
 function LoginRedirect() {
   const { isLoggedIn } = useAuth();
@@ -39,7 +40,7 @@ function LoginRedirect() {
 }
 
 function AppContent() {
-  const { isLoggedIn, login, initClient } = useAuth();
+  const { isLoggedIn, login, initClient, rememberedAccount, rememberMe = true, handleRememberMeChange } = useAuth();
   const { lang, toggleLang } = useSettings();
 
   // Force dark theme as default
@@ -104,7 +105,7 @@ function AppContent() {
 
           <div className="space-y-4 pt-4 relative z-10">
             <button
-              onClick={() => login(lang)}
+              onClick={() => login()}
               className="w-full flex items-center justify-center gap-3 bg-zinc-900 border border-red-900/50 hover:bg-red-950 hover:border-red-500/50 text-white font-semibold text-xs py-3.5 px-5 rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(220,38,38,0.3)] cursor-pointer active:scale-[0.98]"
             >
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -113,8 +114,30 @@ function AppContent() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
-              <span>{t('connectGoogleBtn', lang)}</span>
+              <span className="truncate">
+                {rememberedAccount?.email
+                  ? t('continueAsBtn', lang, { email: rememberedAccount.email })
+                  : t('connectGoogleBtn', lang)}
+              </span>
             </button>
+            {rememberedAccount?.email && (
+              <button
+                type="button"
+                onClick={() => login({ selectAccount: true })}
+                className="text-[10px] text-zinc-400 hover:text-red-400 underline underline-offset-2 cursor-pointer"
+              >
+                {t('useAnotherAccount', lang)}
+              </button>
+            )}
+            <label className="flex items-center justify-center gap-2 text-[10px] text-zinc-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => handleRememberMeChange && handleRememberMeChange(e.target.checked)}
+                className="w-3 h-3 rounded accent-red-500 cursor-pointer"
+              />
+              <span>{lang === 'en' ? 'Remember my account on this device' : 'จดจำบัญชีของฉันไว้ในอุปกรณ์นี้'}</span>
+            </label>
             <p className="text-[10px] text-zinc-400 max-w-[280px] mx-auto leading-relaxed">
               {t('loginFooterText', lang)}
             </p>
@@ -125,6 +148,7 @@ function AppContent() {
             </div>
           </div>
         </div>
+        <CookieConsentBanner />
       </div>
     );
   }
@@ -149,6 +173,7 @@ function AppContent() {
           </Routes>
         </Suspense>
       </Layout>
+      <CookieConsentBanner />
     </>
   );
 }

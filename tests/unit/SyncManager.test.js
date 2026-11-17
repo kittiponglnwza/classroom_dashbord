@@ -87,5 +87,55 @@ describe('SyncManager Merge Logic', () => {
       const result = syncManager.mergePayloads(local, remote, email);
       expect(result[key]).toBe(local[key]);
     });
+
+    it('unions sent_notifications across devices so neither device drops dedup records', () => {
+      const email = 'test@email.com';
+      const key = `classroom_hub_sent_notifications_${email}`;
+      const local = {
+        [key]: JSON.stringify({
+          timestamp: '2026-01-02T00:00:00Z',
+          data: [{ assignmentId: 'a-1', type: 'due_today', sentAt: '2026-01-02T00:00:00Z' }]
+        })
+      };
+      const remote = {
+        [key]: JSON.stringify({
+          timestamp: '2026-01-01T00:00:00Z',
+          data: [{ assignmentId: 'a-2', type: 'due_1_day', sentAt: '2026-01-01T00:00:00Z' }]
+        })
+      };
+
+      const result = syncManager.mergePayloads(local, remote, email);
+      const parsed = JSON.parse(result[key]);
+      expect(parsed.data).toHaveLength(2);
+      expect(parsed.data.map(r => r.assignmentId).sort()).toEqual(['a-1', 'a-2']);
+    });
+
+    it('unions notification_history by id and preserves read status across devices', () => {
+      const email = 'test@email.com';
+      const key = `classroom_hub_notification_history_${email}`;
+      const local = {
+        [key]: JSON.stringify({
+          timestamp: '2026-01-01T00:00:00Z',
+          data: [
+            { id: 'log-1', title: 'Alert 1', sentAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z', read: false },
+            { id: 'log-2', title: 'Alert 2', sentAt: '2026-01-01T01:00:00Z', updatedAt: '2026-01-01T01:00:00Z', read: false }
+          ]
+        })
+      };
+      const remote = {
+        [key]: JSON.stringify({
+          timestamp: '2026-01-02T00:00:00Z',
+          data: [
+            { id: 'log-1', title: 'Alert 1', sentAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-02T00:00:00Z', read: true },
+            { id: 'log-3', title: 'Alert 3', sentAt: '2026-01-02T00:00:00Z', updatedAt: '2026-01-02T00:00:00Z', read: false }
+          ]
+        })
+      };
+
+      const result = syncManager.mergePayloads(local, remote, email);
+      const parsed = JSON.parse(result[key]);
+      expect(parsed.data).toHaveLength(3);
+      expect(parsed.data.find(l => l.id === 'log-1').read).toBe(true);
+    });
   });
 });

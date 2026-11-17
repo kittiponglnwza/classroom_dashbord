@@ -21,7 +21,7 @@ import { useToast } from '../hooks/useToast';
 export const ClassroomContext = createContext(null);
 
 export const ClassroomProvider = ({ children }) => {
-  const { accessToken, isLoggedIn, updateProfileFromGoogle, logout: authLogout } = useAuth();
+  const { accessToken, isLoggedIn, updateProfileFromGoogle, expireSession } = useAuth();
   const { lang, setLang, reloadSettings } = useSettings();
   const { addToast } = useToast();
 
@@ -34,6 +34,7 @@ export const ClassroomProvider = ({ children }) => {
   
   const [syncState, setSyncState] = useState('idle');
   const autoSyncedRef = useRef(false);
+  const classroomSyncInFlightRef = useRef(false);
 
   const loadLocalData = useCallback((email = '') => {
     setAssignments(getAssignments(email));
@@ -87,6 +88,13 @@ export const ClassroomProvider = ({ children }) => {
   const syncClassroom = useCallback(async (forcedToken = null) => {
     const tokenToUse = forcedToken || accessToken;
     if (!tokenToUse) return;
+    // Prevent overlapping full syncs (auto-sync + manual click): concurrent runs read the same
+    // stale cache snapshot and would each send the same "new posts" / reminder emails.
+    if (classroomSyncInFlightRef.current) {
+      logger.info('[Sync] Classroom sync already in progress; skipping duplicate request.');
+      return;
+    }
+    classroomSyncInFlightRef.current = true;
 
     try {
       logger.info('[Sync] Loading profile and classroom updates...');
@@ -150,35 +158,44 @@ export const ClassroomProvider = ({ children }) => {
 
       addToast(lang === 'th' ? 'ซิงค์ข้อมูลสำเร็จ' : 'Sync completed successfully', 'success');
 
-      setTimeout(async () => {
-        try {
-          if (lastSync) {
-            await NotificationService.evaluateNewPostDigest(
-              tokenToUse, userEmail, classroomData.assignments, 
-              classroomData.resources || [], cachedAssignmentIds, cachedResourceIds
-            );
-          }
-          await NotificationService.evaluateNotifications(
-            tokenToUse, userEmail, syncedAssigns, 
-            classroomData.courses, classroomData.resources || []
+      // Run alert evaluation after the success toast without blocking it, but keep the sync
+      // guard held until it finishes so a second sync cannot evaluate the same snapshot.
+      await new Promise(resolve => setTimeout(resolve, 0));
+      try {
+        if (lastSync) {
+          await NotificationService.evaluateNewPostDigest(
+            tokenToUse, userEmail, classroomData.assignments, 
+            classroomData.resources || [], cachedAssignmentIds, cachedResourceIds
           );
-        } catch (err) {
-          logger.error('Error processing digest alerts during sync:', err);
         }
-      }, 0);
+        await NotificationService.evaluateNotifications(
+          tokenToUse, userEmail, syncedAssigns, 
+          classroomData.courses, classroomData.resources || []
+        );
+      } catch (err) {
+        logger.error('Error processing digest alerts during sync:', err);
+      } finally {
+        // Surface newly logged notifications (history + unread badge) without a page reload
+        // and queue Drive sync so new sent_notifications / history records upload promptly.
+        reloadSettings();
+        syncManager.queueSync(tokenToUse, userEmail);
+      }
 
     } catch (e) {
       logger.error('Failed to sync Google Classroom data', e);
       if (e.message === 'UNAUTHORIZED' || e.code === 401) {
-        authLogout();
+        // Expired session, not a user logout: keep the remembered account for one-click resume.
+        expireSession();
         addToast(lang === 'th' ? 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' : 'Session expired, please login again.', 'error');
       } else if (e.name === 'NetworkError' || e.message?.toLowerCase().includes('network') || !navigator.onLine) {
         addToast(lang === 'th' ? 'เครือข่ายมีปัญหา กรุณาตรวจสอบการเชื่อมต่อ' : 'Network issue. Please check your connection.', 'warning');
       } else {
         addToast(e.message || (lang === 'th' ? 'การซิงค์ล้มเหลว' : 'Sync failed'), 'error');
       }
+    } finally {
+      classroomSyncInFlightRef.current = false;
     }
-  }, [accessToken, lang, setLang, updateProfileFromGoogle, loadLocalData, reloadSettings, authLogout, addToast]);
+  }, [accessToken, lang, setLang, updateProfileFromGoogle, loadLocalData, reloadSettings, expireSession, addToast]);
 
   const handleStatusChange = useCallback((id, newStatus) => {
     const email = getActiveEmail();

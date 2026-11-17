@@ -8,31 +8,88 @@ const KEYS = STORAGE_CONFIG.keys;
 // SECURITY NOTE: As a pure Single Page Application using Google's implicit OAuth flow 
 // without a backend server, we must store tokens in client-side storage (sessionStorage). 
 // Using HttpOnly cookies would be more secure but requires a backend architecture.
-export const saveToken = (token) => {
+// Session policy: the access token lives only for the browser session (sessionStorage) and
+// never beyond Google's `expires_in`. Expired tokens are treated as absent so a refresh after
+// expiry never restores a dead session as "logged in".
+const TOKEN_EXPIRY_SKEW_MS = 60 * 1000;
+const TOKEN_EXPIRY_KEY = `${KEYS.accessToken}_expires_at`;
+
+export const saveToken = (token, expiresInSeconds) => {
   if (token) {
     sessionStorage.setItem(KEYS.accessToken, token);
+    const seconds = Number(expiresInSeconds);
+    if (Number.isFinite(seconds) && seconds > 0) {
+      sessionStorage.setItem(TOKEN_EXPIRY_KEY, String(Date.now() + seconds * 1000));
+    } else {
+      sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
+    }
   }
 };
 
+export const getTokenExpiry = () => {
+  const raw = sessionStorage.getItem(TOKEN_EXPIRY_KEY);
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 export const getToken = () => {
-  return sessionStorage.getItem(KEYS.accessToken);
+  const token = sessionStorage.getItem(KEYS.accessToken);
+  if (!token) return null;
+  const expiresAt = getTokenExpiry();
+  if (expiresAt !== null && Date.now() >= expiresAt - TOKEN_EXPIRY_SKEW_MS) {
+    sessionStorage.removeItem(KEYS.accessToken);
+    sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
+    return null;
+  }
+  return token;
 };
 
 export const clearToken = () => {
   sessionStorage.removeItem(KEYS.accessToken);
+  sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
 };
 
-/* Active User Email configuration */
+/* Active User Email & Remember Me configuration */
+const REMEMBER_ME_KEY = 'classroom_hub_remember_me';
+
+export const getRememberMe = () => {
+  const raw = localStorage.getItem(REMEMBER_ME_KEY);
+  return raw === null ? true : raw === 'true';
+};
+
+export const setRememberMe = (remember) => {
+  const enabled = Boolean(remember);
+  localStorage.setItem(REMEMBER_ME_KEY, String(enabled));
+  const current = getActiveEmail();
+  if (!current) return;
+  if (enabled) {
+    localStorage.setItem(KEYS.activeEmail, current);
+    sessionStorage.removeItem(KEYS.activeEmail);
+  } else {
+    sessionStorage.setItem(KEYS.activeEmail, current);
+    localStorage.removeItem(KEYS.activeEmail);
+  }
+};
+
 export const getActiveEmail = () => {
-  const email = localStorage.getItem(KEYS.activeEmail);
+  const email = localStorage.getItem(KEYS.activeEmail) || sessionStorage.getItem(KEYS.activeEmail);
   return email ? email.toLowerCase().trim() : '';
 };
 
 export const setActiveEmail = (email) => {
   if (email) {
-    localStorage.setItem(KEYS.activeEmail, email.toLowerCase().trim());
+    const clean = email.toLowerCase().trim();
+    if (getRememberMe()) {
+      localStorage.setItem(KEYS.activeEmail, clean);
+      sessionStorage.removeItem(KEYS.activeEmail);
+    } else {
+      sessionStorage.setItem(KEYS.activeEmail, clean);
+      localStorage.removeItem(KEYS.activeEmail);
+    }
   } else {
     localStorage.removeItem(KEYS.activeEmail);
+    sessionStorage.removeItem(KEYS.activeEmail);
   }
 };
 
@@ -316,27 +373,78 @@ export const getDailyEmailLimit = (email) => {
   return { ...defaults, ...stored };
 };
 
+const emitNotificationStateChange = (email) => {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('classroom_hub_notifications_updated', { detail: { email } }));
+  }
+};
+
 export const saveDailyEmailLimit = (limitData, email) => {
   StorageRepository.set('classroom_hub_daily_email_limit', limitData, email);
+  emitNotificationStateChange(email);
 };
 
 export const getNotificationHistory = (email) => {
   const key = 'classroom_hub_notification_history';
-  return StorageRepository.get(key, email, true) || [];
+  const stored = StorageRepository.get(key, email, true) || [];
+  // Legacy entries created before Read/Unread support lacked `read`; treat them as already read
+  // so upgrading does not flood the user's badge with old history.
+  return stored.map(entry => ({
+    ...entry,
+    read: entry.read === false ? false : true
+  }));
 };
 
 export const saveNotificationHistory = (logs, email) => {
   StorageRepository.set('classroom_hub_notification_history', logs, email);
+  emitNotificationStateChange(email);
 };
 
 export const addNotificationHistoryLog = (logEntry, email) => {
   const logs = getNotificationHistory(email);
+  const nowIso = new Date().toISOString();
   const newLog = {
-    id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    sentAt: new Date().toISOString(),
+    id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+    sentAt: nowIso,
+    updatedAt: nowIso,
+    read: false,
     ...logEntry
   };
   const updated = [newLog, ...logs].slice(0, 100);
   saveNotificationHistory(updated, email);
+  return updated;
+};
+
+export const markNotificationRead = (id, email, read = true) => {
+  const logs = getNotificationHistory(email);
+  const nowIso = new Date().toISOString();
+  let changed = false;
+  const updated = logs.map(entry => {
+    if (entry.id === id && entry.read !== read) {
+      changed = true;
+      return { ...entry, read, updatedAt: nowIso };
+    }
+    return entry;
+  });
+  if (changed) {
+    saveNotificationHistory(updated, email);
+  }
+  return updated;
+};
+
+export const markAllNotificationsRead = (email) => {
+  const logs = getNotificationHistory(email);
+  const nowIso = new Date().toISOString();
+  let changed = false;
+  const updated = logs.map(entry => {
+    if (!entry.read) {
+      changed = true;
+      return { ...entry, read: true, updatedAt: nowIso };
+    }
+    return entry;
+  });
+  if (changed) {
+    saveNotificationHistory(updated, email);
+  }
   return updated;
 };

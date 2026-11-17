@@ -17,6 +17,12 @@ import { logger } from '../utils/logger';
 import { getCalendarDaysDiff } from '../utils/dateUtils';
 import { getHexColor } from '../utils/colors';
 
+// Sent-records older than this can no longer re-trigger (reminders fire within a few days of a
+// due date), so they are pruned to keep localStorage / Drive payload bounded.
+const SENT_RECORD_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+const NEW_POST_RECORD_TYPE = 'new_post';
+const inTabLocks = new Map();
+
 export class NotificationService {
 
   /**
@@ -140,21 +146,82 @@ export class NotificationService {
   }
 
   /**
-   * Checks and increments the daily limit tracker.
-   * NOTE: Limit temporarily disabled for debugging.
+   * Local (device timezone) YYYY-MM-DD stamp. Using toISOString() here would shift the date for
+   * non-UTC users (e.g. UTC+7 before 07:00) and break daily-quota / weekly-digest bookkeeping.
    */
-  static checkDailyLimitAndIncrement(email) {
-    const todayStr = new Date().toISOString().split('T')[0];
+  static localDateStamp(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  /**
+   * Returns true when another email may be sent today without exceeding the daily quota.
+   */
+  static hasDailyQuota(email) {
     const limit = getDailyEmailLimit(email);
-    
+    const sentToday = limit.lastSentDate === this.localDateStamp() ? Number(limit.count) || 0 : 0;
+    return sentToday < NOTIFICATION_CONFIG.maxDailyEmails;
+  }
+
+  /**
+   * Increments today's sent counter. Call only after an email was actually sent.
+   */
+  static recordEmailSent(email) {
+    const todayStr = this.localDateStamp();
+    const limit = getDailyEmailLimit(email);
     if (limit.lastSentDate === todayStr) {
-      limit.count += 1;
+      limit.count = (Number(limit.count) || 0) + 1;
     } else {
       limit.lastSentDate = todayStr;
       limit.count = 1;
     }
     saveDailyEmailLimit(limit, email);
-    return true;
+  }
+
+  /**
+   * Durably records that a notification (assignmentId + type) was delivered, immediately after
+   * the send succeeds, so a later failure in the same run can never cause it to be re-sent.
+   */
+  static persistSentRecord(email, record) {
+    this.persistSentRecords(email, [record]);
+  }
+
+  static persistSentRecords(email, records) {
+    const current = getSentNotifications(email);
+    const isKnown = (rec, list) => list.some(r => r.assignmentId === rec.assignmentId && r.type === rec.type);
+    const additions = [];
+    records.forEach(rec => {
+      if (!isKnown(rec, current) && !isKnown(rec, additions)) additions.push(rec);
+    });
+    if (additions.length === 0) return;
+    const cutoff = Date.now() - SENT_RECORD_RETENTION_MS;
+    const pruned = current.filter(r => {
+      const t = new Date(r.sentAt).getTime();
+      return Number.isNaN(t) || t >= cutoff;
+    });
+    saveSentNotifications([...pruned, ...additions], email);
+  }
+
+  /**
+   * Serializes notification evaluation per user across tabs (Web Locks API) and within a tab
+   * (promise chain fallback) so two concurrent runs cannot both send the same notification.
+   */
+  static async withNotificationLock(email, fn) {
+    const lockName = `classroom_hub_notify_${(email || '').toLowerCase().trim()}`;
+    if (typeof navigator !== 'undefined' && navigator.locks && typeof navigator.locks.request === 'function') {
+      return navigator.locks.request(lockName, () => fn());
+    }
+    const previous = inTabLocks.get(lockName) || Promise.resolve();
+    const run = previous.catch(() => {}).then(() => fn());
+    const tail = run.catch(() => {});
+    inTabLocks.set(lockName, tail);
+    try {
+      return await run;
+    } finally {
+      if (inTabLocks.get(lockName) === tail) inTabLocks.delete(lockName);
+    }
   }
 
   /**
@@ -296,7 +363,7 @@ export class NotificationService {
    * Sends a Success Test Email
    */
   static async triggerTestEmail(accessToken, toEmail) {
-    if (!this.checkDailyLimitAndIncrement(toEmail)) {
+    if (!this.hasDailyQuota(toEmail)) {
       throw new Error(`Failed to send test email: Daily email limit (${NOTIFICATION_CONFIG.maxDailyEmails}) reached.`);
     }
 
@@ -323,6 +390,7 @@ export class NotificationService {
 
     const html = this.wrapHtmlEmail('Classroom Hub: Gmail Integration Success', body);
     await GoogleRepository.sendEmail(accessToken, toEmail, '🎉 Classroom Hub: Gmail Integration Success', html);
+    this.recordEmailSent(toEmail);
     
     addNotificationHistoryLog({
       title: 'Sent connection test email successfully',
@@ -334,7 +402,7 @@ export class NotificationService {
    * Triggers a manual overall task digest immediately
    */
   static async triggerManualDigest(accessToken, toEmail, assignments) {
-    if (!this.checkDailyLimitAndIncrement(toEmail)) {
+    if (!this.hasDailyQuota(toEmail)) {
       throw new Error(`Failed to send task digest: Daily email limit (${NOTIFICATION_CONFIG.maxDailyEmails}) reached.`);
     }
 
@@ -402,6 +470,7 @@ export class NotificationService {
 
     const html = this.wrapHtmlEmail('Pending Assignments Digest', body);
     await GoogleRepository.sendEmail(accessToken, toEmail, '📝 Pending Assignments Digest - Classroom Hub', html);
+    this.recordEmailSent(toEmail);
     
     addNotificationHistoryLog({
       title: `Sent pending assignments digest (Total ${todoTasks.length} items)`,
@@ -412,25 +481,28 @@ export class NotificationService {
   /**
    * Main evaluator to scan deadlines and trigger email alerts.
    */
-  // eslint-disable-next-line no-unused-vars
   static async evaluateNotifications(accessToken, toEmail, assignments, courses, resources) {
+    return this.withNotificationLock(toEmail, () =>
+      this.evaluateNotificationsLocked(accessToken, toEmail, assignments, courses, resources)
+    );
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  static async evaluateNotificationsLocked(accessToken, toEmail, assignments, courses, resources) {
     const isEnabled = getEnableEmailAlerts(toEmail);
     if (!isEnabled) return;
 
     const alertSettings = getAlertSettings(toEmail);
+    // Read inside the lock so records persisted by a previous/concurrent run are visible.
     const sentRecords = getSentNotifications(toEmail);
     const now = new Date();
-    
-    const newSentRecords = [...sentRecords];
-    const checkAndRecordSent = (assignmentId, type) => {
-      const isSent = sentRecords.some(r => r.assignmentId === assignmentId && r.type === type);
-      if (isSent) return false;
-      newSentRecords.push({
-        assignmentId,
-        type,
-        sentAt: now.toISOString()
-      });
-      return true;
+
+    const wasSent = (assignmentId, type) =>
+      sentRecords.some(r => r.assignmentId === assignmentId && r.type === type);
+    const markSent = (assignmentId, type) => {
+      const record = { assignmentId, type, sentAt: new Date().toISOString() };
+      sentRecords.push(record);
+      this.persistSentRecord(toEmail, record);
     };
 
     const hiddenCourseIds = getHiddenCourses(toEmail);
@@ -474,27 +546,33 @@ export class NotificationService {
         warningLabel = 'Overdue by 1 day! Action required';
       }
 
-      if (triggerType && checkAndRecordSent(task.id, triggerType)) {
-        if (this.checkDailyLimitAndIncrement(toEmail)) {
-          const body = `
-            <h2 class="title" style="color: ${triggerType.includes('overdue') ? '#f43f5e' : '#f59e0b'};">
-              ${emoji} ${warningLabel}
-            </h2>
-            <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #1f2937; border-radius: 8px; padding: 15px; margin-top: 15px;">
-              <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">${escapeHtml(task.courseCode)} • ${escapeHtml(task.course)}</span>
-              <h3 style="color: #ffffff; margin: 4px 0 10px 0; font-size: 15px;">${escapeHtml(task.title)}</h3>
-              <p style="font-size: 12px; color: #d1d5db; line-height: 1.6; margin: 0;">${escapeHtml(task.description || 'No description provided.')}</p>
-            </div>
-            ${task.googleLink ? `<a href="${task.googleLink}" target="_blank" class="button">View on Google Classroom</a>` : ''}
-          `;
-          const html = this.wrapHtmlEmail(subject, body);
-          await GoogleRepository.sendEmail(accessToken, toEmail, subject, html);
-          
-          addNotificationHistoryLog({
-            title: `Sent reminder for '${task.title}' (${warningLabel})`,
-            type: triggerType
-          }, toEmail);
+      if (triggerType && !wasSent(task.id, triggerType)) {
+        if (!this.hasDailyQuota(toEmail)) {
+          // Not recorded as sent: it will be retried on a later sync once quota is available.
+          logger.info(`[Notify] Daily email quota reached; deferring '${triggerType}' for ${task.id}.`);
+          continue;
         }
+        const body = `
+          <h2 class="title" style="color: ${triggerType.includes('overdue') ? '#f43f5e' : '#f59e0b'};">
+            ${emoji} ${warningLabel}
+          </h2>
+          <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #1f2937; border-radius: 8px; padding: 15px; margin-top: 15px;">
+            <span style="font-size: 9px; color: #9ca3af; text-transform: uppercase; font-weight: 700;">${escapeHtml(task.courseCode)} • ${escapeHtml(task.course)}</span>
+            <h3 style="color: #ffffff; margin: 4px 0 10px 0; font-size: 15px;">${escapeHtml(task.title)}</h3>
+            <p style="font-size: 12px; color: #d1d5db; line-height: 1.6; margin: 0;">${escapeHtml(task.description || 'No description provided.')}</p>
+          </div>
+          ${task.googleLink ? `<a href="${task.googleLink}" target="_blank" class="button">View on Google Classroom</a>` : ''}
+        `;
+        const html = this.wrapHtmlEmail(subject, body);
+        await GoogleRepository.sendEmail(accessToken, toEmail, subject, html);
+        this.recordEmailSent(toEmail);
+        markSent(task.id, triggerType);
+
+        addNotificationHistoryLog({
+          title: `Sent reminder for '${task.title}' (${warningLabel})`,
+          type: triggerType,
+          read: false
+        }, toEmail);
       }
     }
 
@@ -510,17 +588,20 @@ export class NotificationService {
       
       const sundayDate = new Date(now);
       sundayDate.setDate(now.getDate() - now.getDay());
-      const sundayStamp = sundayDate.toISOString().split('T')[0];
+      // Week key must be stable for the whole local week regardless of time of day.
+      const sundayStamp = this.localDateStamp(sundayDate);
       const digestRecordType = `sunday_digest_${sundayStamp}`;
+      // Records written by older builds used a UTC-derived stamp; honour them to avoid a resend.
+      const legacyRecordType = `sunday_digest_${sundayDate.toISOString().split('T')[0]}`;
 
-      const alreadySentThisWeek = sentRecords.some(r => r.type === digestRecordType);
+      const alreadySentThisWeek = sentRecords.some(r => r.type === digestRecordType || r.type === legacyRecordType);
 
       if (((isSunday && timePassedTarget) || !isSunday) && !alreadySentThisWeek) {
         const noDueDateTasks = activeTodoAssignments.filter(a => !a.dueDate);
         const hasUpcomingExams = alertSettings.includeExams && this.buildExamsHtml(toEmail, true) !== '';
 
         if (noDueDateTasks.length > 0 || hasUpcomingExams) {
-          if (this.checkDailyLimitAndIncrement(toEmail)) {
+          if (this.hasDailyQuota(toEmail)) {
             let itemsHtml = '';
             if (noDueDateTasks.length > 0) {
               const courseGroups = {};
@@ -567,24 +648,17 @@ export class NotificationService {
             const digestSubject = `[Classroom Hub] 📅 Sunday Digest: Weekly summary`;
             const html = this.wrapHtmlEmail(digestSubject, body);
             await GoogleRepository.sendEmail(accessToken, toEmail, digestSubject, html);
-            
-            newSentRecords.push({
-              assignmentId: 'sunday_digest_overall',
-              type: digestRecordType,
-              sentAt: now.toISOString()
-            });
+            this.recordEmailSent(toEmail);
+            markSent('sunday_digest_overall', digestRecordType);
             
             addNotificationHistoryLog({
               title: `Sent Sunday Digest email (Total ${noDueDateTasks.length} tasks)`,
-              type: 'sunday_digest'
+              type: 'sunday_digest',
+              read: false
             }, toEmail);
           }
         }
       }
-    }
-
-    if (newSentRecords.length !== sentRecords.length) {
-      saveSentNotifications(newSentRecords, toEmail);
     }
   }
 
@@ -592,25 +666,41 @@ export class NotificationService {
    * Evaluates and groups new classroom uploads into a consolidated sync email digest
    */
   static async evaluateNewPostDigest(accessToken, toEmail, freshAssignments, freshResources, cachedAssignmentIds, cachedResourceIds) {
+    return this.withNotificationLock(toEmail, () =>
+      this.evaluateNewPostDigestLocked(accessToken, toEmail, freshAssignments, freshResources, cachedAssignmentIds, cachedResourceIds)
+    );
+  }
+
+  static async evaluateNewPostDigestLocked(accessToken, toEmail, freshAssignments, freshResources, cachedAssignmentIds, cachedResourceIds) {
     const alertSettings = getAlertSettings(toEmail);
     if (!alertSettings.newPosts) return;
+
+    // Per-item dedup: an item announced once is never announced again, even if a concurrent
+    // sync or another device computed the same "new" diff from a stale cache.
+    const sentRecords = getSentNotifications(toEmail);
+    const alreadyAnnounced = (id) => sentRecords.some(r => r.assignmentId === id && r.type === NEW_POST_RECORD_TYPE);
 
     const hiddenCourseIds = getHiddenCourses(toEmail);
     const newAssignments = freshAssignments.filter(a => {
       if (cachedAssignmentIds.includes(a.id)) return false;
       if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
+      if (alreadyAnnounced(a.id)) return false;
       return true;
     });
     const newResources = freshResources.filter(r => {
       if (cachedResourceIds.includes(r.id)) return false;
       if (r.courseId && hiddenCourseIds.includes(r.courseId)) return false;
+      if (alreadyAnnounced(r.id)) return false;
       return true;
     });
 
     const totalNew = newAssignments.length + newResources.length;
     if (totalNew === 0) return;
 
-    if (!this.checkDailyLimitAndIncrement(toEmail)) return;
+    if (!this.hasDailyQuota(toEmail)) {
+      logger.info('[Notify] Daily email quota reached; skipping new-post digest.');
+      return;
+    }
 
     const courseGroups = {};
     newAssignments.forEach(t => {
@@ -671,10 +761,18 @@ export class NotificationService {
 
     const html = this.wrapHtmlEmail(subject, body);
     await GoogleRepository.sendEmail(accessToken, toEmail, subject, html);
+    this.recordEmailSent(toEmail);
+    const sentAt = new Date().toISOString();
+    this.persistSentRecords(toEmail, [...newAssignments, ...newResources].map(item => ({
+      assignmentId: item.id,
+      type: NEW_POST_RECORD_TYPE,
+      sentAt
+    })));
     
     addNotificationHistoryLog({
       title: `Detected and sent new posts email (Total ${totalNew} items)`,
-      type: 'new_posts_digest'
+      type: 'new_posts_digest',
+      read: false
     }, toEmail);
   }
 }

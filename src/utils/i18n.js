@@ -185,6 +185,10 @@ export const translations = {
     
     // Login Screen
     connectGoogleBtn: 'Connect Google Classroom',
+    continueAsBtn: 'Continue as {email}',
+    useAnotherAccount: 'Use another account',
+    markAllRead: 'Mark all as read',
+    unreadLabel: 'unread',
     loginFooterText: 'No registration required. Sign in securely using your KMUTNB or personal school Gmail account.',
     
     // Assignment Detail Page
@@ -437,6 +441,10 @@ export const translations = {
     
     // Login Screen
     connectGoogleBtn: 'เชื่อมต่อ Google Classroom',
+    continueAsBtn: 'ดำเนินการต่อในชื่อ {email}',
+    useAnotherAccount: 'ใช้บัญชีอื่น',
+    markAllRead: 'อ่านทั้งหมดแล้ว',
+    unreadLabel: 'ยังไม่อ่าน',
     loginFooterText: 'ไม่ต้องลงทะเบียนข้อมูล เข้าสู่ระบบอย่างปลอดภัยโดยใช้บัญชี Gmail ของทางสถาบัน (มจพ.) หรือส่วนตัวของคุณ',
     
     // Assignment Detail Page

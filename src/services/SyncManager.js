@@ -117,6 +117,9 @@ class SyncManager {
       const isAssignments = fullKey.startsWith(KEYS.assignments);
       const isSchedule = fullKey.startsWith(KEYS.schedule);
       const isExams = fullKey.startsWith(KEYS.exams);
+      const isSentNotifications = fullKey.startsWith('classroom_hub_sent_notifications');
+      const isNotificationHistory = fullKey.startsWith('classroom_hub_notification_history');
+      const isDailyEmailLimit = fullKey.startsWith('classroom_hub_daily_email_limit');
 
       try {
         if (isAssignments) {
@@ -171,6 +174,36 @@ class SyncManager {
               manualExams: mergedManual,
               unlisted: mergedUnlisted
             }
+          });
+        } else if (isSentNotifications) {
+          // Union by (assignmentId, type) so a reminder sent on one device is never forgotten
+          // when merging with another device's payload.
+          const localParsed = JSON.parse(localStr);
+          const remoteParsed = JSON.parse(remoteStr);
+          const mergedArr = this.mergeSentNotifications(localParsed.data || [], remoteParsed.data || []);
+          merged[fullKey] = JSON.stringify({
+            version: STORAGE_CONFIG.schemaVersion,
+            timestamp: new Date().toISOString(),
+            data: mergedArr
+          });
+        } else if (isNotificationHistory) {
+          // Union history logs by id and preserve read state across devices.
+          const localParsed = JSON.parse(localStr);
+          const remoteParsed = JSON.parse(remoteStr);
+          const mergedArr = this.mergeNotificationHistory(localParsed.data || [], remoteParsed.data || []);
+          merged[fullKey] = JSON.stringify({
+            version: STORAGE_CONFIG.schemaVersion,
+            timestamp: new Date().toISOString(),
+            data: mergedArr
+          });
+        } else if (isDailyEmailLimit) {
+          const localParsed = JSON.parse(localStr);
+          const remoteParsed = JSON.parse(remoteStr);
+          const mergedLimit = this.mergeDailyEmailLimit(localParsed.data || {}, remoteParsed.data || {});
+          merged[fullKey] = JSON.stringify({
+            version: STORAGE_CONFIG.schemaVersion,
+            timestamp: new Date().toISOString(),
+            data: mergedLimit
           });
         } else {
           // General settings, profiles, lastSync metadata: LWW based on collection timestamp
@@ -239,6 +272,63 @@ class SyncManager {
     });
 
     return Array.from(mergedMap.values());
+  }
+
+  mergeSentNotifications(localList, remoteList) {
+    const map = new Map();
+    [...(remoteList || []), ...(localList || [])].forEach(item => {
+      if (!item || !item.assignmentId || !item.type) return;
+      const key = `${item.assignmentId}::${item.type}`;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, item);
+      } else {
+        const existingTime = new Date(existing.sentAt || 0).getTime();
+        const candidateTime = new Date(item.sentAt || 0).getTime();
+        if (candidateTime < existingTime) {
+          map.set(key, item);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  mergeNotificationHistory(localList, remoteList) {
+    const map = new Map();
+    [...(remoteList || []), ...(localList || [])].forEach(item => {
+      if (!item || !item.id) return;
+      const idStr = String(item.id);
+      const existing = map.get(idStr);
+      if (!existing) {
+        map.set(idStr, item);
+      } else {
+        const existingTime = new Date(existing.updatedAt || existing.sentAt || 0).getTime();
+        const candidateTime = new Date(item.updatedAt || item.sentAt || 0).getTime();
+        const winner = candidateTime >= existingTime ? { ...existing, ...item } : { ...item, ...existing };
+        // Once read on any device, keep read unless explicitly marked unread with a newer timestamp.
+        if (candidateTime === existingTime && (existing.read === true || item.read === true)) {
+          winner.read = true;
+        }
+        map.set(idStr, winner);
+      }
+    });
+    return Array.from(map.values())
+      .sort((a, b) => new Date(b.sentAt || 0).getTime() - new Date(a.sentAt || 0).getTime())
+      .slice(0, 100);
+  }
+
+  mergeDailyEmailLimit(localLimit, remoteLimit) {
+    const localDate = localLimit?.lastSentDate || '';
+    const remoteDate = remoteLimit?.lastSentDate || '';
+    if (localDate === remoteDate) {
+      return {
+        lastSentDate: localDate,
+        count: Math.max(Number(localLimit?.count) || 0, Number(remoteLimit?.count) || 0)
+      };
+    }
+    return remoteDate > localDate
+      ? { lastSentDate: remoteDate, count: Number(remoteLimit?.count) || 0 }
+      : { lastSentDate: localDate, count: Number(localLimit?.count) || 0 };
   }
 }
 

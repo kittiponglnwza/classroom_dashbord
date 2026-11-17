@@ -12,14 +12,18 @@ export default function TaskFilters({
   visibleCourses, lang 
 }) {
   const [localSearch, setLocalSearch] = useState(searchQuery);
+  const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
   const debouncedSearch = useDebounce(localSearch, 300);
 
   useEffect(() => {
     setSearchQuery(debouncedSearch);
   }, [debouncedSearch, setSearchQuery]);
 
-  if (searchQuery === '' && localSearch !== '') {
-    setLocalSearch('');
+  if (searchQuery !== prevSearchQuery) {
+    setPrevSearchQuery(searchQuery);
+    if (searchQuery === '') {
+      setLocalSearch('');
+    }
   }
 
   return (

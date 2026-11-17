@@ -6,6 +6,7 @@ import { SyncRecord } from '../types/models';
 // In-memory cache store
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const memoryCache = new Map<string, SyncRecord<any>>();
+const rawCache = new Map<string, string>();
 
 export class StorageRepository {
   static getCacheKey(key: string, email?: string): string {
@@ -101,6 +102,7 @@ export class StorageRepository {
       const serialized = JSON.stringify(payload);
       localStorage.setItem(cacheKey, serialized);
       memoryCache.set(cacheKey, payload);
+      rawCache.set(cacheKey, serialized);
       
       // Update modification timestamp for synchronization
       if (email) {
@@ -120,22 +122,25 @@ export class StorageRepository {
     const cacheKey = this.getCacheKey(baseKey, email);
     this.migrate(email);
 
-    // 1. Check memory cache first
-    if (memoryCache.has(cacheKey)) {
+    const stored = localStorage.getItem(cacheKey);
+    if (!stored) {
+      memoryCache.delete(cacheKey);
+      rawCache.delete(cacheKey);
+      return null;
+    }
+
+    // 1. Check memory cache first (only when raw localStorage string matches)
+    if (memoryCache.has(cacheKey) && rawCache.get(cacheKey) === stored) {
       const cached = memoryCache.get(cacheKey)!;
       if (this.isValidCache(baseKey, cached, forceIgnoreTTL)) {
         logger.debug(`Cache Hit (Memory) for ${cacheKey}`);
         return cached.data as T;
       }
       logger.debug(`Cache Expired (Memory) for ${cacheKey}`);
-    }
-
-    // 2. Fall back to LocalStorage
-    const stored = localStorage.getItem(cacheKey);
-    if (!stored) {
       return null;
     }
 
+    // 2. Parse from LocalStorage
     try {
       const parsed = JSON.parse(stored) as SyncRecord<any>;
       
@@ -144,6 +149,7 @@ export class StorageRepository {
         if (this.isValidCache(baseKey, parsed, forceIgnoreTTL)) {
           logger.debug(`Cache Hit (LocalStorage) for ${cacheKey}`);
           memoryCache.set(cacheKey, parsed);
+          rawCache.set(cacheKey, stored);
           return parsed.data as T;
         }
         logger.info(`Cache Expired (LocalStorage) for ${cacheKey}`);
@@ -177,6 +183,7 @@ export class StorageRepository {
     const cacheKey = this.getCacheKey(baseKey, email);
     localStorage.removeItem(cacheKey);
     memoryCache.delete(cacheKey);
+    rawCache.delete(cacheKey);
   }
 
   /**
@@ -184,5 +191,6 @@ export class StorageRepository {
    */
   static clearMemoryCache(): void {
     memoryCache.clear();
+    rawCache.clear();
   }
 }
