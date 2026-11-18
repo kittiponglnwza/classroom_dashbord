@@ -392,9 +392,21 @@ export const setEnableEmailAlerts = (enabled, email) => {
   StorageRepository.set('classroom_hub_enable_email_alerts', enabled, email);
 };
 
+const getEnvDiscordWebhookUrl = () => {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.MODE !== 'test') {
+      return String(import.meta.env.VITE_DISCORD_WEBHOOK_URL || '').trim();
+    }
+  } catch {
+    // Ignore if import.meta is unavailable
+  }
+  return '';
+};
+
 export const getAlertSettings = (email) => {
   const key = 'classroom_hub_alert_settings';
   const stored = StorageRepository.get(key, email, true);
+  const envWebhookUrl = getEnvDiscordWebhookUrl();
   const defaults = {
     due3Days: true,
     due1Day: true,
@@ -405,10 +417,16 @@ export const getAlertSettings = (email) => {
     includeExams: true,
     calendarReminderEnabled: true,
     calendarReminderValue: 10,
-    calendarReminderUnit: 'minutes'
+    calendarReminderUnit: 'minutes',
+    discordEnabled: Boolean(envWebhookUrl),
+    discordWebhookUrl: envWebhookUrl
   };
   if (!stored) return defaults;
-  return { ...defaults, ...stored };
+  const merged = { ...defaults, ...stored };
+  if (!merged.discordWebhookUrl && envWebhookUrl) {
+    merged.discordWebhookUrl = envWebhookUrl;
+  }
+  return merged;
 };
 
 export const saveAlertSettings = (settings, email) => {

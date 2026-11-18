@@ -12,6 +12,14 @@ export async function triggerManualDigest(accessToken, toEmail, assignments) {
   return await NotificationService.triggerManualDigest(accessToken, toEmail, assignments);
 }
 
+export async function triggerTestDiscord(toEmail, webhookUrlOverride = '') {
+  return await NotificationService.triggerTestDiscord(toEmail, webhookUrlOverride);
+}
+
+export async function triggerManualDiscordDigest(toEmail, assignments, webhookUrlOverride = '') {
+  return await NotificationService.triggerManualDiscordDigest(toEmail, assignments, webhookUrlOverride);
+}
+
 export async function evaluateNotifications(accessToken, toEmail, assignments, courses, resources, options = {}) {
   return await NotificationService.evaluateNotifications(accessToken, toEmail, assignments, courses, resources, options);
 }

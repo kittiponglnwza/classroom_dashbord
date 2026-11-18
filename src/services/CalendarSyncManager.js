@@ -24,8 +24,10 @@ class CalendarSyncManager {
   }
 
   setState(newState) {
-    this.state = newState;
-    this.subscribers.forEach(cb => cb(this.state));
+    if (this.state !== newState) {
+      this.state = newState;
+      this.subscribers.forEach(cb => cb(this.state));
+    }
   }
 
   clearResetTimer() {

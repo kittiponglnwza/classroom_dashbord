@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { StorageRepository } from '../../src/repositories/StorageRepository';
 import { STORAGE_CONFIG } from '../../src/config/storage';
@@ -16,8 +16,13 @@ import { parseExamHtml } from '../../src/services/parsers/examParser';
 import { getCalendarDaysDiff, calculateDueState } from '../../src/utils/dateUtils';
 import {
   recordDeletedId, updateAssignmentStatus, syncClassroomAssignments, saveAssignments,
-  setActiveEmail, saveProfile, saveToken
+  setActiveEmail, saveProfile, saveToken, setEnableEmailAlerts, saveAlertSettings,
+  getSentNotifications, getNotificationHistory, saveHiddenCourses
 } from '../../src/utils/storage';
+import { DiscordService, DISCORD_LIMITS } from '../../src/services/DiscordService';
+import { NotificationService } from '../../src/services/NotificationService';
+import { getAppsScriptTemplate } from '../../src/utils/appsScriptTemplate';
+import Settings from '../../src/pages/Settings';
 import { useExams } from '../../src/hooks/useExams';
 import { useExamRoom } from '../../src/features/exams/useExamRoom';
 import { examRepository } from '../../src/repositories/examRepository';
@@ -655,6 +660,343 @@ describe('Gauntlet Regression Protections', () => {
 
       expect(screen.getByLabelText('Start Time').value).toBe('09:00');
       expect(screen.getByLabelText('End Time').value).toBe('10:00');
+    });
+  });
+
+  describe('Discord Webhook & 24/7 Google Apps Script Gauntlet Suite', () => {
+    const validWebhook = 'https://discord.com/api/webhooks/123456789012345678/AbCdEfGhIjKlMnOpQrStUvWxYz_1234567890';
+
+    it('strictly validates Discord Webhook URLs, strips untrusted query params, and masks tokens', () => {
+      expect(DiscordService.validateWebhookUrl('').valid).toBe(false);
+      expect(DiscordService.validateWebhookUrl('http://discord.com/api/webhooks/123456/abcdef123456').valid).toBe(false);
+      expect(DiscordService.validateWebhookUrl('https://evil.com/api/webhooks/123456/abcdef123456').valid).toBe(false);
+      expect(DiscordService.validateWebhookUrl('javascript:alert(1)').valid).toBe(false);
+      expect(DiscordService.validateWebhookUrl('https://discord.com/channels/123/456').valid).toBe(false);
+
+      const withThread = DiscordService.validateWebhookUrl(
+        `${validWebhook}/?thread_id=9988776655&evil_param=inject`
+      );
+      expect(withThread.valid).toBe(true);
+      expect(withThread.url).toBe(`${validWebhook}?thread_id=9988776655`);
+
+      const masked = DiscordService.maskWebhookUrl(validWebhook);
+      expect(masked).toContain('••••••••');
+      expect(masked).not.toContain('AbCdEfGhIjKlMnOpQrStUvWxYz_1234567890');
+    });
+
+    it('clamps oversized Discord embeds and fields within strict API limits and strips unsafe URLs', () => {
+      const hugeTitle = 'T'.repeat(500);
+      const hugeDesc = 'D'.repeat(5000);
+      const manyFields = Array.from({ length: 30 }, (_, i) => ({
+        name: i === 0 ? '' : `Field ${i} ${'N'.repeat(300)}`,
+        value: i === 0 ? '   ' : `Val ${i} ${'V'.repeat(1200)}`,
+        inline: false
+      }));
+
+      const sanitized = DiscordService.sanitizePayload({
+        username: 'U'.repeat(120),
+        embeds: [{
+          title: hugeTitle,
+          description: hugeDesc,
+          url: 'javascript:alert(1)',
+          fields: manyFields
+        }]
+      });
+
+      const embed = sanitized.embeds[0];
+      expect(sanitized.username.length).toBeLessThanOrEqual(80);
+      expect(embed.title.length).toBeLessThanOrEqual(DISCORD_LIMITS.maxTitleLen);
+      expect(embed.description.length).toBeLessThanOrEqual(DISCORD_LIMITS.maxDescLen);
+      expect(embed.url).toBeUndefined();
+      expect(embed.fields[0].name).toBe('Item');
+      expect(embed.fields[0].value).toBe('-');
+      expect(embed.fields.length).toBeLessThanOrEqual(DISCORD_LIMITS.maxFields);
+    });
+
+    it('retries DiscordService.sendWebhook on HTTP 429 rate limit and surfaces clear errors on 400', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch')
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          json: async () => ({ retry_after: 0.01 })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 204
+        });
+
+      const res = await DiscordService.sendWebhook(validWebhook, { content: 'Hello' }, { maxRetryWaitMs: 20 });
+      expect(res.ok).toBe(true);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+      fetchSpy.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ message: 'Invalid Form Body' })
+      });
+
+      await expect(
+        DiscordService.sendWebhook(validWebhook, { content: 'Bad' })
+      ).rejects.toThrow(/Discord Webhook Error \(400\): Invalid Form Body/);
+    });
+
+    it('delivers Discord-only deadline reminders and new-post digests when Gmail alerts are disabled, with deduplication', async () => {
+      const email = 'discordonly@kmutnb.ac.th';
+      const todayIso = new Date().toISOString();
+      setEnableEmailAlerts(false, email);
+      saveAlertSettings({
+        discordEnabled: true,
+        discordWebhookUrl: validWebhook,
+        dueToday: true,
+        newPosts: true
+      }, email);
+
+      const emailSpy = vi.spyOn(GoogleRepository, 'sendEmail').mockResolvedValue({});
+      const webhookSpy = vi.spyOn(DiscordService, 'sendWebhook').mockResolvedValue({ ok: true, status: 204 });
+
+      const assignments = [
+        { id: 'hw-1', title: 'Discord Lab', course: 'OS', courseCode: 'CS301', status: 'todo', dueDate: todayIso }
+      ];
+
+      await NotificationService.evaluateNotifications('tok', email, assignments, [], []);
+      expect(emailSpy).not.toHaveBeenCalled();
+      expect(webhookSpy).toHaveBeenCalledTimes(1);
+      expect(getSentNotifications(email).some(r => r.assignmentId === 'hw-1' && r.type === 'discord:due_today')).toBe(true);
+
+      // Second run must NOT re-send the same Discord reminder
+      await NotificationService.evaluateNotifications('tok', email, assignments, [], []);
+      expect(webhookSpy).toHaveBeenCalledTimes(1);
+
+      // Evaluate new posts for Discord-only mode
+      await NotificationService.evaluateNewPostDigest(
+        'tok',
+        email,
+        [{ id: 'post-1', title: 'New HW', course: 'OS' }],
+        [{ id: 'ann-1', title: 'Exam Announcement', course: 'OS', type: 'announcement' }],
+        [],
+        []
+      );
+      expect(webhookSpy).toHaveBeenCalledTimes(2);
+
+      // Re-running with identical diff must be deduplicated
+      await NotificationService.evaluateNewPostDigest(
+        'tok',
+        email,
+        [{ id: 'post-1', title: 'New HW', course: 'OS' }],
+        [{ id: 'ann-1', title: 'Exam Announcement', course: 'OS', type: 'announcement' }],
+        [],
+        []
+      );
+      expect(webhookSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('executes generated Google Apps Script (testDiscordWebhook, debugDryRun, sendClassroomDigest, resetSentHistory) cleanly in a simulated GAS runtime', () => {
+      const scriptCode = getAppsScriptTemplate(['course-hidden'], {
+        discordWebhookUrl: validWebhook,
+        enableDiscord: true,
+        enableEmail: false,
+        notifyNewPosts: true
+      });
+
+      const logs = [];
+      const propStore = {};
+      const fetchCalls = [];
+      const emailCalls = [];
+      let sleepCalls = 0;
+
+      const dueSoon = new Date(Date.now() + 20 * 60 * 60 * 1000); // ~20 hours ahead (due_1d)
+      const recentIso = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+      const mockEnv = {
+        Logger: { log: (msg) => logs.push(String(msg)) },
+        Session: { getActiveUser: () => ({ getEmail: () => 'student@kmutnb.ac.th' }) },
+        PropertiesService: {
+          getScriptProperties: () => ({
+            getProperty: (k) => propStore[k] || null,
+            setProperty: (k, v) => { propStore[k] = String(v); },
+            deleteProperty: (k) => { delete propStore[k]; }
+          })
+        },
+        Utilities: {
+          formatDate: () => '19 Nov 14:00',
+          sleep: () => { sleepCalls++; }
+        },
+        UrlFetchApp: {
+          fetch: (url, opts) => {
+            fetchCalls.push({ url, opts: { ...opts, payload: JSON.parse(opts.payload) } });
+            // Simulate 429 on very first call to verify retry inside GAS
+            if (fetchCalls.length === 1) {
+              return {
+                getResponseCode: () => 429,
+                getContentText: () => JSON.stringify({ retry_after: 0.5 })
+              };
+            }
+            return {
+              getResponseCode: () => 204,
+              getContentText: () => ''
+            };
+          }
+        },
+        MailApp: {
+          sendEmail: (payload) => emailCalls.push(payload)
+        },
+        Classroom: {
+          Courses: {
+            list: () => ({
+              courses: [
+                { id: 'course-hidden', name: 'Hidden Course' },
+                { id: 'course-active', name: 'Software Engineering' }
+              ]
+            }),
+            CourseWork: {
+              list: () => ({
+                courseWork: [
+                  {
+                    id: 'cw-due',
+                    title: 'Sprint Report',
+                    maxPoints: 50,
+                    alternateLink: 'https://classroom.google.com/c/1/a/2',
+                    dueDate: {
+                      year: dueSoon.getUTCFullYear(),
+                      month: dueSoon.getUTCMonth() + 1,
+                      day: dueSoon.getUTCDate()
+                    },
+                    dueTime: {
+                      hours: dueSoon.getUTCHours(),
+                      minutes: dueSoon.getUTCMinutes(),
+                      seconds: 0
+                    }
+                  },
+                  {
+                    id: 'cw-done',
+                    title: 'Already Turned In',
+                    dueDate: {
+                      year: dueSoon.getUTCFullYear(),
+                      month: dueSoon.getUTCMonth() + 1,
+                      day: dueSoon.getUTCDate()
+                    },
+                    dueTime: {
+                      hours: dueSoon.getUTCHours(),
+                      minutes: dueSoon.getUTCMinutes(),
+                      seconds: 0
+                    }
+                  }
+                ]
+              }),
+              StudentSubmissions: {
+                list: (_cid, cwId) => ({
+                  studentSubmissions: [{ state: cwId === 'cw-done' ? 'TURNED_IN' : 'CREATED' }]
+                })
+              }
+            },
+            Announcements: {
+              list: () => ({
+                announcements: [
+                  { id: 'ann-99', text: 'Quiz on Friday!', creationTime: recentIso, alternateLink: 'https://classroom.google.com/c/1' }
+                ]
+              })
+            }
+          }
+        }
+      };
+
+      const runner = new Function(
+        'Logger', 'Session', 'PropertiesService', 'Utilities', 'UrlFetchApp', 'MailApp', 'Classroom',
+        `${scriptCode}\nreturn { testDiscordWebhook, debugDryRun, sendClassroomDigest, resetSentHistory, CONFIG };`
+      )(
+        mockEnv.Logger,
+        mockEnv.Session,
+        mockEnv.PropertiesService,
+        mockEnv.Utilities,
+        mockEnv.UrlFetchApp,
+        mockEnv.MailApp,
+        mockEnv.Classroom
+      );
+
+      // 1. Dry Run must NOT send any webhook or mutate properties
+      runner.debugDryRun();
+      expect(fetchCalls).toHaveLength(0);
+      expect(Object.keys(propStore)).toHaveLength(0);
+      expect(logs.some(l => l.includes('Sprint Report'))).toBe(true);
+
+      // 2. testDiscordWebhook retries on first 429 and succeeds on 2nd attempt
+      runner.testDiscordWebhook();
+      expect(fetchCalls).toHaveLength(2);
+      expect(sleepCalls).toBe(1);
+      expect(fetchCalls[1].url).toBe(validWebhook);
+
+      // 3. sendClassroomDigest posts pending assignment + new announcement to Discord and records dedup state
+      runner.sendClassroomDigest();
+      expect(fetchCalls).toHaveLength(3);
+      expect(emailCalls).toHaveLength(0); // enableEmail was false
+      const digestPayload = fetchCalls[2].opts.payload;
+      expect(digestPayload.embeds).toHaveLength(2); // 1 deadline embed + 1 announcement embed
+      expect(JSON.stringify(digestPayload)).toContain('Sprint Report');
+      expect(JSON.stringify(digestPayload)).not.toContain('Already Turned In');
+      expect(JSON.stringify(digestPayload)).not.toContain('Hidden Course');
+
+      // 4. Running sendClassroomDigest again immediately is deduplicated (no new webhook call)
+      runner.sendClassroomDigest();
+      expect(fetchCalls).toHaveLength(3);
+
+      // 5. resetSentHistory clears dedup state so next run sends again
+      runner.resetSentHistory();
+      runner.sendClassroomDigest();
+      expect(fetchCalls).toHaveLength(4);
+    });
+
+    it('renders Discord Webhook & Apps Script generator in Settings page, validates URLs live, and tests webhook', async () => {
+      const email = 'student@kmutnb.ac.th';
+      setActiveEmail(email);
+      saveToken('tok-123', 3600);
+      saveProfile({ name: 'Somchai', email }, email);
+      saveHiddenCourses(['hidden-c1'], email);
+
+      const webhookSpy = vi.spyOn(DiscordService, 'sendWebhook').mockResolvedValue({ ok: true, status: 204 });
+
+      render(
+        <MemoryRouter initialEntries={['/settings']}>
+          <AuthProvider>
+            <SettingsProvider>
+              <ClassroomContext.Provider value={{ assignments: [{ id: 'a1', title: 'HW 1', course: 'Math', status: 'todo' }] }}>
+                <Settings />
+              </ClassroomContext.Provider>
+            </SettingsProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByTestId('discord-webhook-status').textContent).toMatch(/Not Configured|ยังไม่ตั้งค่า/);
+
+      const webhookInput = screen.getByPlaceholderText(/https:\/\/discord\.com\/api\/webhooks/i);
+      fireEvent.change(webhookInput, { target: { value: 'https://not-discord.com/webhook' } });
+      expect(screen.getByTestId('discord-webhook-status').textContent).toMatch(/Invalid|ไม่ถูกต้อง/);
+
+      fireEvent.change(webhookInput, { target: { value: validWebhook } });
+      expect(screen.getByTestId('discord-webhook-status').textContent).toMatch(/Ready|พร้อมใช้งาน/);
+
+      // Click Test Discord Webhook button
+      const testBtn = screen.getByText(/Test Discord Webhook|ยิงข้อความทดสอบเข้า Discord/i);
+      await act(async () => {
+        fireEvent.click(testBtn);
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(screen.getByText(/Test message delivered to Discord successfully|ส่งข้อความทดสอบเข้า Discord สำเร็จแล้ว/i)).toBeInTheDocument();
+      expect(webhookSpy).toHaveBeenCalledTimes(1);
+      expect(webhookSpy.mock.calls[0][0]).toBe(validWebhook);
+      expect(getNotificationHistory(email).some(h => h.type === 'test_discord')).toBe(true);
+
+      // Open Code & Debug Guide preview
+      const previewBtn = screen.getByText(/View Code & Debug Guide|ดูโค้ดและวิธีตั้งค่า/i);
+      fireEvent.click(previewBtn);
+
+      const codeArea = screen.getByLabelText(/Generated Google Apps Script Code|โค้ด Google Apps Script/i);
+      expect(codeArea.value).toContain(validWebhook);
+      expect(codeArea.value).toContain('"hidden-c1"');
+      expect(codeArea.value).toContain('function testDiscordWebhook()');
+      expect(codeArea.value).toContain('function debugDryRun()');
+      expect(codeArea.value).toContain('function resetSentHistory()');
     });
   });
 });

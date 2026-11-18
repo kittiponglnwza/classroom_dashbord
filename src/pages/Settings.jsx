@@ -1,9 +1,18 @@
 import { useState, useEffect, useRef, useId } from 'react';
-import { GraduationCap, Code, Mail, CheckCircle2, ChevronRight, Settings2, Layers, RefreshCw } from 'lucide-react';
+import {
+  GraduationCap, Code, Mail, CheckCircle2, ChevronRight, Settings2,
+  Layers, RefreshCw, MessageSquare, Copy, Check, ExternalLink, Terminal
+} from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useClassroom } from '../contexts/ClassroomContext';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
+import { syncManager } from '../services/SyncManager';
+import { DiscordService } from '../services/DiscordService';
+import { triggerTestDiscord, triggerManualDiscordDigest } from '../utils/notifications';
+import { getAppsScriptTemplate } from '../utils/appsScriptTemplate';
+import { getHiddenCourses, getAssignments } from '../utils/storage';
 
 const GithubIcon = ({ size = 16, className = '' }) => (
   <svg height={size} width={size} viewBox="0 0 16 16" version="1.1" fill="currentColor" className={className} aria-hidden="true">
@@ -45,8 +54,9 @@ const InputField = ({ label, value, onChange, type = 'text', required = true, re
 };
 
 export default function Settings() {
-  const { lang } = useSettings();
+  const { lang, alertSettings = {}, handleToggleSetting, handleUpdateSetting, refreshNotificationData } = useSettings();
   const { profile, isLoggedIn, handleProfileSave, login, logout, accessToken } = useAuth();
+  const classroom = useClassroom();
 
   const [name, setName] = useState(profile.name || '');
   const [studentId, setStudentId] = useState(
@@ -62,6 +72,14 @@ export default function Settings() {
   const [isResettingCalendar, setIsResettingCalendar] = useState(false);
   const [calendarSyncState, setCalendarSyncState] = useState(calendarSyncManager.state);
   const [resetMessage, setResetMessage] = useState('');
+  const [discordTestSending, setDiscordTestSending] = useState(false);
+  const [discordDigestSending, setDiscordDigestSending] = useState(false);
+  const [discordFeedback, setDiscordFeedback] = useState({ text: '', type: '' });
+  const [scriptIncludeEmail, setScriptIncludeEmail] = useState(false);
+  const [scriptNotifyNewPosts, setScriptNotifyNewPosts] = useState(true);
+  const [showScriptPreview, setShowScriptPreview] = useState(false);
+  const [copiedScript, setCopiedScript] = useState(false);
+  const webhookFieldId = useId();
   const timersRef = useRef([]);
 
   useEffect(() => {
@@ -148,6 +166,110 @@ export default function Settings() {
     } finally {
       const id = setTimeout(() => setResetMessage(''), 4000);
       timersRef.current.push(id);
+    }
+  };
+
+  const activeUserEmail = profile.email || email || '';
+  const hiddenCourseIds = getHiddenCourses(activeUserEmail);
+  const currentAssignments = classroom?.assignments || getAssignments(activeUserEmail);
+  const webhookValidation = DiscordService.validateWebhookUrl(alertSettings.discordWebhookUrl || '');
+  const maskedWebhook = DiscordService.maskWebhookUrl(alertSettings.discordWebhookUrl || '');
+
+  const generatedAppsScript = getAppsScriptTemplate(hiddenCourseIds, {
+    discordWebhookUrl: alertSettings.discordWebhookUrl || '',
+    enableDiscord: true,
+    enableEmail: scriptIncludeEmail,
+    notifyNewPosts: scriptNotifyNewPosts
+  });
+
+  const handleTestDiscordWebhook = async () => {
+    setDiscordFeedback({ text: '', type: '' });
+    if (!webhookValidation.valid) {
+      setDiscordFeedback({
+        text: lang === 'en'
+          ? 'Please enter a valid Discord Webhook URL (https://discord.com/api/webhooks/...)'
+          : 'กรุณาใส่ลิงก์ Discord Webhook ที่ถูกต้อง (https://discord.com/api/webhooks/...)',
+        type: 'error'
+      });
+      return;
+    }
+    setDiscordTestSending(true);
+    try {
+      await triggerTestDiscord(activeUserEmail, webhookValidation.url);
+      refreshNotificationData?.();
+      if (accessToken && activeUserEmail) {
+        syncManager.queueSync(accessToken, activeUserEmail);
+      }
+      setDiscordFeedback({
+        text: lang === 'en'
+          ? 'Test message delivered to Discord successfully!'
+          : 'ส่งข้อความทดสอบเข้า Discord สำเร็จแล้ว! เช็กในห้องแชทได้เลย',
+        type: 'success'
+      });
+    } catch (err) {
+      setDiscordFeedback({
+        text: (lang === 'en' ? 'Failed to send to Discord: ' : 'ส่งเข้า Discord ไม่สำเร็จ: ') + err.message,
+        type: 'error'
+      });
+    } finally {
+      setDiscordTestSending(false);
+    }
+  };
+
+  const handleSendDiscordDigest = async () => {
+    setDiscordFeedback({ text: '', type: '' });
+    if (!webhookValidation.valid) {
+      setDiscordFeedback({
+        text: lang === 'en'
+          ? 'Please enter a valid Discord Webhook URL first.'
+          : 'กรุณาใส่ลิงก์ Discord Webhook ที่ถูกต้องก่อน',
+        type: 'error'
+      });
+      return;
+    }
+    setDiscordDigestSending(true);
+    try {
+      await triggerManualDiscordDigest(activeUserEmail, currentAssignments, webhookValidation.url);
+      refreshNotificationData?.();
+      if (accessToken && activeUserEmail) {
+        syncManager.queueSync(accessToken, activeUserEmail);
+      }
+      setDiscordFeedback({
+        text: lang === 'en'
+          ? 'Pending assignments & exam digest sent to Discord!'
+          : 'ส่งสรุปงานค้างและตารางสอบเข้า Discord เรียบร้อยแล้ว!',
+        type: 'success'
+      });
+    } catch (err) {
+      setDiscordFeedback({
+        text: (lang === 'en' ? 'Failed: ' : 'เกิดข้อผิดพลาด: ') + err.message,
+        type: 'error'
+      });
+    } finally {
+      setDiscordDigestSending(false);
+    }
+  };
+
+  const handleCopyAppsScript = async () => {
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(generatedAppsScript);
+      } else {
+        const tempArea = document.createElement('textarea');
+        tempArea.value = generatedAppsScript;
+        document.body.appendChild(tempArea);
+        tempArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempArea);
+      }
+      setCopiedScript(true);
+      const id = setTimeout(() => setCopiedScript(false), 3000);
+      timersRef.current.push(id);
+    } catch {
+      setDiscordFeedback({
+        text: lang === 'en' ? 'Could not copy automatically. Open preview below to copy manually.' : 'ไม่สามารถคัดลอกอัตโนมัติได้ กรุณากดดูโค้ดด้านล่างเพื่อคัดลอก',
+        type: 'error'
+      });
     }
   };
 
@@ -342,6 +464,258 @@ export default function Settings() {
               </div>
             </div>
           )}
+
+          {/* Discord Webhook & 24/7 Apps Script Cloud Auto-Alert Card */}
+          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#3C3C3C] pb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-[#FFFFFF] flex items-center gap-2">
+                  <MessageSquare className="text-[#5865F2] shrink-0" size={16} />
+                  <span>
+                    {lang === 'en'
+                      ? 'Discord Webhook & 24/7 Cloud Auto-Alert (Apps Script)'
+                      : 'แจ้งเตือนผ่าน Discord Webhook + ระบบคลาวด์ 24 ชม. (Apps Script)'}
+                  </span>
+                </h3>
+                <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">
+                  {lang === 'en'
+                    ? 'Receive instant homework deadlines, new posts, and exam digests in your Discord channel — even when your browser or PC is off.'
+                    : 'รับแจ้งเตือนการบ้านใกล้ส่ง ประกาศใหม่ และตารางสอบเข้าห้อง Discord ทันที พร้อมสร้างสคริปต์รันบนคลาวด์ฟรี 24 ชม. แม้ปิดคอม'}
+                </p>
+              </div>
+              <span
+                data-testid="discord-webhook-status"
+                className={`self-start sm:self-center shrink-0 text-[11px] px-2.5 py-0.5 rounded-full font-medium ${
+                  webhookValidation.valid
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                    : (alertSettings.discordWebhookUrl || '').trim()
+                      ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                      : 'bg-[#1E1E1E] text-[#9D9D9D] border border-[#3C3C3C]'
+                }`}
+              >
+                {webhookValidation.valid
+                  ? (lang === 'en' ? 'Webhook Ready' : 'ลิงก์พร้อมใช้งาน')
+                  : (alertSettings.discordWebhookUrl || '').trim()
+                    ? (lang === 'en' ? 'Invalid Webhook URL' : 'ลิงก์ไม่ถูกต้อง')
+                    : (lang === 'en' ? 'Not Configured' : 'ยังไม่ตั้งค่า')}
+              </span>
+            </div>
+
+            {discordFeedback.text && (
+              <div
+                role={discordFeedback.type === 'error' ? 'alert' : 'status'}
+                className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
+                  discordFeedback.type === 'error'
+                    ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                    : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                }`}
+              >
+                <span>{discordFeedback.text}</span>
+                <button
+                  type="button"
+                  onClick={() => setDiscordFeedback({ text: '', type: '' })}
+                  className="text-sm font-semibold ml-2 hover:opacity-75 cursor-pointer"
+                  aria-label={lang === 'en' ? 'Dismiss alert' : 'ปิดข้อความ'}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label htmlFor={webhookFieldId} className="block text-xs font-medium text-[#D4D4D4]">
+                  {lang === 'en' ? 'Discord Webhook URL' : 'ลิงก์ Discord Webhook (จาก Server Settings > Integrations > Webhooks)'}
+                </label>
+                <input
+                  id={webhookFieldId}
+                  type="url"
+                  placeholder="https://discord.com/api/webhooks/123456789/abcdef..."
+                  value={alertSettings.discordWebhookUrl || ''}
+                  onChange={(e) => handleUpdateSetting?.('discordWebhookUrl', e.target.value)}
+                  className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]"
+                />
+                {maskedWebhook && (
+                  <p className="text-[11px] text-[#858585] font-mono break-all">
+                    {lang === 'en' ? 'Verified endpoint: ' : 'ปลายทางที่ตรวจสอบแล้ว: '}{maskedWebhook}
+                  </p>
+                )}
+              </div>
+
+              <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={Boolean(alertSettings.discordEnabled)}
+                  onChange={() => handleToggleSetting?.('discordEnabled')}
+                  className="w-4 h-4 rounded accent-[#5865F2] cursor-pointer mt-0.5 shrink-0"
+                />
+                <div className="space-y-0.5">
+                  <span className="text-xs font-medium text-[#FFFFFF]">
+                    {lang === 'en'
+                      ? 'Auto-send alerts to Discord when syncing on web'
+                      : 'ส่งแจ้งเตือนเข้า Discord อัตโนมัติเมื่อเปิดหน้าเว็บซิงก์ข้อมูล'}
+                  </span>
+                  <p className="text-[11px] text-[#858585] leading-relaxed">
+                    {lang === 'en'
+                      ? 'Evaluates 3-day / 1-day / due-today reminders, new posts, and Sunday exam digests.'
+                      : 'เช็กงานใกล้ส่ง 3 วัน / 1 วัน / วันครบกำหนด โพสต์ใหม่ และสรุปตารางสอบวันอาทิตย์'}
+                  </p>
+                </div>
+              </label>
+
+              <div className="flex flex-wrap gap-2.5 pt-1">
+                <button
+                  type="button"
+                  disabled={discordTestSending || discordDigestSending || !webhookValidation.valid}
+                  onClick={handleTestDiscordWebhook}
+                  className="bg-[#5865F2] hover:bg-[#4752C4] text-white px-4 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                >
+                  {discordTestSending ? <RefreshCw size={13} className="animate-spin" /> : <MessageSquare size={13} />}
+                  <span>
+                    {discordTestSending
+                      ? (lang === 'en' ? 'Testing...' : 'กำลังทดสอบ...')
+                      : (lang === 'en' ? 'Test Discord Webhook' : 'ยิงข้อความทดสอบเข้า Discord')}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={discordDigestSending || discordTestSending || !webhookValidation.valid}
+                  onClick={handleSendDiscordDigest}
+                  className="bg-[#1E1E1E] hover:bg-[#2A2D2E] text-[#D4D4D4] border border-[#3C3C3C] px-4 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                >
+                  {discordDigestSending && <RefreshCw size={13} className="animate-spin text-[#5865F2]" />}
+                  <span>
+                    {discordDigestSending
+                      ? (lang === 'en' ? 'Sending Digest...' : 'กำลังส่งสรุป...')
+                      : (lang === 'en' ? 'Send Task & Exam Digest Now' : 'ส่งสรุปงานค้าง + ตารางสอบเข้า Discord ทันที')}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* 24/7 Google Apps Script Generator & Debug Section */}
+            <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <h4 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-1.5">
+                    <Terminal size={14} className="text-[#3794FF]" />
+                    <span>
+                      {lang === 'en'
+                        ? '24/7 Google Apps Script Generator (No Server Needed)'
+                        : 'ตัวสร้างโค้ด Google Apps Script แจ้งเตือน 24 ชม. (ไม่ต้องเปิดเว็บทิ้งไว้)'}
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-[#9D9D9D]">
+                    {lang === 'en'
+                      ? `Pre-configured with your Webhook URL and ${hiddenCourseIds.length} hidden course(s) excluded.`
+                      : `ฝังลิงก์ Webhook และรายชื่อวิชาที่ซ่อนไว้ (${hiddenCourseIds.length} วิชา) ให้พร้อมวางรันทันที`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 text-xs text-[#D4D4D4]">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={scriptNotifyNewPosts}
+                    onChange={(e) => setScriptNotifyNewPosts(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded accent-[#007ACC] cursor-pointer"
+                  />
+                  <span>{lang === 'en' ? 'Notify new announcements (24h)' : 'แจ้งเตือนประกาศใหม่ (ใน 24 ชม.)'}</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={scriptIncludeEmail}
+                    onChange={(e) => setScriptIncludeEmail(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded accent-[#007ACC] cursor-pointer"
+                  />
+                  <span>{lang === 'en' ? 'Also send Gmail backup' : 'ส่งเข้า Gmail ควบคู่ด้วย'}</span>
+                </label>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyAppsScript}
+                  className="bg-[#007ACC] hover:bg-[#1177BB] text-white px-4 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  {copiedScript ? <Check size={13} /> : <Copy size={13} />}
+                  <span>
+                    {copiedScript
+                      ? (lang === 'en' ? 'Copied Apps Script!' : 'คัดลอกโค้ดเรียบร้อย!')
+                      : (lang === 'en' ? 'Copy Apps Script Code' : 'คัดลอกโค้ด Apps Script')}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowScriptPreview(prev => !prev)}
+                  className="bg-[#252526] hover:bg-[#2A2D2E] text-[#D4D4D4] border border-[#3C3C3C] px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                >
+                  {showScriptPreview
+                    ? (lang === 'en' ? 'Hide Code & Debug Guide' : 'ซ่อนโค้ดและคู่มือ Debug')
+                    : (lang === 'en' ? 'View Code & Debug Guide' : 'ดูโค้ดและวิธีตั้งค่า / Debug')}
+                </button>
+
+                <a
+                  href="https://script.google.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3794FF] hover:underline px-2 py-1.5"
+                >
+                  <span>{lang === 'en' ? 'Open script.google.com' : 'เปิด script.google.com'}</span>
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+
+              {showScriptPreview && (
+                <div className="space-y-3 pt-2 border-t border-[#3C3C3C]">
+                  <div className="bg-[#252526] border border-[#3C3C3C] rounded-xl p-3 text-[11px] text-[#D4D4D4] space-y-1.5 leading-relaxed">
+                    <p className="font-semibold text-[#FFFFFF]">
+                      {lang === 'en' ? 'Built-in Debug & Trigger Functions in Apps Script:' : 'ฟังก์ชัน Debug และตั้งเวลาที่มีให้ในโค้ด:'}
+                    </p>
+                    <ul className="list-disc pl-4 space-y-1 text-[#9D9D9D]">
+                      <li>
+                        <code className="text-[#4EC9B0]">testDiscordWebhook()</code> —{' '}
+                        {lang === 'en'
+                          ? 'Run first in Apps Script to test sending an Embed directly from Google Cloud to your Discord channel.'
+                          : 'กด Run ตัวนี้ตัวแรกใน Apps Script เพื่อทดสอบยิงการ์ดแจ้งเตือนจาก Google Cloud เข้า Discord ทันที'}
+                      </li>
+                      <li>
+                        <code className="text-[#CCA700]">debugDryRun()</code> —{' '}
+                        {lang === 'en'
+                          ? 'Inspects all active courses, hidden courses, and pending deadlines in Execution Log without sending messages.'
+                          : 'เช็กรายวิชา วิชาที่ถูกซ่อน และรายการงานค้างใน Execution Log โดยไม่ยิงข้อความจริง'}
+                      </li>
+                      <li>
+                        <code className="text-[#3794FF]">sendClassroomDigest()</code> —{' '}
+                        {lang === 'en'
+                          ? 'Main function to attach to a Time-driven Trigger (e.g. Every hour).'
+                          : 'ฟังก์ชันหลักสำหรับตั้ง Triggers (รูปนาฬิกาปลุก) ให้รันอัตโนมัติทุกชั่วโมงหรือทุกวัน'}
+                      </li>
+                      <li>
+                        <code className="text-[#C586C0]">resetSentHistory()</code> —{' '}
+                        {lang === 'en'
+                          ? 'Clears deduplication state in PropertiesService so you can re-test alerts cleanly.'
+                          : 'ล้างประวัติป้องกันส่งซ้ำใน PropertiesService เผื่อต้องการทดสอบยิงซ้ำใหม่'}
+                      </li>
+                    </ul>
+                  </div>
+
+                  <textarea
+                    readOnly
+                    aria-label={lang === 'en' ? 'Generated Google Apps Script Code' : 'โค้ด Google Apps Script'}
+                    value={generatedAppsScript}
+                    rows={10}
+                    className="w-full bg-[#181818] border border-[#3C3C3C] rounded-xl p-3 text-[11px] font-mono text-[#D4D4D4] focus:outline-none"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right Column (Developer & Info) */}

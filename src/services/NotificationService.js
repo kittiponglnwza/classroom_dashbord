@@ -18,6 +18,7 @@ import { NOTIFICATION_CONFIG } from '../config/notification';
 import { logger } from '../utils/logger';
 import { getCalendarDaysDiff, parseLocalDateInput } from '../utils/dateUtils';
 import { getHexColor } from '../utils/colors';
+import { DiscordService, DISCORD_COLORS } from './DiscordService';
 
 // Sent-records for due/digest notifications older than this can no longer re-trigger,
 // while `new_post` records are retained up to MAX_NEW_POST_RECORDS so old posts are never re-sent.
@@ -25,6 +26,8 @@ const SENT_RECORD_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 const NEW_POST_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 const MAX_NEW_POST_RECORDS = 500;
 const NEW_POST_RECORD_TYPE = 'new_post';
+const DISCORD_NEW_POST_RECORD_TYPE = 'discord_new_post';
+const isNewPostRecordType = (type) => type === NEW_POST_RECORD_TYPE || type === DISCORD_NEW_POST_RECORD_TYPE;
 const inTabLocks = new Map();
 
 export class NotificationService {
@@ -194,19 +197,19 @@ export class NotificationService {
     });
     if (additions.length === 0) return;
     const cutoff = Date.now() - SENT_RECORD_RETENTION_MS;
-    const newPostRecords = current.filter(r => r.type === NEW_POST_RECORD_TYPE);
+    const newPostRecords = current.filter(r => isNewPostRecordType(r.type));
     const otherPruned = current.filter(r => {
-      if (r.type === NEW_POST_RECORD_TYPE) return false;
+      if (isNewPostRecordType(r.type)) return false;
       const t = new Date(r.sentAt).getTime();
       return Number.isNaN(t) || t >= cutoff;
     });
     const combinedNewPosts = [
       ...newPostRecords,
-      ...additions.filter(r => r.type === NEW_POST_RECORD_TYPE)
+      ...additions.filter(r => isNewPostRecordType(r.type))
     ].slice(-MAX_NEW_POST_RECORDS);
     const combinedOthers = [
       ...otherPruned,
-      ...additions.filter(r => r.type !== NEW_POST_RECORD_TYPE)
+      ...additions.filter(r => !isNewPostRecordType(r.type))
     ];
     saveSentNotifications([...combinedNewPosts, ...combinedOthers], email);
   }
@@ -406,6 +409,69 @@ export class NotificationService {
   }
 
   /**
+   * Sends a Connection Test Embed to Discord Webhook
+   */
+  static async triggerTestDiscord(toEmail, webhookUrlOverride = '') {
+    return this.withNotificationLock(toEmail || 'default', async () => {
+      const alertSettings = getAlertSettings(toEmail);
+      const sundayTime = getSundayDigestTime(toEmail);
+      const targetUrl = (webhookUrlOverride || alertSettings.discordWebhookUrl || '').trim();
+
+      const payload = DiscordService.buildTestPayload(toEmail, alertSettings, sundayTime);
+      await DiscordService.sendWebhook(targetUrl, payload);
+
+      if (toEmail) {
+        addNotificationHistoryLog({
+          title: 'Sent connection test message to Discord successfully',
+          type: 'test_discord',
+          targetPath: '/settings'
+        }, toEmail);
+      }
+    });
+  }
+
+  /**
+   * Triggers a manual overall task & exam digest to Discord Webhook immediately
+   */
+  static async triggerManualDiscordDigest(toEmail, assignments = [], webhookUrlOverride = '') {
+    return this.withNotificationLock(toEmail || 'default', async () => {
+      const alertSettings = getAlertSettings(toEmail);
+      const hiddenCourseIds = getHiddenCourses(toEmail);
+      const targetUrl = (webhookUrlOverride || alertSettings.discordWebhookUrl || '').trim();
+
+      const todoTasks = (Array.isArray(assignments) ? assignments : []).filter(a => {
+        if (a.status === 'done') return false;
+        if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
+        return true;
+      });
+
+      const hasUpcomingExams = Boolean(alertSettings.includeExams && DiscordService.buildExamsEmbed(toEmail, false));
+      if (todoTasks.length === 0 && !hasUpcomingExams) {
+        throw new Error('You have no pending assignments or upcoming exams to digest!');
+      }
+
+      const payload = DiscordService.buildDigestPayload({
+        title: '📋 Pending Assignments Digest',
+        description: 'Here is a summary of all your currently unfinished coursework in Classroom Hub.',
+        tasks: todoTasks,
+        toEmail,
+        includeExams: Boolean(alertSettings.includeExams),
+        isWeeklyDigest: false
+      });
+
+      await DiscordService.sendWebhook(targetUrl, payload);
+
+      if (toEmail) {
+        addNotificationHistoryLog({
+          title: `Sent pending assignments digest to Discord (Total ${todoTasks.length} items)`,
+          type: 'discord_digest',
+          targetPath: '/dashboard'
+        }, toEmail);
+      }
+    });
+  }
+
+  /**
    * Triggers a manual overall task digest immediately
    */
   static async triggerManualDigest(accessToken, toEmail, assignments) {
@@ -499,10 +565,15 @@ export class NotificationService {
   }
 
   static async evaluateNotificationsLocked(accessToken, toEmail, assignments, courses, resources, options = {}) {
-    const isEnabled = getEnableEmailAlerts(toEmail);
-    if (!isEnabled) return;
-
+    const isEmailEnabled = getEnableEmailAlerts(toEmail);
     const alertSettings = getAlertSettings(toEmail);
+    const isDiscordReady = Boolean(
+      alertSettings.discordEnabled &&
+      DiscordService.validateWebhookUrl(alertSettings.discordWebhookUrl).valid
+    );
+
+    if (!isEmailEnabled && !isDiscordReady) return;
+
     // Read inside the lock so records persisted by a previous/concurrent run are visible.
     const sentRecords = getSentNotifications(toEmail);
     const now = new Date();
@@ -551,36 +622,62 @@ export class NotificationService {
         warningLabel = 'Overdue by 1 day! Action required';
       }
 
-      if (triggerType && !wasSent(task.id, triggerType)) {
+      if (!triggerType) continue;
+
+      // 1a. Gmail Reminder Channel
+      if (isEmailEnabled && !wasSent(task.id, triggerType)) {
         if (!this.hasDailyQuota(toEmail)) {
           // Not recorded as sent: it will be retried on a later sync once quota is available.
           logger.info(`[Notify] Daily email quota reached; deferring '${triggerType}' for ${task.id}.`);
-          continue;
-        }
-        const safeLink = sanitizeExternalUrl(task.googleLink);
-        const body = `
-          <h2 class="title" style="color: ${triggerType.includes('overdue') ? '#F14C4C' : '#CCA700'};">
-            ${escapeHtml(warningLabel)}
-          </h2>
-          <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #1E1E1E; border: 1px solid #3C3C3C; border-left-width: 4px; border-radius: 8px; padding: 15px; margin-top: 15px;">
-            <span style="font-size: 10px; color: #9D9D9D; text-transform: uppercase; font-weight: 700;">${escapeHtml(task.courseCode)} • ${escapeHtml(task.course)}</span>
-            <h3 style="color: #FFFFFF; margin: 4px 0 10px 0; font-size: 15px;">${escapeHtml(task.title)}</h3>
-            <p style="font-size: 12px; color: #D4D4D4; line-height: 1.6; margin: 0;">${escapeHtml(task.description || 'No description provided.')}</p>
-          </div>
-          ${safeLink ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer" class="button">View on Google Classroom</a>` : ''}
-        `;
-        const html = this.wrapHtmlEmail(subject, body);
-        await GoogleRepository.sendEmail(accessToken, toEmail, subject, html);
-        this.recordEmailSent(toEmail);
-        markSent(task.id, triggerType);
+        } else {
+          const safeLink = sanitizeExternalUrl(task.googleLink);
+          const body = `
+            <h2 class="title" style="color: ${triggerType.includes('overdue') ? '#F14C4C' : '#CCA700'};">
+              ${escapeHtml(warningLabel)}
+            </h2>
+            <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #1E1E1E; border: 1px solid #3C3C3C; border-left-width: 4px; border-radius: 8px; padding: 15px; margin-top: 15px;">
+              <span style="font-size: 10px; color: #9D9D9D; text-transform: uppercase; font-weight: 700;">${escapeHtml(task.courseCode)} • ${escapeHtml(task.course)}</span>
+              <h3 style="color: #FFFFFF; margin: 4px 0 10px 0; font-size: 15px;">${escapeHtml(task.title)}</h3>
+              <p style="font-size: 12px; color: #D4D4D4; line-height: 1.6; margin: 0;">${escapeHtml(task.description || 'No description provided.')}</p>
+            </div>
+            ${safeLink ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer" class="button">View on Google Classroom</a>` : ''}
+          `;
+          const html = this.wrapHtmlEmail(subject, body);
+          await GoogleRepository.sendEmail(accessToken, toEmail, subject, html);
+          this.recordEmailSent(toEmail);
+          markSent(task.id, triggerType);
 
-        addNotificationHistoryLog({
-          title: `Sent reminder for '${task.title}' (${warningLabel})`,
-          type: triggerType,
-          assignmentId: task.id,
-          targetPath: `/assignments/${task.id}`,
-          read: false
-        }, toEmail);
+          addNotificationHistoryLog({
+            title: `Sent reminder for '${task.title}' (${warningLabel})`,
+            type: triggerType,
+            assignmentId: task.id,
+            targetPath: `/assignments/${task.id}`,
+            read: false
+          }, toEmail);
+        }
+      }
+
+      // 1b. Discord Webhook Reminder Channel
+      const discordRecordType = `discord:${triggerType}`;
+      if (isDiscordReady && !wasSent(task.id, discordRecordType)) {
+        try {
+          const discordPayload = DiscordService.buildDeadlineReminderPayload(task, triggerType, warningLabel);
+          await DiscordService.sendWebhook(alertSettings.discordWebhookUrl, discordPayload);
+          markSent(task.id, discordRecordType);
+
+          if (!isEmailEnabled) {
+            addNotificationHistoryLog({
+              title: `Sent Discord reminder for '${task.title}' (${warningLabel})`,
+              type: discordRecordType,
+              assignmentId: task.id,
+              targetPath: `/assignments/${task.id}`,
+              read: false
+            }, toEmail);
+          }
+        } catch (discordErr) {
+          logger.warn(`[Notify] Discord reminder failed for ${task.id}:`, discordErr);
+          if (!isEmailEnabled) throw discordErr;
+        }
       }
     }
 
@@ -601,8 +698,10 @@ export class NotificationService {
       const digestRecordType = `sunday_digest_${sundayStamp}`;
       // Records written by older builds used a UTC-derived stamp; honour them to avoid a resend.
       const legacyRecordType = `sunday_digest_${sundayDate.toISOString().split('T')[0]}`;
+      const discordDigestRecordType = `discord_sunday_digest_${sundayStamp}`;
 
       const alreadySentThisWeek = sentRecords.some(r => r.type === digestRecordType || r.type === legacyRecordType);
+      const alreadySentDiscordThisWeek = sentRecords.some(r => r.type === discordDigestRecordType);
 
       // Compute Sunday's scheduled delivery timestamp for this week
       const sundayCutoff = new Date(sundayDate);
@@ -611,12 +710,12 @@ export class NotificationService {
       const prevSyncMs = prevSyncIso ? new Date(prevSyncIso).getTime() : NaN;
       const genuinelyMissedSunday = !isSunday && Number.isFinite(prevSyncMs) && prevSyncMs < sundayCutoff.getTime();
 
-      if (((isSunday && timePassedTarget) || genuinelyMissedSunday) && !alreadySentThisWeek) {
+      if ((isSunday && timePassedTarget) || genuinelyMissedSunday) {
         const noDueDateTasks = activeTodoAssignments.filter(a => !a.dueDate);
         const hasUpcomingExams = alertSettings.includeExams && this.buildExamsHtml(toEmail, true) !== '';
 
         if (noDueDateTasks.length > 0 || hasUpcomingExams) {
-          if (this.hasDailyQuota(toEmail)) {
+          if (isEmailEnabled && !alreadySentThisWeek && this.hasDailyQuota(toEmail)) {
             let itemsHtml = '';
             if (noDueDateTasks.length > 0) {
               const courseGroups = {};
@@ -673,6 +772,34 @@ export class NotificationService {
               read: false
             }, toEmail);
           }
+
+          if (isDiscordReady && !alreadySentDiscordThisWeek) {
+            try {
+              const discordDigest = DiscordService.buildDigestPayload({
+                title: '🗓️ Sunday Digest: Weekly Summary',
+                description: 'Here is your weekly summary of pending tasks and upcoming exams.',
+                tasks: noDueDateTasks,
+                toEmail,
+                includeExams: Boolean(alertSettings.includeExams),
+                isWeeklyDigest: true,
+                colorInt: DISCORD_COLORS.blue
+              });
+              await DiscordService.sendWebhook(alertSettings.discordWebhookUrl, discordDigest);
+              markSent('sunday_digest_overall', discordDigestRecordType);
+
+              if (!isEmailEnabled) {
+                addNotificationHistoryLog({
+                  title: `Sent Sunday Digest to Discord (Total ${noDueDateTasks.length} tasks)`,
+                  type: 'discord_sunday_digest',
+                  targetPath: '/dashboard',
+                  read: false
+                }, toEmail);
+              }
+            } catch (discordErr) {
+              logger.warn('[Notify] Discord Sunday Digest failed:', discordErr);
+              if (!isEmailEnabled) throw discordErr;
+            }
+          }
         }
       }
     }
@@ -688,16 +815,20 @@ export class NotificationService {
   }
 
   static async evaluateNewPostDigestLocked(accessToken, toEmail, freshAssignments, freshResources, cachedAssignmentIds, cachedResourceIds) {
-    const isEnabled = getEnableEmailAlerts(toEmail);
-    if (!isEnabled) return;
-
+    const isEmailEnabled = getEnableEmailAlerts(toEmail);
     const alertSettings = getAlertSettings(toEmail);
-    if (!alertSettings.newPosts) return;
+    const isDiscordReady = Boolean(
+      alertSettings.discordEnabled &&
+      DiscordService.validateWebhookUrl(alertSettings.discordWebhookUrl).valid
+    );
+
+    if ((!isEmailEnabled && !isDiscordReady) || !alertSettings.newPosts) return;
 
     // Per-item dedup: an item announced once is never announced again, even if a concurrent
     // sync or another device computed the same "new" diff from a stale cache.
     const sentRecords = getSentNotifications(toEmail);
-    const alreadyAnnounced = (id) => sentRecords.some(r => r.assignmentId === id && r.type === NEW_POST_RECORD_TYPE);
+    const alreadyAnnouncedEmail = (id) => sentRecords.some(r => r.assignmentId === id && r.type === NEW_POST_RECORD_TYPE);
+    const alreadyAnnouncedDiscord = (id) => sentRecords.some(r => r.assignmentId === id && r.type === DISCORD_NEW_POST_RECORD_TYPE);
 
     const hiddenCourseIds = getHiddenCourses(toEmail);
     const cutoffRecentMs = Date.now() - NEW_POST_MAX_AGE_MS;
@@ -707,101 +838,129 @@ export class NotificationService {
       return Number.isNaN(t) || t >= cutoffRecentMs;
     };
 
-    const newAssignments = freshAssignments.filter(a => {
-      if (cachedAssignmentIds.includes(a.id)) return false;
-      if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
-      if (alreadyAnnounced(a.id)) return false;
-      if (!isRecentEnough(a)) return false;
-      return true;
-    });
-    const newResources = freshResources.filter(r => {
-      if (cachedResourceIds.includes(r.id)) return false;
-      if (r.courseId && hiddenCourseIds.includes(r.courseId)) return false;
-      if (alreadyAnnounced(r.id)) return false;
-      if (!isRecentEnough(r)) return false;
+    const filterCandidates = (items, cachedIds, dedupCheck) => items.filter(item => {
+      if (cachedIds.includes(item.id)) return false;
+      if (item.courseId && hiddenCourseIds.includes(item.courseId)) return false;
+      if (dedupCheck(item.id)) return false;
+      if (!isRecentEnough(item)) return false;
       return true;
     });
 
-    const totalNew = newAssignments.length + newResources.length;
-    if (totalNew === 0) return;
+    if (isEmailEnabled) {
+      const newAssignments = filterCandidates(freshAssignments, cachedAssignmentIds, alreadyAnnouncedEmail);
+      const newResources = filterCandidates(freshResources, cachedResourceIds, alreadyAnnouncedEmail);
+      const totalNew = newAssignments.length + newResources.length;
 
-    if (!this.hasDailyQuota(toEmail)) {
-      logger.info('[Notify] Daily email quota reached; skipping new-post digest.');
-      return;
+      if (totalNew > 0) {
+        if (!this.hasDailyQuota(toEmail)) {
+          logger.info('[Notify] Daily email quota reached; skipping new-post digest.');
+        } else {
+          const courseGroups = {};
+          newAssignments.forEach(t => {
+            if (!courseGroups[t.course]) courseGroups[t.course] = { color: t.courseColor, assigns: [], resources: [] };
+            courseGroups[t.course].assigns.push(t);
+          });
+          newResources.forEach(r => {
+            if (!courseGroups[r.course]) courseGroups[r.course] = { color: r.courseColor, assigns: [], resources: [] };
+            courseGroups[r.course].resources.push(r);
+          });
+
+          let groupHtml = '';
+          Object.keys(courseGroups).forEach(courseName => {
+            const group = courseGroups[courseName];
+            const borderHex = getHexColor(group.color);
+            
+            groupHtml += `
+              <div style="margin-top: 15px; border: 1px solid #3C3C3C; border-left: 4px solid ${borderHex}; background-color: #1E1E1E; border-radius: 8px; padding: 12px 15px;">
+                <h4 style="color: #FFFFFF; margin: 0 0 8px 0; font-size: 13px;">${escapeHtml(courseName)}</h4>
+            `;
+            
+            if (group.assigns.length > 0) {
+              groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #C586C0; margin: 8px 0 4px 0;">New Assignments (${group.assigns.length})</p>`;
+              group.assigns.forEach(t => {
+                groupHtml += `<div style="font-size: 12px; color: #FFFFFF; padding: 4px 0; border-bottom: 1px solid #3C3C3C;">• <strong>${escapeHtml(t.title)}</strong></div>`;
+              });
+            }
+            
+            if (group.resources.length > 0) {
+              const anns = group.resources.filter(r => r.type === 'announcement');
+              const mats = group.resources.filter(r => r.type === 'material');
+              
+              if (anns.length > 0) {
+                groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #CCA700; margin: 10px 0 4px 0;">New Announcements (${anns.length})</p>`;
+                anns.forEach(r => {
+                  groupHtml += `<div style="font-size: 12px; color: #FFFFFF; padding: 4px 0; border-bottom: 1px solid #3C3C3C;">• <strong>${escapeHtml(r.title)}</strong></div>`;
+                });
+              }
+              
+              if (mats.length > 0) {
+                groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #3794FF; margin: 10px 0 4px 0;">New Course Materials (${mats.length})</p>`;
+                mats.forEach(r => {
+                  groupHtml += `<div style="font-size: 12px; color: #FFFFFF; padding: 4px 0; border-bottom: 1px solid #3C3C3C;">• <strong>${escapeHtml(r.title)}</strong></div>`;
+                });
+              }
+            }
+            groupHtml += `</div>`;
+          });
+
+          const subject = `[Classroom Hub] Detected ${totalNew} new items in classroom`;
+          const body = `
+            <h2 class="title" style="color: #3794FF;">New Classroom Activity Detected</h2>
+            <p class="desc">
+              Detected ${totalNew} new assignment(s), announcement(s), or material(s) uploaded by your instructors.
+            </p>
+            ${groupHtml}
+          `;
+
+          const html = this.wrapHtmlEmail(subject, body);
+          await GoogleRepository.sendEmail(accessToken, toEmail, subject, html);
+          this.recordEmailSent(toEmail);
+          const sentAt = new Date().toISOString();
+          this.persistSentRecords(toEmail, [...newAssignments, ...newResources].map(item => ({
+            assignmentId: item.id,
+            type: NEW_POST_RECORD_TYPE,
+            sentAt
+          })));
+          
+          addNotificationHistoryLog({
+            title: `Detected and sent new posts email (Total ${totalNew} items)`,
+            type: 'new_posts_digest',
+            targetPath: newAssignments.length === 1 && newResources.length === 0 ? `/assignments/${newAssignments[0].id}` : '/dashboard',
+            read: false
+          }, toEmail);
+        }
+      }
     }
 
-    const courseGroups = {};
-    newAssignments.forEach(t => {
-      if (!courseGroups[t.course]) courseGroups[t.course] = { color: t.courseColor, assigns: [], resources: [] };
-      courseGroups[t.course].assigns.push(t);
-    });
-    newResources.forEach(r => {
-      if (!courseGroups[r.course]) courseGroups[r.course] = { color: r.courseColor, assigns: [], resources: [] };
-      courseGroups[r.course].resources.push(r);
-    });
+    if (isDiscordReady) {
+      const discordNewAssigns = filterCandidates(freshAssignments, cachedAssignmentIds, alreadyAnnouncedDiscord);
+      const discordNewResources = filterCandidates(freshResources, cachedResourceIds, alreadyAnnouncedDiscord);
+      const totalDiscordNew = discordNewAssigns.length + discordNewResources.length;
 
-    let groupHtml = '';
-    Object.keys(courseGroups).forEach(courseName => {
-      const group = courseGroups[courseName];
-      const borderHex = getHexColor(group.color);
-      
-      groupHtml += `
-        <div style="margin-top: 15px; border: 1px solid #3C3C3C; border-left: 4px solid ${borderHex}; background-color: #1E1E1E; border-radius: 8px; padding: 12px 15px;">
-          <h4 style="color: #FFFFFF; margin: 0 0 8px 0; font-size: 13px;">${escapeHtml(courseName)}</h4>
-      `;
-      
-      if (group.assigns.length > 0) {
-        groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #C586C0; margin: 8px 0 4px 0;">New Assignments (${group.assigns.length})</p>`;
-        group.assigns.forEach(t => {
-          groupHtml += `<div style="font-size: 12px; color: #FFFFFF; padding: 4px 0; border-bottom: 1px solid #3C3C3C;">• <strong>${escapeHtml(t.title)}</strong></div>`;
-        });
-      }
-      
-      if (group.resources.length > 0) {
-        const anns = group.resources.filter(r => r.type === 'announcement');
-        const mats = group.resources.filter(r => r.type === 'material');
-        
-        if (anns.length > 0) {
-          groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #CCA700; margin: 10px 0 4px 0;">New Announcements (${anns.length})</p>`;
-          anns.forEach(r => {
-            groupHtml += `<div style="font-size: 12px; color: #FFFFFF; padding: 4px 0; border-bottom: 1px solid #3C3C3C;">• <strong>${escapeHtml(r.title)}</strong></div>`;
-          });
-        }
-        
-        if (mats.length > 0) {
-          groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #3794FF; margin: 10px 0 4px 0;">New Course Materials (${mats.length})</p>`;
-          mats.forEach(r => {
-            groupHtml += `<div style="font-size: 12px; color: #FFFFFF; padding: 4px 0; border-bottom: 1px solid #3C3C3C;">• <strong>${escapeHtml(r.title)}</strong></div>`;
-          });
+      if (totalDiscordNew > 0) {
+        try {
+          const discordPayload = DiscordService.buildNewPostsPayload(discordNewAssigns, discordNewResources);
+          await DiscordService.sendWebhook(alertSettings.discordWebhookUrl, discordPayload);
+          const sentAt = new Date().toISOString();
+          this.persistSentRecords(toEmail, [...discordNewAssigns, ...discordNewResources].map(item => ({
+            assignmentId: item.id,
+            type: DISCORD_NEW_POST_RECORD_TYPE,
+            sentAt
+          })));
+
+          if (!isEmailEnabled) {
+            addNotificationHistoryLog({
+              title: `Detected and sent new posts to Discord (Total ${totalDiscordNew} items)`,
+              type: 'discord_new_posts_digest',
+              targetPath: discordNewAssigns.length === 1 && discordNewResources.length === 0 ? `/assignments/${discordNewAssigns[0].id}` : '/dashboard',
+              read: false
+            }, toEmail);
+          }
+        } catch (discordErr) {
+          logger.warn('[Notify] Discord new-post digest failed:', discordErr);
+          if (!isEmailEnabled) throw discordErr;
         }
       }
-      groupHtml += `</div>`;
-    });
-
-    const subject = `[Classroom Hub] Detected ${totalNew} new items in classroom`;
-    const body = `
-      <h2 class="title" style="color: #3794FF;">New Classroom Activity Detected</h2>
-      <p class="desc">
-        Detected ${totalNew} new assignment(s), announcement(s), or material(s) uploaded by your instructors.
-      </p>
-      ${groupHtml}
-    `;
-
-    const html = this.wrapHtmlEmail(subject, body);
-    await GoogleRepository.sendEmail(accessToken, toEmail, subject, html);
-    this.recordEmailSent(toEmail);
-    const sentAt = new Date().toISOString();
-    this.persistSentRecords(toEmail, [...newAssignments, ...newResources].map(item => ({
-      assignmentId: item.id,
-      type: NEW_POST_RECORD_TYPE,
-      sentAt
-    })));
-    
-    addNotificationHistoryLog({
-      title: `Detected and sent new posts email (Total ${totalNew} items)`,
-      type: 'new_posts_digest',
-      targetPath: newAssignments.length === 1 && newResources.length === 0 ? `/assignments/${newAssignments[0].id}` : '/dashboard',
-      read: false
-    }, toEmail);
+    }
   }
 }

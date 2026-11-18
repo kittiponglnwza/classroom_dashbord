@@ -8,6 +8,8 @@ export const NOTIFICATION_CONFIG = {
     overdue1Day: true,
     newPosts: true,
     sundayDigest: true,
-    includeExams: true
+    includeExams: true,
+    discordEnabled: false,
+    discordWebhookUrl: ''
   }
 };

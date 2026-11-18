@@ -49,7 +49,7 @@ export const SettingsProvider = ({ children }) => {
   const userEmail = getActiveEmail();
 
   const [emailAlerts, setEmailAlerts] = useState(false);
-  const [alertSettings, setAlertSettingsState] = useState({});
+  const [alertSettings, setAlertSettingsState] = useState(() => getAlertSettings(getActiveEmail()));
   const alertSettingsRef = useRef(alertSettings);
   const [sundayTime, setSundayTimeState] = useState('18:00');
   const [historyLogs, setHistoryLogs] = useState([]);
@@ -68,9 +68,10 @@ export const SettingsProvider = ({ children }) => {
   const reloadSettings = useCallback(() => {
     const email = getActiveEmail();
     if (!email) {
+      const fallbackSettings = getAlertSettings('');
       setEmailAlerts(false);
-      setAlertSettingsState({});
-      alertSettingsRef.current = {};
+      setAlertSettingsState(fallbackSettings);
+      alertSettingsRef.current = fallbackSettings;
       setSundayTimeState('18:00');
       setHistoryLogs([]);
       setDailyLimit({ count: 0 });
@@ -98,9 +99,10 @@ export const SettingsProvider = ({ children }) => {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       reloadSettings();
     } else if (!isLoggedIn) {
+      const fallbackSettings = getAlertSettings(userEmail);
       setEmailAlerts(false);
-      setAlertSettingsState({});
-      alertSettingsRef.current = {};
+      setAlertSettingsState(fallbackSettings);
+      alertSettingsRef.current = fallbackSettings;
       setSundayTimeState('18:00');
       setHistoryLogs([]);
       setDailyLimit({ count: 0 });

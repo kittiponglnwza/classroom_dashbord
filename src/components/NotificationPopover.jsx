@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useId } from 'react';
 import { useInRouterContext, useNavigate, useLocation } from 'react-router-dom';
-import { Bell, RefreshCw, ArrowUpRight, Calendar, Mail } from 'lucide-react';
+import { Bell, RefreshCw, ArrowUpRight, Calendar, Mail, MessageSquare } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
-import { triggerManualDigest, triggerTestEmail } from '../utils/notifications';
+import { triggerManualDigest, triggerTestEmail, triggerManualDiscordDigest, triggerTestDiscord } from '../utils/notifications';
+import { DiscordService } from '../services/DiscordService';
 import { syncManager } from '../services/SyncManager';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
 
@@ -19,7 +20,7 @@ function resolveNotificationTarget(log, assignments = []) {
     const matched = assignments.find(a => a.title === titleMatch[1]);
     if (matched) return `/assignments/${matched.id}`;
   }
-  if (log.type === 'settings_change' || log.type === 'test_email') {
+  if (log.type === 'settings_change' || log.type === 'test_email' || log.type === 'test_discord') {
     return '/settings';
   }
   if (log.type && (log.type.includes('due') || log.type.includes('overdue') || log.type.includes('digest') || log.type.includes('posts'))) {
@@ -63,8 +64,11 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
   const [activeTab, setActiveTab] = useState('history');
   const [digestSending, setDigestSending] = useState(false);
   const [testSending, setTestSending] = useState(false);
+  const [discordDigestSending, setDiscordDigestSending] = useState(false);
+  const [discordTestSending, setDiscordTestSending] = useState(false);
   const deliveryTimeId = useId();
   const reminderValueId = useId();
+  const discordWebhookInputId = useId();
   const [calendarSyncState, setCalendarSyncState] = useState(calendarSyncManager.state);
   const [reminderDraft, setReminderDraft] = useState(null);
   const popoverRef = useRef(null);
@@ -194,6 +198,72 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
       });
     }
   };
+
+  const handleSendDiscordDigestNow = async () => {
+    setUiFeedback({ text: '', type: '' });
+    const check = DiscordService.validateWebhookUrl(alertSettings.discordWebhookUrl || '');
+    if (!check.valid) {
+      setUiFeedback({
+        text: lang === 'en' ? 'Please enter a valid Discord Webhook URL first.' : 'กรุณาใส่ลิงก์ Discord Webhook ที่ถูกต้องก่อน',
+        type: 'error'
+      });
+      return;
+    }
+    setDiscordDigestSending(true);
+    try {
+      await triggerManualDiscordDigest(profile.email, assignments, check.url);
+      refreshNotificationData();
+      if (accessToken && profile.email) {
+        syncManager.queueSync(accessToken, profile.email);
+      }
+      setUiFeedback({
+        text: lang === 'en' ? 'Digest sent to Discord!' : 'ส่งสรุปงานไปที่ Discord เรียบร้อยแล้ว!',
+        type: 'success'
+      });
+    } catch (e) {
+      console.error(e);
+      setUiFeedback({
+        text: (lang === 'en' ? 'Discord failed: ' : 'ส่งเข้า Discord ไม่สำเร็จ: ') + e.message,
+        type: 'error'
+      });
+    } finally {
+      setDiscordDigestSending(false);
+    }
+  };
+
+  const handleSendTestDiscord = async () => {
+    setUiFeedback({ text: '', type: '' });
+    const check = DiscordService.validateWebhookUrl(alertSettings.discordWebhookUrl || '');
+    if (!check.valid) {
+      setUiFeedback({
+        text: lang === 'en' ? 'Please enter a valid Discord Webhook URL first.' : 'กรุณาใส่ลิงก์ Discord Webhook ที่ถูกต้องก่อน',
+        type: 'error'
+      });
+      return;
+    }
+    setDiscordTestSending(true);
+    try {
+      await triggerTestDiscord(profile.email, check.url);
+      refreshNotificationData();
+      if (accessToken && profile.email) {
+        syncManager.queueSync(accessToken, profile.email);
+      }
+      setUiFeedback({
+        text: lang === 'en' ? 'Test message sent to Discord!' : 'ส่งข้อความทดสอบไปที่ Discord เรียบร้อยแล้ว!',
+        type: 'success'
+      });
+    } catch (e) {
+      console.error(e);
+      setUiFeedback({
+        text: (lang === 'en' ? 'Discord failed: ' : 'ส่งเข้า Discord ไม่สำเร็จ: ') + e.message,
+        type: 'error'
+      });
+    } finally {
+      setDiscordTestSending(false);
+    }
+  };
+
+  const discordCheck = DiscordService.validateWebhookUrl(alertSettings.discordWebhookUrl || '');
 
   const calendarMaxVal = alertSettings.calendarReminderUnit === 'days'
     ? 28
@@ -554,6 +624,89 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                   >
                     <RefreshCw size={12} className={calendarSyncState === 'syncing' ? 'animate-spin text-[#3794FF]' : 'text-[#3794FF]'} />
                     <span>{calendarSyncState === 'syncing' ? t('syncingCalendarBtn', lang) : t('syncCalendarNowBtn', lang)}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Independent Discord Webhook Alerts Section */}
+              <div className="space-y-3 bg-[#1E1E1E]/60 border border-[#3C3C3C] rounded-xl p-3 text-left">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-1.5">
+                    <MessageSquare size={13} className="text-[#5865F2]" />
+                    <span>{lang === 'en' ? 'Discord Webhook Alerts' : 'แจ้งเตือนผ่าน Discord Webhook'}</span>
+                  </span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    discordCheck.valid
+                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                      : (alertSettings.discordWebhookUrl || '').trim()
+                        ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                        : 'bg-[#2D2D2D] text-[#9D9D9D] border border-[#3C3C3C]'
+                  }`}>
+                    {discordCheck.valid
+                      ? (lang === 'en' ? 'Webhook Ready' : 'พร้อมใช้งาน')
+                      : (alertSettings.discordWebhookUrl || '').trim()
+                        ? (lang === 'en' ? 'Invalid URL' : 'ลิงก์ไม่ถูกต้อง')
+                        : (lang === 'en' ? 'Not Configured' : 'ยังไม่ตั้งค่า')}
+                  </span>
+                </div>
+
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(alertSettings.discordEnabled)}
+                    onChange={() => handleToggleSetting('discordEnabled')}
+                    className="w-3.5 h-3.5 rounded accent-[#5865F2] cursor-pointer mt-0.5 shrink-0"
+                  />
+                  <div className="space-y-0.5">
+                    <span className="font-medium text-[#D4D4D4]">
+                      {lang === 'en' ? 'Enable Discord Webhook Notifications' : 'เปิดส่งแจ้งเตือนเข้า Discord อัตโนมัติ'}
+                    </span>
+                    <p className="text-[11px] text-[#858585] leading-tight">
+                      {lang === 'en'
+                        ? 'Send deadline reminders, new posts, and digests directly to your Discord channel.'
+                        : 'ส่งการบ้านใกล้ครบกำหนด ประกาศใหม่ และสรุปงานเข้าห้องแชท Discord ของคุณ'}
+                    </p>
+                  </div>
+                </label>
+
+                <div className="space-y-1.5">
+                  <label htmlFor={discordWebhookInputId} className="block text-[11px] text-[#9D9D9D] font-medium">
+                    {lang === 'en' ? 'Discord Webhook URL:' : 'ลิงก์ Discord Webhook:'}
+                  </label>
+                  <input
+                    id={discordWebhookInputId}
+                    type="url"
+                    placeholder="https://discord.com/api/webhooks/..."
+                    value={alertSettings.discordWebhookUrl || ''}
+                    onChange={(e) => handleUpdateSetting('discordWebhookUrl', e.target.value)}
+                    className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-lg px-2.5 py-1.5 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-[#3C3C3C] flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    disabled={discordDigestSending || discordTestSending || !discordCheck.valid}
+                    onClick={handleSendDiscordDigestNow}
+                    className="flex-1 bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-medium px-3 py-2 rounded-xl transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {discordDigestSending ? (
+                      <>
+                        <RefreshCw size={12} className="animate-spin" />
+                        <span>{lang === 'en' ? 'Sending...' : 'กำลังส่ง...'}</span>
+                      </>
+                    ) : (
+                      <span>{lang === 'en' ? 'Send Discord Digest' : 'ส่งสรุปเข้า Discord'}</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={discordTestSending || discordDigestSending || !discordCheck.valid}
+                    onClick={handleSendTestDiscord}
+                    className="bg-[#2D2D2D] hover:bg-[#37373D] border border-[#3C3C3C] text-[#D4D4D4] text-xs font-medium px-3 py-2 rounded-xl transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    {discordTestSending ? <RefreshCw size={12} className="animate-spin text-[#5865F2]" /> : <MessageSquare size={12} className="text-[#5865F2]" />}
+                    <span>{lang === 'en' ? 'Test Discord' : 'ทดสอบ Discord'}</span>
                   </button>
                 </div>
               </div>
