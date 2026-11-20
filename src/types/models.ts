@@ -86,11 +86,14 @@ export interface ScheduleEntry {
   courseCode?: string;
   day: string;
   date?: string;
+  endDate?: string;
+  noAutoEndDate?: boolean;
   startTime: string;
   endTime: string;
   room?: string;
   color?: string;
   notes?: string;
+  source?: string;
   isExam?: boolean;
   deletedAt?: string;
   updatedAt?: string;

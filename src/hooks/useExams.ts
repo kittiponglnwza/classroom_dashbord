@@ -52,6 +52,13 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
   })();
 
   const [examState, setExamState] = useState<ExamState>(initialCacheSnapshot.state);
+  const [examEventTick, setExamEventTick] = useState(0);
+
+  useEffect(() => {
+    const onExamsUpdated = () => setExamEventTick(v => v + 1);
+    window.addEventListener('classroom_hub_exams_updated', onExamsUpdated);
+    return () => window.removeEventListener('classroom_hub_exams_updated', onExamsUpdated);
+  }, []);
 
   const fetchAttempted = useRef(false);
   const completedFetchKeyRef = useRef<string | null>(null);
@@ -129,7 +136,7 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
     if (scopeChanged) {
       setExamState({ allExams: [], hasCheckedExams: false, unlistedInfo: null });
     }
-  }, [activeEmail, implicitStudentId, scheduleDeps]);
+  }, [activeEmail, implicitStudentId, scheduleDeps, examEventTick]);
 
   useEffect(() => {
     const fetchKey = `${activeEmail}::${implicitStudentId || ''}`;

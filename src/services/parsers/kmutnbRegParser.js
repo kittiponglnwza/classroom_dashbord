@@ -1,5 +1,6 @@
 import { parseExamDate } from '../../utils/examDate';
 import { decodeKmutnbBuilding, normalizeGrade } from '../../utils/academicUtils';
+import { COURSE_END_OFFSET_DAYS, isValidIsoDate, subtractDaysIso } from '../../utils/courseEndDate';
 
 const SCHEDULE_COLORS = [
   '#007ACC',
@@ -735,12 +736,31 @@ function buildTimetableOutputs(rows, academicYear = '', existingCourses = []) {
   const enrolledMap = new Map();
   const nowIso = new Date().toISOString();
 
+  // Map each courseCode to its latest Final Exam ISO date, and find earliest Final across the semester
+  // so courses without a listed Final Exam (e.g., PE / project courses) also stop 1 week before finals.
+  const finalByCourseCode = new Map();
+  const allFinalIsos = [];
+  for (const row of rows) {
+    const finIso = row.final?.rawIsoDate;
+    if (isValidIsoDate(finIso)) {
+      allFinalIsos.push(finIso);
+      const prev = finalByCourseCode.get(row.courseCode);
+      if (!prev || finIso > prev) {
+        finalByCourseCode.set(row.courseCode, finIso);
+      }
+    }
+  }
+  allFinalIsos.sort();
+  const earliestSemesterFinalIso = allFinalIsos[0] || '';
+
   for (const row of rows) {
     const color = getColor(row.courseCode);
     const displayTitle = row.engName || row.thaiName || row.courseCode;
     const sectionLabel = row.section ? ` (${row.section})` : '';
     const buildingInfo = decodeKmutnbBuilding(row.room);
     const matchedCourseId = findClassroomCourseId(row.courseCode, row.engName, row.thaiName);
+    const courseFinalIso = finalByCourseCode.get(row.courseCode) || earliestSemesterFinalIso || '';
+    const courseEndDate = courseFinalIso ? subtractDaysIso(courseFinalIso, COURSE_END_OFFSET_DAYS) : '';
 
     // 1. Build Schedule entries
     for (const slot of row.slots || []) {
@@ -759,6 +779,7 @@ function buildTimetableOutputs(rows, academicYear = '', existingCourses = []) {
         courseId: matchedCourseId,
         day: slot.day,
         date: '',
+        endDate: courseEndDate,
         startTime: slot.startTime,
         endTime: slot.endTime,
         room: row.room || '',

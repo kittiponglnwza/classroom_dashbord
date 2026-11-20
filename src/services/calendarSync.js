@@ -1,5 +1,12 @@
 import { logger } from '../utils/logger';
 import { parseExamDate } from '../utils/examDate';
+import {
+  addDaysIso,
+  collectPausedDatesForDay,
+  isDateInRanges,
+  resolveCourseEndDate,
+  resolveEntryPauseRanges,
+} from '../utils/courseEndDate';
 import { getAlertSettings, getHiddenCourses, getToken } from '../utils/storage';
 import { httpClient } from '../utils/httpClient';
 import { AppError } from '../utils/errors';
@@ -108,24 +115,71 @@ function getAnchorDate(entry) {
   return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}-${String(shifted.getUTCDate()).padStart(2, '0')}`;
 }
 
-function buildRecurringClassEvent(entry) {
+function buildRecurringClassEvent(entry, allExams = []) {
   const startTime = normalizeClockTime(entry.startTime);
   const endTime = normalizeClockTime(entry.endTime);
-  const anchorDate = getAnchorDate(entry);
+  let anchorDate = getAnchorDate(entry);
   if (!startTime || !endTime || !anchorDate || startTime >= endTime) return null;
 
-  if (entry.deletedAt && entry.deletedAt <= anchorDate) {
-    return null;
-  }
+  const pauseRanges = resolveEntryPauseRanges(entry, allExams);
 
-  let rrule = `RRULE:FREQ=WEEKLY;BYDAY=${DAY_TO_RRULE[entry.day]}`;
+  // If the first anchor date falls inside a Midterm pause week, advance DTSTART to the next active week
+  for (let step = 0; step < 10 && isDateInRanges(anchorDate, pauseRanges); step++) {
+    anchorDate = addDaysIso(anchorDate, 7);
+  }
+  if (!anchorDate) return null;
+
+  const stopCandidates = [];
 
   if (entry.deletedAt && /^\d{4}-\d{2}-\d{2}$/.test(entry.deletedAt)) {
     // End strictly before `entry.deletedAt` in Bangkok time (00:00:00+07:00 minus 1s = previous day 23:59:59+07:00)
-    const stopMs = Date.parse(`${entry.deletedAt}T00:00:00+07:00`) - 1000;
-    if (!Number.isNaN(stopMs)) {
-      const untilStr = new Date(stopMs).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      rrule += `;UNTIL=${untilStr}`;
+    const deletedStopMs = Date.parse(`${entry.deletedAt}T00:00:00+07:00`) - 1000;
+    if (!Number.isNaN(deletedStopMs)) {
+      stopCandidates.push(deletedStopMs);
+    }
+  }
+
+  const effectiveEndDate = resolveCourseEndDate(entry, allExams);
+  if (effectiveEndDate && /^\d{4}-\d{2}-\d{2}$/.test(effectiveEndDate)) {
+    // Inclusive of `effectiveEndDate` (stops after 23:59:59+07:00 on `effectiveEndDate`)
+    const endDateStopMs = Date.parse(`${effectiveEndDate}T23:59:59+07:00`);
+    if (!Number.isNaN(endDateStopMs)) {
+      stopCandidates.push(endDateStopMs);
+    }
+  }
+
+  let rrule = `RRULE:FREQ=WEEKLY;BYDAY=${DAY_TO_RRULE[entry.day]}`;
+  let stopMs = null;
+
+  if (stopCandidates.length > 0) {
+    stopMs = Math.min(...stopCandidates);
+    const anchorStartMs = Date.parse(`${anchorDate}T${startTime}:00+07:00`);
+    // Prevent invalid RRULE where UNTIL < DTSTART and prune already-ended courses
+    if (!Number.isNaN(anchorStartMs) && anchorStartMs > stopMs) {
+      return null;
+    }
+    const untilStr = new Date(stopMs).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    rrule += `;UNTIL=${untilStr}`;
+  }
+
+  const recurrence = [rrule];
+
+  // Add RFC 5545 EXDATE entries to pause regular classes during Midterm Exam Week(s)
+  // while keeping the weekly series resuming normally right after midterms!
+  if (pauseRanges.length > 0) {
+    const compactStartTime = `${startTime.replace(':', '')}00`;
+    const excludedDates = collectPausedDatesForDay(entry.day, pauseRanges).filter((exIso) => {
+      if (exIso < anchorDate) return false;
+      if (stopMs !== null) {
+        const occMs = Date.parse(`${exIso}T${startTime}:00+07:00`);
+        if (!Number.isNaN(occMs) && occMs > stopMs) return false;
+      }
+      return true;
+    });
+
+    if (excludedDates.length > 0) {
+      const exDateValues = excludedDates.map((iso) => `${iso.replace(/-/g, '')}T${compactStartTime}`).join(',');
+      recurrence.push(`EXDATE;TZID=${TIMEZONE}:${exDateValues}`);
     }
   }
 
@@ -135,7 +189,7 @@ function buildRecurringClassEvent(entry) {
     description: [entry.courseCode, entry.notes].filter(Boolean).join('\n'),
     start: { dateTime: `${anchorDate}T${startTime}:00`, timeZone: TIMEZONE },
     end: { dateTime: `${anchorDate}T${endTime}:00`, timeZone: TIMEZONE },
-    recurrence: [rrule],
+    recurrence,
     extendedProperties: { private: { chSource: SOURCE_TAG, chType: 'schedule', chId: String(entry.id) } }
   };
 }
@@ -354,6 +408,7 @@ export async function syncClassroomDataToCalendar(
   const hiddenCourseIds = Array.isArray(hiddenCourses) ? hiddenCourses : getHiddenCourses(lowerEmail);
 
   const desiredEvents = [];
+  const allExams = [...(exams || []), ...(manualExams || [])];
 
   // 1. Weekly class schedule (or one-off overrides with a specific date)
   for (const entry of schedule) {
@@ -361,7 +416,7 @@ export async function syncClassroomDataToCalendar(
     try {
       const body = entry.date
         ? buildOneOffTimedEvent(entry, 'schedule')
-        : buildRecurringClassEvent(entry);
+        : buildRecurringClassEvent(entry, allExams);
       if (!body) continue;
       body.reminders = reminders;
       desiredEvents.push({ key: `schedule:${entry.id}`, body });
@@ -371,7 +426,6 @@ export async function syncClassroomDataToCalendar(
   }
 
   // 2. Exams (auto-fetched + manually added)
-  const allExams = [...(exams || []), ...(manualExams || [])];
   for (const ex of allExams) {
     try {
       const normalized = normalizeExamEntry(ex);

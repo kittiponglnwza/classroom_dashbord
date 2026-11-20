@@ -16,6 +16,14 @@ import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { getToken } from '../utils/storage';
 import { parseExamDate } from '../utils/examDate';
 import { parseLocalDateInput } from '../utils/dateUtils';
+import {
+  resolveCourseEndDate,
+  resolveCourseExamInfo,
+  resolveEntryPauseRanges,
+  isEntryPausedOnDate,
+  isScheduleEntryActiveOnDate,
+  formatCourseEndDateLabel,
+} from '../utils/courseEndDate';
 import RegImportModal from '../components/RegImportModal';
 import { DAYS, JS_DAY_MAP } from '../constants/dateConstants';
 
@@ -110,6 +118,8 @@ function hasConflict(entry, allEntries, excludeId = null) {
   return allEntries.some((e) => {
     if (e.id === excludeId || e.deletedAt || e.day !== entry.day) return false;
     if (e.date && entry.date && e.date !== entry.date) return false;
+    const eEnd = e._effectiveEndDate || e.endDate;
+    if (entry.date && !e.date && eEnd && entry.date > eEnd) return false;
     return start < timeToMinutes(e.endTime) && end > timeToMinutes(e.startTime);
   });
 }
@@ -213,9 +223,10 @@ function MiniCalendarPopover({ schedule, lang, weekOffset, setWeekOffset, weekDa
     const dateStr = toLocalDateStr(dObj);
     const dayKey = JS_DAY_MAP[dObj.getDay()];
     return schedule.some((e) => {
-      if (e.deletedAt && dateStr >= e.deletedAt) return false;
-      if (e.isExam || e.isAssignment || e.date) return e.date === dateStr;
-      return e.day === dayKey;
+      if (e.isExam || e.isAssignment || e.date) {
+        return e.date === dateStr && !(e.deletedAt && dateStr >= e.deletedAt);
+      }
+      return e.day === dayKey && isScheduleEntryActiveOnDate(e, dateStr);
     });
   };
 
@@ -326,12 +337,12 @@ function WeeklyGrid({
     schedule.forEach((entry) => {
       const dayDateStr = weekDates[entry.day]?.dateStr;
       if (!dayDateStr) return;
-      if (entry.deletedAt && dayDateStr >= entry.deletedAt) return;
+      if (!isScheduleEntryActiveOnDate(entry, dayDateStr)) return;
       if (entry.isExam) {
-        if (entry.date === dayDateStr) activeExams.push(entry);
+        activeExams.push(entry);
       } else if (entry.isAssignment) {
-        if (entry.date === dayDateStr) activeAssigns.push(entry);
-      } else if (!entry.date || entry.date === dayDateStr) {
+        activeAssigns.push(entry);
+      } else {
         activeRegular.push(entry);
       }
     });
@@ -456,11 +467,21 @@ function WeeklyGrid({
                       const topPct = (entry._lane / laneCount) * 100 + 8 / laneCount;
                       const heightPct = 100 / laneCount - 16 / laneCount;
 
+                      const effectiveEnd = !isExam && !isAssign && !entry.date
+                        ? (entry._effectiveEndDate || entry.endDate || '')
+                        : '';
+                      const endDateNote = effectiveEnd
+                        ? (lang === 'th'
+                            ? `ปิดคอร์ส ${formatCourseEndDateLabel(effectiveEnd, 'th', { withYear: true })}`
+                            : `Ends ${formatCourseEndDateLabel(effectiveEnd, 'en', { withYear: true })}`)
+                        : '';
+
                       const tooltipText = [
                         entry.title,
                         entry.courseCode,
                         `${entry.startTime}–${entry.endTime}`,
                         entry.room,
+                        endDateNote,
                         entry.notes,
                       ].filter(Boolean).join(' • ');
 
@@ -555,12 +576,12 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
 
     schedule.forEach((e) => {
       if (e.day !== selectedDay) return;
-      if (e.deletedAt && targetDate && targetDate >= e.deletedAt) return;
+      if (!targetDate || !isScheduleEntryActiveOnDate(e, targetDate)) return;
       if (e.isExam) {
-        if (e.date === targetDate) dayExams.push(e);
+        dayExams.push(e);
       } else if (e.isAssignment) {
-        if (e.date === targetDate) dayAssigns.push(e);
-      } else if (!e.date || e.date === targetDate) {
+        dayAssigns.push(e);
+      } else {
         dayRegular.push(e);
       }
     });
@@ -572,12 +593,8 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
 
   const countForDay = useCallback((day) => {
     const dateStr = weekDates[day]?.dateStr;
-    return schedule.filter((e) => {
-      if (e.day !== day) return false;
-      if (e.deletedAt && dateStr && dateStr >= e.deletedAt) return false;
-      if (e.isExam || e.isAssignment || e.date) return e.date === dateStr;
-      return true;
-    }).length;
+    if (!dateStr) return 0;
+    return schedule.filter((e) => e.day === day && isScheduleEntryActiveOnDate(e, dateStr)).length;
   }, [schedule, weekDates]);
 
   return (
@@ -679,6 +696,13 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
                         <span>{entry.room}</span>
                       </span>
                     )}
+                    {!entry.isExam && !entry.isAssignment && !entry.date && (entry._effectiveEndDate || entry.endDate) && (
+                      <span className="text-[11px] text-[#858585]">
+                        {lang === 'th'
+                          ? `ปิดคอร์ส ${formatCourseEndDateLabel(entry._effectiveEndDate || entry.endDate, 'th')}`
+                          : `Ends ${formatCourseEndDateLabel(entry._effectiveEndDate || entry.endDate, 'en')}`}
+                      </span>
+                    )}
                     {entry.notes && (
                       <span className="text-[11px] text-[#858585] truncate max-w-md">{entry.notes}</span>
                     )}
@@ -701,16 +725,19 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
 }
 
 // ─── ADD / EDIT SCHEDULE MODAL ─────────────────────────────────────
-function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, onDelete, onClose }) {
+function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [], lang, onSave, onDelete, onClose }) {
   const isEdit = Boolean(entry?.id);
   const titleId = useId();
   const codeId = useId();
   const dateId = useId();
+  const endDateId = useId();
   const dayId = useId();
   const startTimeId = useId();
   const endTimeId = useId();
   const roomId = useId();
   const notesId = useId();
+
+  const initialEndDate = entry?.noAutoEndDate ? '' : (entry?.endDate || entry?._effectiveEndDate || '');
 
   const [formData, setFormData] = useState({
     title: entry?.title || '',
@@ -718,6 +745,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
     courseId: entry?.courseId || '',
     day: entry?.day || 'mon',
     date: entry?.date || '',
+    endDate: initialEndDate,
     startTime: entry?.startTime || '09:00',
     endTime: entry?.endTime || '10:00',
     room: entry?.room || '',
@@ -726,6 +754,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   });
 
   const [classType, setClassType] = useState(entry?.id && entry?.date ? 'one-off' : 'recurring');
+  const [userClearedEndDate, setUserClearedEndDate] = useState(Boolean(entry?.noAutoEndDate));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [timeError, setTimeError] = useState('');
 
@@ -739,6 +768,42 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
   }, [isOpen, onClose]);
 
   const update = (key, value) => setFormData((prev) => ({ ...prev, [key]: value }));
+
+  const autoEndInfo = useMemo(() => {
+    if (classType !== 'recurring') return { endDate: '', source: 'none', examDate: '' };
+    return resolveCourseExamInfo(
+      {
+        ...entry,
+        courseCode: formData.courseCode,
+        date: '',
+        endDate: '',
+        noAutoEndDate: false,
+      },
+      allExams
+    );
+  }, [classType, entry, formData.courseCode, allExams]);
+
+  const modalPauseRanges = useMemo(() => {
+    if (classType !== 'recurring') return [];
+    return resolveEntryPauseRanges(
+      {
+        ...entry,
+        courseCode: formData.courseCode,
+        date: '',
+        _pauseRangesResolved: false,
+      },
+      allExams
+    );
+  }, [classType, entry, formData.courseCode, allExams]);
+
+  const handleEndDateChange = (nextVal) => {
+    update('endDate', nextVal);
+    if (!nextVal) {
+      setUserClearedEndDate(true);
+    } else {
+      setUserClearedEndDate(false);
+    }
+  };
 
   const handleCourseSelect = (e) => {
     const val = e.target.value;
@@ -790,13 +855,18 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
       return;
     }
     setTimeError('');
+    const trimmedEndDate = classType === 'recurring' ? (formData.endDate || '').trim() : '';
+    const disableAutoEnd = classType === 'recurring' && !trimmedEndDate && userClearedEndDate;
     onSave({
       ...(entry?.id ? { id: entry.id } : {}),
+      ...(entry?.source ? { source: entry.source } : {}),
       title: formData.title.trim(),
       courseCode: formData.courseCode.trim(),
       courseId: formData.courseId || '',
       day: formData.day,
       date: classType === 'one-off' ? formData.date : '',
+      endDate: trimmedEndDate,
+      ...(disableAutoEnd ? { noAutoEndDate: true } : { noAutoEndDate: false }),
       startTime: formData.startTime,
       endTime: formData.endTime,
       room: formData.room.trim(),
@@ -990,6 +1060,63 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
               </button>
             ))}
           </div>
+
+          {classType === 'recurring' && (
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <label htmlFor={endDateId} className="block text-[11px] font-medium text-[#9D9D9D]">
+                  {lang === 'th' ? 'วันปิดคอร์ส (ไม่บังคับ)' : 'Course End Date (Optional)'}
+                </label>
+                <div className="flex items-center gap-2 text-[10.5px]">
+                  {autoEndInfo.endDate && formData.endDate !== autoEndInfo.endDate && (
+                    <button
+                      type="button"
+                      onClick={() => handleEndDateChange(autoEndInfo.endDate)}
+                      className="text-[#3794FF] hover:underline cursor-pointer"
+                    >
+                      {lang === 'th' ? 'ก่อนสอบ 1 สัปดาห์' : '1w before exam'}
+                    </button>
+                  )}
+                  {formData.endDate && (
+                    <button
+                      type="button"
+                      onClick={() => handleEndDateChange('')}
+                      className="text-[#858585] hover:text-rose-400 cursor-pointer"
+                    >
+                      {lang === 'th' ? 'ล้าง' : 'Clear'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <input
+                id={endDateId}
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => handleEndDateChange(e.target.value)}
+                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#FFFFFF] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+              />
+              <p className="text-[10.5px] text-[#858585] mt-1">
+                {autoEndInfo.source === 'course-exam' && autoEndInfo.examDate
+                  ? (lang === 'th'
+                      ? `ปิดคอร์สอัตโนมัติก่อนสอบปลายภาค 1 สัปดาห์ (สอบ ${formatCourseEndDateLabel(autoEndInfo.examDate, 'th', { withYear: true })})`
+                      : `Auto-closes 1 week before final exam (Exam ${formatCourseEndDateLabel(autoEndInfo.examDate, 'en', { withYear: true })})`)
+                  : autoEndInfo.source === 'semester-finals' && autoEndInfo.examDate
+                    ? (lang === 'th'
+                        ? `ปิดคอร์สอัตโนมัติก่อนช่วงสอบปลายภาค 1 สัปดาห์ (เริ่มสอบ ${formatCourseEndDateLabel(autoEndInfo.examDate, 'th', { withYear: true })})`
+                        : `Auto-closes 1 week before finals week (Starts ${formatCourseEndDateLabel(autoEndInfo.examDate, 'en', { withYear: true })})`)
+                    : (lang === 'th'
+                        ? 'หยุดแสดงวิชานี้หลังวันปิดคอร์สทั้งในเว็บและ Google Calendar'
+                        : 'Stops repeating after this date in both app & Google Calendar')}
+              </p>
+              {modalPauseRanges.length > 0 && (
+                <p className="text-[10.5px] text-amber-300/80 mt-0.5">
+                  {lang === 'th'
+                    ? `งดเรียนช่วงสอบกลางภาค ${formatCourseEndDateLabel(modalPauseRanges[0].start, 'th')} – ${formatCourseEndDateLabel(modalPauseRanges[0].end, 'th', { withYear: true })} แล้วกลับมาเรียนต่อปกติ`
+                    : `Pauses for Midterm week (${formatCourseEndDateLabel(modalPauseRanges[0].start, 'en')} – ${formatCourseEndDateLabel(modalPauseRanges[0].end, 'en', { withYear: true })}), then resumes normally`}
+                </p>
+              )}
+            </div>
+          )}
 
           {timeError && (
             <div role="alert" className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2 flex items-center gap-2">
@@ -1279,17 +1406,52 @@ export default function Schedule() {
       }).filter(Boolean);
   }, [visibleAssignments]);
 
+  const resolvedSchedule = useMemo(() => {
+    return schedule.map((entry) => {
+      if (entry.date || entry.isExam || entry.isAssignment) return entry;
+      const effectiveEnd = resolveCourseEndDate(entry, allExams);
+      const pauseRanges = resolveEntryPauseRanges(entry, allExams);
+      return {
+        ...entry,
+        _effectiveEndDate: effectiveEnd,
+        _endDateResolved: true,
+        _pauseRanges: pauseRanges,
+        _pauseRangesResolved: true,
+      };
+    });
+  }, [schedule, allExams]);
+
   const combinedSchedule = useMemo(() => {
     return [
-      ...schedule,
+      ...resolvedSchedule,
       ...(showExamsLayer ? examScheduleEntries : []),
       ...(showAssignmentsLayer ? assignmentScheduleEntries : []),
     ];
-  }, [schedule, examScheduleEntries, assignmentScheduleEntries, showExamsLayer, showAssignmentsLayer]);
+  }, [resolvedSchedule, examScheduleEntries, assignmentScheduleEntries, showExamsLayer, showAssignmentsLayer]);
 
   const weekDates = useMemo(() => getWeekDates(weekOffset, lang), [weekOffset, lang]);
   const monthHeader = useMemo(() => getMonthHeaderLabel(weekDates, lang), [weekDates, lang]);
   const weekRangeStr = weekDates?.mon && weekDates?.sun ? `${weekDates.mon.formatted} – ${weekDates.sun.formatted}` : '';
+
+  // Track recurring classes paused for Midterm week or closed after their Final-exam endDate
+  const weekStatusInfo = useMemo(() => {
+    let totalRecurring = 0;
+    let pausedCount = 0;
+    let endedCount = 0;
+    resolvedSchedule.forEach((entry) => {
+      if (entry.date || entry.isExam || entry.isAssignment) return;
+      const dStr = weekDates[entry.day]?.dateStr;
+      if (!dStr) return;
+      if (entry.deletedAt && dStr >= entry.deletedAt) return;
+      totalRecurring++;
+      if (entry._effectiveEndDate && dStr > entry._effectiveEndDate) {
+        endedCount++;
+      } else if (isEntryPausedOnDate(entry, dStr)) {
+        pausedCount++;
+      }
+    });
+    return { totalRecurring, pausedCount, endedCount };
+  }, [resolvedSchedule, weekDates]);
 
   // Dynamic compact hour window: defaults to 08:00–18:00 so blocks are wide & super readable!
   const { startHour, endHour } = useMemo(() => {
@@ -1310,9 +1472,8 @@ export default function Schedule() {
     return combinedSchedule.some((e) => {
       if (e.day !== 'sat' && e.day !== 'sun') return false;
       const dStr = weekDates[e.day]?.dateStr;
-      if (e.deletedAt && dStr && dStr >= e.deletedAt) return false;
-      if (e.date) return e.date === dStr;
-      return true;
+      if (!dStr) return false;
+      return isScheduleEntryActiveOnDate(e, dStr);
     });
   }, [combinedSchedule, weekDates]);
 
@@ -1326,11 +1487,11 @@ export default function Schedule() {
     const activeEx = [];
     const activeReg = [];
     combinedSchedule.forEach((e) => {
-      if (e.deletedAt && tStr >= e.deletedAt) return;
       if (e.isAssignment) return;
+      if (!isScheduleEntryActiveOnDate(e, tStr)) return;
       if (e.isExam) {
-        if (e.date === tStr) activeEx.push(e);
-      } else if (e.day === tKey && (!e.date || e.date === tStr)) {
+        activeEx.push(e);
+      } else if (e.day === tKey) {
         activeReg.push(e);
       }
     });
@@ -1685,6 +1846,37 @@ export default function Schedule() {
         </div>
       </div>
 
+      {/* Subtle note when courses are paused (Midterm week) or closed (1 week before Finals) */}
+      {weekStatusInfo.pausedCount > 0 && (
+        <div className="flex items-center gap-2 text-[11.5px] text-amber-200/90 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3.5 py-2">
+          <CalendarDays size={14} className="text-amber-300 shrink-0" />
+          <span>
+            {weekStatusInfo.pausedCount === weekStatusInfo.totalRecurring
+              ? (isTh
+                  ? 'งดเรียนช่วงสอบกลางภาคทุกวิชาในสัปดาห์นี้ — หลังสอบกลางภาคจะกลับมาเรียนปกติ'
+                  : 'All recurring classes are paused for Midterm week — resuming normally afterward')
+              : (isTh
+                  ? `งดเรียนช่วงสอบกลางภาค ${weekStatusInfo.pausedCount} คาบในสัปดาห์นี้ — หลังสอบจะกลับมาเรียนปกติ`
+                  : `${weekStatusInfo.pausedCount} recurring slots paused for Midterm week — resuming normally afterward`)}
+          </span>
+        </div>
+      )}
+
+      {weekStatusInfo.endedCount > 0 && (
+        <div className="flex items-center gap-2 text-[11.5px] text-[#9D9D9D] bg-[#252526]/70 border border-[#3C3C3C] rounded-xl px-3.5 py-2">
+          <CalendarX2 size={14} className="text-[#858585] shrink-0" />
+          <span>
+            {weekStatusInfo.endedCount === weekStatusInfo.totalRecurring
+              ? (isTh
+                  ? 'วิชาเรียนประจำปิดคอร์สครบแล้วในสัปดาห์นี้ (หยุดเรียนก่อนสอบปลายภาค 1 สัปดาห์)'
+                  : 'All recurring courses have ended for this week (closed 1 week before finals)')
+              : (isTh
+                  ? `ปิดคอร์สแล้ว ${weekStatusInfo.endedCount} คาบในสัปดาห์นี้ (หยุดเรียนก่อนสอบ 1 สัปดาห์)`
+                  : `${weekStatusInfo.endedCount} recurring slots ended this week (closed 1 week before exam)`)}
+          </span>
+        </div>
+      )}
+
       {/* ── FULL-WIDTH TIMETABLE / DAILY VIEW ──────────────────────── */}
       {viewType === 'weekly' ? (
         <WeeklyGrid
@@ -1716,8 +1908,8 @@ export default function Schedule() {
       {/* Subtle footer hint */}
       <p className="text-[11px] text-[#858585] px-1">
         {isTh
-          ? 'คลิกที่ช่องว่างเพื่อเพิ่มคาบเรียน · คลิกวิชาเรียนเพื่อแก้ไข · กดที่ชื่อเดือนด้านบนเพื่อเลือกสัปดาห์จากปฏิทิน'
-          : 'Click an empty slot to add a class · Click any class to edit · Click the month title to jump weeks'}
+          ? 'คลิกที่ช่องว่างเพื่อเพิ่มคาบเรียน · คลิกวิชาเรียนเพื่อแก้ไขหรือดูวันปิดคอร์ส · งดเรียนช่วงสอบกลางภาคอัตโนมัติ และปิดคอร์สก่อนสอบปลายภาค 1 สัปดาห์'
+          : 'Click an empty slot to add · Click any class to edit · Auto-pauses during Midterm week and closes 1 week before Finals'}
       </p>
 
       {/* Add / Edit Class Modal */}
@@ -1727,7 +1919,8 @@ export default function Schedule() {
           isOpen={isModalOpen}
           entry={editingEntry || modalEntry}
           visibleCourses={visibleCourses}
-          schedule={schedule}
+          schedule={resolvedSchedule}
+          allExams={allExams}
           lang={lang}
           onSave={handleSave}
           onDelete={handleDelete}
