@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X, Upload, ClipboardPaste, Bookmark, ShieldCheck, CheckCircle2,
   AlertCircle, CalendarDays, ClipboardCheck, GraduationCap, ExternalLink,
-  Copy, Check, Trash2
+  Copy, Check, Trash2, Puzzle, RefreshCw
 } from 'lucide-react';
 import { parseKmutnbRegInput, buildKmutnbRegBookmarklet } from '../services/parsers/kmutnbRegParser';
 import { useClassroom } from '../contexts/ClassroomContext';
@@ -25,8 +25,8 @@ export default function RegImportModal({
   defaultFocus = 'all',
   lang = 'th'
 }) {
-  const { courses, handleImportRegData } = useClassroom();
-  const [inputMode, setInputMode] = useState('paste'); // paste | file | bookmarklet
+  const { courses, handleImportRegData, extensionStatus, requestExtensionSync } = useClassroom();
+  const [inputMode, setInputMode] = useState('paste'); // paste | file | extension | bookmarklet
   const [rawText, setRawText] = useState(initialText);
   const [fileName, setFileName] = useState('');
   const [importSchedule, setImportSchedule] = useState(true);
@@ -196,24 +196,50 @@ export default function RegImportModal({
             </a>
           </div>
 
+          {/* Extension Auto-Sync Status Bar (if installed) */}
+          {extensionStatus?.connected && (
+            <div className="bg-[#007ACC]/15 border border-[#007ACC]/40 rounded-xl px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 text-[#D4D4D4]">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                <span>
+                  {isTh
+                    ? 'เชื่อมต่อ Chrome Extension Auto-Sync แล้ว — แค่เปิดหน้า Reg มจพ. ระบบจะซิงค์ให้อัตโนมัติ'
+                    : 'Chrome Extension Auto-Sync connected — visiting KMUTNB Reg pages syncs automatically.'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  requestExtensionSync?.();
+                  onClose?.();
+                }}
+                className="inline-flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
+              >
+                <RefreshCw size={12} />
+                <span>{isTh ? 'ซิงค์จาก Extension เดี๋ยวนี้' : 'Sync from Extension Now'}</span>
+              </button>
+            </div>
+          )}
+
           {/* Input Mode Selector */}
-          <div className="flex bg-[#1E1E1E] border border-[#3C3C3C] p-1 rounded-xl gap-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 bg-[#1E1E1E] border border-[#3C3C3C] p-1 rounded-xl gap-1">
             {[
-              { id: 'paste', icon: ClipboardPaste, labelTh: 'วางข้อความ (Ctrl+A → C)', labelEn: 'Paste Text (Ctrl+A → C)' },
-              { id: 'file', icon: Upload, labelTh: 'อัปโหลดไฟล์ .html', labelEn: 'Upload .html File' },
-              { id: 'bookmarklet', icon: Bookmark, labelTh: 'Bookmarklet 1 คลิก', labelEn: '1-Click Bookmarklet' },
+              { id: 'paste', icon: ClipboardPaste, labelTh: 'วางข้อความ', labelEn: 'Paste Text' },
+              { id: 'extension', icon: Puzzle, labelTh: 'Extension (Auto)', labelEn: 'Extension (Auto)' },
+              { id: 'file', icon: Upload, labelTh: 'ไฟล์ .html', labelEn: '.html File' },
+              { id: 'bookmarklet', icon: Bookmark, labelTh: 'Bookmarklet', labelEn: 'Bookmarklet' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setInputMode(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                   inputMode === tab.id
                     ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50'
                     : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
                 }`}
               >
-                <tab.icon size={13} />
+                <tab.icon size={13} className="shrink-0" />
                 <span className="truncate">{isTh ? tab.labelTh : tab.labelEn}</span>
               </button>
             ))}
@@ -281,6 +307,76 @@ export default function RegImportModal({
                   {isTh ? 'กด Ctrl+S (Save Page As) ที่หน้า ตารางเรียน/สอบ หรือ ผลการศึกษา แล้วอัปโหลดที่นี่' : 'Press Ctrl+S on KMUTNB Reg page and upload the saved file here'}
                 </span>
               </button>
+            </div>
+          )}
+
+          {inputMode === 'extension' && (
+            <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 space-y-3 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[#FFFFFF] font-semibold flex items-center gap-1.5">
+                  <Puzzle size={14} className="text-[#3794FF]" />
+                  <span>
+                    {isTh
+                      ? 'Chrome / Edge Extension — ซิงค์อัตโนมัติไม่ต้องก๊อปวาง'
+                      : 'Chrome / Edge Extension — Zero-Copy Auto-Sync'}
+                  </span>
+                </p>
+                <span
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                    extensionStatus?.connected
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                      : 'bg-[#252526] text-[#9D9D9D] border-[#3C3C3C]'
+                  }`}
+                >
+                  {extensionStatus?.connected
+                    ? (isTh ? 'เชื่อมต่อแล้ว ✓' : 'Connected ✓')
+                    : (isTh ? 'ยังไม่ได้ติดตั้ง' : 'Not Installed')}
+                </span>
+              </div>
+
+              <ol className="list-decimal list-inside space-y-1.5 text-[#9D9D9D] leading-relaxed">
+                <li>
+                  {isTh
+                    ? 'เปิดหน้า chrome://extensions (หรือ edge://extensions) แล้วเปิดสวิตช์ Developer mode'
+                    : 'Open chrome://extensions (or edge://extensions) and enable Developer mode.'}
+                </li>
+                <li>
+                  {isTh
+                    ? 'กดปุ่ม Load unpacked แล้วเลือกโฟลเดอร์ extension/ ในโปรเจกต์ Classrooms'
+                    : 'Click Load unpacked and select the extension/ folder from this repository.'}
+                </li>
+                <li>
+                  {isTh
+                    ? 'หลังจากนั้น แค่เปิดหน้า ตารางเรียน/สอบ หรือ ผลการศึกษา บน reg.kmutnb.ac.th ระบบจะเก็บข้อมูลให้อัตโนมัติ และซิงค์เข้าเว็บนี้ทันทีเมื่อคุณกลับมาเปิด!'
+                    : 'Whenever you visit Timetable or Grades on reg.kmutnb.ac.th, the extension captures the sanitized table and auto-syncs it here!'}
+                </li>
+              </ol>
+
+              {extensionStatus?.connected && (
+                <div className="pt-1 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      requestExtensionSync?.();
+                      onClose?.();
+                    }}
+                    className="inline-flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <RefreshCw size={13} />
+                    <span>{isTh ? 'ดึงข้อมูลล่าสุดจาก Extension เดี๋ยวนี้' : 'Pull Latest from Extension'}</span>
+                  </button>
+                  {extensionStatus.timetableCount > 0 && (
+                    <span className="text-[11px] text-[#9D9D9D]">
+                      {isTh ? `ตารางเรียนพร้อมส่ง: ${extensionStatus.timetableCount} วิชา` : `Timetable ready: ${extensionStatus.timetableCount} courses`}
+                    </span>
+                  )}
+                  {extensionStatus.gradeCount > 0 && (
+                    <span className="text-[11px] text-[#9D9D9D]">
+                      {isTh ? `ผลการศึกษาพร้อมส่ง: ${extensionStatus.gradeCount} เทอม` : `Grades ready: ${extensionStatus.gradeCount} semesters`}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

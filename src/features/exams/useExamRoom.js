@@ -316,6 +316,12 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     }
   }, [activeEmail]);
 
+  useEffect(() => {
+    const onExamsUpdated = () => refreshFromCache();
+    window.addEventListener('classroom_hub_exams_updated', onExamsUpdated);
+    return () => window.removeEventListener('classroom_hub_exams_updated', onExamsUpdated);
+  }, [refreshFromCache]);
+
   return {
     studentId,
     setStudentId,

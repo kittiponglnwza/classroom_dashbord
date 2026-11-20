@@ -13,6 +13,7 @@ import { syncManager } from '../services/SyncManager';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { NotificationService } from '../services/NotificationService';
 import { examRepository } from '../repositories/examRepository';
+import { parseKmutnbRegInput } from '../services/parsers/kmutnbRegParser';
 import { getCookieConsent } from '../utils/cookieConsent';
 import { useAuth } from './AuthContext';
 import { useSettings } from './SettingsContext';
@@ -33,6 +34,7 @@ export const ClassroomProvider = ({ children }) => {
   const [schedule, setSchedule] = useState([]);
   const [topics, setTopics] = useState([]);
   const [academicData, setAcademicData] = useState(() => createDefaultAcademicData());
+  const [extensionStatus, setExtensionStatus] = useState({ connected: false });
   const [lastSyncTime, setLastSyncTime] = useState(null);
   
   const [syncState, setSyncState] = useState('idle');
@@ -42,6 +44,7 @@ export const ClassroomProvider = ({ children }) => {
   const syncRunIdRef = useRef(0);
   const sessionGenerationRef = useRef(0);
   const assignmentsRef = useRef(assignments);
+  const coursesRef = useRef(courses);
   const scheduleRef = useRef(schedule);
   const academicRef = useRef(academicData);
   const langRef = useRef(lang);
@@ -53,6 +56,10 @@ export const ClassroomProvider = ({ children }) => {
   useEffect(() => {
     assignmentsRef.current = assignments;
   }, [assignments]);
+
+  useEffect(() => {
+    coursesRef.current = courses;
+  }, [courses]);
 
   useEffect(() => {
     scheduleRef.current = schedule;
@@ -493,6 +500,9 @@ export const ClassroomProvider = ({ children }) => {
         updatedAt: nowIso
       }));
       examRepository.saveToCache(email, currentExams, [...preservedManual, ...incomingExams], currentUnlisted);
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new CustomEvent('classroom_hub_exams_updated', { detail: { email } }));
+      }
       calendarNeedsSync = true;
     }
 
@@ -531,6 +541,105 @@ export const ClassroomProvider = ({ children }) => {
     }
   }, [accessToken]);
 
+  const requestExtensionSync = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    window.postMessage(
+      {
+        channel: 'CH_EXTENSION_BRIDGE',
+        source: 'app',
+        type: 'REQUEST_SYNC_NOW'
+      },
+      window.location.origin
+    );
+  }, []);
+
+  // Chrome/Edge Extension Auto-Sync Bridge (receives sanitized KMUTNB Reg snapshots from extension/bridge.js)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const CHANNEL = 'CH_EXTENSION_BRIDGE';
+
+    const handleBridgeMessage = (event) => {
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      const msg = event.data;
+      if (!msg || msg.channel !== CHANNEL || msg.source !== 'extension') return;
+
+      if (msg.status && typeof msg.status === 'object') {
+        setExtensionStatus({ connected: true, ...msg.status });
+      }
+
+      if (msg.type === 'REG_SYNC_EMPTY') {
+        addToast(
+          langRef.current === 'th'
+            ? 'ยังไม่มีข้อมูลจาก Reg มจพ. ใน Extension — ลองเปิดหน้าตารางเรียนหรือผลการศึกษาบน reg.kmutnb.ac.th ก่อนครับ'
+            : 'No captured KMUTNB Reg data in Extension yet — visit Timetable or Grades on reg.kmutnb.ac.th first.',
+          'info'
+        );
+        return;
+      }
+
+      if (msg.type === 'REG_SNAPSHOT_DATA') {
+        if (!isLoggedIn) return;
+        const timetableText = msg.payload?.timetable?.text || '';
+        const gradeText = msg.payload?.grade?.text || '';
+        const combined = [timetableText, gradeText].filter(Boolean).join('\n\n');
+        if (!combined.trim()) return;
+
+        const parsed = parseKmutnbRegInput(combined, coursesRef.current || []);
+        if (!parsed.success) return;
+
+        handleImportRegData(parsed, {
+          importSchedule: Boolean(parsed.meta.totalScheduleSlots > 0),
+          replaceRegSchedule: true,
+          importExams: Boolean(parsed.meta.totalExams > 0),
+          importGrades: Boolean(parsed.meta.hasGrades || parsed.meta.totalEnrolledCourses > 0)
+        });
+
+        window.postMessage(
+          {
+            channel: CHANNEL,
+            source: 'app',
+            type: 'ACK_SYNC_COMPLETE',
+            timetableHash: msg.payload?.timetable?.hash || null,
+            gradeHash: msg.payload?.grade?.hash || null
+          },
+          window.location.origin
+        );
+
+        const parts = [];
+        const isTh = langRef.current === 'th';
+        if (parsed.meta.totalScheduleSlots > 0) {
+          parts.push(isTh ? `ตารางเรียน ${parsed.meta.totalScheduleSlots} คาบ` : `${parsed.meta.totalScheduleSlots} classes`);
+        }
+        if (parsed.meta.totalExams > 0) {
+          parts.push(isTh ? `วันสอบ ${parsed.meta.totalExams} รายการ` : `${parsed.meta.totalExams} exams`);
+        }
+        if (parsed.meta.hasGrades) {
+          parts.push(isTh ? `เกรด ${parsed.meta.totalSemesters} เทอม` : `${parsed.meta.totalSemesters} semesters`);
+        }
+        if (parts.length > 0) {
+          addToast(
+            isTh
+              ? `ซิงค์อัตโนมัติจาก KMUTNB Reg สำเร็จ: ${parts.join(', ')}`
+              : `Auto-synced from KMUTNB Reg: ${parts.join(', ')}`,
+            'success'
+          );
+        }
+      }
+    };
+
+    window.addEventListener('message', handleBridgeMessage);
+    window.postMessage(
+      {
+        channel: CHANNEL,
+        source: 'app',
+        type: 'PING_EXTENSION'
+      },
+      window.location.origin
+    );
+
+    return () => window.removeEventListener('message', handleBridgeMessage);
+  }, [isLoggedIn, handleImportRegData, addToast]);
+
   const isSyncing = isClassroomFetching || syncState === 'uploading' || syncState === 'queued';
 
   useEffect(() => {
@@ -558,16 +667,16 @@ export const ClassroomProvider = ({ children }) => {
   }, [isLoggedIn, accessToken, syncClassroom]);
 
   const value = React.useMemo(() => ({
-    assignments, courses, resources, schedule, academicData, isSyncing, lastSyncTime, syncState, topics,
+    assignments, courses, resources, schedule, academicData, extensionStatus, isSyncing, lastSyncTime, syncState, topics,
     syncClassroom, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
     handleUpdateAssignment, handleDeleteAssignment, handleDeleteScheduleEntry, handleSaveScheduleEntry,
-    handleClearSchedule, handleSaveAcademicData, handleImportRegData,
+    handleClearSchedule, handleSaveAcademicData, handleImportRegData, requestExtensionSync,
     handleTrackAsAssignment, handleUntrackAssignment, resetData
   }), [
-    assignments, courses, resources, schedule, academicData, isSyncing, lastSyncTime, syncState, topics,
+    assignments, courses, resources, schedule, academicData, extensionStatus, isSyncing, lastSyncTime, syncState, topics,
     syncClassroom, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
     handleUpdateAssignment, handleDeleteAssignment, handleDeleteScheduleEntry, handleSaveScheduleEntry,
-    handleClearSchedule, handleSaveAcademicData, handleImportRegData,
+    handleClearSchedule, handleSaveAcademicData, handleImportRegData, requestExtensionSync,
     handleTrackAsAssignment, handleUntrackAssignment, resetData
   ]);
 

@@ -395,7 +395,7 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
 // ─── MAIN ACADEMIC & GRADUATION PAGE ────────────────────────────────
 export default function Academic() {
   const { lang } = useSettings();
-  const { academicData, handleSaveAcademicData } = useClassroom();
+  const { academicData, handleSaveAcademicData, extensionStatus, requestExtensionSync } = useClassroom();
   const { addToast } = useToast();
 
   // Safely read & immediately scrub #reg-import=... bookmarklet payload from URL history
@@ -619,6 +619,18 @@ export default function Academic() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
+          {extensionStatus?.connected && (
+            <button
+              type="button"
+              onClick={requestExtensionSync}
+              className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/35 hover:bg-emerald-500/20 text-emerald-300 font-medium text-xs px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
+              title={isTh ? 'ซิงค์ข้อมูลล่าสุดจาก Chrome Extension' : 'Sync latest from Chrome Extension'}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>{isTh ? 'Extension Sync' : 'Extension Sync'}</span>
+            </button>
+          )}
+
           {hasAnyData && (
             <button
               type="button"
