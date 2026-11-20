@@ -3,6 +3,7 @@ import { examRepository } from '../repositories/examRepository';
 import { syncManager } from '../services/SyncManager';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { getToken } from '../utils/storage';
+import { getMergedExams } from '../utils/examMerger';
 import { Exam, UnlistedExamInfo } from '../types/models';
 
 interface ExamState {
@@ -41,7 +42,7 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
           initialChecked = true;
         }
         initialUnlisted = data.unlisted || null;
-        initialExams = [...(data.exams || []), ...(data.manualExams || [])];
+        initialExams = getMergedExams(data.exams || [], data.manualExams || []) as Exam[];
       }
     }
 
@@ -96,7 +97,7 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
       const hasUnlisted = Boolean(data.unlisted);
       const hasRemoteCache = hasCachedExams || hasUnlisted;
       const hasManual = Boolean(data.manualExams && data.manualExams.length > 0);
-      const newExams = [...(data.exams || []), ...(data.manualExams || [])];
+      const newExams = getMergedExams(data.exams || [], data.manualExams || []) as Exam[];
 
       if (hasRemoteCache) {
         hadRemoteCacheRef.current = true;
@@ -164,7 +165,7 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
           }
           
           setExamState({
-            allExams: [...(result.data.exams || []), ...currentManual],
+            allExams: getMergedExams(result.data.exams || [], currentManual) as Exam[],
             hasCheckedExams: true,
             unlistedInfo: result.data.unlisted
           });

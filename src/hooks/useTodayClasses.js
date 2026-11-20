@@ -4,6 +4,7 @@ import { parseExamDate } from '../utils/examDate';
 import { JS_DAY_MAP } from '../constants/dateConstants';
 import { matchSchedulesAndExams } from '../utils/scheduleMatcher';
 import { isScheduleEntryActiveOnDate } from '../utils/courseEndDate';
+import { getMergedExams } from '../utils/examMerger';
 
 const toLocalDateStr = (date) => {
   const y = date.getFullYear();
@@ -59,7 +60,7 @@ export function useTodayClasses(schedule, profile) {
       if (cachedResult.success && cachedResult.data) {
         const examList = cachedResult.data.exams || [];
         const manualExamList = cachedResult.data.manualExams || [];
-        allExams = [...examList, ...manualExamList];
+        allExams = getMergedExams(examList, manualExamList);
 
         examEntries = allExams.map(ex => {
           let startTime = '09:00';

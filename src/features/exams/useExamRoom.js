@@ -1,11 +1,18 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { parseExamDate } from '../../utils/examDate';
 import { parseLocalDateInput } from '../../utils/dateUtils';
+import { mergeExamSources } from '../../utils/examMerger';
 import { examRepository } from '../../repositories/examRepository';
 import { syncManager } from '../../services/SyncManager';
 import { calendarSyncManager } from '../../services/CalendarSyncManager';
 import { getToken, recordDeletedId } from '../../utils/storage';
 import { logger } from '../../utils/logger';
+
+const notifyExamsUpdated = (email) => {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('classroom_hub_exams_updated', { detail: { email } }));
+  }
+};
 
 const resolveInitialStudentId = (activeEmail = '', profileStudentId = '') => {
   const digitsMatch = activeEmail.match(/\d{13}/);
@@ -146,6 +153,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       setManualExamList(latestManual);
       setUnlistedInfo(result.data.unlisted);
       examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
+      notifyExamsUpdated(activeEmail);
       setStatus('success');
       
       // Trigger background sync for the new seating arrangements
@@ -190,6 +198,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
         setUnlistedInfo(result.data.unlisted);
         setSearchTriggered(true);
         examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
+        notifyExamsUpdated(activeEmail);
         setStatus('success');
 
         const token = getToken();
@@ -240,6 +249,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     setManualExamList(updatedManual);
     setSearchTriggered(true);
     examRepository.saveToCache(activeEmail, examList, updatedManual, unlistedInfo);
+    notifyExamsUpdated(activeEmail);
 
     // Queue synchronization with Google Drive
     const token = getToken();
@@ -257,6 +267,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       recordDeletedId('manualExams', id, activeEmail);
     }
     examRepository.saveToCache(activeEmail, examList, updatedManual, unlistedInfo);
+    notifyExamsUpdated(activeEmail);
 
     // Queue synchronization with Google Drive
     const token = getToken();
@@ -265,6 +276,11 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       calendarSyncManager.queueSync(token, activeEmail);
     }
   }, [examList, unlistedInfo, activeEmail]);
+
+  const mergedExamResult = useMemo(
+    () => mergeExamSources(examList, manualExamList),
+    [examList, manualExamList]
+  );
 
   const sortedExams = useMemo(() => {
     const parseDateForSort = (exam) => {
@@ -288,12 +304,14 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       return dateObj.getTime();
     };
 
-    return [...examList, ...manualExamList]
+    return [...mergedExamResult.exams]
       .sort((a, b) => parseDateForSort(a) - parseDateForSort(b));
-  }, [examList, manualExamList]);
+  }, [mergedExamResult]);
+
+  const isSciBaseOutdatedFallback = mergedExamResult.stats.ignoredStaleSciBaseCount > 0;
 
   const isOutdatedData = useMemo(() => {
-    if (examList.length === 0) return false;
+    if (examList.length === 0 || isSciBaseOutdatedFallback) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -301,7 +319,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
       return parsedDate ? parsedDate < today : false;
     });
-  }, [examList]);
+  }, [examList, isSciBaseOutdatedFallback]);
 
   const refreshFromCache = useCallback(() => {
     const cachedResult = examRepository.getCachedExams(activeEmail);
@@ -331,6 +349,8 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     unlistedInfo,
     searchTriggered,
     isOutdatedData,
+    isSciBaseOutdatedFallback,
+    mergeStats: mergedExamResult.stats,
     handleSearch,
     handleSaveManualExam,
     handleDeleteManualExam,

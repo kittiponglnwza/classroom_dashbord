@@ -13,6 +13,32 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
   const calendarUrl = getGoogleCalendarUrl(exam);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const renderSourceBadge = () => {
+    const isReg = exam.source === 'kmutnb-reg' || String(exam.id || '').startsWith('reg-exam-');
+    if (isReg && exam.seatingSynced) {
+      return (
+        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+          {lang === 'en' ? 'Reg + Seat' : 'Reg + ที่นั่งสอบ'}
+        </span>
+      );
+    }
+    if (isReg) {
+      return (
+        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[#007ACC]/15 text-[#3794FF] border border-[#007ACC]/30">
+          Reg
+        </span>
+      );
+    }
+    if (exam.isManual) {
+      return (
+        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[#1E1E1E] text-[#9D9D9D] border border-[#3C3C3C]">
+          {t('manualTag', lang)}
+        </span>
+      );
+    }
+    return null;
+  };
+
   const renderActions = (iconSize) => (
     <div className="flex items-center gap-1.5 shrink-0">
       {calendarUrl && (
@@ -86,11 +112,7 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
               <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${cardStyle.badge}`}>
                 {exam.courseCode}
               </span>
-              {exam.isManual && (
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[#1E1E1E] text-[#9D9D9D] border border-[#3C3C3C]">
-                  {t('manualTag', lang)}
-                </span>
-              )}
+              {renderSourceBadge()}
             </div>
             <h4 className="font-semibold text-[#FFFFFF] text-sm leading-snug truncate" title={exam.courseName}>
               {exam.courseName}
@@ -137,11 +159,7 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
               <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${cardStyle.badge}`}>
                 {exam.courseCode}
               </span>
-              {exam.isManual && (
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[#1E1E1E] text-[#9D9D9D] border border-[#3C3C3C]">
-                  {t('manualTag', lang)}
-                </span>
-              )}
+              {renderSourceBadge()}
             </div>
             <h4 className="font-semibold text-[#FFFFFF] text-sm leading-snug truncate pt-1" title={exam.courseName}>
               {exam.courseName}

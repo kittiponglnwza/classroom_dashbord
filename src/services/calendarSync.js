@@ -7,6 +7,7 @@ import {
   resolveCourseEndDate,
   resolveEntryPauseRanges,
 } from '../utils/courseEndDate';
+import { getMergedExams } from '../utils/examMerger';
 import { getAlertSettings, getHiddenCourses, getToken } from '../utils/storage';
 import { httpClient } from '../utils/httpClient';
 import { AppError } from '../utils/errors';
@@ -408,7 +409,7 @@ export async function syncClassroomDataToCalendar(
   const hiddenCourseIds = Array.isArray(hiddenCourses) ? hiddenCourses : getHiddenCourses(lowerEmail);
 
   const desiredEvents = [];
-  const allExams = [...(exams || []), ...(manualExams || [])];
+  const allExams = getMergedExams(exams || [], manualExams || []);
 
   // 1. Weekly class schedule (or one-off overrides with a specific date)
   for (const entry of schedule) {

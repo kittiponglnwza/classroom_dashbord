@@ -29,6 +29,8 @@ export default function ExamRoom() {
     unlistedInfo,
     searchTriggered,
     isOutdatedData,
+    isSciBaseOutdatedFallback,
+    mergeStats,
     handleSearch,
     handleSaveManualExam,
     handleDeleteManualExam,
@@ -136,8 +138,8 @@ export default function ExamRoom() {
         </div>
       )}
 
-      {/* Loading Widget */}
-      {loading && (
+      {/* Loading Widget (only blocks full view when no exams are already loaded) */}
+      {loading && sortedExams.length === 0 && (
         <div className="py-14 text-center space-y-3 max-w-2xl">
           <div className="w-6 h-6 rounded-full border-2 border-[#3C3C3C] border-t-[#007ACC] animate-spin mx-auto" />
           <p className="text-xs text-[#9D9D9D] font-medium">{t('fetchingExam', lang)}</p>
@@ -145,8 +147,19 @@ export default function ExamRoom() {
       )}
 
       {/* Search Results */}
-      {((studentId.trim() !== '' && searchTriggered) || sortedExams.length > 0 || unlistedInfo) && !loading && (
+      {((studentId.trim() !== '' && searchTriggered) || sortedExams.length > 0 || unlistedInfo) && (!loading || sortedExams.length > 0) && (
         <div className="space-y-6">
+          {loading && sortedExams.length > 0 && (
+            <div className="bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D] text-xs px-4 py-2.5 rounded-xl flex items-center gap-2.5">
+              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#3C3C3C] border-t-[#007ACC] animate-spin shrink-0" />
+              <span>
+                {lang === 'en'
+                  ? 'Checking official room & seating database by Student ID...'
+                  : 'กำลังตรวจสอบห้องและที่นั่งสอบล่าสุดจากรหัสนักศึกษา...'}
+              </span>
+            </div>
+          )}
+
           {isOutdatedData && (
             <div className="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium p-4 rounded-2xl flex items-start gap-3">
               <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
@@ -155,6 +168,28 @@ export default function ExamRoom() {
                   ? 'The system currently shows exam schedules from the previous semester. It seems the university has not updated the exam database for the new semester yet.'
                   : 'ข้อมูลตารางสอบที่แสดงผลอาจเป็นของภาคการศึกษาที่แล้ว เนื่องจากฐานข้อมูลของมหาวิทยาลัยยังไม่มีการอัปเดตข้อมูลสำหรับภาคการศึกษาใหม่'}
               </p>
+            </div>
+          )}
+
+          {isSciBaseOutdatedFallback && (
+            <div className="bg-[#007ACC]/10 border border-[#007ACC]/30 text-[#D4D4D4] text-xs px-4 py-3 rounded-2xl flex items-start gap-2.5">
+              <CheckCircle2 size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                {lang === 'en'
+                  ? 'Student ID seating database still shows the previous semester — displaying your current KMUTNB Reg exam schedule instead. Rooms & seats will merge automatically once published.'
+                  : 'ฐานข้อมูลที่นั่งสอบจากรหัสนักศึกษายังเป็นของเทอมก่อน — ระบบจึงซ่อนข้อมูลเก่าและแสดงตารางสอบเทอมปัจจุบันจาก KMUTNB Reg แทน (จะรวมห้องและที่นั่งสอบให้อัตโนมัติเมื่อ ม. อัปเดต)'}
+              </p>
+            </div>
+          )}
+
+          {mergeStats?.mergedSeatingCount > 0 && (
+            <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2">
+              <CheckCircle2 size={14} className="shrink-0" />
+              <span>
+                {lang === 'en'
+                  ? `Merged official room & seating from Student ID into ${mergeStats.mergedSeatingCount} Reg exam(s) with no duplicates.`
+                  : `รวมห้องและที่นั่งสอบจากรหัสนักศึกษาเข้ากับตาราง Reg แล้ว ${mergeStats.mergedSeatingCount} รายการ (ไม่ซ้ำซ้อน)`}
+              </span>
             </div>
           )}
 

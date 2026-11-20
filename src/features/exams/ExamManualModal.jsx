@@ -2,6 +2,7 @@ import { useState, useEffect, useId } from 'react';
 import { ClipboardCheck, X } from 'lucide-react';
 import { t } from '../../utils/i18n';
 import { parseLocalDateInput } from '../../utils/dateUtils';
+import { resolveExamIsoDate } from '../../utils/courseEndDate';
 
 const formatDisplayDate = (isoDateStr, lang) => {
   if (!isoDateStr) return '';
@@ -43,7 +44,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
   const initialTimes = parseTimeRange(initialData?.time);
   const [formCode, setFormCode] = useState(() => initialData ? (initialData.courseCode === 'CLASSROOM' ? '' : (initialData.courseCode || '')) : '');
   const [formName, setFormName] = useState(() => initialData ? (initialData.courseName || '') : '');
-  const [formDate, setFormDate] = useState(() => initialData ? (initialData.rawIsoDate || '') : '');
+  const [formDate, setFormDate] = useState(() => initialData ? (initialData.rawIsoDate || resolveExamIsoDate(initialData) || '') : '');
   const [startTime, setStartTime] = useState(() => initialTimes.start);
   const [endTime, setEndTime] = useState(() => initialTimes.end);
   const [formRoom, setFormRoom] = useState(() => initialData ? (initialData.room || '') : '');
@@ -80,6 +81,8 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
 
     onSave({
       id: initialData ? initialData.id : 'new',
+      ...(initialData?.source ? { source: initialData.source } : {}),
+      ...(initialData?.examType ? { examType: initialData.examType } : {}),
       courseCode: formCode.trim() || 'CLASSROOM',
       courseName: formName.trim(),
       date: displayDate,
