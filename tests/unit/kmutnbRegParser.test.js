@@ -649,6 +649,31 @@ describe('KMUTNB Reg Parser & Academic Graduation Engine', () => {
     });
   });
 
+  it('ignores หมายเหตุ caption containing "รหัสวิชา" and never parses room numbers like 78-621 as credits', () => {
+    const trickyCaptionTsv = [
+      'ปีการศึกษา2569',
+      'หมายเหตุ : ข้อมูลที่แสดงคือ "รหัสวิชา (Sec.) ห้องเรียน"',
+      'รหัสวิชา\tตอน\tรายวิชา\tหน่วยกิต\tอาจารย์ผู้สอน\tวันเวลาเรียน\tห้อง\tสอบกลาง\tสอบปลาย\tหมายเหตุ',
+      '040613206\tS.2\tการออกแบบและการวิเคราะห์ขั้นตอนวิธี Design and Analysis of Algorithm\t3(2-2-5)\tอ.ทดสอบ\tS.2 พฤ.13:00-15:00\t78-618/2\t17 ม.ค. 2570 เวลา 13:00-16:00\t25 มี.ค. 2570 เวลา 13:00-16:00\t',
+      '040613304\tS.1\tการบริหารโครงการ Project Management\t3(3-0-6)\tอ.ทดสอบ\tS.1 พ.09:00-12:00\t75-604\t11 ม.ค. 2570 เวลา 13:00-16:00\t18 มี.ค. 2570 เวลา 09:00-12:00\t',
+      '080303701\tS.8\tกระบวนการคิดเชิงออกแบบ Design Thinking\t3(3-0-6)\tอ.ทดสอบ\tS.8 พฤ.09:00-12:00\t31-1007B\t\t\t',
+      '080303515\tL.1\tการเดิน-วิ่ง เพื่อสุขภาพ Walk and Run for Health\t1(0-2-1)\tอ.ทดสอบ\tL.1 จ.13:00-15:00\t-\t\t\t'
+    ].join('\n');
+
+    const parsed = parseKmutnbRegInput(trickyCaptionTsv);
+    expect(parsed.success).toBe(true);
+    expect(parsed.meta.totalEnrolledCredits).toBe(10); // 3 + 3 + 3 + 1 = 10 (NEVER 78 + 75 + 31!)
+    expect(parsed.timetable.enrolledCourses.every((c) => c.credits >= 0 && c.credits <= 12)).toBe(true);
+
+    // Even if credit column is missing/shifted onto room "78-621", parser must NOT parse 78 as credits
+    const shiftedRow = [
+      'รหัสวิชา\tตอน\tรายวิชา\tห้อง\tวันเวลาเรียน',
+      '040613206\tS.2\tAlgorithm\t78-618/2\tS.2 พฤ.13:00-15:00'
+    ].join('\n');
+    const shiftedParsed = parseKmutnbRegInput(shiftedRow);
+    expect(shiftedParsed.timetable.enrolledCourses[0].credits).toBe(0);
+  });
+
   it('parses HTML table format as well as TSV rows', () => {
     const html = `
       <html><body>

@@ -1,6 +1,6 @@
 /* global chrome */
-const STORAGE_KEY = 'ch_reg_snapshots_v2';
-const DELIVERED_KEY = 'ch_reg_delivered_v2';
+const STORAGE_KEY = 'ch_reg_snapshots_v3';
+const DELIVERED_KEY = 'ch_reg_delivered_v3';
 const PROD_ORIGIN = 'https://classrooms-hub.vercel.app';
 
 function formatTime(iso) {

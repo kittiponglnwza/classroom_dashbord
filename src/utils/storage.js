@@ -338,6 +338,19 @@ export const createDefaultAcademicData = () => ({
   updatedAt: null
 });
 
+const sanitizeEnrolledCourseCredits = (course) => {
+  if (!course || typeof course !== 'object') return course;
+  const rawCr = Number(course.credits);
+  if (Number.isFinite(rawCr) && rawCr >= 0 && rawCr <= 12) return course;
+  // Auto-repair legacy corrupted credit values (e.g. room number "78-621" parsed as 78)
+  const specMatch = String(course.creditSpec || '').match(/(\d+(?:\.\d+)?)\s*\(\s*\d+\s*-\s*\d+\s*-\s*\d+\s*\)/);
+  const repaired = specMatch ? parseFloat(specMatch[1]) : 0;
+  return {
+    ...course,
+    credits: Number.isFinite(repaired) && repaired <= 12 ? repaired : 0
+  };
+};
+
 export const getAcademicData = (email) => {
   const stored = StorageRepository.get(KEYS.academic, email, true);
   if (!stored || typeof stored !== 'object') {
@@ -347,7 +360,9 @@ export const getAcademicData = (email) => {
     ...createDefaultAcademicData(),
     ...stored,
     semesters: Array.isArray(stored.semesters) ? stored.semesters : [],
-    enrolledCourses: Array.isArray(stored.enrolledCourses) ? stored.enrolledCourses : [],
+    enrolledCourses: Array.isArray(stored.enrolledCourses)
+      ? stored.enrolledCourses.map(sanitizeEnrolledCourseCredits)
+      : [],
     curriculum:
       Array.isArray(stored.curriculum) && stored.curriculum.length > 0
         ? stored.curriculum

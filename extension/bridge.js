@@ -1,9 +1,9 @@
 /* global chrome */
 (() => {
   const CHANNEL = 'CH_EXTENSION_BRIDGE';
-  const STORAGE_KEY = 'ch_reg_snapshots_v2';
-  const DELIVERED_KEY = 'ch_reg_delivered_v2';
-  const EXTENSION_VERSION = '1.1.0';
+  const STORAGE_KEY = 'ch_reg_snapshots_v3';
+  const DELIVERED_KEY = 'ch_reg_delivered_v3';
+  const EXTENSION_VERSION = '1.2.0';
   const PAGE_ORIGIN = window.location.origin;
 
   function buildStatus(snapshots = {}, delivered = {}) {

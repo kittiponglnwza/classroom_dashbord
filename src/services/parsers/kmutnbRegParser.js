@@ -49,6 +49,26 @@ const THAI_DAY_MAP = {
 const VALID_GRADES_REGEX = /^(?:A|B\+|B|C\+|C|D\+|D|F|W|S|U|I|P|IP|FA|FE|AUD|-)$/i;
 const COURSE_CODE_LINE_REGEX = /^(\d{9})$/;
 const CREDIT_SPEC_REGEX = /^(\d+(?:\.\d+)?)\s*\(\s*\d+\s*-\s*\d+\s*-\s*\d+\s*\)$/;
+const CREDIT_SPEC_EMBEDDED_REGEX = /\b(\d+(?:\.\d+)?)\s*\(\s*\d+\s*-\s*\d+\s*-\s*\d+\s*\)/;
+const STANDALONE_CREDIT_REGEX = /^(\d{1,2}(?:\.\d+)?)$/;
+
+/**
+ * Strictly parses course credits (0–12). Rejects room numbers like "78-621", "75-604", "31-1007B".
+ */
+function parseValidCredits(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  const specMatch = s.match(CREDIT_SPEC_EMBEDDED_REGEX);
+  if (specMatch) {
+    const val = parseFloat(specMatch[1]);
+    return Number.isFinite(val) && val >= 0 && val <= 12 ? val : null;
+  }
+  if (STANDALONE_CREDIT_REGEX.test(s)) {
+    const val = parseFloat(s);
+    return Number.isFinite(val) && val >= 0 && val <= 12 ? val : null;
+  }
+  return null;
+}
 const SECTION_TOKEN_REGEX = /^(?:[SL]\.?\d+|\d{1,3})$/i;
 const SCHEDULE_SLOT_REGEX =
   /(พฤหัสบดี|พฤหัส|พฤ|อาทิตย์|อา|จันทร์|จ|อังคาร|อ|พุธ|พ|ศุกร์|ศ|เสาร์|ส|MON|MO|TUE|TU|WED|WE|THU|TH|FRI|FR|SAT|SA|SUN|SU)\.?\s*(\d{1,2})[:.](\d{2})\s*[-–]\s*(\d{1,2})[:.](\d{2})/gi;
@@ -210,8 +230,8 @@ function extractLinesFromHtml(htmlStr) {
           const section = colIdx.section >= 0 ? (cells[colIdx.section] || '') : '';
           const rawTitle = colIdx.title >= 0 ? (cells[colIdx.title] || '') : '';
           const creditRaw = colIdx.credits >= 0 ? (cells[colIdx.credits] || '') : '';
-          const creditMatch = creditRaw.match(/^(\d+(?:\.\d+)?)/);
-          const credits = creditMatch ? parseFloat(creditMatch[1]) : 0;
+          const parsedHtmlCr = parseValidCredits(creditRaw);
+          const credits = parsedHtmlCr !== null ? parsedHtmlCr : 0;
           const instructor = colIdx.instructor >= 0 ? (cells[colIdx.instructor] || '') : '';
           const scheduleRaw = colIdx.schedule >= 0 ? (cells[colIdx.schedule] || '') : '';
           const room = colIdx.room >= 0 ? normalizeRoom(cells[colIdx.room]) : '';
@@ -344,7 +364,10 @@ function parseTimetableFromText(text) {
   let headerCols = null;
   for (let i = 0; i < rawLines.length; i++) {
     const trimmed = trimmedLines[i];
-    if (!trimmed.includes('รหัสวิชา')) continue;
+    // Never treat caption lines like `หมายเหตุ : ข้อมูลที่แสดงคือ "รหัสวิชา (Sec.) ห้องเรียน"` as a table header!
+    if (/^หมายเหตุ\s*[:：]/.test(trimmed)) continue;
+    const firstHeaderCell = rawLines[i].split('\t')[0].trim();
+    if (firstHeaderCell !== 'รหัสวิชา' && !/^รหัสวิชา(?:\s|$)/.test(trimmed)) continue;
 
     // Look ahead across up to 15 lines so wrapped multi-line <th> headers (e.g. "รหัสวิชา\tตอน\nเรียน\tรายวิชา...") still match
     let headerEnd = i + 1;
@@ -449,14 +472,27 @@ function parseTimetableFromText(text) {
       const rawTitle = getCol(cols, colIdx.title, 2);
       const { thaiName, engName } = splitBilingualCourseTitle(rawTitle);
 
-      // Credits (fallback: scan cols for 3(2-2-5) pattern if shifted)
+      // Credits: strictly reject room numbers like "78-621" or numbers > 12; scan cols for 3(2-2-5) or valid credit
       let creditRaw = getCol(cols, colIdx.credits, 3);
-      if (!CREDIT_SPEC_REGEX.test(creditRaw)) {
-        const foundCredit = cols.find((c) => CREDIT_SPEC_REGEX.test(c));
-        if (foundCredit) creditRaw = foundCredit;
+      let credits = parseValidCredits(creditRaw);
+      if (credits === null) {
+        const specCell = cols.find((c) => CREDIT_SPEC_EMBEDDED_REGEX.test(c));
+        if (specCell) {
+          creditRaw = specCell;
+          credits = parseValidCredits(specCell);
+        } else {
+          // Check typical credit positions (index 2..4) for standalone 0-12 number
+          const fallbackCell = cols.slice(2, 5).find((c) => parseValidCredits(c) !== null);
+          if (fallbackCell) {
+            creditRaw = fallbackCell;
+            credits = parseValidCredits(fallbackCell);
+          }
+        }
       }
-      const creditMatch = creditRaw.match(/^(\d+(?:\.\d+)?)/);
-      const credits = creditMatch ? parseFloat(creditMatch[1]) : 0;
+      if (credits === null) {
+        creditRaw = '';
+        credits = 0;
+      }
 
       const instructor = getCol(cols, colIdx.instructor, 4);
 

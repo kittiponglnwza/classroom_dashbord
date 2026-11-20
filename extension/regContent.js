@@ -1,6 +1,6 @@
 /* global chrome */
 (() => {
-  const STORAGE_KEY = 'ch_reg_snapshots_v2';
+  const STORAGE_KEY = 'ch_reg_snapshots_v3';
   const HUB_URL = 'https://classrooms-hub.vercel.app/schedule';
   const TOAST_HOST_ID = 'ch-classroom-hub-reg-toast-host';
 
@@ -44,22 +44,26 @@
     let bestCourseCodes = new Set();
 
     for (const table of tables) {
-      const trs = Array.from(table.querySelectorAll('tr'));
+      // Only take rows directly belonging to this table (avoid nested layout tables)
+      const trs = Array.from(table.querySelectorAll('tr')).filter((tr) => tr.closest('table') === table);
       if (trs.length < 2) continue;
 
       const rowArrays = trs.map((tr) =>
-        Array.from(tr.querySelectorAll('th, td')).map((cell) => cleanCellText(cell))
+        Array.from(tr.children)
+          .filter((el) => el.tagName === 'TH' || el.tagName === 'TD')
+          .map((cell) => cleanCellText(cell))
       );
 
-      // Find header row inside this table
+      // Find header row inside this table (must have a cell strictly starting with รหัสวิชา, not a หมายเหตุ caption)
       const headerRowIdx = rowArrays.findIndex((cells) => {
+        const hasCodeHeader = cells.some((c) => /^รหัสวิชา(?:\s|$)/.test(c));
+        if (!hasCodeHeader) return false;
         const joined = cells.join(' ');
         return (
-          joined.includes('รหัสวิชา') &&
-          (joined.includes('วันเวลาเรียน') ||
-            joined.includes('สอบกลาง') ||
-            joined.includes('อาจารย์') ||
-            (joined.includes('หน่วยกิต') && !joined.includes('เกรด')))
+          joined.includes('วันเวลาเรียน') ||
+          joined.includes('สอบกลาง') ||
+          joined.includes('อาจารย์') ||
+          (joined.includes('หน่วยกิต') && !joined.includes('เกรด'))
         );
       });
 
@@ -122,7 +126,9 @@
       const yearLine = trimmedLines.find((l) => /^ปีการศึกษา\s*\d{4}$/.test(l)) || '';
       let headerIdx = -1;
       for (let i = 0; i < lines.length; i++) {
-        if (!trimmedLines[i].includes('รหัสวิชา')) continue;
+        if (/^หมายเหตุ\s*[:：]/.test(trimmedLines[i])) continue;
+        const firstCell = lines[i].split('\t')[0].trim();
+        if (firstCell !== 'รหัสวิชา' && !/^รหัสวิชา(?:\s|$)/.test(trimmedLines[i])) continue;
         const lookahead = trimmedLines.slice(i, i + 15).join(' ');
         if (
           lookahead.includes('วันเวลาเรียน') ||
