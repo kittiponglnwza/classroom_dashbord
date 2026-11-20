@@ -55,6 +55,16 @@ export class StorageRepository {
           throw new ValidationError('Exams fields must be arrays.');
         }
       }
+
+      if (key === STORAGE_CONFIG.keys.academic) {
+        if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+          throw new ValidationError('Academic data must be an object.');
+        }
+        const typedData = data as Record<string, unknown>;
+        if (!Array.isArray(typedData.semesters || []) || !Array.isArray(typedData.enrolledCourses || [])) {
+          throw new ValidationError('Academic semesters and enrolledCourses must be arrays.');
+        }
+      }
     } catch (err) {
       logger.error(`Validation failed for key: ${key}`, err);
       throw err;
@@ -147,7 +157,8 @@ export class StorageRepository {
         baseKey === STORAGE_CONFIG.keys.assignments ||
         baseKey === STORAGE_CONFIG.keys.courses ||
         baseKey === STORAGE_CONFIG.keys.schedule ||
-        baseKey === STORAGE_CONFIG.keys.hiddenCourses;
+        baseKey === STORAGE_CONFIG.keys.hiddenCourses ||
+        baseKey === STORAGE_CONFIG.keys.academic;
       if (email && isSyncableUserKey) {
         const timeKey = `classroom_hub_settings_last_updated_${email.toLowerCase().trim()}`;
         localStorage.setItem(timeKey, payload.timestamp);

@@ -1,6 +1,7 @@
 import { initialAssignments, initialCourses, defaultProfile } from '../data/mockData';
 import { StorageRepository } from '../repositories/StorageRepository';
 import { STORAGE_CONFIG } from '../config/storage';
+import { DEFAULT_CURRICULUM_CATEGORIES } from './academicUtils';
 
 const KEYS = STORAGE_CONFIG.keys;
 
@@ -325,6 +326,54 @@ export const saveTopics = (topics, email) => {
   StorageRepository.set(KEYS.topics, topics, email);
 };
 
+/* Academic & Graduation Data Helpers (Grades, Enrolled Courses, Curriculum Criteria) */
+export const createDefaultAcademicData = () => ({
+  semesters: [],
+  enrolledCourses: [],
+  curriculum: DEFAULT_CURRICULUM_CATEGORIES.map((c) => ({ ...c })),
+  minGpax: 2.0,
+  courseCategoryMap: {},
+  privacyBlur: false,
+  lastImportedAt: null,
+  updatedAt: null
+});
+
+export const getAcademicData = (email) => {
+  const stored = StorageRepository.get(KEYS.academic, email, true);
+  if (!stored || typeof stored !== 'object') {
+    return createDefaultAcademicData();
+  }
+  return {
+    ...createDefaultAcademicData(),
+    ...stored,
+    semesters: Array.isArray(stored.semesters) ? stored.semesters : [],
+    enrolledCourses: Array.isArray(stored.enrolledCourses) ? stored.enrolledCourses : [],
+    curriculum:
+      Array.isArray(stored.curriculum) && stored.curriculum.length > 0
+        ? stored.curriculum
+        : DEFAULT_CURRICULUM_CATEGORIES.map((c) => ({ ...c })),
+    courseCategoryMap:
+      stored.courseCategoryMap && typeof stored.courseCategoryMap === 'object'
+        ? stored.courseCategoryMap
+        : {}
+  };
+};
+
+export const saveAcademicData = (academicData, email) => {
+  const sanitized = {
+    ...createDefaultAcademicData(),
+    ...(academicData || {}),
+    updatedAt: new Date().toISOString()
+  };
+  StorageRepository.set(KEYS.academic, sanitized, email);
+  return sanitized;
+};
+
+export const clearAcademicLocalData = (email) => {
+  if (!email) return;
+  StorageRepository.remove(KEYS.academic, email);
+};
+
 export const resetDatabase = (email) => {
   const userEmail = (email || getActiveEmail() || '').toLowerCase().trim();
   
@@ -359,6 +408,7 @@ export const resetDatabase = (email) => {
     StorageRepository.remove(KEYS.schedule, userEmail);
     StorageRepository.remove(KEYS.exams, userEmail);
     StorageRepository.remove(KEYS.topics, userEmail);
+    StorageRepository.remove(KEYS.academic, userEmail);
     StorageRepository.remove(DELETED_IDS_KEY, userEmail);
     StorageRepository.remove(`classroom_hub_calendar_event_map_${userEmail}`);
     StorageRepository.remove(`classroom_hub_settings_last_updated_${userEmail}`);

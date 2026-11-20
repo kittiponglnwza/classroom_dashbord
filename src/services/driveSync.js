@@ -27,7 +27,8 @@ const STANDARD_SCOPED_KEYS = [
   'classroom_hub_deleted_ids',
   KEYS.profile,
   KEYS.lastSync,
-  KEYS.topics
+  KEYS.topics,
+  KEYS.academic
 ];
 
 const isSafeSyncKey = (fullKey, expectedEmail = '') => {

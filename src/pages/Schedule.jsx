@@ -1,14 +1,16 @@
-import { useState, useEffect, useRef, useMemo, useCallback, useId } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, useId, useContext } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { CalendarDays, CalendarX2, Plus, X, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import { CalendarDays, CalendarX2, Plus, X, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight, MapPin, Upload } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { useAuth } from '../contexts/AuthContext';
+import { ToastContext } from '../contexts/ToastContext';
 import { useExams } from '../hooks/useExams';
 import { parseExamDate } from '../utils/examDate';
 import { parseLocalDateInput } from '../utils/dateUtils';
+import RegImportModal from '../components/RegImportModal';
 
 import { DAYS, JS_DAY_MAP } from '../constants/dateConstants';
 
@@ -1136,6 +1138,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 export default function Schedule() {
   const { lang } = useSettings();
   const { profile } = useAuth();
+  const toast = useContext(ToastContext);
   const { schedule, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule } = useClassroom();
   const ui = useClassroomUI();
   const visibleCourses = useMemo(() => ui?.visibleCourses || [], [ui?.visibleCourses]);
@@ -1173,6 +1176,7 @@ export default function Schedule() {
   }, [updateScheduleParams, weekOffset]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRegImportOpen, setIsRegImportOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [prefillData, setPrefillData] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -1488,6 +1492,15 @@ export default function Schedule() {
 
           <button
             type="button"
+            onClick={() => setIsRegImportOpen(true)}
+            className="flex items-center justify-center gap-1.5 bg-[#252526] hover:bg-[#2A2D2E] text-[#D4D4D4] border border-[#3C3C3C] font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
+          >
+            <Upload size={14} className="text-[#3794FF]" />
+            <span>{t('importReg', lang)}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={openBlankAdd}
             className="flex items-center justify-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
           >
@@ -1640,6 +1653,31 @@ export default function Schedule() {
             setEditingEntry(null);
             setPrefillData(null);
             setShowClearConfirm(false);
+          }}
+        />
+      )}
+
+      {isRegImportOpen && (
+        <RegImportModal
+          isOpen={isRegImportOpen}
+          defaultFocus="schedule"
+          lang={lang}
+          onClose={() => setIsRegImportOpen(false)}
+          onImported={(parsed) => {
+            const parts = [];
+            if (parsed.meta.totalScheduleSlots > 0) {
+              parts.push(lang === 'th' ? `ตารางเรียน ${parsed.meta.totalScheduleSlots} คาบ` : `${parsed.meta.totalScheduleSlots} classes`);
+            }
+            if (parsed.meta.totalExams > 0) {
+              parts.push(lang === 'th' ? `วันสอบ ${parsed.meta.totalExams} รายการ` : `${parsed.meta.totalExams} exams`);
+            }
+            if (parsed.meta.hasGrades) {
+              parts.push(lang === 'th' ? `เกรด ${parsed.meta.totalSemesters} เทอม` : `${parsed.meta.totalSemesters} semesters`);
+            }
+            toast?.addToast?.(
+              lang === 'th' ? `นำเข้าจาก KMUTNB Reg สำเร็จ: ${parts.join(', ')}` : `Imported from KMUTNB Reg: ${parts.join(', ')}`,
+              'success'
+            );
           }}
         />
       )}

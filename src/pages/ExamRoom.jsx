@@ -1,19 +1,22 @@
-import { useState } from 'react';
-import { ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus, Search, LayoutGrid, List } from 'lucide-react';
+import { useState, useContext } from 'react';
+import { ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus, Search, LayoutGrid, List, Upload } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { getCookieConsent } from '../utils/cookieConsent';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { ToastContext } from '../contexts/ToastContext';
 
 import { useExamRoom } from '../features/exams/useExamRoom';
 import ExamSearchForm from '../features/exams/ExamSearchForm';
 import ExamCard from '../features/exams/ExamCard';
 import ExamManualModal from '../features/exams/ExamManualModal';
 import ExamUnlistedAlert from '../features/exams/ExamUnlistedAlert';
+import RegImportModal from '../components/RegImportModal';
 
 export default function ExamRoom() {
   const { profile } = useAuth();
   const { lang } = useSettings();
+  const toast = useContext(ToastContext);
 
   const activeEmail = (profile.email || '').toLowerCase().trim();
 
@@ -28,12 +31,14 @@ export default function ExamRoom() {
     isOutdatedData,
     handleSearch,
     handleSaveManualExam,
-    handleDeleteManualExam
+    handleDeleteManualExam,
+    refreshFromCache
   } = useExamRoom(activeEmail, lang, profile.studentId);
 
   const loading = status === 'loading';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRegImportOpen, setIsRegImportOpen] = useState(false);
   const [editingExamData, setEditingExamData] = useState(null);
   const [isSearchVisible, setIsSearchVisible] = useState(() => {
     return !(sortedExams && sortedExams.length > 0);
@@ -85,6 +90,14 @@ export default function ExamRoom() {
               <span>{lang === 'en' ? 'Search Student ID' : 'ค้นหารหัสนักศึกษา'}</span>
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setIsRegImportOpen(true)}
+            className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3.5 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer"
+          >
+            <Upload size={14} className="text-[#3794FF]" />
+            <span>{t('importReg', lang)}</span>
+          </button>
           <button
             type="button"
             onClick={openNewModal}
@@ -230,6 +243,27 @@ export default function ExamRoom() {
           onCancel={() => setIsModalOpen(false)}
           lang={lang}
           key={editingExamData?.id || 'new'}
+        />
+      )}
+
+      {isRegImportOpen && (
+        <RegImportModal
+          isOpen={isRegImportOpen}
+          defaultFocus="schedule"
+          lang={lang}
+          onClose={() => setIsRegImportOpen(false)}
+          onImported={(parsed) => {
+            refreshFromCache();
+            if (parsed.meta.totalExams > 0) {
+              setIsSearchVisible(false);
+            }
+            toast?.addToast?.(
+              lang === 'th'
+                ? `นำเข้าวันสอบ ${parsed.meta.totalExams} รายการจาก KMUTNB Reg แล้ว`
+                : `Imported ${parsed.meta.totalExams} exams from KMUTNB Reg`,
+              'success'
+            );
+          }}
         />
       )}
     </div>

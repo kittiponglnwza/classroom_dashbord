@@ -146,3 +146,59 @@ export interface FilterState {
   courseId?: string;
   query?: string;
 }
+
+export interface GradeCourseRow {
+  courseCode: string;
+  courseName: string;
+  section?: string;
+  credits: number;
+  grade: string;
+}
+
+export interface SemesterStats {
+  ca: number;
+  cs: number;
+  cg: number;
+  gp: number;
+  gpa?: number;
+  gpax?: number;
+}
+
+export interface AcademicSemester {
+  semesterId: string;
+  status?: string;
+  courses: GradeCourseRow[];
+  semesterStats?: SemesterStats | null;
+  cumulativeStats?: SemesterStats | null;
+}
+
+export interface EnrolledCourseRecord {
+  courseCode: string;
+  thaiName?: string;
+  engName?: string;
+  credits: number;
+  creditSpec?: string;
+  instructor?: string;
+  sections?: string[];
+  remark?: string;
+  academicYear?: string;
+}
+
+export interface CurriculumCategory {
+  id: string;
+  nameTh: string;
+  nameEn: string;
+  requiredCredits: number;
+  color: string;
+}
+
+export interface AcademicData {
+  semesters: AcademicSemester[];
+  enrolledCourses: EnrolledCourseRecord[];
+  curriculum: CurriculumCategory[];
+  minGpax: number;
+  courseCategoryMap: Record<string, string>;
+  privacyBlur?: boolean;
+  lastImportedAt?: string | null;
+  updatedAt?: string;
+}

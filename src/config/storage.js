@@ -11,7 +11,8 @@ export const STORAGE_CONFIG = {
     activeEmail: 'classroom_hub_active_email',
     schedule: 'classroom_hub_schedule',
     exams: 'classroom_hub_exam_results',
-    topics: 'classroom_hub_topics'
+    topics: 'classroom_hub_topics',
+    academic: 'classroom_hub_academic'
   },
   
   // Cache TTLs in milliseconds (mapped by both short alias and full storage base key)

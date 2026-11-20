@@ -303,6 +303,19 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     });
   }, [examList]);
 
+  const refreshFromCache = useCallback(() => {
+    const cachedResult = examRepository.getCachedExams(activeEmail);
+    if (cachedResult.success && cachedResult.data) {
+      const data = cachedResult.data;
+      setExamList(data.exams || []);
+      setManualExamList(data.manualExams || []);
+      setUnlistedInfo(data.unlisted || null);
+      if ((data.exams && data.exams.length > 0) || (data.manualExams && data.manualExams.length > 0) || data.unlisted) {
+        setSearchTriggered(true);
+      }
+    }
+  }, [activeEmail]);
+
   return {
     studentId,
     setStudentId,
@@ -314,6 +327,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     isOutdatedData,
     handleSearch,
     handleSaveManualExam,
-    handleDeleteManualExam
+    handleDeleteManualExam,
+    refreshFromCache
   };
 };

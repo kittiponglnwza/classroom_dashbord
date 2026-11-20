@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { 
   getToken, saveToken, clearToken, getActiveEmail, setActiveEmail, 
-  getProfile, saveProfile, getRememberMe, setRememberMe
+  getProfile, saveProfile, getRememberMe, setRememberMe, clearAcademicLocalData
 } from '../utils/storage';
 import { initGoogleClient } from '../services/googleClassroomClient';
 import { StorageRepository } from '../repositories/StorageRepository';
@@ -125,9 +125,14 @@ export const AuthProvider = ({ children }) => {
     }
   }, [clearSessionState]);
 
-  // Explicit user logout: forget the account on this device as well.
+  // Explicit user logout: forget the account on this device as well
+  // and scrub sensitive local academic/grade records (restored via Drive appDataFolder on next login).
   const handleForceLogout = useCallback(() => {
+    const previousEmail = getActiveEmail();
     clearSessionState();
+    if (previousEmail) {
+      clearAcademicLocalData(previousEmail);
+    }
     setAuthError(null);
     setActiveEmail('');
     setRememberedAccount(null);

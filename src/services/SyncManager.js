@@ -205,6 +205,7 @@ class SyncManager {
       const isAssignments = fullKey.startsWith(KEYS.assignments);
       const isSchedule = fullKey.startsWith(KEYS.schedule);
       const isExams = fullKey.startsWith(KEYS.exams);
+      const isAcademic = fullKey.startsWith(KEYS.academic);
       const isDeletedIds = fullKey.startsWith('classroom_hub_deleted_ids');
       const isSentNotifications = fullKey.startsWith('classroom_hub_sent_notifications');
       const isNotificationHistory = fullKey.startsWith('classroom_hub_notification_history');
@@ -263,6 +264,25 @@ class SyncManager {
             unlisted: mergedUnlisted
           };
           merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedExamData);
+        } else if (isAcademic) {
+          const localParsed = JSON.parse(localStr);
+          const remoteParsed = JSON.parse(remoteStr);
+          const localTime = new Date(localParsed.data?.updatedAt || localParsed.timestamp || 0).getTime();
+          const remoteTime = new Date(remoteParsed.data?.updatedAt || remoteParsed.timestamp || 0).getTime();
+          const localData = localParsed.data || {};
+          const remoteData = remoteParsed.data || {};
+          const mergedAcademic = remoteTime > localTime
+            ? {
+                ...localData,
+                ...remoteData,
+                courseCategoryMap: { ...(localData.courseCategoryMap || {}), ...(remoteData.courseCategoryMap || {}) }
+              }
+            : {
+                ...remoteData,
+                ...localData,
+                courseCategoryMap: { ...(remoteData.courseCategoryMap || {}), ...(localData.courseCategoryMap || {}) }
+              };
+          merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedAcademic);
         } else if (isSentNotifications) {
           const localParsed = JSON.parse(localStr);
           const remoteParsed = JSON.parse(remoteStr);

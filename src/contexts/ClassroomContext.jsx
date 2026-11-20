@@ -5,7 +5,8 @@ import {
   addAssignment, deleteAssignment, getCourses, saveCourses, getLastSync, setLastSync,
   syncClassroomAssignments, getToken, getProfile, recordDeletedId,
   getResources, saveResources, saveAssignments, getActiveEmail, setActiveEmail, resetDatabase,
-  getSchedule, saveSchedule, getTopics, saveTopics
+  getSchedule, saveSchedule, getTopics, saveTopics,
+  getAcademicData, saveAcademicData, createDefaultAcademicData
 } from '../utils/storage';
 import { ClassroomService } from '../services/ClassroomService';
 import { syncManager } from '../services/SyncManager';
@@ -31,6 +32,7 @@ export const ClassroomProvider = ({ children }) => {
   const [resources, setResources] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [topics, setTopics] = useState([]);
+  const [academicData, setAcademicData] = useState(() => createDefaultAcademicData());
   const [lastSyncTime, setLastSyncTime] = useState(null);
   
   const [syncState, setSyncState] = useState('idle');
@@ -41,6 +43,7 @@ export const ClassroomProvider = ({ children }) => {
   const sessionGenerationRef = useRef(0);
   const assignmentsRef = useRef(assignments);
   const scheduleRef = useRef(schedule);
+  const academicRef = useRef(academicData);
   const langRef = useRef(lang);
 
   useEffect(() => {
@@ -55,12 +58,17 @@ export const ClassroomProvider = ({ children }) => {
     scheduleRef.current = schedule;
   }, [schedule]);
 
+  useEffect(() => {
+    academicRef.current = academicData;
+  }, [academicData]);
+
   const loadLocalData = useCallback((email = '') => {
     setAssignments(getAssignments(email));
     setCourses(getCourses(email));
     setResources(getResources(email));
     setSchedule(getSchedule(email));
     setTopics(getTopics(email));
+    setAcademicData(getAcademicData(email));
     setLastSyncTime(getLastSync(email));
   }, []);
 
@@ -381,6 +389,7 @@ export const ClassroomProvider = ({ children }) => {
     setCourses(reset.courses);
     setResources([]);
     setTopics([]);
+    setAcademicData(createDefaultAcademicData());
     setLastSyncTime(null);
     setSchedule([]);
   }, []);
@@ -423,6 +432,105 @@ export const ClassroomProvider = ({ children }) => {
     calendarSyncManager.queueSync(accessToken, email);
   }, [accessToken]);
 
+  const handleSaveAcademicData = useCallback((nextOrUpdater) => {
+    const email = getActiveEmail();
+    const prev = academicRef.current || createDefaultAcademicData();
+    const next = typeof nextOrUpdater === 'function' ? nextOrUpdater(prev) : nextOrUpdater;
+    const saved = saveAcademicData(next, email);
+    setAcademicData(saved);
+    if (accessToken && email) {
+      syncManager.queueSync(accessToken, email);
+    }
+    return saved;
+  }, [accessToken]);
+
+  /**
+   * Unified batch importer for parsed KMUTNB Reg data (Schedule + Exams + Grades/Enrolled courses).
+   */
+  const handleImportRegData = useCallback((parsedResult, options = {}) => {
+    const {
+      importSchedule = true,
+      replaceRegSchedule = true,
+      importExams = true,
+      importGrades = true,
+    } = options;
+    const email = getActiveEmail();
+    const nowIso = new Date().toISOString();
+    let calendarNeedsSync = false;
+
+    // 1. Schedule import (batch write)
+    if (importSchedule && parsedResult?.timetable?.scheduleEntries?.length > 0) {
+      const prevSchedule = scheduleRef.current || [];
+      const incoming = parsedResult.timetable.scheduleEntries.map((entry) => ({
+        ...entry,
+        source: 'kmutnb-reg',
+        updatedAt: nowIso
+      }));
+      const incomingIds = new Set(incoming.map((e) => e.id));
+      const kept = replaceRegSchedule
+        ? prevSchedule.filter((s) => s.source !== 'kmutnb-reg' && !String(s.id || '').startsWith('reg-') && !incomingIds.has(s.id))
+        : prevSchedule.filter((s) => !incomingIds.has(s.id));
+      const nextSchedule = [...kept, ...incoming];
+      saveSchedule(nextSchedule, email);
+      setSchedule(nextSchedule);
+      calendarNeedsSync = true;
+    }
+
+    // 2. Exam import (merge into manualExams without overwriting custom manual exams or SciBase seating)
+    if (importExams && parsedResult?.timetable?.examEntries?.length > 0) {
+      const cached = examRepository.getCachedExams(email);
+      const currentExams = (cached.success && cached.data?.exams) ? cached.data.exams : [];
+      const currentManual = (cached.success && cached.data?.manualExams) ? cached.data.manualExams : [];
+      const currentUnlisted = (cached.success && cached.data) ? cached.data.unlisted : null;
+
+      const preservedManual = currentManual.filter(
+        (ex) => ex.source !== 'kmutnb-reg' && !String(ex.id || '').startsWith('reg-exam-')
+      );
+      const incomingExams = parsedResult.timetable.examEntries.map((ex) => ({
+        ...ex,
+        isManual: true,
+        source: 'kmutnb-reg',
+        updatedAt: nowIso
+      }));
+      examRepository.saveToCache(email, currentExams, [...preservedManual, ...incomingExams], currentUnlisted);
+      calendarNeedsSync = true;
+    }
+
+    // 3. Academic grades + currently enrolled courses import
+    const hasIncomingGrades = importGrades && parsedResult?.grades?.semesters?.length > 0;
+    const hasIncomingEnrolled = (importSchedule || importGrades) && parsedResult?.timetable?.enrolledCourses?.length > 0;
+    if (hasIncomingGrades || hasIncomingEnrolled) {
+      const prevAcademic = academicRef.current || createDefaultAcademicData();
+      let nextSemesters = prevAcademic.semesters || [];
+
+      if (hasIncomingGrades) {
+        const semMap = new Map(nextSemesters.map((s) => [s.semesterId, s]));
+        for (const incomingSem of parsedResult.grades.semesters) {
+          semMap.set(incomingSem.semesterId, incomingSem);
+        }
+        nextSemesters = Array.from(semMap.values());
+      }
+
+      const nextAcademic = {
+        ...prevAcademic,
+        semesters: nextSemesters,
+        enrolledCourses: hasIncomingEnrolled
+          ? parsedResult.timetable.enrolledCourses
+          : (prevAcademic.enrolledCourses || []),
+        lastImportedAt: nowIso
+      };
+      const saved = saveAcademicData(nextAcademic, email);
+      setAcademicData(saved);
+    }
+
+    if (accessToken && email) {
+      syncManager.queueSync(accessToken, email);
+      if (calendarNeedsSync) {
+        calendarSyncManager.queueSync(accessToken, email);
+      }
+    }
+  }, [accessToken]);
+
   const isSyncing = isClassroomFetching || syncState === 'uploading' || syncState === 'queued';
 
   useEffect(() => {
@@ -450,15 +558,17 @@ export const ClassroomProvider = ({ children }) => {
   }, [isLoggedIn, accessToken, syncClassroom]);
 
   const value = React.useMemo(() => ({
-    assignments, courses, resources, schedule, isSyncing, lastSyncTime, syncState, topics,
+    assignments, courses, resources, schedule, academicData, isSyncing, lastSyncTime, syncState, topics,
     syncClassroom, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
     handleUpdateAssignment, handleDeleteAssignment, handleDeleteScheduleEntry, handleSaveScheduleEntry,
-    handleClearSchedule, handleTrackAsAssignment, handleUntrackAssignment, resetData
+    handleClearSchedule, handleSaveAcademicData, handleImportRegData,
+    handleTrackAsAssignment, handleUntrackAssignment, resetData
   }), [
-    assignments, courses, resources, schedule, isSyncing, lastSyncTime, syncState, topics,
+    assignments, courses, resources, schedule, academicData, isSyncing, lastSyncTime, syncState, topics,
     syncClassroom, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
     handleUpdateAssignment, handleDeleteAssignment, handleDeleteScheduleEntry, handleSaveScheduleEntry,
-    handleClearSchedule, handleTrackAsAssignment, handleUntrackAssignment, resetData
+    handleClearSchedule, handleSaveAcademicData, handleImportRegData,
+    handleTrackAsAssignment, handleUntrackAssignment, resetData
   ]);
 
   return <ClassroomContext.Provider value={value}>{children}</ClassroomContext.Provider>;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, LayoutDashboard, BookOpen, Settings, ChevronLeft, ChevronRight, ClipboardCheck, CalendarDays } from 'lucide-react';
+import { Home, LayoutDashboard, BookOpen, Settings, ChevronLeft, ChevronRight, ClipboardCheck, CalendarDays, GraduationCap } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { getCourseDotClass } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +34,7 @@ export default function Sidebar({ onLinkClick = null }) {
     { name: 'Dashboard', key: 'dashboard', path: '/dashboard', icon: LayoutDashboard, count: totalActive },
     { name: 'Schedule', key: 'schedule', path: '/schedule', icon: CalendarDays, count: null },
     { name: 'Courses', key: 'courses', path: '/courses', icon: BookOpen, count: null, end: true },
+    { name: 'Academic', key: 'academic', path: '/academic', icon: GraduationCap, count: null },
   ];
 
   return (
