@@ -310,19 +310,28 @@ function extractLinesFromHtml(htmlStr) {
   }
 }
 
+const DATE_ONLY_LINE_REGEX =
+  /^\d{1,2}\s+(?:ม\.?ค\.?|ก\.?พ\.?|มี\.?ค\.?|เม\.?ย\.?|พ\.?ค\.?|มิ\.?ย\.?|ก\.?ค\.?|ส\.?ค\.?|ก\.?ย\.?|ต\.?ค\.?|พ\.?ย\.?|ธ\.?ค\.?|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z.]*\s+\d{2,4}$/i;
+const TIME_ONLY_LINE_REGEX =
+  /^(?:เวลา|Time)?\s*\d{1,2}[:.]\d{2}\s*[-–]\s*\d{1,2}[:.]\d{2}$/i;
+
 /**
  * Parses timetable / enrollment rows from plain text pasted from reg.kmutnb.ac.th/registrar/timetable.
+ * Supports single-line TSV, multi-line Chrome TSV (where <br>/<div> inside <td> splits rows across lines),
+ * and line-per-cell browser copies.
  */
 function parseTimetableFromText(text) {
-  const lines = text
+  // Preserve \t characters for TSV parsing while removing empty lines and outer spaces
+  const rawLines = text
     .replace(/\r\n/g, '\n')
     .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
+    .map((l) => l.replace(/^ +| +$/g, ''))
+    .filter((l) => l.trim().length > 0);
+  const trimmedLines = rawLines.map((l) => l.trim());
 
   // Extract academic year hint (e.g. "ปีการศึกษา2569")
   let academicYear = '';
-  for (const line of lines.slice(0, 60)) {
+  for (const line of trimmedLines.slice(0, 60)) {
     const ym = line.match(/^ปีการศึกษา\s*(\d{4})$/);
     if (ym) {
       academicYear = ym[1];
@@ -330,22 +339,27 @@ function parseTimetableFromText(text) {
     }
   }
 
-  // Locate the detail table header ("รหัสวิชา" followed shortly by "วันเวลาเรียน" or "สอบกลางภาค" or "ตอนเรียน" + "อาจารย์ผู้สอน")
+  // Locate the detail table header ("รหัสวิชา" followed shortly by "วันเวลาเรียน", "สอบกลาง", "อาจารย์", or "หน่วยกิต")
   let startIdx = -1;
-  for (let i = 0; i < lines.length; i++) {
+  let headerCols = null;
+  for (let i = 0; i < rawLines.length; i++) {
+    const trimmed = trimmedLines[i];
     // Handle single-line TSV header too
     if (
-      lines[i].includes('รหัสวิชา') &&
-      (lines[i].includes('วันเวลาเรียน') ||
-        lines[i].includes('สอบกลาง') ||
-        lines[i].includes('อาจารย์') ||
-        (lines[i].includes('หน่วยกิต') && !lines[i].includes('เกรด')))
+      trimmed.includes('รหัสวิชา') &&
+      (trimmed.includes('วันเวลาเรียน') ||
+        trimmed.includes('สอบกลาง') ||
+        trimmed.includes('อาจารย์') ||
+        (trimmed.includes('หน่วยกิต') && !trimmed.includes('เกรด')))
     ) {
+      if (rawLines[i].includes('\t')) {
+        headerCols = rawLines[i].split('\t').map((h) => h.trim());
+      }
       startIdx = i + 1;
       break;
     }
-    if (lines[i] === 'รหัสวิชา') {
-      const lookahead = lines.slice(i, i + 12).join(' ');
+    if (trimmed === 'รหัสวิชา') {
+      const lookahead = trimmedLines.slice(i, i + 12).join(' ');
       if (
         lookahead.includes('วันเวลาเรียน') ||
         lookahead.includes('สอบกลาง') ||
@@ -355,9 +369,9 @@ function parseTimetableFromText(text) {
         // Skip past the header column labels
         let headerEnd = i + 1;
         while (
-          headerEnd < lines.length &&
+          headerEnd < rawLines.length &&
           headerEnd < i + 15 &&
-          !COURSE_CODE_LINE_REGEX.test(lines[headerEnd].split('\t')[0].trim())
+          !COURSE_CODE_LINE_REGEX.test(rawLines[headerEnd].split('\t')[0].trim())
         ) {
           headerEnd++;
         }
@@ -373,34 +387,113 @@ function parseTimetableFromText(text) {
 
   // Collect lines until hitting a non-timetable section boundary (e.g. Visionnet footer or Grade section)
   const tableLines = [];
-  for (let i = startIdx; i < lines.length; i++) {
-    const line = lines[i];
-    if (FOOTER_OR_SECTION_BOUNDARY_REGEX.test(line)) break;
-    tableLines.push(line);
+  for (let i = startIdx; i < rawLines.length; i++) {
+    if (FOOTER_OR_SECTION_BOUNDARY_REGEX.test(trimmedLines[i])) break;
+    tableLines.push(rawLines[i]);
   }
 
   const parsedRows = [];
 
-  // Check if rows are tab-separated (single line per row)
-  const hasTabRows = tableLines.some((l) => l.includes('\t') && COURSE_CODE_LINE_REGEX.test(l.split('\t')[0].trim()));
+  // Detect tab-separated rows (including Chrome multi-line TSV where <td> contains <br>/<div>)
+  const hasTabRows = tableLines.some(
+    (l) => l.includes('\t') && COURSE_CODE_LINE_REGEX.test(l.split('\t')[0].trim())
+  );
 
   if (hasTabRows) {
+    // Group multi-line TSV rows into course chunks starting at each 9-digit course code
+    const rowChunks = [];
+    let currentChunk = null;
     for (const line of tableLines) {
-      const cols = line.split('\t').map((c) => c.trim());
-      if (!COURSE_CODE_LINE_REGEX.test(cols[0] || '')) continue;
+      const firstCell = line.split('\t')[0].trim();
+      if (COURSE_CODE_LINE_REGEX.test(firstCell)) {
+        if (currentChunk) rowChunks.push(currentChunk);
+        currentChunk = [line];
+      } else if (currentChunk) {
+        currentChunk.push(line);
+      }
+    }
+    if (currentChunk) rowChunks.push(currentChunk);
 
-      const courseCode = cols[0];
-      const section = cols[1] || '';
-      const { thaiName, engName } = splitBilingualCourseTitle(cols[2] || '');
-      const creditRaw = cols[3] || '';
+    // Map header columns dynamically if available
+    const colIdx = {
+      code: headerCols ? headerCols.findIndex((h) => h.includes('รหัสวิชา')) : 0,
+      section: headerCols ? headerCols.findIndex((h) => h.includes('ตอน')) : 1,
+      title: headerCols ? headerCols.findIndex((h) => h.includes('รายวิชา') || h.includes('ชื่อวิชา')) : 2,
+      credits: headerCols ? headerCols.findIndex((h) => h.includes('หน่วยกิต')) : 3,
+      instructor: headerCols ? headerCols.findIndex((h) => h.includes('อาจารย์')) : 4,
+      schedule: headerCols ? headerCols.findIndex((h) => h.includes('วันเวลาเรียน')) : 5,
+      room: headerCols ? headerCols.findIndex((h) => h.includes('ห้อง')) : 6,
+      midterm: headerCols ? headerCols.findIndex((h) => h.includes('สอบกลาง')) : 7,
+      final: headerCols ? headerCols.findIndex((h) => h.includes('สอบปลาย')) : 8,
+      remark: headerCols ? headerCols.findIndex((h) => h.includes('หมายเหตุ')) : 9,
+    };
+    const getCol = (cols, idx, fallbackIdx) => {
+      const target = idx >= 0 ? idx : fallbackIdx;
+      return target >= 0 && target < cols.length ? cols[target] : '';
+    };
+
+    for (const chunk of rowChunks) {
+      // Join multi-line cells inside the same <tr> with a space so \t cell boundaries stay exact
+      const joinedRow = chunk.join(' ');
+      const cols = joinedRow.split('\t').map((c) => c.replace(/\s+/g, ' ').trim());
+      const courseCode = getCol(cols, colIdx.code, 0);
+      if (!COURSE_CODE_LINE_REGEX.test(courseCode)) continue;
+
+      const section = getCol(cols, colIdx.section, 1);
+      const rawTitle = getCol(cols, colIdx.title, 2);
+      const { thaiName, engName } = splitBilingualCourseTitle(rawTitle);
+
+      // Credits (fallback: scan cols for 3(2-2-5) pattern if shifted)
+      let creditRaw = getCol(cols, colIdx.credits, 3);
+      if (!CREDIT_SPEC_REGEX.test(creditRaw)) {
+        const foundCredit = cols.find((c) => CREDIT_SPEC_REGEX.test(c));
+        if (foundCredit) creditRaw = foundCredit;
+      }
       const creditMatch = creditRaw.match(/^(\d+(?:\.\d+)?)/);
       const credits = creditMatch ? parseFloat(creditMatch[1]) : 0;
-      const instructor = cols[4] || '';
-      const slots = parseScheduleSlots(cols[5] || '');
-      const room = normalizeRoom(cols[6] || '');
-      const midterm = parseExamDateTime(cols[7] || '');
-      const finalExam = parseExamDateTime(cols[8] || '');
-      const remark = cols[9] || '';
+
+      const instructor = getCol(cols, colIdx.instructor, 4);
+
+      // Schedule slots (fallback: scan all cols for day+time if shifted)
+      let slots = parseScheduleSlots(getCol(cols, colIdx.schedule, 5));
+      let matchedSchedCol = colIdx.schedule >= 0 ? colIdx.schedule : 5;
+      if (slots.length === 0) {
+        for (let ci = 1; ci < cols.length; ci++) {
+          if (EXAM_DATETIME_REGEX.test(cols[ci])) continue;
+          const s = parseScheduleSlots(cols[ci]);
+          if (s.length > 0) {
+            slots = s;
+            matchedSchedCol = ci;
+            break;
+          }
+        }
+      }
+
+      // Room (fallback: next column after matched schedule column)
+      let roomRaw = getCol(cols, colIdx.room, 6);
+      if ((!roomRaw || EXAM_DATETIME_REGEX.test(roomRaw)) && matchedSchedCol + 1 < cols.length) {
+        if (isLikelyRoomLine(cols[matchedSchedCol + 1])) {
+          roomRaw = cols[matchedSchedCol + 1];
+        }
+      }
+      const room = normalizeRoom(roomRaw);
+
+      let midterm = parseExamDateTime(getCol(cols, colIdx.midterm, 7));
+      let finalExam = parseExamDateTime(getCol(cols, colIdx.final, 8));
+      const pendingExams = [];
+
+      // If column-based exam lookup missed exams due to shifted tabs, scan remaining columns
+      if (!midterm && !finalExam) {
+        const foundExams = cols.map((c) => parseExamDateTime(c)).filter(Boolean);
+        if (foundExams.length >= 2) {
+          midterm = foundExams[0];
+          finalExam = foundExams[1];
+        } else if (foundExams.length === 1) {
+          pendingExams.push(foundExams[0]);
+        }
+      }
+
+      const remark = getCol(cols, colIdx.remark, 9);
 
       parsedRows.push({
         courseCode,
@@ -414,15 +507,28 @@ function parseTimetableFromText(text) {
         room,
         midterm,
         final: finalExam,
-        pendingExams: [],
+        pendingExams,
         remark,
       });
     }
   } else {
     // Line-by-line format (exact Visionnet browser copy format)
+    // First merge split "15 ม.ค. 2570" + "เวลา 09:00-12:00" lines if separated by newline
+    const mergedLines = [];
+    for (let i = 0; i < tableLines.length; i++) {
+      const cur = tableLines[i].trim();
+      const next = i + 1 < tableLines.length ? tableLines[i + 1].trim() : '';
+      if (DATE_ONLY_LINE_REGEX.test(cur) && TIME_ONLY_LINE_REGEX.test(next)) {
+        mergedLines.push(`${cur} ${next}`);
+        i++;
+      } else {
+        mergedLines.push(cur);
+      }
+    }
+
     const chunks = [];
     let current = null;
-    for (const line of tableLines) {
+    for (const line of mergedLines) {
       if (COURSE_CODE_LINE_REGEX.test(line)) {
         if (current) chunks.push(current);
         current = [line];
@@ -681,11 +787,12 @@ function buildTimetableOutputs(rows, academicYear = '', existingCourses = []) {
  * Parses semester grades from plain text pasted from reg.kmutnb.ac.th/registrar/grade.
  */
 function parseGradesFromText(text) {
-  const lines = text
+  const rawLines = text
     .replace(/\r\n/g, '\n')
     .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
+    .map((l) => l.replace(/^ +| +$/g, ''))
+    .filter((l) => l.trim().length > 0);
+  const lines = rawLines.map((l) => l.trim());
 
   const semesterStarts = [];
   for (let i = 0; i < lines.length; i++) {
@@ -703,11 +810,11 @@ function parseGradesFromText(text) {
 
   for (let s = 0; s < semesterStarts.length; s++) {
     const start = semesterStarts[s].index + 1;
-    const end = s + 1 < semesterStarts.length ? semesterStarts[s + 1].index : lines.length;
+    const end = s + 1 < semesterStarts.length ? semesterStarts[s + 1].index : rawLines.length;
     const blockLines = [];
     for (let i = start; i < end; i++) {
       if (/^(?:หมายเหตุ\s*CA|@\s*\d{4}|©|Visionnet|ตารางเรียน\/สอบ)/i.test(lines[i])) break;
-      blockLines.push(lines[i]);
+      blockLines.push(rawLines[i]);
     }
 
     const courses = [];
@@ -716,63 +823,78 @@ function parseGradesFromText(text) {
     let cumulativeStats = null;
 
     // Extract status line ("ผลการศึกษา : ปกติ" or "ผลการศึกษา : ยังไม่คำนวณ")
-    const statusIdx = blockLines.findIndex((l) => /^ผลการศึกษา\s*[:：]/.test(l));
+    const statusIdx = blockLines.findIndex((l) => /^ผลการศึกษา\s*[:：]/.test(l.trim()));
     if (statusIdx >= 0) {
-      status = blockLines[statusIdx].replace(/^ผลการศึกษา\s*[:：]\s*/, '').trim();
+      status = blockLines[statusIdx].trim().replace(/^ผลการศึกษา\s*[:：]\s*/, '').trim();
     }
 
-    // Parse course rows before status/summary
+    // Parse course rows before status/summary (supports single-line TSV, multi-line TSV, and line-per-cell)
     const courseLimit = statusIdx >= 0 ? statusIdx : blockLines.length;
-    let i = 0;
-    while (i < courseLimit) {
-      const line = blockLines[i];
-      // Tab-separated row check
-      if (line.includes('\t')) {
-        const cols = line.split('\t').map((c) => c.trim());
-        if (COURSE_CODE_LINE_REGEX.test(cols[0] || '')) {
-          courses.push({
-            courseCode: cols[0],
-            courseName: cols[1] || cols[0],
-            section: cols[2] || '',
-            credits: parseFloat(cols[3]) || 0,
-            grade: normalizeGrade(cols[4] || ''),
-          });
+    const courseSlice = blockLines.slice(0, courseLimit);
+    const hasGradeTabs = courseSlice.some(
+      (l) => l.includes('\t') && COURSE_CODE_LINE_REGEX.test(l.split('\t')[0].trim())
+    );
+
+    if (hasGradeTabs) {
+      const gradeChunks = [];
+      let cur = null;
+      for (const line of courseSlice) {
+        if (COURSE_CODE_LINE_REGEX.test(line.split('\t')[0].trim())) {
+          if (cur) gradeChunks.push(cur);
+          cur = [line];
+        } else if (cur) {
+          cur.push(line);
+        }
+      }
+      if (cur) gradeChunks.push(cur);
+
+      for (const chunk of gradeChunks) {
+        const cols = chunk.join(' ').split('\t').map((c) => c.replace(/\s+/g, ' ').trim());
+        if (!COURSE_CODE_LINE_REGEX.test(cols[0] || '')) continue;
+        const rawGrade = cols[4] || '';
+        courses.push({
+          courseCode: cols[0],
+          courseName: cols[1] || cols[0],
+          section: cols[2] || '',
+          credits: parseFloat(cols[3]) || 0,
+          grade: normalizeGrade(rawGrade === '-' ? '' : rawGrade),
+        });
+      }
+    } else {
+      let i = 0;
+      while (i < courseLimit) {
+        const line = blockLines[i].trim();
+        if (COURSE_CODE_LINE_REGEX.test(line)) {
+          const courseCode = line;
+          const courseName = (blockLines[i + 1] || courseCode).trim();
+          const section = (blockLines[i + 2] || '').trim();
+          const creditsRaw = (blockLines[i + 3] || '0').trim();
+          const credits = parseFloat(creditsRaw) || 0;
+          const possibleGrade = (blockLines[i + 4] || '').trim();
+
+          if (i + 4 < courseLimit && VALID_GRADES_REGEX.test(possibleGrade)) {
+            courses.push({
+              courseCode,
+              courseName,
+              section,
+              credits,
+              grade: normalizeGrade(possibleGrade === '-' ? '' : possibleGrade),
+            });
+            i += 5;
+          } else {
+            courses.push({
+              courseCode,
+              courseName,
+              section,
+              credits,
+              grade: '',
+            });
+            i += 4;
+          }
+          continue;
         }
         i++;
-        continue;
       }
-
-      if (COURSE_CODE_LINE_REGEX.test(line)) {
-        const courseCode = line;
-        const courseName = blockLines[i + 1] || courseCode;
-        const section = blockLines[i + 2] || '';
-        const creditsRaw = blockLines[i + 3] || '0';
-        const credits = parseFloat(creditsRaw) || 0;
-        const possibleGrade = blockLines[i + 4] || '';
-
-        if (i + 4 < courseLimit && VALID_GRADES_REGEX.test(possibleGrade)) {
-          courses.push({
-            courseCode,
-            courseName,
-            section,
-            credits,
-            grade: normalizeGrade(possibleGrade === '-' ? '' : possibleGrade),
-          });
-          i += 5;
-        } else {
-          courses.push({
-            courseCode,
-            courseName,
-            section,
-            credits,
-            grade: '',
-          });
-          i += 4;
-        }
-        continue;
-      }
-
-      i++;
     }
 
     // Parse summary numbers (10 numeric values after GPAX header: CA, CS, CG, GP, GPA, CA, CS, CG, GP, GPAX)

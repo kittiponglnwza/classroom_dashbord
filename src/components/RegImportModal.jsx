@@ -491,6 +491,14 @@ export default function RegImportModal({
 
               {/* Selectable Import Options */}
               <div className="space-y-2 pt-1 border-t border-[#3C3C3C]">
+                {parsed.meta.hasTimetable && parsed.meta.totalScheduleSlots === 0 && (
+                  <div className="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] px-3 py-2 rounded-lg">
+                    {isTh
+                      ? 'พบรายวิชาที่ลงทะเบียน แต่ไม่พบวัน-เวลาเรียนในข้อความนี้ — หากต้องการให้ขึ้นบนตารางเรียนและปฏิทิน ให้ก๊อปจากหน้า "ตารางเรียน/สอบ" (timetable) ครับ'
+                      : 'Enrolled courses found, but no class times were detected — copy from the "Timetable" page to populate Schedule & Calendar.'}
+                  </div>
+                )}
+
                 {parsed.meta.totalScheduleSlots > 0 && (
                   <div className="space-y-1.5">
                     <label className="flex items-center gap-2 text-xs text-[#D4D4D4] cursor-pointer">

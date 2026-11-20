@@ -574,6 +574,40 @@ describe('KMUTNB Reg Parser & Academic Graduation Engine', () => {
     expect(grad.checklist.noUnresolvedFails).toBe(false);
   });
 
+  it('parses Chrome multi-line TSV copy-paste where <td> cells contain <br>/<div> newlines', () => {
+    const chromeMultiLineTsv = [
+      'ปีการศึกษา2569',
+      'รหัสวิชา\tตอน\tรายวิชา\tหน่วยกิต\tอาจารย์ผู้สอน\tวันเวลาเรียน\tห้อง\tสอบกลาง\tสอบปลาย\tหมายเหตุ',
+      '040613203\tS.1\tการโปรแกรมเชิงโครงสร้าง',
+      'Structured Programming\t3(2-2-5)\tรองศาสตราจารย์ ดร.ทดสอบ หนึ่ง\tS.1 จ.08:30-10:30\t78-621\t15 ม.ค. 2570',
+      'เวลา 09:00-12:00\t17 มี.ค. 2570',
+      'เวลา 13:00-16:00\tสอนเป็นภาษาอังกฤษ',
+      '040613203\tL.1\tการโปรแกรมเชิงโครงสร้าง',
+      'Structured Programming\t3(2-2-5)\tรองศาสตราจารย์ ดร.ทดสอบ หนึ่ง\tL.1 จ.10:30-12:30\t78-621\t15 ม.ค. 2570',
+      'เวลา 09:00-12:00\t17 มี.ค. 2570',
+      'เวลา 13:00-16:00\tสอนเป็นภาษาอังกฤษ',
+      '080103034\tS.16\tการสนทนาภาษาอังกฤษ',
+      'English Conversation\t3(3-0-6)\tอาจารย์ ดร.ทดสอบ หก\tS.16 ศ.09:00-12:00\t78-301\t\t26 มี.ค. 2570',
+      'เวลา 09:00-11:00\t',
+      '080303515\tL.1\tการเดิน-วิ่ง เพื่อสุขภาพ',
+      'Walk and Run for Health\t1(0-2-1)\tอาจารย์ทดสอบ เจ็ด\tL.1 จ.13:00-15:00\t-\t\t\t',
+      '@ 2026 Visionnet'
+    ].join('\n');
+
+    const parsed = parseKmutnbRegInput(chromeMultiLineTsv);
+    expect(parsed.success).toBe(true);
+    expect(parsed.meta.totalScheduleSlots).toBe(4);
+    expect(parsed.meta.totalEnrolledCourses).toBe(3);
+    expect(parsed.meta.totalEnrolledCredits).toBe(7);
+    expect(parsed.meta.totalExams).toBe(3);
+
+    const spSlot = parsed.timetable.scheduleEntries.find((s) => s.courseCode === '040613203' && s.startTime === '08:30');
+    expect(spSlot).toMatchObject({ day: 'mon', startTime: '08:30', endTime: '10:30', room: '78-621' });
+
+    const engConv = parsed.timetable.examEntries.find((e) => e.courseCode === '080103034');
+    expect(engConv).toMatchObject({ examType: 'final', rawIsoDate: '2027-03-26', time: '09:00-11:00' });
+  });
+
   it('parses HTML table format as well as TSV rows', () => {
     const html = `
       <html><body>

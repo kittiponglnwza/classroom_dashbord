@@ -533,10 +533,11 @@ export const ClassroomProvider = ({ children }) => {
       setAcademicData(saved);
     }
 
-    if (accessToken && email) {
-      syncManager.queueSync(accessToken, email);
+    const activeToken = getToken() || accessToken;
+    if (activeToken && email) {
+      syncManager.queueSync(activeToken, email);
       if (calendarNeedsSync) {
-        calendarSyncManager.queueSync(accessToken, email);
+        calendarSyncManager.queueSync(activeToken, email);
       }
     }
   }, [accessToken]);

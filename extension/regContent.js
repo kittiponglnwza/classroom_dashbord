@@ -34,27 +34,30 @@
    */
   function extractSanitizedAcademicText(kind) {
     const raw = (document.body?.innerText || '').replace(/\r\n/g, '\n');
+    // Preserve \t separators between table columns while dropping blank lines
     const lines = raw
       .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean);
+      .map((l) => l.replace(/^ +| +$/g, ''))
+      .filter((l) => l.trim().length > 0);
+    const trimmedLines = lines.map((l) => l.trim());
 
     if (kind === 'timetable') {
-      const yearLine = lines.find((l) => /^ปีการศึกษา\s*\d{4}$/.test(l)) || '';
+      const yearLine = trimmedLines.find((l) => /^ปีการศึกษา\s*\d{4}$/.test(l)) || '';
       let headerIdx = -1;
       for (let i = 0; i < lines.length; i++) {
+        const t = trimmedLines[i];
         if (
-          lines[i].includes('รหัสวิชา') &&
-          (lines[i].includes('วันเวลาเรียน') ||
-            lines[i].includes('สอบกลาง') ||
-            lines[i].includes('อาจารย์') ||
-            (lines[i].includes('หน่วยกิต') && !lines[i].includes('เกรด')))
+          t.includes('รหัสวิชา') &&
+          (t.includes('วันเวลาเรียน') ||
+            t.includes('สอบกลาง') ||
+            t.includes('อาจารย์') ||
+            (t.includes('หน่วยกิต') && !t.includes('เกรด')))
         ) {
           headerIdx = i;
           break;
         }
-        if (lines[i] === 'รหัสวิชา') {
-          const lookahead = lines.slice(i, i + 12).join(' ');
+        if (t === 'รหัสวิชา') {
+          const lookahead = trimmedLines.slice(i, i + 12).join(' ');
           if (
             lookahead.includes('วันเวลาเรียน') ||
             lookahead.includes('สอบกลาง') ||
@@ -71,13 +74,13 @@
       const slice = [];
       if (yearLine) slice.push(yearLine);
       for (let i = headerIdx; i < lines.length; i++) {
-        if (/^(?:@\s*\d{4}|©|Visionnet|กรณีที่พบปัญหา)/i.test(lines[i])) break;
+        if (/^(?:@\s*\d{4}|©|Visionnet|กรณีที่พบปัญหา)/i.test(trimmedLines[i])) break;
         slice.push(lines[i]);
       }
 
       const courseCodes = new Set();
       slice.forEach((l) => {
-        const m = l.match(/^(\d{9})(?:\t|$)/);
+        const m = l.trim().match(/^(\d{9})(?:\t|$)/);
         if (m) courseCodes.add(m[1]);
       });
       if (courseCodes.size === 0) return null;
@@ -89,7 +92,7 @@
     }
 
     if (kind === 'grade') {
-      const firstSemIdx = lines.findIndex((l) => /^ปีการศึกษา\s*\d+\s*\/\s*\d{4}$/.test(l));
+      const firstSemIdx = trimmedLines.findIndex((l) => /^ปีการศึกษา\s*\d+\s*\/\s*\d{4}$/.test(l));
       if (firstSemIdx === -1) return null;
 
       const slice = ['ผลการศึกษา'];
@@ -97,12 +100,12 @@
       const courseCodes = new Set();
 
       for (let i = firstSemIdx; i < lines.length; i++) {
-        const line = lines[i];
-        if (/^(?:หมายเหตุ\s*CA|@\s*\d{4}|©|Visionnet|กรณีที่พบปัญหา)/i.test(line)) break;
-        if (/^ปีการศึกษา\s*\d+\s*\/\s*\d{4}$/.test(line)) semesterCount++;
-        const cm = line.match(/^(\d{9})(?:\t|$)/);
+        const t = trimmedLines[i];
+        if (/^(?:หมายเหตุ\s*CA|@\s*\d{4}|©|Visionnet|กรณีที่พบปัญหา)/i.test(t)) break;
+        if (/^ปีการศึกษา\s*\d+\s*\/\s*\d{4}$/.test(t)) semesterCount++;
+        const cm = t.match(/^(\d{9})(?:\t|$)/);
         if (cm) courseCodes.add(cm[1]);
-        slice.push(line);
+        slice.push(lines[i]);
       }
 
       if (semesterCount === 0 || (courseCodes.size === 0 && !slice.some((l) => l.includes('GPAX')))) {

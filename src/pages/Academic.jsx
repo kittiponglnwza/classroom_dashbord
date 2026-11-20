@@ -4,7 +4,7 @@ import {
   GraduationCap, Eye, EyeOff, Upload, CalendarDays, CheckCircle2,
   AlertTriangle, TrendingUp, TrendingDown, BookOpen, Calculator,
   SlidersHorizontal, ChevronDown, ChevronUp, Plus, Trash2, Search,
-  RotateCcw, ShieldCheck, X, Award, RefreshCw
+  RotateCcw, ShieldCheck, X, Award, RefreshCw, Filter, ArrowUpDown
 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
@@ -417,7 +417,7 @@ export default function Academic() {
   const [activeTab, setActiveTab] = useState('overview'); // overview | grades | passed | simulator
   const [expandedCategories, setExpandedCategories] = useState({});
   const [gradeSearch, setGradeSearch] = useState('');
-  const [gradeFilter, setGradeFilter] = useState('all'); // all | high | pass | fail
+  const [selectedSemester, setSelectedSemester] = useState('all');
   const [newestFirst, setNewestFirst] = useState(true);
   const [auditFilter, setAuditFilter] = useState('all'); // all | passed | in_progress | failed
   const [confirmClear, setConfirmClear] = useState(false);
@@ -564,26 +564,22 @@ export default function Academic() {
     const q = gradeSearch.trim().toLowerCase();
 
     return base
+      .filter((sem) => selectedSemester === 'all' || sem.semesterId === selectedSemester)
       .map((sem) => {
         const filteredCourses = (sem.courses || []).filter((c) => {
-          if (q) {
-            const matchText =
-              String(c.courseCode || '').toLowerCase().includes(q) ||
-              String(c.courseName || '').toLowerCase().includes(q);
-            if (!matchText) return false;
-          }
-          if (gradeFilter === 'high') return ['A', 'B+', 'B', 'S'].includes(c.grade);
-          if (gradeFilter === 'pass') return ['C+', 'C', 'D+', 'D'].includes(c.grade);
-          if (gradeFilter === 'fail') return ['F', 'W', 'U', 'FA', 'FE'].includes(c.grade);
-          return true;
+          if (!q) return true;
+          return (
+            String(c.courseCode || '').toLowerCase().includes(q) ||
+            String(c.courseName || '').toLowerCase().includes(q)
+          );
         });
         return { ...sem, filteredCourses };
       })
       .filter((sem) => {
-        if (!q && gradeFilter === 'all') return true;
+        if (!q) return true;
         return sem.filteredCourses.length > 0;
       });
-  }, [summary.semesters, newestFirst, gradeSearch, gradeFilter]);
+  }, [summary.semesters, newestFirst, gradeSearch, selectedSemester]);
 
   const filteredAuditCourses = useMemo(() => {
     const q = gradeSearch.trim().toLowerCase();
@@ -1232,45 +1228,72 @@ export default function Academic() {
           {/* ══ TAB 2: SEMESTER GRADES ════════════════════════════════ */}
           {activeTab === 'grades' && (
             <div className="space-y-4">
-              {/* Filter bar */}
+              {/* Minimal Filter bar (matches TaskFilters dropdown style) */}
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3">
-                <div className="relative flex-1 max-w-md">
+                <div className="relative flex-1 max-w-sm">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#858585]" />
                   <input
                     type="text"
                     value={gradeSearch}
                     onChange={(e) => setGradeSearch(e.target.value)}
                     placeholder={isTh ? 'ค้นหารหัสวิชา หรือชื่อวิชา...' : 'Search by course code or name...'}
-                    className="w-full pl-9 pr-3 py-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                    className="w-full pl-9 pr-8 py-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
                   />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {[
-                    { id: 'all', th: 'ทั้งหมด', en: 'All' },
-                    { id: 'high', th: 'A / B+ / B', en: 'A / B+ / B' },
-                    { id: 'pass', th: 'C+ / C / D+ / D', en: 'C+ – D' },
-                    { id: 'fail', th: 'F / W', en: 'F / W' },
-                  ].map((f) => (
+                  {gradeSearch && (
                     <button
-                      key={f.id}
                       type="button"
-                      onClick={() => setGradeFilter(f.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                        gradeFilter === f.id
-                          ? 'bg-[#007ACC] text-white border-[#007ACC]'
-                          : 'bg-[#1E1E1E] text-[#9D9D9D] border-[#3C3C3C] hover:text-[#FFFFFF]'
-                      }`}
+                      onClick={() => setGradeSearch('')}
+                      aria-label={isTh ? 'ล้างคำค้นหา' : 'Clear search'}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#858585] hover:text-[#FFFFFF] cursor-pointer"
                     >
-                      {isTh ? f.th : f.en}
+                      <X size={13} />
                     </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setNewestFirst((prev) => !prev)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#1E1E1E] text-[#D4D4D4] border border-[#3C3C3C] hover:border-[#007ACC] cursor-pointer"
-                  >
-                    {newestFirst ? (isTh ? 'ใหม่ → เก่า' : 'Newest') : (isTh ? 'เก่า → ใหม่' : 'Oldest')}
-                  </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
+                    <Filter size={13} className="text-[#858585]" />
+                    <select
+                      aria-label={isTh ? 'เลือกภาคการศึกษา' : 'Select semester'}
+                      value={selectedSemester}
+                      onChange={(e) => setSelectedSemester(e.target.value)}
+                      className="bg-[#1E1E1E] text-xs font-medium text-[#D4D4D4] focus:outline-none cursor-pointer pr-1"
+                    >
+                      <option value="all">{isTh ? 'ทุกภาคการศึกษา' : 'All Semesters'}</option>
+                      {[...summary.semesters].reverse().map((sem) => (
+                        <option key={sem.semesterId} value={sem.semesterId}>
+                          {isTh ? `ภาคการศึกษา ${sem.semesterId}` : `Semester ${sem.semesterId}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
+                    <ArrowUpDown size={13} className="text-[#858585]" />
+                    <select
+                      aria-label={isTh ? 'เรียงลำดับภาคการศึกษา' : 'Sort semesters'}
+                      value={newestFirst ? 'newest' : 'oldest'}
+                      onChange={(e) => setNewestFirst(e.target.value === 'newest')}
+                      className="bg-[#1E1E1E] text-xs font-medium text-[#D4D4D4] focus:outline-none cursor-pointer pr-1"
+                    >
+                      <option value="newest">{isTh ? 'ใหม่ → เก่า' : 'Newest First'}</option>
+                      <option value="oldest">{isTh ? 'เก่า → ใหม่' : 'Oldest First'}</option>
+                    </select>
+                  </div>
+
+                  {(gradeSearch || selectedSemester !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGradeSearch('');
+                        setSelectedSemester('all');
+                      }}
+                      className="text-xs font-medium text-[#3794FF] hover:text-[#FFFFFF] bg-[#007ACC]/15 hover:bg-[#007ACC]/30 border border-[#007ACC]/40 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+                    >
+                      {isTh ? 'ล้างตัวกรอง' : 'Clear'}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1387,36 +1410,41 @@ export default function Academic() {
           {activeTab === 'passed' && (
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3">
-                <div className="relative flex-1 max-w-md">
+                <div className="relative flex-1 max-w-sm">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#858585]" />
                   <input
                     type="text"
                     value={gradeSearch}
                     onChange={(e) => setGradeSearch(e.target.value)}
                     placeholder={isTh ? 'ค้นหารายวิชา...' : 'Search courses...'}
-                    className="w-full pl-9 pr-3 py-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                    className="w-full pl-9 pr-8 py-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
                   />
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { id: 'all', th: `ทั้งหมด (${summary.allCourseAudits.length})`, en: `All (${summary.allCourseAudits.length})` },
-                    { id: 'passed', th: `ผ่านแล้ว (${summary.passedCourses.length})`, en: `Passed (${summary.passedCourses.length})` },
-                    { id: 'in_progress', th: `กำลังเรียน (${summary.inProgressCourses.length})`, en: `Enrolled (${summary.inProgressCourses.length})` },
-                    { id: 'failed', th: `ไม่ผ่าน/ถอน (${summary.failedCourses.length + summary.withdrawnCourses.length})`, en: `Failed/W (${summary.failedCourses.length + summary.withdrawnCourses.length})` },
-                  ].map((f) => (
+                  {gradeSearch && (
                     <button
-                      key={f.id}
                       type="button"
-                      onClick={() => setAuditFilter(f.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                        auditFilter === f.id
-                          ? 'bg-[#007ACC] text-white border-[#007ACC]'
-                          : 'bg-[#1E1E1E] text-[#9D9D9D] border-[#3C3C3C] hover:text-[#FFFFFF]'
-                      }`}
+                      onClick={() => setGradeSearch('')}
+                      aria-label={isTh ? 'ล้างคำค้นหา' : 'Clear search'}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#858585] hover:text-[#FFFFFF] cursor-pointer"
                     >
-                      {isTh ? f.th : f.en}
+                      <X size={13} />
                     </button>
-                  ))}
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
+                    <Filter size={13} className="text-[#858585]" />
+                    <select
+                      aria-label={isTh ? 'กรองสถานะรายวิชา' : 'Filter course status'}
+                      value={auditFilter}
+                      onChange={(e) => setAuditFilter(e.target.value)}
+                      className="bg-[#1E1E1E] text-xs font-medium text-[#D4D4D4] focus:outline-none cursor-pointer pr-1"
+                    >
+                      <option value="all">{isTh ? `ทั้งหมด (${summary.allCourseAudits.length})` : `All (${summary.allCourseAudits.length})`}</option>
+                      <option value="passed">{isTh ? `ผ่านแล้ว (${summary.passedCourses.length})` : `Passed (${summary.passedCourses.length})`}</option>
+                      <option value="in_progress">{isTh ? `กำลังเรียน (${summary.inProgressCourses.length})` : `Enrolled (${summary.inProgressCourses.length})`}</option>
+                      <option value="failed">{isTh ? `ไม่ผ่าน/ถอน (${summary.failedCourses.length + summary.withdrawnCourses.length})` : `Failed / W (${summary.failedCourses.length + summary.withdrawnCourses.length})`}</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
