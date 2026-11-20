@@ -608,6 +608,47 @@ describe('KMUTNB Reg Parser & Academic Graduation Engine', () => {
     expect(engConv).toMatchObject({ examType: 'final', rawIsoDate: '2027-03-26', time: '09:00-11:00' });
   });
 
+  it('parses wrapped multi-line <th> headers and headerless timetable rows cleanly', () => {
+    const wrappedHeaderTsv = [
+      'ปีการศึกษา2569',
+      'รหัสวิชา\tตอน',
+      'เรียน\tรายวิชา\tหน่วยกิต\tอาจารย์ผู้สอน\tวันเวลาเรียน\tห้อง\tสอบกลาง',
+      'ภาค\tสอบปลาย',
+      'ภาค\tหมายเหตุ',
+      '040613304\tS.1\tการบริหารโครงการ',
+      'Project Management\t3(3-0-6)\tอาจารย์ทดสอบ\tS.1 พ.09:00-12:00\t75-604\t11 ม.ค. 2570',
+      'เวลา 13:00-16:00\t18 มี.ค. 2570',
+      'เวลา 09:00-12:00\t'
+    ].join('\n');
+
+    const wrapped = parseKmutnbRegInput(wrappedHeaderTsv);
+    expect(wrapped.success).toBe(true);
+    expect(wrapped.meta.totalScheduleSlots).toBe(1);
+    expect(wrapped.meta.totalExams).toBe(2);
+    expect(wrapped.timetable.scheduleEntries[0]).toMatchObject({
+      courseCode: '040613304',
+      day: 'wed',
+      startTime: '09:00',
+      endTime: '12:00',
+      room: '75-604'
+    });
+
+    // Headerless paste (user only selected course rows without copying table header)
+    const headerless = [
+      '040613708\tS.1\tปัญญาประดิษฐ์แบบรู้สร้าง Generative AI\t3(3-0-6)\tอ.ทดสอบ\tS.1 ศ.13:00-16:00\t78-618/1\t12 ม.ค. 2570 เวลา 09:00-12:00\t22 มี.ค. 2570 เวลา 13:00-16:00\t'
+    ].join('\n');
+    const noHeaderParsed = parseKmutnbRegInput(headerless);
+    expect(noHeaderParsed.success).toBe(true);
+    expect(noHeaderParsed.meta.totalScheduleSlots).toBe(1);
+    expect(noHeaderParsed.timetable.scheduleEntries[0]).toMatchObject({
+      courseCode: '040613708',
+      day: 'fri',
+      startTime: '13:00',
+      endTime: '16:00',
+      room: '78-618/1'
+    });
+  });
+
   it('parses HTML table format as well as TSV rows', () => {
     const html = `
       <html><body>

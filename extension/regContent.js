@@ -1,7 +1,7 @@
 /* global chrome */
 (() => {
-  const STORAGE_KEY = 'ch_reg_snapshots';
-  const HUB_URL = 'https://classrooms-hub.vercel.app/academic';
+  const STORAGE_KEY = 'ch_reg_snapshots_v2';
+  const HUB_URL = 'https://classrooms-hub.vercel.app/schedule';
   const TOAST_HOST_ID = 'ch-classroom-hub-reg-toast-host';
 
   let lastUrl = location.href;
@@ -28,11 +28,88 @@
     return null;
   }
 
+  function cleanCellText(el) {
+    return String(el?.innerText || el?.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
+   * Primary extractor: reads live DOM <table> rows directly so multi-line <br>/<div>
+   * cells (Thai+Eng course titles, wrapped headers, exam date+time) become clean 1-line TSV rows.
+   */
+  function extractTimetableFromDomTables() {
+    const tables = Array.from(document.querySelectorAll('table'));
+    let bestRows = [];
+    let bestCourseCodes = new Set();
+
+    for (const table of tables) {
+      const trs = Array.from(table.querySelectorAll('tr'));
+      if (trs.length < 2) continue;
+
+      const rowArrays = trs.map((tr) =>
+        Array.from(tr.querySelectorAll('th, td')).map((cell) => cleanCellText(cell))
+      );
+
+      // Find header row inside this table
+      const headerRowIdx = rowArrays.findIndex((cells) => {
+        const joined = cells.join(' ');
+        return (
+          joined.includes('รหัสวิชา') &&
+          (joined.includes('วันเวลาเรียน') ||
+            joined.includes('สอบกลาง') ||
+            joined.includes('อาจารย์') ||
+            (joined.includes('หน่วยกิต') && !joined.includes('เกรด')))
+        );
+      });
+
+      const dataRows = headerRowIdx >= 0 ? rowArrays.slice(headerRowIdx + 1) : rowArrays;
+      const matchedCourseCodes = new Set();
+      const validDataLines = [];
+
+      for (const cells of dataRows) {
+        const first = (cells[0] || '').trim();
+        if (/^\d{9}$/.test(first)) {
+          matchedCourseCodes.add(first);
+          validDataLines.push(cells.join('\t'));
+        }
+      }
+
+      if (matchedCourseCodes.size > bestCourseCodes.size && (headerRowIdx >= 0 || validDataLines.some((l) => /\d{1,2}[:.]\d{2}\s*[-–]\s*\d{1,2}[:.]\d{2}/.test(l)))) {
+        const headerLine =
+          headerRowIdx >= 0
+            ? rowArrays[headerRowIdx].join('\t')
+            : 'รหัสวิชา\tตอนเรียน\tรายวิชา\tหน่วยกิต\tอาจารย์ผู้สอน\tวันเวลาเรียน\tห้อง\tสอบกลางภาค\tสอบปลายภาค\tหมายเหตุ';
+        bestRows = [headerLine, ...validDataLines];
+        bestCourseCodes = matchedCourseCodes;
+      }
+    }
+
+    if (bestCourseCodes.size === 0) return null;
+
+    const yearMatch = (document.body?.innerText || '').match(/ปีการศึกษา\s*(\d{4})/);
+    const prefix = yearMatch ? [`ปีการศึกษา${yearMatch[1]}`] : [];
+    const slotCount = bestRows
+      .slice(1)
+      .filter((line) => /(?:พฤ|อา|จ|อ|พ|ศ|ส)\.?\s*\d{1,2}[:.]\d{2}\s*[-–]\s*\d{1,2}[:.]\d{2}/.test(line)).length;
+
+    return {
+      text: [...prefix, ...bestRows].join('\n'),
+      count: bestCourseCodes.size,
+      slotCount,
+    };
+  }
+
   /**
    * Extracts ONLY the academic table/section text, stripping student name,
    * navbar, contact phone numbers, and footer before anything is stored.
    */
   function extractSanitizedAcademicText(kind) {
+    if (kind === 'timetable') {
+      const fromDom = extractTimetableFromDomTables();
+      if (fromDom) return fromDom;
+    }
+
     const raw = (document.body?.innerText || '').replace(/\r\n/g, '\n');
     // Preserve \t separators between table columns while dropping blank lines
     const lines = raw
@@ -45,29 +122,24 @@
       const yearLine = trimmedLines.find((l) => /^ปีการศึกษา\s*\d{4}$/.test(l)) || '';
       let headerIdx = -1;
       for (let i = 0; i < lines.length; i++) {
-        const t = trimmedLines[i];
+        if (!trimmedLines[i].includes('รหัสวิชา')) continue;
+        const lookahead = trimmedLines.slice(i, i + 15).join(' ');
         if (
-          t.includes('รหัสวิชา') &&
-          (t.includes('วันเวลาเรียน') ||
-            t.includes('สอบกลาง') ||
-            t.includes('อาจารย์') ||
-            (t.includes('หน่วยกิต') && !t.includes('เกรด')))
+          lookahead.includes('วันเวลาเรียน') ||
+          lookahead.includes('สอบกลาง') ||
+          lookahead.includes('อาจารย์') ||
+          (lookahead.includes('หน่วยกิต') && !lookahead.includes('เกรด'))
         ) {
           headerIdx = i;
           break;
         }
-        if (t === 'รหัสวิชา') {
-          const lookahead = trimmedLines.slice(i, i + 12).join(' ');
-          if (
-            lookahead.includes('วันเวลาเรียน') ||
-            lookahead.includes('สอบกลาง') ||
-            lookahead.includes('อาจารย์') ||
-            (lookahead.includes('หน่วยกิต') && !lookahead.includes('เกรด'))
-          ) {
-            headerIdx = i;
-            break;
-          }
-        }
+      }
+      if (headerIdx === -1) {
+        headerIdx = lines.findIndex((l, idx) => {
+          if (!/^\d{9}(?:\t|$)/.test(l.trim())) return false;
+          const nearby = trimmedLines.slice(idx, idx + 10).join(' ');
+          return /\d{1,2}[:.]\d{2}\s*[-–]\s*\d{1,2}[:.]\d{2}/.test(nearby) || /\d+\(\d+-\d+-\d+\)/.test(nearby);
+        });
       }
       if (headerIdx === -1) return null;
 
@@ -85,9 +157,14 @@
       });
       if (courseCodes.size === 0) return null;
 
+      const slotCount = slice.filter((l) =>
+        /(?:พฤ|อา|จ|อ|พ|ศ|ส)\.?\s*\d{1,2}[:.]\d{2}\s*[-–]\s*\d{1,2}[:.]\d{2}/.test(l)
+      ).length;
+
       return {
         text: slice.join('\n'),
         count: courseCodes.size,
+        slotCount,
       };
     }
 
@@ -115,13 +192,14 @@
       return {
         text: slice.join('\n'),
         count: semesterCount,
+        slotCount: 0,
       };
     }
 
     return null;
   }
 
-  function showCornerToast(kind, count, isNewUpdate) {
+  function showCornerToast(kind, count, slotCount, isNewUpdate) {
     try {
       let host = document.getElementById(TOAST_HOST_ID);
       if (!host) {
@@ -134,12 +212,14 @@
         document.body.appendChild(host);
       }
       const shadow = host.shadowRoot || host.attachShadow({ mode: 'open' });
-      const titleText = kind === 'timetable'
-        ? `บันทึกตารางเรียนแล้ว (${count} วิชา)`
-        : `บันทึกผลการศึกษาแล้ว (${count} เทอม)`;
+      const titleText =
+        kind === 'timetable'
+          ? `บันทึกตารางเรียนแล้ว (${count} วิชา${slotCount > 0 ? ` • ${slotCount} คาบ` : ''})`
+          : `บันทึกผลการศึกษาแล้ว (${count} เทอม)`;
       const subText = isNewUpdate
         ? 'เปิด CH Classroom Hub เมื่อไหร่จะซิงค์ให้อัตโนมัติ (ไม่เก็บรหัสผ่าน)'
         : 'ข้อมูลล่าสุดซิงค์เก็บไว้เรียบร้อยแล้ว';
+      const targetHref = kind === 'timetable' ? HUB_URL : 'https://classrooms-hub.vercel.app/academic';
 
       shadow.innerHTML = `
         <style>
@@ -152,7 +232,7 @@
             border-radius: 12px;
             padding: 12px 14px;
             box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-            width: 300px;
+            width: 310px;
             box-sizing: border-box;
           }
           .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -181,7 +261,7 @@
           </div>
           <div class="title">${titleText}</div>
           <p class="sub">${subText}</p>
-          <a class="btn" href="${HUB_URL}" target="_blank" rel="noopener noreferrer">เปิด CH Classroom Hub &rarr;</a>
+          <a class="btn" href="${targetHref}" target="_blank" rel="noopener noreferrer">เปิด CH Classroom Hub &rarr;</a>
         </div>
       `;
 
@@ -217,7 +297,7 @@
       const existing = current[kind];
 
       if (!forceNotify && existing && existing.hash === nextHash) {
-        return { captured: true, changed: false, kind, count: extracted.count };
+        return { captured: true, changed: false, kind, count: extracted.count, slotCount: extracted.slotCount };
       }
 
       const updated = {
@@ -226,13 +306,14 @@
           text: extracted.text,
           hash: nextHash,
           count: extracted.count,
+          slotCount: extracted.slotCount || 0,
           capturedAt: new Date().toISOString(),
         },
       };
 
       await chrome.storage.local.set({ [STORAGE_KEY]: updated });
-      showCornerToast(kind, extracted.count, !existing || existing.hash !== nextHash);
-      return { captured: true, changed: true, kind, count: extracted.count };
+      showCornerToast(kind, extracted.count, extracted.slotCount || 0, !existing || existing.hash !== nextHash);
+      return { captured: true, changed: true, kind, count: extracted.count, slotCount: extracted.slotCount };
     } catch (err) {
       return { captured: false, reason: err?.message || 'STORAGE_ERROR' };
     }

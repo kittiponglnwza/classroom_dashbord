@@ -339,43 +339,49 @@ function parseTimetableFromText(text) {
     }
   }
 
-  // Locate the detail table header ("รหัสวิชา" followed shortly by "วันเวลาเรียน", "สอบกลาง", "อาจารย์", or "หน่วยกิต")
+  // Locate the detail table header ("รหัสวิชา" followed within 15 lines by "วันเวลาเรียน", "สอบกลาง", "อาจารย์", or "หน่วยกิต" without "เกรด")
   let startIdx = -1;
   let headerCols = null;
   for (let i = 0; i < rawLines.length; i++) {
     const trimmed = trimmedLines[i];
-    // Handle single-line TSV header too
-    if (
-      trimmed.includes('รหัสวิชา') &&
-      (trimmed.includes('วันเวลาเรียน') ||
-        trimmed.includes('สอบกลาง') ||
-        trimmed.includes('อาจารย์') ||
-        (trimmed.includes('หน่วยกิต') && !trimmed.includes('เกรด')))
+    if (!trimmed.includes('รหัสวิชา')) continue;
+
+    // Look ahead across up to 15 lines so wrapped multi-line <th> headers (e.g. "รหัสวิชา\tตอน\nเรียน\tรายวิชา...") still match
+    let headerEnd = i + 1;
+    while (
+      headerEnd < rawLines.length &&
+      headerEnd < i + 16 &&
+      !COURSE_CODE_LINE_REGEX.test(rawLines[headerEnd].split('\t')[0].trim())
     ) {
-      if (rawLines[i].includes('\t')) {
-        headerCols = rawLines[i].split('\t').map((h) => h.trim());
+      headerEnd++;
+    }
+    const headerRegionRaw = rawLines.slice(i, headerEnd);
+    const lookahead = headerRegionRaw.map((l) => l.trim()).join(' ');
+    const isTimetableHeader =
+      lookahead.includes('วันเวลาเรียน') ||
+      lookahead.includes('สอบกลาง') ||
+      lookahead.includes('อาจารย์') ||
+      (lookahead.includes('หน่วยกิต') && !lookahead.includes('เกรด'));
+
+    if (isTimetableHeader) {
+      const joinedHeader = headerRegionRaw.join(' ');
+      if (joinedHeader.includes('\t')) {
+        headerCols = joinedHeader.split('\t').map((h) => h.replace(/\s+/g, ' ').trim());
       }
-      startIdx = i + 1;
+      startIdx = headerEnd;
       break;
     }
-    if (trimmed === 'รหัสวิชา') {
-      const lookahead = trimmedLines.slice(i, i + 12).join(' ');
-      if (
-        lookahead.includes('วันเวลาเรียน') ||
-        lookahead.includes('สอบกลาง') ||
-        lookahead.includes('อาจารย์') ||
-        (lookahead.includes('หน่วยกิต') && !lookahead.includes('เกรด'))
-      ) {
-        // Skip past the header column labels
-        let headerEnd = i + 1;
-        while (
-          headerEnd < rawLines.length &&
-          headerEnd < i + 15 &&
-          !COURSE_CODE_LINE_REGEX.test(rawLines[headerEnd].split('\t')[0].trim())
-        ) {
-          headerEnd++;
-        }
-        startIdx = headerEnd;
+  }
+
+  // Headerless fallback: even if user didn't copy the table header row, find first 9-digit course code
+  // whose nearby lines contain a schedule slot (e.g. "จ.08:30-10:30") or KMUTNB credit spec ("3(2-2-5)")
+  if (startIdx === -1) {
+    for (let i = 0; i < rawLines.length; i++) {
+      const firstCell = rawLines[i].split('\t')[0].trim();
+      if (!COURSE_CODE_LINE_REGEX.test(firstCell)) continue;
+      const nearby = rawLines.slice(i, i + 12).join(' ');
+      if (parseScheduleSlots(nearby).length > 0 || /\d+\(\d+-\d+-\d+\)/.test(nearby)) {
+        startIdx = i;
         break;
       }
     }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CH Classroom Hub — KMUTNB Reg Auto-Sync",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "ซิงค์ตารางเรียน วันสอบ และผลการศึกษาจาก reg.kmutnb.ac.th เข้า CH Classroom Hub อัตโนมัติเมื่อเปิดหน้าเว็บ (ไม่เก็บรหัสผ่าน ICIT)",
   "permissions": [
     "storage",

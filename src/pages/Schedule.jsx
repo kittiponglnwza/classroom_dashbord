@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback, useId, useContext } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { CalendarDays, CalendarX2, Plus, X, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight, MapPin, Upload } from 'lucide-react';
+import { CalendarDays, CalendarX2, Plus, X, AlertTriangle, LayoutGrid, List, Clock, ChevronLeft, ChevronRight, MapPin, Upload, RefreshCw } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
@@ -8,6 +8,8 @@ import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ToastContext } from '../contexts/ToastContext';
 import { useExams } from '../hooks/useExams';
+import { calendarSyncManager } from '../services/CalendarSyncManager';
+import { getToken } from '../utils/storage';
 import { parseExamDate } from '../utils/examDate';
 import { parseLocalDateInput } from '../utils/dateUtils';
 import RegImportModal from '../components/RegImportModal';
@@ -1137,9 +1139,44 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, lang, onSave, 
 // ─── MAIN SCHEDULE PAGE ────────────────────────────────────────────
 export default function Schedule() {
   const { lang } = useSettings();
-  const { profile } = useAuth();
+  const { profile, accessToken } = useAuth();
   const toast = useContext(ToastContext);
-  const { schedule, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule } = useClassroom();
+  const { schedule, handleSaveScheduleEntry, handleDeleteScheduleEntry, handleClearSchedule, extensionStatus, requestExtensionSync } = useClassroom();
+  const [calSyncState, setCalSyncState] = useState(calendarSyncManager.state);
+
+  useEffect(() => {
+    return calendarSyncManager.subscribe((st) => setCalSyncState(st));
+  }, []);
+
+  const handleSyncCalendarNow = async () => {
+    const activeToken = getToken() || accessToken;
+    const email = (profile?.email || '').toLowerCase().trim();
+    if (!activeToken || !email) {
+      toast?.addToast?.(
+        lang === 'th' ? 'กรุณาเชื่อมต่อบัญชี Google ก่อนซิงค์ปฏิทิน' : 'Please connect Google account before syncing calendar.',
+        'warning'
+      );
+      return;
+    }
+    try {
+      await calendarSyncManager.runSync(activeToken, email);
+      toast?.addToast?.(
+        lang === 'th' ? 'ซิงค์ตารางเรียนและวันสอบเข้า Google Calendar เรียบร้อยแล้ว!' : 'Schedule & exams synced to Google Calendar!',
+        'success'
+      );
+    } catch (err) {
+      const msg = err?.message || '';
+      const isPermErr = err?.code === 403 || msg.includes('403') || msg.toLowerCase().includes('insufficient');
+      toast?.addToast?.(
+        isPermErr
+          ? (lang === 'th'
+              ? 'ซิงค์ Google Calendar ไม่สำเร็จ (ไม่มีสิทธิ์): กรุณาออกจากระบบแล้วล็อกอิน Google ใหม่เพื่ออนุญาตสิทธิ์ปฏิทิน'
+              : 'Calendar permission missing (403): Please log out and sign in again to grant Google Calendar access.')
+          : (lang === 'th' ? `ซิงค์ปฏิทินไม่สำเร็จ: ${msg || 'เกิดข้อผิดพลาด'}` : `Calendar sync failed: ${msg || 'Unknown error'}`),
+        'error'
+      );
+    }
+  };
   const ui = useClassroomUI();
   const visibleCourses = useMemo(() => ui?.visibleCourses || [], [ui?.visibleCourses]);
   const visibleAssignments = useMemo(() => ui?.visibleAssignments || [], [ui?.visibleAssignments]);
@@ -1489,6 +1526,43 @@ export default function Schedule() {
               <List size={16} />
             </button>
           </div>
+
+          {extensionStatus?.connected && (
+            <button
+              type="button"
+              onClick={requestExtensionSync}
+              className="flex items-center justify-center gap-1.5 bg-emerald-500/15 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 font-medium text-xs px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
+              title={lang === 'th' ? 'ซิงค์ตารางเรียนล่าสุดจาก Extension' : 'Sync latest schedule from Extension'}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>Extension Sync</span>
+            </button>
+          )}
+
+          {profile?.email && (
+            <button
+              type="button"
+              onClick={handleSyncCalendarNow}
+              disabled={calSyncState === 'syncing'}
+              className={`flex items-center justify-center gap-1.5 border font-medium text-xs px-3 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-60 ${
+                calSyncState === 'failed'
+                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/20'
+                  : calSyncState === 'success'
+                    ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300'
+                    : 'bg-[#252526] hover:bg-[#2A2D2E] text-[#D4D4D4] border-[#3C3C3C]'
+              }`}
+              title={calendarSyncManager.lastError || (lang === 'th' ? 'ซิงค์ตารางเรียนและวันสอบเข้า Google Calendar' : 'Sync schedule & exams to Google Calendar')}
+            >
+              <RefreshCw size={13} className={calSyncState === 'syncing' ? 'animate-spin text-[#3794FF]' : 'text-[#3794FF]'} />
+              <span>
+                {calSyncState === 'syncing'
+                  ? (lang === 'th' ? 'กำลังซิงค์ปฏิทิน...' : 'Syncing Calendar...')
+                  : calSyncState === 'success'
+                    ? (lang === 'th' ? 'ซิงค์ปฏิทินแล้ว ✓' : 'Calendar Synced ✓')
+                    : (lang === 'th' ? 'ซิงค์ Google Calendar' : 'Sync Calendar')}
+              </span>
+            </button>
+          )}
 
           <button
             type="button"

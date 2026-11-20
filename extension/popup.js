@@ -1,6 +1,6 @@
 /* global chrome */
-const STORAGE_KEY = 'ch_reg_snapshots';
-const DELIVERED_KEY = 'ch_reg_delivered_by_origin';
+const STORAGE_KEY = 'ch_reg_snapshots_v2';
+const DELIVERED_KEY = 'ch_reg_delivered_v2';
 const PROD_ORIGIN = 'https://classrooms-hub.vercel.app';
 
 function formatTime(iso) {
@@ -29,7 +29,8 @@ async function renderStatus() {
   const grPill = document.getElementById('gr-pill');
 
   if (snapshots.timetable) {
-    ttMeta.textContent = `${snapshots.timetable.count || 0} วิชา • ${formatTime(snapshots.timetable.capturedAt)}`;
+    const slotNote = snapshots.timetable.slotCount ? ` (${snapshots.timetable.slotCount} คาบ)` : '';
+    ttMeta.textContent = `${snapshots.timetable.count || 0} วิชา${slotNote} • ${formatTime(snapshots.timetable.capturedAt)}`;
     const synced = delivered.timetableHash === snapshots.timetable.hash;
     ttPill.textContent = synced ? 'ซิงค์แล้ว ✓' : 'รอซิงค์เข้าเว็บ';
     ttPill.className = `pill ${synced ? 'pill-ok' : 'pill-wait'}`;

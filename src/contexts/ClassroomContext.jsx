@@ -600,8 +600,8 @@ export const ClassroomProvider = ({ children }) => {
             channel: CHANNEL,
             source: 'app',
             type: 'ACK_SYNC_COMPLETE',
-            timetableHash: msg.payload?.timetable?.hash || null,
-            gradeHash: msg.payload?.grade?.hash || null
+            timetableHash: parsed.meta.totalScheduleSlots > 0 ? (msg.payload?.timetable?.hash || null) : null,
+            gradeHash: parsed.meta.hasGrades ? (msg.payload?.grade?.hash || null) : null
           },
           window.location.origin
         );
