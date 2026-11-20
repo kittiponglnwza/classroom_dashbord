@@ -45,13 +45,19 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
   }, [manualExamList]);
 
   const [unlistedInfo, setUnlistedInfo] = useState(initialCache.unlisted || null);
+  const initialHasSciBaseCache = Boolean((initialCache.exams && initialCache.exams.length > 0) || initialCache.unlisted);
+  const [sciBaseChecked, setSciBaseChecked] = useState(initialHasSciBaseCache);
   const [searchTriggered, setSearchTriggered] = useState(() => {
     const hasSearched = !!sessionStorage.getItem('lastExamSearch');
-    return hasSearched || !!(initialCache.exams && initialCache.exams.length > 0);
+    return hasSearched || initialHasSciBaseCache;
   });
-  
+
   // State Machine: 'idle' | 'loading' | 'success' | 'error'
-  const [status, setStatus] = useState((initialCache.exams && initialCache.exams.length > 0) ? 'success' : 'idle');
+  const [status, setStatus] = useState(() => {
+    if (initialHasSciBaseCache) return 'success';
+    const cleanInitId = String(resolveInitialStudentId(activeEmail, profileStudentId) || '').replace(/[\s-]/g, '').trim();
+    return /^\d{13}$/.test(cleanInitId) ? 'loading' : 'idle';
+  });
   const [error, setError] = useState(null);
 
   const abortControllerRef = useRef(null);
@@ -73,16 +79,18 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
 
     const cachedResult = examRepository.getCachedExams(activeEmail);
     const parsed = (cachedResult.success && cachedResult.data) ? cachedResult.data : { exams: [], manualExams: [], unlisted: null };
+    const nextHasSciBase = Boolean((parsed.exams && parsed.exams.length > 0) || parsed.unlisted);
     setExamList(parsed.exams || []);
     setManualExamList(parsed.manualExams || []);
     setUnlistedInfo(parsed.unlisted || null);
+    setSciBaseChecked(nextHasSciBase);
     const hasSearched = !!sessionStorage.getItem('lastExamSearch');
-    setSearchTriggered(hasSearched || !!(parsed.exams && parsed.exams.length > 0) || !!(parsed.manualExams && parsed.manualExams.length > 0));
-    setStatus((parsed.exams && parsed.exams.length > 0) ? 'success' : 'idle');
+    setSearchTriggered(hasSearched || nextHasSciBase || !!(parsed.manualExams && parsed.manualExams.length > 0));
+    setStatus(nextHasSciBase ? 'success' : (/^\d{13}$/.test(String(nextStudentId || '').replace(/[\s-]/g, '').trim()) ? 'loading' : 'idle'));
     setError(null);
   }
 
-  // Bulletproof sync on mount
+  // Bulletproof sync on mount (does NOT skip SciBase check when only Reg/manual exams are cached)
   useEffect(() => {
     if (activeEmail) {
       const cachedResult = examRepository.getCachedExams(activeEmail);
@@ -96,7 +104,10 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
           setManualExamList(data.manualExams || []);
           setUnlistedInfo(data.unlisted || null);
           setSearchTriggered(true);
-          if (hasExams || data.unlisted) setStatus('success');
+          if (hasExams || data.unlisted) {
+            setSciBaseChecked(true);
+            setStatus('success');
+          }
         }
       }
     }
@@ -154,6 +165,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       setUnlistedInfo(result.data.unlisted);
       examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
       notifyExamsUpdated(activeEmail);
+      setSciBaseChecked(true);
       setStatus('success');
       
       // Trigger background sync for the new seating arrangements
@@ -166,15 +178,18 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       if (result.error.name === 'AbortError') {
         return;
       }
+      setSciBaseChecked(true);
       setError(result.error.message);
       setStatus('error');
     }
   }, [studentId, lang, activeEmail]);
 
-  // StrictMode-safe auto-fetch when a valid 13-digit studentId is pre-populated and not searched yet
+  // StrictMode-safe SciBase-first check: always queries the official exam seating site
+  // before falling back to KMUTNB Reg exams whenever a valid 13-digit studentId is present
+  // and no fresh SciBase result is cached.
   useEffect(() => {
     const cleanId = String(studentId || '').replace(/[\s-]/g, '').trim();
-    if (!/^\d{13}$/.test(cleanId) || searchTriggered) return;
+    if (!/^\d{13}$/.test(cleanId) || sciBaseChecked) return;
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -197,6 +212,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
         setManualExamList(latestManual);
         setUnlistedInfo(result.data.unlisted);
         setSearchTriggered(true);
+        setSciBaseChecked(true);
         examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
         notifyExamsUpdated(activeEmail);
         setStatus('success');
@@ -209,6 +225,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       } else {
         if (result.error?.name === 'AbortError') return;
         setSearchTriggered(true);
+        setSciBaseChecked(true);
         setError(result.error?.message || 'Failed to fetch exams');
         setStatus('error');
       }
@@ -216,6 +233,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       if (controller.signal.aborted || err?.name === 'AbortError') return;
       completed = true;
       setSearchTriggered(true);
+      setSciBaseChecked(true);
       setError(err?.message || 'Failed to fetch exams');
       setStatus('error');
     });
@@ -226,7 +244,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
         abortControllerRef.current = null;
       }
     };
-  }, [studentId, searchTriggered, lang, activeEmail]);
+  }, [studentId, sciBaseChecked, lang, activeEmail]);
 
   const handleSaveManualExam = useCallback((examData) => {
     let updatedManual = [...manualExamList];
@@ -308,10 +326,10 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       .sort((a, b) => parseDateForSort(a) - parseDateForSort(b));
   }, [mergedExamResult]);
 
-  const isSciBaseOutdatedFallback = mergedExamResult.stats.ignoredStaleSciBaseCount > 0;
+  const isSciBaseOutdatedFallback = mergedExamResult.stats.mode === 'reg-fallback' && mergedExamResult.stats.ignoredStaleSciBaseCount > 0;
 
   const isOutdatedData = useMemo(() => {
-    if (examList.length === 0 || isSciBaseOutdatedFallback) return false;
+    if (examList.length === 0 || mergedExamResult.stats.mode === 'reg-fallback') return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -319,7 +337,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
       return parsedDate ? parsedDate < today : false;
     });
-  }, [examList, isSciBaseOutdatedFallback]);
+  }, [examList, mergedExamResult.stats.mode]);
 
   const refreshFromCache = useCallback(() => {
     const cachedResult = examRepository.getCachedExams(activeEmail);
@@ -348,6 +366,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     sortedExams,
     unlistedInfo,
     searchTriggered,
+    sciBaseChecked,
     isOutdatedData,
     isSciBaseOutdatedFallback,
     mergeStats: mergedExamResult.stats,

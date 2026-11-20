@@ -15,17 +15,19 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
 
   const renderSourceBadge = () => {
     const isReg = exam.source === 'kmutnb-reg' || String(exam.id || '').startsWith('reg-exam-');
-    if (isReg && exam.seatingSynced) {
+    const isSciBase = exam.source === 'scibase' || (!exam.isManual && !isReg);
+    if (isSciBase) {
       return (
         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-          {lang === 'en' ? 'Reg + Seat' : 'Reg + ที่นั่งสอบ'}
+          {lang === 'en' ? 'Official Seat' : 'ที่นั่งสอบทางการ'}
         </span>
       );
     }
     if (isReg) {
+      const hasRoom = Boolean(exam.room && String(exam.room).trim() && String(exam.room).trim() !== '-');
       return (
         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[#007ACC]/15 text-[#3794FF] border border-[#007ACC]/30">
-          Reg
+          {hasRoom ? 'Reg' : (lang === 'en' ? 'Reg · Room TBA' : 'Reg · รอห้องสอบ')}
         </span>
       );
     }

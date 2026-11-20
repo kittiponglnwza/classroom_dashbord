@@ -1,7 +1,11 @@
-import { useState, useContext } from 'react';
-import { ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus, Search, LayoutGrid, List, Upload } from 'lucide-react';
+import { useState, useContext, useMemo } from 'react';
+import {
+  ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus, Search,
+  LayoutGrid, List, Upload, RefreshCw
+} from 'lucide-react';
 import { t } from '../utils/i18n';
 import { getCookieConsent } from '../utils/cookieConsent';
+import { classifyExamKind, resolveExamIsoDate } from '../utils/courseEndDate';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { ToastContext } from '../contexts/ToastContext';
@@ -13,10 +17,16 @@ import ExamManualModal from '../features/exams/ExamManualModal';
 import ExamUnlistedAlert from '../features/exams/ExamUnlistedAlert';
 import RegImportModal from '../components/RegImportModal';
 
+function getTodayLocalIso() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 export default function ExamRoom() {
   const { profile } = useAuth();
   const { lang } = useSettings();
   const toast = useContext(ToastContext);
+  const isTh = lang === 'th';
 
   const activeEmail = (profile.email || '').toLowerCase().trim();
 
@@ -38,14 +48,83 @@ export default function ExamRoom() {
   } = useExamRoom(activeEmail, lang, profile.studentId);
 
   const loading = status === 'loading';
+  const hasValidStudentId = /^\d{13}$/.test(String(studentId || '').replace(/[\s-]/g, '').trim());
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRegImportOpen, setIsRegImportOpen] = useState(false);
   const [editingExamData, setEditingExamData] = useState(null);
+  const [userRoundTab, setUserRoundTab] = useState(null); // null -> smart auto-select
   const [isSearchVisible, setIsSearchVisible] = useState(() => {
-    return !(sortedExams && sortedExams.length > 0);
+    return !(sortedExams && sortedExams.length > 0) && !hasValidStudentId;
   });
   const [layoutView, setLayoutView] = useState(() => localStorage.getItem('classroom_hub_exam_layout') || 'grid');
+
+  // Split exams into Midterm / Final buckets for clean tabs on the Exam Room page only
+  const { midtermExams, finalExams, hasRoundSplit, defaultRoundTab } = useMemo(() => {
+    const mid = [];
+    const fin = [];
+    const todayIso = getTodayLocalIso();
+
+    for (const ex of sortedExams) {
+      const kind = classifyExamKind(ex);
+      if (kind === 'midterm') mid.push(ex);
+      else if (kind === 'final') fin.push(ex);
+    }
+
+    const split = mid.length > 0 || fin.length > 0;
+    let defTab = 'all';
+    if (split) {
+      const hasUpcomingMidterm = mid.some((ex) => {
+        const iso = resolveExamIsoDate(ex);
+        return !iso || iso >= todayIso;
+      });
+      if (mid.length > 0 && hasUpcomingMidterm) {
+        defTab = 'midterm';
+      } else if (fin.length > 0) {
+        defTab = 'final';
+      } else {
+        defTab = 'midterm';
+      }
+    }
+
+    return {
+      midtermExams: mid,
+      finalExams: fin,
+      hasRoundSplit: split,
+      defaultRoundTab: defTab,
+    };
+  }, [sortedExams]);
+
+  const activeRoundTab = useMemo(() => {
+    if (!hasRoundSplit) return 'all';
+    if (userRoundTab === 'midterm' && midtermExams.length > 0) return 'midterm';
+    if (userRoundTab === 'final' && finalExams.length > 0) return 'final';
+    if (userRoundTab === 'all') return 'all';
+    return defaultRoundTab;
+  }, [hasRoundSplit, userRoundTab, midtermExams.length, finalExams.length, defaultRoundTab]);
+
+  const displayedExams = useMemo(() => {
+    if (activeRoundTab === 'midterm') return midtermExams;
+    if (activeRoundTab === 'final') return finalExams;
+    return sortedExams;
+  }, [activeRoundTab, midtermExams, finalExams, sortedExams]);
+
+  const isActiveTabSciBasePrimary = useMemo(() => {
+    if (mergeStats?.mode !== 'scibase-primary') return false;
+    const covered = mergeStats.coveredRounds || [];
+    if (covered.includes('all')) return true;
+    if (activeRoundTab === 'all') return covered.length > 0;
+    return covered.includes(activeRoundTab);
+  }, [mergeStats, activeRoundTab]);
+
+  const isActiveTabRegFallback = useMemo(() => {
+    if (mergeStats?.mode === 'reg-fallback') return true;
+    if (mergeStats?.mode === 'scibase-primary') {
+      const fallbackRounds = mergeStats.fallbackRegRounds || [];
+      return activeRoundTab !== 'all' && fallbackRounds.includes(activeRoundTab);
+    }
+    return false;
+  }, [mergeStats, activeRoundTab]);
 
   const toggleLayout = (view) => {
     setLayoutView(view);
@@ -81,85 +160,94 @@ export default function ExamRoom() {
           </h1>
           <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">{t('examDesc', lang)}</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto flex-wrap">
+          {hasValidStudentId && (
+            <button
+              type="button"
+              onClick={() => handleSearch()}
+              disabled={loading}
+              className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer disabled:opacity-50"
+              title={isTh ? 'เช็กที่นั่งสอบล่าสุดจากเว็บ มจพ.' : 'Re-check official seating by Student ID'}
+            >
+              <RefreshCw size={13} className={`text-[#3794FF] ${loading ? 'animate-spin' : ''}`} />
+              <span>{isTh ? 'เช็กที่นั่งสอบ' : 'Check Seating'}</span>
+            </button>
+          )}
           {!isSearchVisible && (
             <button
               type="button"
               onClick={() => setIsSearchVisible(true)}
-              className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3.5 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer"
             >
-              <Search size={14} className="text-[#3794FF]" />
-              <span>{lang === 'en' ? 'Search Student ID' : 'ค้นหารหัสนักศึกษา'}</span>
+              <Search size={13} className="text-[#3794FF]" />
+              <span>{isTh ? 'ค้นหารหัสอื่น' : 'Other ID'}</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => setIsRegImportOpen(true)}
-            className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3.5 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer"
           >
-            <Upload size={14} className="text-[#3794FF]" />
+            <Upload size={13} className="text-[#3794FF]" />
             <span>{t('importReg', lang)}</span>
           </button>
           <button
             type="button"
             onClick={openNewModal}
-            className="flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
           >
-            <Plus size={15} />
+            <Plus size={14} />
             <span>{t('addExamBtn', lang)}</span>
           </button>
         </div>
       </div>
 
-      {/* Security Notice */}
+      {/* Security Notice & Search Form */}
       {isSearchVisible && (
-        <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4 flex items-start gap-3 text-xs max-w-2xl text-[#9D9D9D] leading-relaxed">
-          <Lock size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
-          <p>{t('securityWarning', lang)}</p>
+        <div className="space-y-4">
+          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4 flex items-start gap-3 text-xs max-w-2xl text-[#9D9D9D] leading-relaxed">
+            <Lock size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
+            <p>{t('securityWarning', lang)}</p>
+          </div>
+          <ExamSearchForm
+            studentId={studentId}
+            setStudentId={setStudentId}
+            onSearch={(e) => handleSearch(e)}
+            loading={loading}
+            lang={lang}
+          />
         </div>
       )}
 
-      {/* Search Form Component */}
-      {isSearchVisible && (
-        <ExamSearchForm
-          studentId={studentId}
-          setStudentId={setStudentId}
-          onSearch={(e) => handleSearch(e)}
-          loading={loading}
-          lang={lang}
-        />
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs px-4 py-3 rounded-xl flex items-center gap-2 max-w-2xl">
-          <AlertCircle size={15} />
-          <span>{error}</span>
+      {/* Error Message (non-blocking if Reg fallback exams exist) */}
+      {error && !loading && (
+        <div className="bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs px-4 py-3 rounded-xl flex items-center gap-2 max-w-2xl">
+          <AlertCircle size={15} className="shrink-0" />
+          <span>
+            {sortedExams.length > 0
+              ? (isTh
+                  ? `เชื่อมต่อเว็บเช็กที่นั่งสอบไม่ได้ (${error}) — แสดงตารางสอบจาก Reg แทน`
+                  : `Could not reach official seating site (${error}) — showing Reg exam schedule instead.`)
+              : error}
+          </span>
         </div>
       )}
 
-      {/* Loading Widget (only blocks full view when no exams are already loaded) */}
-      {loading && sortedExams.length === 0 && (
-        <div className="py-14 text-center space-y-3 max-w-2xl">
+      {/* SciBase-First Loading State (checks official seating site BEFORE displaying Reg fallback) */}
+      {loading && (
+        <div className="py-14 text-center space-y-3 max-w-2xl mx-auto">
           <div className="w-6 h-6 rounded-full border-2 border-[#3C3C3C] border-t-[#007ACC] animate-spin mx-auto" />
-          <p className="text-xs text-[#9D9D9D] font-medium">{t('fetchingExam', lang)}</p>
+          <p className="text-xs text-[#D4D4D4] font-medium">
+            {isTh
+              ? 'กำลังตรวจสอบตารางที่นั่งสอบทางการจากรหัสนักศึกษาก่อน...'
+              : 'Checking official exam seating database by Student ID first...'}
+          </p>
         </div>
       )}
 
-      {/* Search Results */}
-      {((studentId.trim() !== '' && searchTriggered) || sortedExams.length > 0 || unlistedInfo) && (!loading || sortedExams.length > 0) && (
-        <div className="space-y-6">
-          {loading && sortedExams.length > 0 && (
-            <div className="bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D] text-xs px-4 py-2.5 rounded-xl flex items-center gap-2.5">
-              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#3C3C3C] border-t-[#007ACC] animate-spin shrink-0" />
-              <span>
-                {lang === 'en'
-                  ? 'Checking official room & seating database by Student ID...'
-                  : 'กำลังตรวจสอบห้องและที่นั่งสอบล่าสุดจากรหัสนักศึกษา...'}
-              </span>
-            </div>
-          )}
-
+      {/* Resolved Results (shown after SciBase-first check completes) */}
+      {((studentId.trim() !== '' && searchTriggered) || sortedExams.length > 0 || unlistedInfo) && !loading && (
+        <div className="space-y-5">
           {isOutdatedData && (
             <div className="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium p-4 rounded-2xl flex items-start gap-3">
               <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
@@ -171,37 +259,110 @@ export default function ExamRoom() {
             </div>
           )}
 
-          {isSciBaseOutdatedFallback && (
-            <div className="bg-[#007ACC]/10 border border-[#007ACC]/30 text-[#D4D4D4] text-xs px-4 py-3 rounded-2xl flex items-start gap-2.5">
-              <CheckCircle2 size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
-              <p className="leading-relaxed">
-                {lang === 'en'
-                  ? 'Student ID seating database still shows the previous semester — displaying your current KMUTNB Reg exam schedule instead. Rooms & seats will merge automatically once published.'
-                  : 'ฐานข้อมูลที่นั่งสอบจากรหัสนักศึกษายังเป็นของเทอมก่อน — ระบบจึงซ่อนข้อมูลเก่าและแสดงตารางสอบเทอมปัจจุบันจาก KMUTNB Reg แทน (จะรวมห้องและที่นั่งสอบให้อัตโนมัติเมื่อ ม. อัปเดต)'}
-              </p>
-            </div>
-          )}
-
-          {mergeStats?.mergedSeatingCount > 0 && (
+          {/* Source Status Banner */}
+          {sortedExams.length > 0 && isActiveTabSciBasePrimary && (
             <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2">
               <CheckCircle2 size={14} className="shrink-0" />
               <span>
-                {lang === 'en'
-                  ? `Merged official room & seating from Student ID into ${mergeStats.mergedSeatingCount} Reg exam(s) with no duplicates.`
-                  : `รวมห้องและที่นั่งสอบจากรหัสนักศึกษาเข้ากับตาราง Reg แล้ว ${mergeStats.mergedSeatingCount} รายการ (ไม่ซ้ำซ้อน)`}
+                {isTh
+                  ? `ใช้ตารางที่นั่งสอบทางการจากเว็บ มจพ. เป็นหลัก (${displayedExams.length} รายการ)`
+                  : `Using official Student ID seating schedule as primary source (${displayedExams.length} exams)`}
               </span>
+            </div>
+          )}
+
+          {sortedExams.length > 0 && !isActiveTabSciBasePrimary && isActiveTabRegFallback && (
+            <div className="bg-[#007ACC]/10 border border-[#007ACC]/30 text-[#D4D4D4] text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
+              <CheckCircle2 size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                {isSciBaseOutdatedFallback
+                  ? (isTh
+                      ? 'เช็กเว็บที่นั่งสอบแล้ว (ยังเป็นข้อมูลเทอมก่อน) — แสดงตารางสอบจาก KMUTNB Reg แทนชั่วคราว (รอประกาศห้องสอบ)'
+                      : 'Checked official seating site (still showing previous semester) — displaying KMUTNB Reg exams until official rooms are published.')
+                  : (isTh
+                      ? 'รอบสอบนี้ยังไม่ประกาศที่นั่งสอบในเว็บ SciBase — แสดงวันสอบจาก KMUTNB Reg แทนชั่วคราว (รอประกาศห้องสอบ)'
+                      : 'Official seating for this round is not published yet — displaying KMUTNB Reg exam dates (Room TBA).')}
+              </p>
             </div>
           )}
 
           {sortedExams.length > 0 && (
             <div className="space-y-4">
+              {/* Midterm / Final Segmented Tabs + Layout Switcher */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <h3 className="font-semibold text-xs text-[#FFFFFF] flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-400" />
-                  <span>{lang === 'en' ? 'Your Exam Seating Schedule' : 'ตารางและที่นั่งสอบของคุณ'}</span>
-                </h3>
+                {hasRoundSplit ? (
+                  <div
+                    role="tablist"
+                    aria-label={isTh ? 'เลือกรอบสอบ' : 'Exam round'}
+                    className="inline-flex items-center bg-[#252526] border border-[#3C3C3C] rounded-xl p-1 gap-1 self-start"
+                  >
+                    {midtermExams.length > 0 && (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeRoundTab === 'midterm'}
+                        onClick={() => setUserRoundTab('midterm')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+                          activeRoundTab === 'midterm'
+                            ? 'bg-[#007ACC] text-white'
+                            : 'text-[#9D9D9D] hover:text-[#FFFFFF]'
+                        }`}
+                      >
+                        <span>{isTh ? 'กลางภาค' : 'Midterm'}</span>
+                        <span className={`text-[10.5px] font-mono px-1.5 py-0.25 rounded-md ${
+                          activeRoundTab === 'midterm' ? 'bg-white/20 text-white' : 'bg-[#1E1E1E] text-[#858585]'
+                        }`}>
+                          {midtermExams.length}
+                        </span>
+                      </button>
+                    )}
+                    {finalExams.length > 0 && (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeRoundTab === 'final'}
+                        onClick={() => setUserRoundTab('final')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+                          activeRoundTab === 'final'
+                            ? 'bg-[#007ACC] text-white'
+                            : 'text-[#9D9D9D] hover:text-[#FFFFFF]'
+                        }`}
+                      >
+                        <span>{isTh ? 'ปลายภาค' : 'Final'}</span>
+                        <span className={`text-[10.5px] font-mono px-1.5 py-0.25 rounded-md ${
+                          activeRoundTab === 'final' ? 'bg-white/20 text-white' : 'bg-[#1E1E1E] text-[#858585]'
+                        }`}>
+                          {finalExams.length}
+                        </span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeRoundTab === 'all'}
+                      onClick={() => setUserRoundTab('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+                        activeRoundTab === 'all'
+                          ? 'bg-[#007ACC] text-white'
+                          : 'text-[#9D9D9D] hover:text-[#FFFFFF]'
+                      }`}
+                    >
+                      <span>{isTh ? 'ทั้งหมด' : 'All'}</span>
+                      <span className={`text-[10.5px] font-mono px-1.5 py-0.25 rounded-md ${
+                        activeRoundTab === 'all' ? 'bg-white/20 text-white' : 'bg-[#1E1E1E] text-[#858585]'
+                      }`}>
+                        {sortedExams.length}
+                      </span>
+                    </button>
+                  </div>
+                ) : (
+                  <h3 className="font-semibold text-xs text-[#FFFFFF] flex items-center gap-2">
+                    <CheckCircle2 size={14} className="text-emerald-400" />
+                    <span>{lang === 'en' ? 'Your Exam Seating Schedule' : 'ตารางและที่นั่งสอบของคุณ'}</span>
+                  </h3>
+                )}
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
                   <div className="flex items-center bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-0.5">
                     <button
                       type="button"
@@ -224,22 +385,11 @@ export default function ExamRoom() {
                       <List size={14} />
                     </button>
                   </div>
-
-                  {!isSearchVisible && (
-                    <button
-                      type="button"
-                      onClick={() => setIsSearchVisible(true)}
-                      className="text-xs bg-[#252526] border border-[#3C3C3C] px-3 py-1.5 rounded-xl text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Search size={12} className="text-[#3794FF]" />
-                      <span>{lang === 'en' ? 'Search Another ID' : 'ค้นหารหัสอื่น'}</span>
-                    </button>
-                  )}
                 </div>
               </div>
 
               <div className={layoutView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 gap-4' : 'flex flex-col gap-3'}>
-                {sortedExams.map((exam, index) => (
+                {displayedExams.map((exam, index) => (
                   <ExamCard
                     key={exam.id}
                     exam={exam}
@@ -293,7 +443,7 @@ export default function ExamRoom() {
               setIsSearchVisible(false);
             }
             toast?.addToast?.(
-              lang === 'th'
+              isTh
                 ? `นำเข้าวันสอบ ${parsed.meta.totalExams} รายการจาก KMUTNB Reg แล้ว`
                 : `Imported ${parsed.meta.totalExams} exams from KMUTNB Reg`,
               'success'

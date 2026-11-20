@@ -1,4 +1,4 @@
-import { resolveExamIsoDate } from './courseEndDate';
+import { classifyExamKind, resolveExamIsoDate, subtractDaysIso } from './courseEndDate';
 
 function getTodayLocalIso() {
   const now = new Date();
@@ -15,6 +15,13 @@ function isoToUtcMs(isoDateStr) {
 
 function daysBetweenIso(earlierIso, laterIso) {
   return Math.round((isoToUtcMs(laterIso) - isoToUtcMs(earlierIso)) / 86400000);
+}
+
+function distanceToRangeDays(iso, range) {
+  if (!iso || !range) return Infinity;
+  if (iso >= range.min && iso <= range.max) return 0;
+  if (iso < range.min) return daysBetweenIso(iso, range.min);
+  return daysBetweenIso(range.max, iso);
 }
 
 /**
@@ -52,125 +59,224 @@ function extractStartMinutes(timeStr) {
   return h * 60 + m;
 }
 
-function isRegImportedExam(exam) {
+export function isRegImportedExam(exam) {
   return exam?.source === 'kmutnb-reg' || String(exam?.id || '').startsWith('reg-exam-');
 }
 
-function hasMeaningfulValue(val) {
-  const s = String(val || '').trim();
-  return Boolean(s && s !== '-' && s !== '—');
-}
-
 /**
- * Returns true if a Student-ID fetched (SciBase) exam and a Reg/manual exam
+ * Returns true if a Student-ID fetched (SciBase) exam and another exam
  * represent the same course exam on the same date.
  */
-export function isSameExamSlot(sciExam, manualExam) {
+export function isSameExamSlot(sciExam, otherExam) {
   const sciIso = resolveExamIsoDate(sciExam);
-  const manIso = resolveExamIsoDate(manualExam);
-  if (!sciIso || !manIso || sciIso !== manIso) return false;
+  const otherIso = resolveExamIsoDate(otherExam);
+  if (!sciIso || !otherIso || sciIso !== otherIso) return false;
 
   const sciCode = normalizeExamCode(sciExam);
-  const manCode = normalizeExamCode(manualExam);
-  if (sciCode && manCode) {
-    return sciCode === manCode;
+  const otherCode = normalizeExamCode(otherExam);
+  if (sciCode && otherCode) {
+    return sciCode === otherCode;
   }
 
   const sciName = normalizeExamTitle(sciExam);
-  const manName = normalizeExamTitle(manualExam);
-  if (sciName.length >= 5 && manName.length >= 5 && (sciName.includes(manName) || manName.includes(sciName))) {
+  const otherName = normalizeExamTitle(otherExam);
+  if (sciName.length >= 5 && otherName.length >= 5 && (sciName.includes(otherName) || otherName.includes(sciName))) {
     const sciStart = extractStartMinutes(sciExam?.time);
-    const manStart = extractStartMinutes(manualExam?.time);
-    return sciStart === null || manStart === null || sciStart === manStart;
+    const otherStart = extractStartMinutes(otherExam?.time);
+    return sciStart === null || otherStart === null || sciStart === otherStart;
   }
 
   return false;
 }
 
+function inferSciExamRound(sciEx, sciIso, regExams, midRange, finRange) {
+  const explicit = classifyExamKind(sciEx);
+  if (explicit === 'midterm' || explicit === 'final') return explicit;
+
+  // 1. Exact course+date match against Reg exam
+  const matchedReg = regExams.find((r) => isSameExamSlot(sciEx, r));
+  if (matchedReg) {
+    const regKind = classifyExamKind(matchedReg);
+    if (regKind === 'midterm' || regKind === 'final') return regKind;
+  }
+
+  // 2. Date proximity to Reg's Midterm or Final period (within 21 days)
+  if (sciIso && (midRange || finRange)) {
+    const distMid = distanceToRangeDays(sciIso, midRange);
+    const distFin = distanceToRangeDays(sciIso, finRange);
+    if (distMid <= 21 && distMid <= distFin) return 'midterm';
+    if (distFin <= 21 && distFin < distMid) return 'final';
+  }
+
+  return 'unknown';
+}
+
 /**
- * Reconciles Student-ID fetched exams (SciBase room/seating) with KMUTNB Reg / manual exams:
- *  1. Deduplicates matching (courseCode, date) exams by enriching the Reg/manual exam with
- *     official room & seat info from SciBase (zero duplicates across ExamRoom, Schedule, Home, Calendar).
- *  2. Ignores stale previous-semester SciBase exams whenever current/upcoming KMUTNB Reg exams exist,
- *     preventing last-semester seating data from polluting the active semester schedule & calendar.
+ * Reconciles Student-ID fetched exams (SciBase official seating) with KMUTNB Reg & custom manual exams:
+ *
+ *  - SciBase-Primary rule: Whenever SciBase has fresh/upcoming official exam data (`date >= today`),
+ *    SciBase is used as the sole primary source ("ตัวตั้ง") for the exam round(s) it covers
+ *    (Midterm and/or Final), replacing Reg placeholder exams for that round while preserving Reg exams
+ *    for any *unpublished* round (e.g. keeping Reg Finals while SciBase has only published Midterms).
+ *  - Reg-Fallback rule: When SciBase is empty, unlisted, or only holds stale previous-semester records
+ *    (`< today`) while current/upcoming Reg exams exist, stale SciBase records are discarded and the app
+ *    falls back cleanly to KMUTNB Reg exams.
+ *  - Custom manual exams (non-Reg) are preserved unless superseded by an identical SciBase (course, date) slot.
  */
 export function mergeExamSources(sciExams = [], manualExams = [], options = {}) {
   const safeSci = Array.isArray(sciExams) ? sciExams : [];
   const safeManual = Array.isArray(manualExams) ? manualExams : [];
   const todayIso = options.todayIso || getTodayLocalIso();
 
-  const upcomingRegDates = safeManual
-    .filter(isRegImportedExam)
+  const regExams = safeManual.filter(isRegImportedExam);
+  const customManualExams = safeManual.filter((ex) => !isRegImportedExam(ex));
+
+  const regMidDates = regExams
+    .filter((ex) => classifyExamKind(ex) === 'midterm')
+    .map((ex) => resolveExamIsoDate(ex))
+    .filter(Boolean)
+    .sort();
+  const regFinDates = regExams
+    .filter((ex) => classifyExamKind(ex) === 'final')
+    .map((ex) => resolveExamIsoDate(ex))
+    .filter(Boolean)
+    .sort();
+
+  const midRange = regMidDates.length > 0 ? { min: regMidDates[0], max: regMidDates[regMidDates.length - 1] } : null;
+  const finRange = regFinDates.length > 0 ? { min: regFinDates[0], max: regFinDates[regFinDates.length - 1] } : null;
+
+  const upcomingRegDates = regExams
     .map((ex) => resolveExamIsoDate(ex))
     .filter((iso) => iso && iso >= todayIso)
     .sort();
-
   const hasUpcomingReg = upcomingRegDates.length > 0;
-  const earliestUpcomingReg = upcomingRegDates[0] || '';
 
-  const datedSciIsos = safeSci.map((ex) => resolveExamIsoDate(ex)).filter(Boolean);
-  const allSciArePast = datedSciIsos.length > 0 && datedSciIsos.every((iso) => iso < todayIso);
+  const sciMeta = safeSci.map((ex) => ({
+    ex,
+    iso: resolveExamIsoDate(ex),
+  }));
 
-  const matchedSciIndexes = new Set();
-  let mergedSeatingCount = 0;
-  let ignoredStaleSciBaseCount = 0;
+  const freshSciIsos = sciMeta
+    .map((item) => item.iso)
+    .filter((iso) => iso && iso >= todayIso)
+    .sort();
+  const hasFreshSciBase = freshSciIsos.length > 0;
 
-  // 1. Enrich manual / KMUTNB Reg exams with official room & seat from matching SciBase exam
-  const enrichedManual = safeManual.map((manualEx) => {
-    const sciIdx = safeSci.findIndex(
-      (sciEx, idx) => !matchedSciIndexes.has(idx) && isSameExamSlot(sciEx, manualEx)
-    );
-    if (sciIdx === -1) return manualEx;
+  // ── CASE A: SciBase has fresh/upcoming official seating → SciBase is PRIMARY ("ตัวตั้งทั้งหมด") ──
+  if (hasFreshSciBase) {
+    // Keep exams from the same active exam window (allow up to 14 days before earliest upcoming exam
+    // so an exam taken earlier this same Midterm/Final week isn't dropped mid-week)
+    const activeWindowStart = subtractDaysIso(freshSciIsos[0], 14);
+    const coveredRounds = new Set();
+    let ignoredStaleSciBaseCount = 0;
 
-    matchedSciIndexes.add(sciIdx);
-    const sciEx = safeSci[sciIdx];
-    const sciHasSeating = hasMeaningfulValue(sciEx.room) || hasMeaningfulValue(sciEx.seat);
-
-    const mergedRoom = hasMeaningfulValue(manualEx.room)
-      ? manualEx.room
-      : (hasMeaningfulValue(sciEx.room) ? sciEx.room : '');
-    const mergedSeat = hasMeaningfulValue(manualEx.seat)
-      ? manualEx.seat
-      : (hasMeaningfulValue(sciEx.seat) ? sciEx.seat : '');
-    const mergedTime = hasMeaningfulValue(manualEx.time)
-      ? manualEx.time
-      : (hasMeaningfulValue(sciEx.time) ? sciEx.time : '');
-
-    mergedSeatingCount++;
-    return {
-      ...manualEx,
-      room: mergedRoom,
-      seat: mergedSeat,
-      time: mergedTime,
-      seatingSynced: sciHasSeating,
-    };
-  });
-
-  // 2. Keep unmatched SciBase exams unless they are stale previous-semester records superseded by active Reg exams
-  const remainingSci = [];
-  safeSci.forEach((sciEx, idx) => {
-    if (matchedSciIndexes.has(idx)) return;
-    if (hasUpcomingReg) {
-      const sciIso = resolveExamIsoDate(sciEx);
-      if (
-        sciIso &&
-        sciIso < todayIso &&
-        (allSciArePast || (earliestUpcomingReg && daysBetweenIso(sciIso, earliestUpcomingReg) > 45))
-      ) {
+    const primarySciExams = [];
+    for (const item of sciMeta) {
+      if (item.iso && activeWindowStart && item.iso < activeWindowStart) {
         ignoredStaleSciBaseCount++;
-        return;
+        continue;
       }
+
+      const round = inferSciExamRound(item.ex, item.iso, regExams, midRange, finRange);
+      if (round === 'midterm' || round === 'final') {
+        coveredRounds.add(round);
+      }
+
+      const enrichedSci = {
+        ...item.ex,
+        ...(item.iso && !item.ex.rawIsoDate ? { rawIsoDate: item.iso } : {}),
+        ...(round !== 'unknown' ? { examType: round } : {}),
+        source: 'scibase',
+      };
+      primarySciExams.push(enrichedSci);
     }
-    remainingSci.push(sciEx);
-  });
+
+    // If fresh SciBase exams exist but couldn't be tied to a specific round, SciBase replaces all Reg exams
+    const coversAllReg = coveredRounds.size === 0;
+    let replacedRegCount = 0;
+    const fallbackRegRoundsSet = new Set();
+
+    const remainingRegExams = regExams.filter((regEx) => {
+      if (coversAllReg) {
+        replacedRegCount++;
+        return false;
+      }
+      const regKind = classifyExamKind(regEx);
+      if (coveredRounds.has(regKind)) {
+        replacedRegCount++;
+        return false;
+      }
+      if (primarySciExams.some((sciEx) => isSameExamSlot(sciEx, regEx))) {
+        replacedRegCount++;
+        return false;
+      }
+      if (regKind === 'midterm' || regKind === 'final') {
+        fallbackRegRoundsSet.add(regKind);
+      }
+      return true;
+    });
+
+    // Keep user's custom manual exams unless superseded by the exact same SciBase exam slot
+    const remainingCustomExams = customManualExams.filter(
+      (manEx) => !primarySciExams.some((sciEx) => isSameExamSlot(sciEx, manEx))
+    );
+
+    return {
+      exams: [...primarySciExams, ...remainingRegExams, ...remainingCustomExams],
+      stats: {
+        mode: 'scibase-primary',
+        primarySciBaseCount: primarySciExams.length,
+        coveredRounds: coversAllReg ? ['all'] : Array.from(coveredRounds),
+        fallbackRegRounds: Array.from(fallbackRegRoundsSet),
+        replacedRegCount,
+        ignoredStaleSciBaseCount,
+      },
+    };
+  }
+
+  // ── CASE B: SciBase is empty/unlisted OR stale past-semester while active Reg exams exist → Reg Fallback ──
+  if (hasUpcomingReg) {
+    const datedSciCount = sciMeta.filter((item) => Boolean(item.iso)).length;
+    const fallbackRegRounds = Array.from(
+      new Set(
+        regExams
+          .map((ex) => classifyExamKind(ex))
+          .filter((k) => k === 'midterm' || k === 'final')
+      )
+    );
+
+    return {
+      exams: [...safeManual],
+      stats: {
+        mode: 'reg-fallback',
+        primarySciBaseCount: 0,
+        coveredRounds: [],
+        fallbackRegRounds,
+        replacedRegCount: 0,
+        ignoredStaleSciBaseCount: datedSciCount,
+      },
+    };
+  }
+
+  // ── CASE C: No upcoming Reg exams (SciBase-only / legacy / undated test objects) ──
+  const dedupedManual = safeManual.filter(
+    (manEx) => !safeSci.some((sciEx) => isSameExamSlot(sciEx, manEx))
+  );
+  const combined = [...safeSci, ...dedupedManual];
+
+  const mode = safeSci.length > 0
+    ? 'scibase-only'
+    : (dedupedManual.length > 0 ? 'manual-only' : 'empty');
 
   return {
-    exams: [...remainingSci, ...enrichedManual],
+    exams: combined,
     stats: {
-      mergedSeatingCount,
-      ignoredStaleSciBaseCount,
-      activeSciBaseCount: remainingSci.length,
-      hasActiveSciBaseSeating: mergedSeatingCount > 0 || remainingSci.length > 0,
+      mode,
+      primarySciBaseCount: safeSci.length,
+      coveredRounds: [],
+      fallbackRegRounds: [],
+      replacedRegCount: 0,
+      ignoredStaleSciBaseCount: 0,
     },
   };
 }
