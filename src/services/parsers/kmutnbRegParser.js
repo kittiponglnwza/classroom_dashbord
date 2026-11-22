@@ -49,8 +49,8 @@ const THAI_DAY_MAP = {
 
 const VALID_GRADES_REGEX = /^(?:A|B\+|B|C\+|C|D\+|D|F|W|S|U|I|P|IP|FA|FE|AUD|-)$/i;
 const COURSE_CODE_LINE_REGEX = /^(\d{9})$/;
-const CREDIT_SPEC_REGEX = /^(\d+(?:\.\d+)?)\s*\(\s*\d+\s*-\s*\d+\s*-\s*\d+\s*\)$/;
-const CREDIT_SPEC_EMBEDDED_REGEX = /\b(\d+(?:\.\d+)?)\s*\(\s*\d+\s*-\s*\d+\s*-\s*\d+\s*\)/;
+const CREDIT_SPEC_REGEX = /^(\d+(?:\.\d+)?)\s*\(\s*\d+\s*-\s*\d+\s*-\s*\d+\s*\)\s*\*?$/;
+const CREDIT_SPEC_EMBEDDED_REGEX = /\b(\d+(?:\.\d+)?)\s*\(\s*\d+\s*-\s*\d+\s*-\s*\d+\s*\)\s*\*?/;
 const STANDALONE_CREDIT_REGEX = /^(\d{1,2}(?:\.\d+)?)$/;
 
 /**
@@ -404,7 +404,7 @@ function parseTimetableFromText(text) {
       const firstCell = rawLines[i].split('\t')[0].trim();
       if (!COURSE_CODE_LINE_REGEX.test(firstCell)) continue;
       const nearby = rawLines.slice(i, i + 12).join(' ');
-      if (parseScheduleSlots(nearby).length > 0 || /\d+\(\d+-\d+-\d+\)/.test(nearby)) {
+      if (parseScheduleSlots(nearby).length > 0 || /\d+\(\d+-\d+-\d+\)\*?/.test(nearby)) {
         startIdx = i;
         break;
       }

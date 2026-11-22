@@ -34,6 +34,43 @@
       .trim();
   }
 
+  function detectAcademicYearFromDom() {
+    const bodyText = document.body?.innerText || '';
+    const directMatch = bodyText.match(/ปีการศึกษา\s*(25\d{2})/);
+    if (directMatch) return directMatch[1];
+
+    const controls = document.querySelectorAll('select, input');
+    for (const el of controls) {
+      if (el.tagName === 'SELECT') {
+        const val = String(el.value || '').trim();
+        if (/^(25\d{2})$/.test(val)) return val;
+        const optText = String(el.options?.[el.selectedIndex]?.text || '').trim();
+        if (/^(25\d{2})$/.test(optText)) return optText;
+      } else {
+        const val = String(el.value || '').trim();
+        if (/^(25\d{2})$/.test(val)) return val;
+      }
+    }
+
+    const leafEls = document.querySelectorAll('button, span, div, option:checked');
+    for (const el of leafEls) {
+      if (el.closest('table')) continue;
+      if (el.children && el.children.length > 0 && el.tagName !== 'BUTTON') continue;
+      const txt = String(el.textContent || '').trim();
+      if (/^(25\d{2})$/.test(txt)) return txt;
+    }
+
+    const rangeMatch = bodyText.match(/\d{1,2}\/\d{1,2}\/(25\d{2})/);
+    if (rangeMatch) return rangeMatch[1];
+
+    for (const el of controls) {
+      const valRange = String(el.value || '').match(/\d{1,2}\/\d{1,2}\/(25\d{2})/);
+      if (valRange) return valRange[1];
+    }
+
+    return '';
+  }
+
   /**
    * Primary extractor: reads live DOM <table> rows directly so multi-line <br>/<div>
    * cells (Thai+Eng course titles, wrapped headers, exam date+time) become clean 1-line TSV rows.
@@ -91,8 +128,8 @@
 
     if (bestCourseCodes.size === 0) return null;
 
-    const yearMatch = (document.body?.innerText || '').match(/ปีการศึกษา\s*(\d{4})/);
-    const prefix = yearMatch ? [`ปีการศึกษา${yearMatch[1]}`] : [];
+    const detectedYear = detectAcademicYearFromDom();
+    const prefix = detectedYear ? [`ปีการศึกษา${detectedYear}`] : [];
     const slotCount = bestRows
       .slice(1)
       .filter((line) => /(?:พฤ|อา|จ|อ|พ|ศ|ส)\.?\s*\d{1,2}[:.]\d{2}\s*[-–]\s*\d{1,2}[:.]\d{2}/.test(line)).length;
@@ -123,7 +160,9 @@
     const trimmedLines = lines.map((l) => l.trim());
 
     if (kind === 'timetable') {
-      const yearLine = trimmedLines.find((l) => /^ปีการศึกษา\s*\d{4}$/.test(l)) || '';
+      const matchedYearLine = trimmedLines.find((l) => /^ปีการศึกษา\s*\d{4}$/.test(l)) || '';
+      const detectedYear = matchedYearLine ? '' : detectAcademicYearFromDom();
+      const yearLine = matchedYearLine || (detectedYear ? `ปีการศึกษา${detectedYear}` : '');
       let headerIdx = -1;
       for (let i = 0; i < lines.length; i++) {
         if (/^หมายเหตุ\s*[:：]/.test(trimmedLines[i])) continue;
@@ -144,7 +183,7 @@
         headerIdx = lines.findIndex((l, idx) => {
           if (!/^\d{9}(?:\t|$)/.test(l.trim())) return false;
           const nearby = trimmedLines.slice(idx, idx + 10).join(' ');
-          return /\d{1,2}[:.]\d{2}\s*[-–]\s*\d{1,2}[:.]\d{2}/.test(nearby) || /\d+\(\d+-\d+-\d+\)/.test(nearby);
+          return /\d{1,2}[:.]\d{2}\s*[-–]\s*\d{1,2}[:.]\d{2}/.test(nearby) || /\d+\(\d+-\d+-\d+\)\*?/.test(nearby);
         });
       }
       if (headerIdx === -1) return null;

@@ -52,6 +52,22 @@ async function renderStatus() {
   }
 }
 
+function isKmutnbRegUrl(url) {
+  return /^https?:\/\/([a-z0-9-]+\.)*kmutnb\.ac\.th\/registrar\//i.test(String(url || ''));
+}
+
+async function requestForceCapture(tabId) {
+  try {
+    return await chrome.tabs.sendMessage(tabId, { type: 'CH_FORCE_CAPTURE' });
+  } catch {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['regContent.js'],
+    });
+    return await chrome.tabs.sendMessage(tabId, { type: 'CH_FORCE_CAPTURE' });
+  }
+}
+
 document.getElementById('capture-btn').addEventListener('click', async () => {
   const msgEl = document.getElementById('status-msg');
   msgEl.style.color = '#9D9D9D';
@@ -59,13 +75,13 @@ document.getElementById('capture-btn').addEventListener('click', async () => {
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id || !String(tab.url || '').includes('reg.kmutnb.ac.th/registrar/')) {
+    if (!tab?.id || !isKmutnbRegUrl(tab.url)) {
       msgEl.style.color = '#FBBF24';
       msgEl.textContent = 'กรุณาเปิดหน้า ตารางเรียน หรือ ผลการศึกษา บน reg.kmutnb.ac.th ก่อน';
       return;
     }
 
-    const reply = await chrome.tabs.sendMessage(tab.id, { type: 'CH_FORCE_CAPTURE' });
+    const reply = await requestForceCapture(tab.id);
     if (reply?.captured) {
       msgEl.style.color = '#34D399';
       msgEl.textContent = 'ดึงข้อมูลสำเร็จ! เปิด CH Classroom Hub เพื่อรับข้อมูลอัตโนมัติ';

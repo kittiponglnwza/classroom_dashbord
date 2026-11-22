@@ -1,11 +1,15 @@
 {
   "manifest_version": 3,
   "name": "CH Classroom Hub — KMUTNB Reg Auto-Sync",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "ซิงค์ตารางเรียน วันสอบ และผลการศึกษาจาก reg.kmutnb.ac.th เข้า CH Classroom Hub อัตโนมัติเมื่อเปิดหน้าเว็บ (ไม่เก็บรหัสผ่าน ICIT)",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.kmutnb.ac.th/registrar/*"
   ],
   "icons": {
     "48": "icons/icon48.png",
@@ -22,7 +26,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://reg.kmutnb.ac.th/registrar/*"
+        "https://*.kmutnb.ac.th/registrar/*"
       ],
       "js": [
         "regContent.js"
@@ -32,6 +36,7 @@
     {
       "matches": [
         "https://classrooms-hub.vercel.app/*",
+        "https://*.vercel.app/*",
         "http://localhost:5173/*",
         "http://127.0.0.1:5173/*",
         "http://localhost:4173/*"

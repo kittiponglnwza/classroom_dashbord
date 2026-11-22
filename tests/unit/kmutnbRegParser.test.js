@@ -719,4 +719,114 @@ describe('KMUTNB Reg Parser & Academic Graduation Engine', () => {
     const encoded = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     expect(decodeRegImportHashPayload(encoded)).toBe(sample);
   });
+
+  it('parses reg2.kmutnb.ac.th timetable rows with trailing asterisk credits like 3(2-2-5)* in both line-by-line and TSV formats', () => {
+    const lineByLineText = [
+      'ปีการศึกษา2569',
+      'รหัสวิชา',
+      'ตอนเรียน',
+      'รายวิชา',
+      'หน่วยกิต',
+      'อาจารย์ผู้สอน',
+      'วันเวลาเรียน',
+      'ห้อง',
+      'สอบกลางภาค',
+      'สอบปลายภาค',
+      'หมายเหตุ',
+      '040613203',
+      'S.1',
+      'การโปรแกรมเชิงโครงสร้าง',
+      'Structured Programming',
+      '3(2-2-5)*',
+      'รองศาสตราจารย์ ดร.เจียมวุฒิ รัตนวิไลสกุล',
+      'S.1 จ.08:30-10:30',
+      '78-621',
+      '15 ม.ค. 2570',
+      'เวลา 09:00-12:00',
+      '17 มี.ค. 2570',
+      'เวลา 13:00-16:00',
+      'สอนเป็นภาษาอังกฤษ (เสริมทักษะภาษาอังกฤษ)',
+      '040613203',
+      'L.1',
+      'การโปรแกรมเชิงโครงสร้าง',
+      'Structured Programming',
+      '3(2-2-5)*',
+      'รองศาสตราจารย์ ดร.เจียมวุฒิ รัตนวิไลสกุล',
+      'L.1 จ.10:30-12:30',
+      '78-621',
+      '15 ม.ค. 2570',
+      'เวลา 09:00-12:00',
+      '17 มี.ค. 2570',
+      'เวลา 13:00-16:00',
+      'สอนเป็นภาษาอังกฤษ (เสริมทักษะภาษาอังกฤษ)',
+      '040613206',
+      'S.2',
+      'การออกแบบและการวิเคราะห์ขั้นตอนวิธี',
+      'Design and Analysis of Algorithm',
+      '3(2-2-5)*',
+      'ผู้ช่วยศาสตราจารย์ ดร.อัครา ประโยชน์',
+      'S.2 พฤ.13:00-15:00',
+      '78-618/2',
+      '17 ม.ค. 2570',
+      'เวลา 13:00-16:00',
+      '25 มี.ค. 2570',
+      'เวลา 13:00-16:00',
+      '040613206',
+      'L.2',
+      'การออกแบบและการวิเคราะห์ขั้นตอนวิธี',
+      'Design and Analysis of Algorithm',
+      '3(2-2-5)*',
+      'ผู้ช่วยศาสตราจารย์ ดร.อัครา ประโยชน์',
+      'L.2 พฤ.15:00-17:00',
+      '78-618/2',
+      '17 ม.ค. 2570',
+      'เวลา 13:00-16:00',
+      '25 มี.ค. 2570',
+      'เวลา 13:00-16:00',
+    ].join('\n');
+
+    const tsvText = [
+      'ปีการศึกษา2569',
+      'รหัสวิชา\tตอนเรียน\tรายวิชา\tหน่วยกิต\tอาจารย์ผู้สอน\tวันเวลาเรียน\tห้อง\tสอบกลางภาค\tสอบปลายภาค\tหมายเหตุ',
+      '040613203\tS.1\tการโปรแกรมเชิงโครงสร้าง Structured Programming\t3(2-2-5)*\tรองศาสตราจารย์ ดร.เจียมวุฒิ รัตนวิไลสกุล\tS.1 จ.08:30-10:30\t78-621\t15 ม.ค. 2570 เวลา 09:00-12:00\t17 มี.ค. 2570 เวลา 13:00-16:00\tสอนเป็นภาษาอังกฤษ (เสริมทักษะภาษาอังกฤษ)',
+      '040613203\tL.1\tการโปรแกรมเชิงโครงสร้าง Structured Programming\t3(2-2-5)*\tรองศาสตราจารย์ ดร.เจียมวุฒิ รัตนวิไลสกุล\tL.1 จ.10:30-12:30\t78-621\t15 ม.ค. 2570 เวลา 09:00-12:00\t17 มี.ค. 2570 เวลา 13:00-16:00\tสอนเป็นภาษาอังกฤษ (เสริมทักษะภาษาอังกฤษ)',
+      '040613206\tS.2\tการออกแบบและการวิเคราะห์ขั้นตอนวิธี Design and Analysis of Algorithm\t3(2-2-5)*\tผู้ช่วยศาสตราจารย์ ดร.อัครา ประโยชน์\tS.2 พฤ.13:00-15:00\t78-618/2\t17 ม.ค. 2570 เวลา 13:00-16:00\t25 มี.ค. 2570 เวลา 13:00-16:00\t',
+      '040613206\tL.2\tการออกแบบและการวิเคราะห์ขั้นตอนวิธี Design and Analysis of Algorithm\t3(2-2-5)*\tผู้ช่วยศาสตราจารย์ ดร.อัครา ประโยชน์\tL.2 พฤ.15:00-17:00\t78-618/2\t17 ม.ค. 2570 เวลา 13:00-16:00\t25 มี.ค. 2570 เวลา 13:00-16:00\t',
+    ].join('\n');
+
+    [parseKmutnbRegInput(lineByLineText), parseKmutnbRegInput(tsvText)].forEach((parsed) => {
+      expect(parsed.success).toBe(true);
+      expect(parsed.timetable.academicYear).toBe('2569');
+      expect(parsed.meta.totalEnrolledCredits).toBe(6);
+      expect(parsed.timetable.enrolledCourses).toHaveLength(2);
+      expect(parsed.timetable.enrolledCourses[0]).toMatchObject({
+        courseCode: '040613203',
+        engName: 'Structured Programming',
+        credits: 3,
+        instructor: 'รองศาสตราจารย์ ดร.เจียมวุฒิ รัตนวิไลสกุล',
+      });
+      expect(parsed.timetable.enrolledCourses[1]).toMatchObject({
+        courseCode: '040613206',
+        engName: 'Design and Analysis of Algorithm',
+        credits: 3,
+        instructor: 'ผู้ช่วยศาสตราจารย์ ดร.อัครา ประโยชน์',
+      });
+
+      expect(parsed.timetable.scheduleEntries).toHaveLength(4);
+      expect(parsed.timetable.scheduleEntries[0]).toMatchObject({
+        day: 'mon',
+        startTime: '08:30',
+        endTime: '10:30',
+        room: '78-621',
+      });
+      expect(parsed.timetable.scheduleEntries[2]).toMatchObject({
+        day: 'thu',
+        startTime: '13:00',
+        endTime: '15:00',
+        room: '78-618/2',
+      });
+
+      expect(parsed.timetable.examEntries).toHaveLength(4);
+    });
+  });
 });
