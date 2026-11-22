@@ -43,12 +43,12 @@ export default function Sidebar({ onLinkClick = null }) {
         isCollapsed ? 'w-18' : 'w-64'
       }`}
     >
-      <div className="h-16 px-4 flex items-center justify-between border-b border-[#3C3C3C]">
-        <Link to="/" onClick={onLinkClick} className="flex items-center gap-2.5 overflow-hidden">
-          <div className="w-8 h-8 rounded-lg bg-[#007ACC] text-white font-semibold text-xs flex items-center justify-center shrink-0">
-            CH
-          </div>
-          {!isCollapsed && (
+      <div className={`h-16 flex items-center border-b border-[#3C3C3C] ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+        {!isCollapsed && (
+          <Link to="/" onClick={onLinkClick} className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-8 h-8 rounded-lg bg-[#007ACC] text-white font-semibold text-xs flex items-center justify-center shrink-0">
+              CH
+            </div>
             <div className="flex flex-col items-start min-w-0">
               <span className="font-semibold text-sm text-[#FFFFFF] tracking-tight truncate">
                 Classroom Hub
@@ -57,8 +57,8 @@ export default function Sidebar({ onLinkClick = null }) {
                 {lang === 'en' ? 'Student Workspace' : 'พื้นที่จัดการการเรียน'}
               </span>
             </div>
-          )}
-        </Link>
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -80,7 +80,7 @@ export default function Sidebar({ onLinkClick = null }) {
               onClick={onLinkClick}
               className={({ isActive }) => {
                 const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
-                return `flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                return `flex items-center ${isCollapsed ? 'justify-center px-2.5 py-2.5' : 'justify-between px-3 py-2.5'} rounded-xl text-sm font-medium transition-colors ${
                   active
                     ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50 font-semibold'
                     : 'text-[#9D9D9D] hover:text-[#D4D4D4] hover:bg-[#2A2D2E]'
@@ -143,7 +143,7 @@ export default function Sidebar({ onLinkClick = null }) {
           title={isCollapsed ? t('examRoom', lang) : undefined}
           onClick={onLinkClick}
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            `flex items-center ${isCollapsed ? 'justify-center px-2.5 py-2.5' : 'gap-3 px-3 py-2.5'} rounded-xl text-sm font-medium transition-colors ${
               isActive
                 ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50 font-semibold'
                 : 'text-[#9D9D9D] hover:text-[#D4D4D4] hover:bg-[#2A2D2E]'
@@ -159,9 +159,9 @@ export default function Sidebar({ onLinkClick = null }) {
         to="/settings"
         onClick={onLinkClick}
         className={({ isActive }) =>
-          `px-4 py-3.5 border-t border-[#3C3C3C] overflow-hidden flex items-center justify-between hover:bg-[#2A2D2E] transition-colors cursor-pointer ${
-            isActive ? 'bg-[#094771]/40' : ''
-          }`
+          `py-3.5 border-t border-[#3C3C3C] overflow-hidden flex items-center hover:bg-[#2A2D2E] transition-colors cursor-pointer ${
+            isCollapsed ? 'px-2 justify-center' : 'px-4 justify-between'
+          } ${isActive ? 'bg-[#094771]/40' : ''}`
         }
       >
         <div className="flex items-center gap-3 overflow-hidden">
