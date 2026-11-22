@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Link, useInRouterContext } from 'react-router-dom';
-import { Menu, Bell, RefreshCw, AlertTriangle, Globe } from 'lucide-react';
+import { Menu, Bell, RefreshCw, AlertTriangle, Globe, Download } from 'lucide-react';
 import { t } from '../utils/i18n';
 import NotificationPopover from './NotificationPopover';
 import { formatRelativeTime, isOverdue } from '../utils/dateUtils';
@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
+import { usePwaInstall } from '../hooks/usePwaInstall';
 
 function SafeLink({ to, className, children }) {
   const inRouter = useInRouterContext();
@@ -30,6 +31,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
   const { lang, toggleLang, unreadCount = 0 } = useSettings();
   const { isSyncing, lastSyncTime, syncClassroom } = useClassroom();
   const { visibleAssignments } = useClassroomUI();
+  const { canInstall, promptInstall } = usePwaInstall();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [failedAvatarUrl, setFailedAvatarUrl] = useState(null);
@@ -101,6 +103,19 @@ export default function HeaderBar({ setMobileMenuOpen }) {
             </SafeLink>
           )}
         </div>
+
+        {canInstall && (
+          <button
+            type="button"
+            onClick={promptInstall}
+            aria-label={lang === 'en' ? 'Install App' : 'ติดตั้งแอป'}
+            className="flex items-center justify-center gap-1.5 h-9 px-3 bg-[#007ACC]/20 hover:bg-[#007ACC]/30 border border-[#007ACC]/40 text-xs font-medium rounded-xl text-[#3794FF] transition-colors cursor-pointer select-none shrink-0 whitespace-nowrap"
+            title={lang === 'en' ? 'Install App' : 'ติดตั้งแอป'}
+          >
+            <Download size={13} />
+            <span>{lang === 'en' ? 'Install App' : 'ติดตั้งแอป'}</span>
+          </button>
+        )}
 
         <button
           type="button"
