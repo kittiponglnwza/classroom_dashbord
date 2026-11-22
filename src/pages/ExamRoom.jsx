@@ -33,15 +33,20 @@ export default function ExamRoom() {
   const {
     studentId,
     setStudentId,
+    searchedStudentId,
+    isViewingOtherStudentId,
     status,
     error,
     sortedExams,
+    rawSciBaseExams,
+    sciBaseMeta,
     unlistedInfo,
     searchTriggered,
     isOutdatedData,
     isSciBaseOutdatedFallback,
     mergeStats,
     handleSearch,
+    resetToOwnStudentId,
     handleSaveManualExam,
     handleDeleteManualExam,
     refreshFromCache
@@ -54,6 +59,7 @@ export default function ExamRoom() {
   const [isRegImportOpen, setIsRegImportOpen] = useState(false);
   const [editingExamData, setEditingExamData] = useState(null);
   const [userRoundTab, setUserRoundTab] = useState(null); // null -> smart auto-select
+  const [showRawSciBase, setShowRawSciBase] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(() => {
     return !(sortedExams && sortedExams.length > 0) && !hasValidStudentId;
   });
@@ -103,11 +109,22 @@ export default function ExamRoom() {
     return defaultRoundTab;
   }, [hasRoundSplit, userRoundTab, midtermExams.length, finalExams.length, defaultRoundTab]);
 
+  const viewingRawSciBase = Boolean(showRawSciBase && isSciBaseOutdatedFallback && rawSciBaseExams.length > 0);
+
   const displayedExams = useMemo(() => {
+    if (viewingRawSciBase) return rawSciBaseExams;
     if (activeRoundTab === 'midterm') return midtermExams;
     if (activeRoundTab === 'final') return finalExams;
     return sortedExams;
-  }, [activeRoundTab, midtermExams, finalExams, sortedExams]);
+  }, [viewingRawSciBase, rawSciBaseExams, activeRoundTab, midtermExams, finalExams, sortedExams]);
+
+  const sciBaseTermSummary = useMemo(() => {
+    const parts = [];
+    if (sciBaseMeta?.examType === 'midterm') parts.push(isTh ? 'สอบกลางภาค' : 'Midterm');
+    else if (sciBaseMeta?.examType === 'final') parts.push(isTh ? 'สอบปลายภาค' : 'Final');
+    if (sciBaseMeta?.termLabel) parts.push(sciBaseMeta.termLabel);
+    return parts.join(' ');
+  }, [sciBaseMeta, isTh]);
 
   const isActiveTabSciBasePrimary = useMemo(() => {
     if (mergeStats?.mode !== 'scibase-primary') return false;
@@ -259,8 +276,29 @@ export default function ExamRoom() {
             </div>
           )}
 
+          {/* Viewing another Student ID banner */}
+          {isViewingOtherStudentId && (
+            <div className="bg-[#007ACC]/15 border border-[#007ACC]/40 text-[#D4D4D4] text-xs px-4 py-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2">
+              <span>
+                {isTh
+                  ? `กำลังดูที่นั่งสอบจาก SciBase ของรหัส ${searchedStudentId} (ไม่บันทึกทับตารางของคุณ)`
+                  : `Viewing SciBase seating for Student ID ${searchedStudentId} (does not overwrite your schedule)`}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRawSciBase(false);
+                  resetToOwnStudentId();
+                }}
+                className="text-[#3794FF] hover:underline font-medium cursor-pointer shrink-0"
+              >
+                {isTh ? 'กลับไปดูของฉัน' : 'Back to my ID'}
+              </button>
+            </div>
+          )}
+
           {/* Source Status Banner */}
-          {sortedExams.length > 0 && isActiveTabSciBasePrimary && (
+          {!isViewingOtherStudentId && sortedExams.length > 0 && isActiveTabSciBasePrimary && (
             <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2">
               <CheckCircle2 size={14} className="shrink-0" />
               <span>
@@ -271,18 +309,31 @@ export default function ExamRoom() {
             </div>
           )}
 
-          {sortedExams.length > 0 && !isActiveTabSciBasePrimary && isActiveTabRegFallback && (
-            <div className="bg-[#007ACC]/10 border border-[#007ACC]/30 text-[#D4D4D4] text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
-              <CheckCircle2 size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
-              <p className="leading-relaxed">
-                {isSciBaseOutdatedFallback
-                  ? (isTh
-                      ? 'เช็กเว็บที่นั่งสอบแล้ว (ยังเป็นข้อมูลเทอมก่อน) — แสดงตารางสอบจาก KMUTNB Reg แทนชั่วคราว (รอประกาศห้องสอบ)'
-                      : 'Checked official seating site (still showing previous semester) — displaying KMUTNB Reg exams until official rooms are published.')
-                  : (isTh
-                      ? 'รอบสอบนี้ยังไม่ประกาศที่นั่งสอบในเว็บ SciBase — แสดงวันสอบจาก KMUTNB Reg แทนชั่วคราว (รอประกาศห้องสอบ)'
-                      : 'Official seating for this round is not published yet — displaying KMUTNB Reg exam dates (Room TBA).')}
-              </p>
+          {!isViewingOtherStudentId && sortedExams.length > 0 && !isActiveTabSciBasePrimary && isActiveTabRegFallback && (
+            <div className="bg-[#007ACC]/10 border border-[#007ACC]/30 text-[#D4D4D4] text-xs px-4 py-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  {isSciBaseOutdatedFallback
+                    ? (isTh
+                        ? `เช็กเว็บที่นั่งสอบแล้ว (${searchedStudentId || studentId}) — ล่าสุดยังเป็น${sciBaseTermSummary ? ` ${sciBaseTermSummary}` : 'ของเทอมก่อน'} (${rawSciBaseExams.length} วิชา) จึงแสดงตารางสอบเทอมปัจจุบันจาก KMUTNB Reg แทนชั่วคราว`
+                        : `Checked SciBase (${searchedStudentId || studentId}) — latest data is still ${sciBaseTermSummary || 'previous semester'} (${rawSciBaseExams.length} exams), so displaying your current KMUTNB Reg schedule instead.`)
+                    : (isTh
+                        ? 'รอบสอบนี้ยังไม่ประกาศที่นั่งสอบในเว็บ SciBase — แสดงวันสอบจาก KMUTNB Reg แทนชั่วคราว (รอประกาศห้องสอบ)'
+                        : 'Official seating for this round is not published yet — displaying KMUTNB Reg exam dates (Room TBA).')}
+                </p>
+              </div>
+              {isSciBaseOutdatedFallback && rawSciBaseExams.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowRawSciBase((prev) => !prev)}
+                  className="text-[11px] font-medium text-[#3794FF] hover:underline shrink-0 self-end sm:self-center cursor-pointer"
+                >
+                  {viewingRawSciBase
+                    ? (isTh ? 'กลับไปดูตารางเทอมปัจจุบัน' : 'Back to current term')
+                    : (isTh ? `ดูข้อมูล SciBase (${rawSciBaseExams.length})` : `View SciBase (${rawSciBaseExams.length})`)}
+                </button>
+              )}
             </div>
           )}
 
@@ -290,7 +341,7 @@ export default function ExamRoom() {
             <div className="space-y-4">
               {/* Midterm / Final Segmented Tabs + Layout Switcher */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                {hasRoundSplit ? (
+                {hasRoundSplit && !viewingRawSciBase ? (
                   <div
                     role="tablist"
                     aria-label={isTh ? 'เลือกรอบสอบ' : 'Exam round'}

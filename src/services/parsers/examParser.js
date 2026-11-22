@@ -74,6 +74,13 @@ export const parseExamHtml = (htmlText, lang) => {
     });
 
     if (examTable) {
+      const captionText = (examTable.querySelector('caption')?.textContent || '').replace(/\s+/g, ' ').trim();
+      const captionExamType = captionText.includes('กลางภาค')
+        ? 'midterm'
+        : (captionText.includes('ปลายภาค') ? 'final' : '');
+      const captionTermMatch = captionText.match(/ภาคเรียนที่\s*(\d+)\s*ปีการศึกษา\s*(\d{4})/);
+      const captionTermLabel = captionTermMatch ? `${captionTermMatch[1]}/${captionTermMatch[2]}` : '';
+
       const rows = Array.from(examTable.querySelectorAll('tr')).slice(1);
       const parsedExams = [];
 
@@ -140,7 +147,9 @@ export const parseExamHtml = (htmlText, lang) => {
           date: dateText,
           time: timeText,
           room: roomText,
-          seat: seatText
+          seat: seatText,
+          ...(captionExamType ? { examType: captionExamType } : {}),
+          ...(captionTermLabel ? { termLabel: captionTermLabel } : {})
         });
       });
 

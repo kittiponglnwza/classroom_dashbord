@@ -14,6 +14,14 @@ import { logger } from '../utils/logger';
 
 const SILENT_REFRESH_TIMEOUT_MS = 30 * 1000;
 
+const hydrateProfileStudentId = (rawProfile, email) => {
+  const safe = rawProfile && typeof rawProfile === 'object' ? rawProfile : {};
+  const existingId = safe.studentId === 'Google Sync User' ? '' : String(safe.studentId || '').trim();
+  if (existingId) return safe;
+  const derived = String(email || safe.email || '').match(/\d{13}/)?.[0] || '';
+  return derived ? { ...safe, studentId: derived } : safe;
+};
+
 const buildRememberedAccount = (email) => {
   const stored = getProfile(email) || {};
   return { email, name: stored.name || '', picture: stored.avatarUrl || stored.picture || '' };
@@ -172,7 +180,7 @@ export const AuthProvider = ({ children }) => {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAccessToken(sessionToken);
       setIsLoggedIn(true);
-      setProfile(getProfile(activeEmail));
+      setProfile(hydrateProfileStudentId(getProfile(activeEmail), activeEmail));
     } else {
       clearToken();
       setIsLoggedIn(false);
@@ -255,9 +263,10 @@ export const AuthProvider = ({ children }) => {
     const userEmail = userProfile.email;
     setActiveEmail(userEmail);
     const existingProfile = getProfile(userEmail);
-    const mergedProfile = existingProfile && existingProfile.isCustomized
+    const rawMerged = existingProfile && existingProfile.isCustomized
       ? { ...userProfile, ...existingProfile, email: userEmail }
       : userProfile;
+    const mergedProfile = hydrateProfileStudentId(rawMerged, userEmail);
     saveProfile(mergedProfile, userEmail);
     setProfile(mergedProfile);
     setRememberedAccount(getRememberMe() ? buildRememberedAccount(userEmail) : null);

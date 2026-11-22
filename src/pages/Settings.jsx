@@ -13,6 +13,8 @@ import { DiscordService } from '../services/DiscordService';
 import { triggerTestDiscord, triggerManualDiscordDigest } from '../utils/notifications';
 import { getAppsScriptTemplate } from '../utils/appsScriptTemplate';
 import { getHiddenCourses, getAssignments } from '../utils/storage';
+import { examRepository } from '../repositories/examRepository';
+import { decodeKmutnbStudentId } from '../utils/kmutnbStudentId';
 
 const GithubIcon = ({ size = 15, className = '' }) => (
   <svg height={size} width={size} viewBox="0 0 16 16" version="1.1" fill="currentColor" className={className} aria-hidden="true">
@@ -53,15 +55,19 @@ const InputField = ({ label, value, onChange, type = 'text', required = true, re
   );
 };
 
+const resolveDisplayStudentId = (p) => {
+  const saved = p?.studentId === 'Google Sync User' ? '' : String(p?.studentId || '').trim();
+  if (saved) return saved;
+  return String(p?.email || '').match(/\d{13}/)?.[0] || '';
+};
+
 export default function Settings() {
   const { lang, alertSettings = {}, handleToggleSetting, handleUpdateSetting, refreshNotificationData } = useSettings();
   const { profile, isLoggedIn, handleProfileSave, login, logout, accessToken } = useAuth();
   const classroom = useClassroom();
 
   const [name, setName] = useState(profile.name || '');
-  const [studentId, setStudentId] = useState(
-    profile.studentId === 'Google Sync User' ? '' : (profile.studentId || '')
-  );
+  const [studentId, setStudentId] = useState(() => resolveDisplayStudentId(profile));
   const [email, setEmail] = useState(profile.email || '');
   const [major, setMajor] = useState(profile.major || '');
   const [prevProfile, setPrevProfile] = useState(profile);
@@ -94,7 +100,7 @@ export default function Settings() {
   if (profile !== prevProfile) {
     setPrevProfile(profile);
     setName(profile.name || '');
-    setStudentId(profile.studentId === 'Google Sync User' ? '' : (profile.studentId || ''));
+    setStudentId(resolveDisplayStudentId(profile));
     setEmail(profile.email || '');
     setMajor(profile.major || '');
     setAvatarError(false);
@@ -122,13 +128,30 @@ export default function Settings() {
       return;
     }
 
+    const prevNormalizedId = resolveDisplayStudentId(profile).replace(/[\s-]/g, '').trim();
+    const targetEmail = isLoggedIn && profile.email ? profile.email : email;
+
     handleProfileSave({
       name: name.trim(),
       studentId: normalizedId,
-      email: isLoggedIn && profile.email ? profile.email : email,
+      email: targetEmail,
       major: major.trim(),
       avatarUrl: profile.avatarUrl
     });
+
+    // When Student ID changes, invalidate stale SciBase seating cache so ExamRoom & Schedule re-fetch for the new ID
+    if (normalizedId !== prevNormalizedId) {
+      if (targetEmail) {
+        examRepository.clearExamsCache(targetEmail);
+      }
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('lastExamSearch');
+      }
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new CustomEvent('classroom_hub_exams_updated', { detail: { email: targetEmail } }));
+      }
+    }
+
     setSaveSuccess(true);
     const id = setTimeout(() => setSaveSuccess(false), 3000);
     timersRef.current.push(id);
@@ -167,6 +190,12 @@ export default function Settings() {
   };
 
   const activeUserEmail = profile.email || email || '';
+  const isTh = lang === 'th';
+  const langKey = isTh ? 'th' : 'en';
+  const decodedKmutnb = decodeKmutnbStudentId(studentId || resolveDisplayStudentId(profile));
+  const majorPlaceholder = decodedKmutnb
+    ? (decodedKmutnb.suggestedMajor[langKey] || decodedKmutnb.faculty[langKey])
+    : '';
   const hiddenCourseIds = getHiddenCourses(activeUserEmail);
   const currentAssignments = classroom?.assignments || getAssignments(activeUserEmail);
   const webhookValidation = DiscordService.validateWebhookUrl(alertSettings.discordWebhookUrl || '');
@@ -292,9 +321,13 @@ export default function Settings() {
       {/* 1. Unified Profile & Google Account Card */}
       <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#3C3C3C]">
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1E1E1E] border border-[#3C3C3C] flex items-center justify-center shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-[#3C3C3C]">
+            <div className="flex items-start gap-3.5 min-w-0">
+              <div
+                className={`w-14 h-14 rounded-2xl overflow-hidden bg-[#1E1E1E] border flex items-center justify-center shrink-0 ${
+                  decodedKmutnb ? 'border-[#007ACC]/60 ring-2 ring-[#007ACC]/30' : 'border-[#3C3C3C]'
+                }`}
+              >
                 {profile.avatarUrl && !avatarError ? (
                   <img
                     src={profile.avatarUrl}
@@ -323,10 +356,38 @@ export default function Settings() {
                       ? (lang === 'en' ? 'Google Connected' : 'เชื่อมต่อ Google แล้ว')
                       : (lang === 'en' ? 'Local Mode' : 'โหมดออฟไลน์')}
                   </span>
+                  {decodedKmutnb && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#007ACC]/15 border border-[#007ACC]/35 text-[#3794FF]">
+                      <GraduationCap size={11} className="shrink-0" />
+                      <span>{decodedKmutnb.campusLabel[langKey]}</span>
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-[#9D9D9D] truncate mt-0.5">
                   {activeUserEmail || (lang === 'en' ? 'Connect Google Classroom to sync across devices' : 'เชื่อมต่อ Google Classroom เพื่อซิงก์ข้อมูล')}
                 </p>
+
+                {decodedKmutnb && (
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-[#1E1E1E] border border-[#3C3C3C] text-[#D4D4D4]">
+                      {decodedKmutnb.yearLevel
+                        ? (isTh
+                            ? `รหัส ${decodedKmutnb.yearShort} · ชั้นปีที่ ${decodedKmutnb.yearLevel}`
+                            : `ID ${decodedKmutnb.yearShort} · Year ${decodedKmutnb.yearLevel}`)
+                        : (isTh
+                            ? `รหัส ${decodedKmutnb.yearShort} (${decodedKmutnb.entryYearBE})`
+                            : `ID ${decodedKmutnb.yearShort} (${decodedKmutnb.entryYearBE})`)}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-[#007ACC]/10 border border-[#007ACC]/30 text-[#3794FF]">
+                      {decodedKmutnb.faculty[langKey]}
+                    </span>
+                    {(decodedKmutnb.program || decodedKmutnb.department) && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
+                        {decodedKmutnb.program?.[langKey] || decodedKmutnb.department?.[langKey]}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -375,6 +436,87 @@ export default function Settings() {
             </div>
           </div>
 
+          {decodedKmutnb && (
+            <div
+              data-testid="kmutnb-profile-breakdown"
+              className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3"
+            >
+              <div className="space-y-2 min-w-0">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-[#9D9D9D]">
+                  <GraduationCap size={13} className="text-[#3794FF] shrink-0" />
+                  <span>
+                    {isTh ? 'รหัสนักศึกษา มจพ. (13 หลัก)' : 'KMUTNB 13-Digit Student ID Breakdown'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {decodedKmutnb.segments.map((seg) => {
+                    const segmentMeta = {
+                      year: {
+                        label: isTh ? `ปี ${decodedKmutnb.entryYearBE}` : `Entry ${decodedKmutnb.entryYearBE}`,
+                        classes: 'bg-[#252526] border-[#3C3C3C] text-[#D4D4D4]',
+                      },
+                      faculty: {
+                        label: decodedKmutnb.faculty.short,
+                        classes: 'bg-[#007ACC]/15 border-[#007ACC]/40 text-[#3794FF]',
+                      },
+                      department: {
+                        label: decodedKmutnb.department?.short || (isTh ? 'ภาควิชา' : 'Dept'),
+                        classes: 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300',
+                      },
+                      program: {
+                        label: decodedKmutnb.program?.short || (isTh ? 'หลักสูตร' : 'Prog'),
+                        classes: 'bg-purple-500/15 border-purple-500/35 text-purple-300',
+                      },
+                      running: {
+                        label: isTh ? 'ลำดับ' : 'No.',
+                        classes: 'bg-[#252526] border-[#3C3C3C] text-[#D4D4D4]',
+                      },
+                    };
+                    const meta = segmentMeta[seg.key] || segmentMeta.running;
+
+                    return (
+                      <div
+                        key={seg.key}
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] ${meta.classes}`}
+                      >
+                        <span className="font-mono font-semibold">{seg.value}</span>
+                        <span className="text-[10px] opacity-85">{meta.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 lg:text-right border-t lg:border-t-0 border-[#3C3C3C] pt-2.5 lg:pt-0 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-[#FFFFFF] truncate">
+                    {decodedKmutnb.faculty[langKey]}
+                  </div>
+                  <div className="text-[11px] text-[#9D9D9D] truncate mt-0.5">
+                    {decodedKmutnb.department
+                      ? (decodedKmutnb.program
+                          ? `${decodedKmutnb.department[langKey]} · ${decodedKmutnb.program[langKey]}`
+                          : decodedKmutnb.department[langKey])
+                      : (isTh
+                          ? `รหัสภาควิชา ${decodedKmutnb.departmentCode}`
+                          : `Department ${decodedKmutnb.departmentCode}`)}
+                  </div>
+                </div>
+
+                {decodedKmutnb.suggestedMajor[langKey] &&
+                  major.trim() !== decodedKmutnb.suggestedMajor[langKey] && (
+                    <button
+                      type="button"
+                      onClick={() => setMajor(decodedKmutnb.suggestedMajor[langKey])}
+                      className="self-start sm:self-center shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-[#007ACC]/15 hover:bg-[#007ACC]/25 text-[#3794FF] border border-[#007ACC]/35 transition-colors cursor-pointer"
+                    >
+                      {isTh ? 'ใช้ชื่อสาขานี้' : 'Apply Major'}
+                    </button>
+                  )}
+              </div>
+            </div>
+          )}
+
           {profileError && (
             <div role="alert" className="bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs px-3.5 py-2 rounded-xl">
               {profileError}
@@ -403,6 +545,7 @@ export default function Settings() {
               value={major}
               onChange={setMajor}
               required={false}
+              placeholder={majorPlaceholder}
             />
           </div>
 

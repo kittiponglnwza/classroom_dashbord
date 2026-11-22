@@ -24,10 +24,12 @@ export class ClassroomService {
     if (!data || !data.email) {
       throw new ValidationError('Google profile response did not contain a valid email address.');
     }
+    const normalizedEmail = String(data.email).trim().toLowerCase();
+    const implicitStudentId = normalizedEmail.match(/\d{13}/)?.[0] || '';
     return {
       name: data.name || 'Google User',
-      studentId: '',
-      email: String(data.email).trim().toLowerCase(),
+      studentId: implicitStudentId,
+      email: normalizedEmail,
       major: '',
       avatarUrl: sanitizeExternalUrl(data.picture) || ''
     };

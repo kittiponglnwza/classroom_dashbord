@@ -332,4 +332,89 @@ describe('Exam Source Reconciliation (SciBase Primary + Reg Fallback + Midterm/F
       vi.useRealTimers();
     }
   });
+
+  it('prefers explicit profile.studentId from Settings over email digits and lets user inspect stale SciBase results', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.setSystemTime(new Date('2026-11-20T10:00:00+07:00'));
+      localStorage.setItem('classroom_hub_language', 'en');
+      setActiveEmail(email);
+      saveToken('valid-token', 3600);
+      // Explicit Student ID saved in Settings differs from email digits -> must take priority!
+      saveProfile({ name: 'TopZ', email, studentId: '6704062699999' }, email);
+
+      examRepository.saveToCache(
+        email,
+        [],
+        [
+          {
+            id: 'reg-exam-040613203-midterm-2027-01-15',
+            courseCode: '040613203',
+            courseName: 'Structured Programming (Midterm)',
+            date: '15 ม.ค. 2570',
+            rawIsoDate: '2027-01-15',
+            time: '09:00-12:00',
+            room: '',
+            seat: '',
+            examType: 'midterm',
+            isManual: true,
+            source: 'kmutnb-reg',
+          },
+        ],
+        null
+      );
+
+      const fetchSpy = vi.spyOn(examRepository, 'fetchExams').mockResolvedValue({
+        success: true,
+        data: {
+          exams: [
+            {
+              id: 'exam-40613112-20_ตค_2569-13001600-0',
+              courseCode: '40613112',
+              courseName: 'DIGITAL CIRCUIT DESIGN',
+              date: '20 ต.ค. 2569',
+              time: '13:00-16:00',
+              room: '72-402 (Bldg. 72, Fl. 4)',
+              seat: 'Row 2, Seat 7',
+              examType: 'final',
+              termLabel: '1/2569',
+            },
+          ],
+          unlisted: null,
+        },
+      });
+
+      render(
+        <MemoryRouter>
+          <AuthProvider>
+            <SettingsProvider>
+              <ExamRoom />
+            </SettingsProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      );
+
+      // Uses explicit Settings studentId '6704062699999' instead of email digits!
+      await waitFor(() => {
+        expect(fetchSpy).toHaveBeenCalledWith('6704062699999', 'en', expect.any(AbortSignal));
+      });
+
+      // Displays current Reg exam + clear SciBase status with termLabel 'Final 1/2569'
+      await waitFor(() => {
+        expect(screen.getByText('Structured Programming (Midterm)')).toBeInTheDocument();
+      });
+      expect(screen.getByText(/Final 1\/2569/i)).toBeInTheDocument();
+      expect(screen.queryByText('DIGITAL CIRCUIT DESIGN')).not.toBeInTheDocument();
+
+      // User can click "View SciBase (1)" to verify/inspect live SciBase data, then toggle back!
+      fireEvent.click(screen.getByRole('button', { name: /View SciBase \(1\)/i }));
+      expect(screen.getByText('DIGITAL CIRCUIT DESIGN')).toBeInTheDocument();
+      expect(screen.queryByText('Structured Programming (Midterm)')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Back to current term/i }));
+      expect(screen.getByText('Structured Programming (Midterm)')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

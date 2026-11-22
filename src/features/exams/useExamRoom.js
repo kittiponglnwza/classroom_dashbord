@@ -14,17 +14,25 @@ const notifyExamsUpdated = (email) => {
   }
 };
 
-const resolveInitialStudentId = (activeEmail = '', profileStudentId = '') => {
-  const digitsMatch = activeEmail.match(/\d{13}/);
-  if (digitsMatch) return digitsMatch[0];
-  const cleanProfileId = String(profileStudentId || '').replace(/[\s-]/g, '');
+const resolveOwnStudentId = (activeEmail = '', profileStudentId = '') => {
+  // Explicit Student ID saved in Settings takes priority over email digits
+  const cleanProfileId = String(profileStudentId || '').replace(/[\s-]/g, '').trim();
   if (/^\d{13}$/.test(cleanProfileId)) return cleanProfileId;
-  return sessionStorage.getItem('lastExamSearch') || '';
+  const digitsMatch = String(activeEmail || '').match(/\d{13}/);
+  if (digitsMatch) return digitsMatch[0];
+  return '';
+};
+
+const resolveInitialStudentId = (activeEmail = '', profileStudentId = '') => {
+  return resolveOwnStudentId(activeEmail, profileStudentId) || sessionStorage.getItem('lastExamSearch') || '';
 };
 
 export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
-  const [prevEmail, setPrevEmail] = useState(activeEmail);
+  const scopeKey = `${activeEmail || ''}::${String(profileStudentId || '').replace(/[\s-]/g, '').trim()}`;
+  const ownStudentId = resolveOwnStudentId(activeEmail, profileStudentId);
+  const [prevScopeKey, setPrevScopeKey] = useState(scopeKey);
   const [studentId, setStudentId] = useState(() => resolveInitialStudentId(activeEmail, profileStudentId));
+  const [searchedStudentId, setSearchedStudentId] = useState(() => resolveInitialStudentId(activeEmail, profileStudentId));
   
   const [prevStudentId, setPrevStudentId] = useState(studentId);
 
@@ -70,11 +78,12 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     };
   }, []);
 
-  // Adjust state when activeEmail prop changes
-  if (activeEmail !== prevEmail) {
-    setPrevEmail(activeEmail);
+  // Adjust state when activeEmail or profileStudentId (from Settings) changes
+  if (scopeKey !== prevScopeKey) {
+    setPrevScopeKey(scopeKey);
     const nextStudentId = resolveInitialStudentId(activeEmail, profileStudentId);
     setStudentId(nextStudentId);
+    setSearchedStudentId(nextStudentId);
     setPrevStudentId(nextStudentId);
 
     const cachedResult = examRepository.getCachedExams(activeEmail);
@@ -121,28 +130,35 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     }
   }
 
-  const handleSearch = useCallback(async (e) => {
-    if (e) e.preventDefault();
+  const handleSearch = useCallback(async (e, overrideStudentId = null) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
     
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     
-    const validResult = examRepository.validateStudentId(studentId, lang);
+    const targetIdInput = overrideStudentId !== null ? overrideStudentId : studentId;
+    const validResult = examRepository.validateStudentId(targetIdInput, lang);
     if (!validResult.success) {
       setError(validResult.error.message);
       setStatus('error');
       return;
     }
 
+    const cleanId = validResult.data;
+    const isOtherStudent = Boolean(ownStudentId && cleanId !== ownStudentId);
     setStatus('loading');
     setError(null);
     setExamList([]);
     setUnlistedInfo(null);
     setSearchTriggered(true);
-
-    const cleanId = validResult.data;
-    sessionStorage.setItem('lastExamSearch', cleanId);
+    setSearchedStudentId(cleanId);
+    if (overrideStudentId !== null) {
+      setStudentId(cleanId);
+    }
+    if (!isOtherStudent) {
+      sessionStorage.setItem('lastExamSearch', cleanId);
+    }
 
     const requestController = new AbortController();
     abortControllerRef.current = requestController;
@@ -163,16 +179,18 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       setExamList(result.data.exams);
       setManualExamList(latestManual);
       setUnlistedInfo(result.data.unlisted);
-      examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
-      notifyExamsUpdated(activeEmail);
       setSciBaseChecked(true);
       setStatus('success');
-      
-      // Trigger background sync for the new seating arrangements
-      const token = getToken();
-      if (token && activeEmail) {
-        syncManager.queueSync(token, activeEmail);
-        calendarSyncManager.queueSync(token, activeEmail);
+
+      // Only persist & sync to Drive/Calendar when searching the logged-in user's own Student ID
+      if (!isOtherStudent) {
+        examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
+        notifyExamsUpdated(activeEmail);
+        const token = getToken();
+        if (token && activeEmail) {
+          syncManager.queueSync(token, activeEmail);
+          calendarSyncManager.queueSync(token, activeEmail);
+        }
       }
     } else {
       if (result.error.name === 'AbortError') {
@@ -182,7 +200,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       setError(result.error.message);
       setStatus('error');
     }
-  }, [studentId, lang, activeEmail]);
+  }, [studentId, lang, activeEmail, ownStudentId]);
 
   // StrictMode-safe SciBase-first check: always queries the official exam seating site
   // before falling back to KMUTNB Reg exams whenever a valid 13-digit studentId is present
@@ -295,12 +313,16 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     }
   }, [examList, unlistedInfo, activeEmail]);
 
+  const isViewingOtherStudentId = Boolean(ownStudentId && searchedStudentId && searchedStudentId !== ownStudentId);
+
   const mergedExamResult = useMemo(
-    () => mergeExamSources(examList, manualExamList),
-    [examList, manualExamList]
+    () => (isViewingOtherStudentId
+      ? mergeExamSources(examList, [])
+      : mergeExamSources(examList, manualExamList)),
+    [examList, manualExamList, isViewingOtherStudentId]
   );
 
-  const sortedExams = useMemo(() => {
+  const sortExamsChronologically = useCallback((list) => {
     const parseDateForSort = (exam) => {
       let dateObj;
       if (exam.rawIsoDate) {
@@ -311,7 +333,6 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       
       if (!dateObj) return new Date(8640000000000000).getTime();
 
-      // Extract start time from exam.time (e.g. "9:00-12:00" -> "9:00")
       if (exam.time) {
         const timeMatch = exam.time.match(/(\d{1,2})[:.](\d{2})/);
         if (timeMatch) {
@@ -322,14 +343,34 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       return dateObj.getTime();
     };
 
-    return [...mergedExamResult.exams]
-      .sort((a, b) => parseDateForSort(a) - parseDateForSort(b));
-  }, [mergedExamResult]);
+    return [...list].sort((a, b) => parseDateForSort(a) - parseDateForSort(b));
+  }, []);
 
-  const isSciBaseOutdatedFallback = mergedExamResult.stats.mode === 'reg-fallback' && mergedExamResult.stats.ignoredStaleSciBaseCount > 0;
+  const sortedExams = useMemo(
+    () => sortExamsChronologically(mergedExamResult.exams),
+    [mergedExamResult.exams, sortExamsChronologically]
+  );
+
+  const rawSciBaseExams = useMemo(
+    () => sortExamsChronologically(examList.map((ex) => ({ ...ex, source: 'scibase' }))),
+    [examList, sortExamsChronologically]
+  );
+
+  const sciBaseMeta = useMemo(() => {
+    const first = examList[0];
+    return {
+      count: examList.length,
+      termLabel: first?.termLabel || '',
+      examType: first?.examType || '',
+    };
+  }, [examList]);
+
+  const isSciBaseOutdatedFallback = !isViewingOtherStudentId
+    && mergedExamResult.stats.mode === 'reg-fallback'
+    && mergedExamResult.stats.ignoredStaleSciBaseCount > 0;
 
   const isOutdatedData = useMemo(() => {
-    if (examList.length === 0 || mergedExamResult.stats.mode === 'reg-fallback') return false;
+    if (examList.length === 0 || (!isViewingOtherStudentId && mergedExamResult.stats.mode === 'reg-fallback')) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -337,7 +378,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
       const parsedDate = parseExamDate(exam.rawIsoDate || exam.date);
       return parsedDate ? parsedDate < today : false;
     });
-  }, [examList, mergedExamResult.stats.mode]);
+  }, [examList, mergedExamResult.stats.mode, isViewingOtherStudentId]);
 
   const refreshFromCache = useCallback(() => {
     const cachedResult = examRepository.getCachedExams(activeEmail);
@@ -352,6 +393,11 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     }
   }, [activeEmail]);
 
+  const resetToOwnStudentId = useCallback(() => {
+    if (!ownStudentId) return;
+    handleSearch(null, ownStudentId);
+  }, [ownStudentId, handleSearch]);
+
   useEffect(() => {
     const onExamsUpdated = () => refreshFromCache();
     window.addEventListener('classroom_hub_exams_updated', onExamsUpdated);
@@ -361,9 +407,14 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
   return {
     studentId,
     setStudentId,
+    ownStudentId,
+    searchedStudentId,
+    isViewingOtherStudentId,
     status,
     error,
     sortedExams,
+    rawSciBaseExams,
+    sciBaseMeta,
     unlistedInfo,
     searchTriggered,
     sciBaseChecked,
@@ -371,6 +422,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     isSciBaseOutdatedFallback,
     mergeStats: mergedExamResult.stats,
     handleSearch,
+    resetToOwnStudentId,
     handleSaveManualExam,
     handleDeleteManualExam,
     refreshFromCache
