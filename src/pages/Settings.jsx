@@ -69,7 +69,6 @@ export default function Settings() {
   const [name, setName] = useState(profile.name || '');
   const [studentId, setStudentId] = useState(() => resolveDisplayStudentId(profile));
   const [email, setEmail] = useState(profile.email || '');
-  const [major, setMajor] = useState(profile.major || '');
   const [prevProfile, setPrevProfile] = useState(profile);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [profileError, setProfileError] = useState('');
@@ -102,7 +101,6 @@ export default function Settings() {
     setName(profile.name || '');
     setStudentId(resolveDisplayStudentId(profile));
     setEmail(profile.email || '');
-    setMajor(profile.major || '');
     setAvatarError(false);
   }
 
@@ -130,12 +128,13 @@ export default function Settings() {
 
     const prevNormalizedId = resolveDisplayStudentId(profile).replace(/[\s-]/g, '').trim();
     const targetEmail = isLoggedIn && profile.email ? profile.email : email;
+    const submittedDecoded = decodeKmutnbStudentId(normalizedId);
 
     handleProfileSave({
       name: name.trim(),
       studentId: normalizedId,
       email: targetEmail,
-      major: major.trim(),
+      major: submittedDecoded?.suggestedMajor?.[langKey] || profile.major || '',
       avatarUrl: profile.avatarUrl
     });
 
@@ -193,9 +192,6 @@ export default function Settings() {
   const isTh = lang === 'th';
   const langKey = isTh ? 'th' : 'en';
   const decodedKmutnb = decodeKmutnbStudentId(studentId || resolveDisplayStudentId(profile));
-  const majorPlaceholder = decodedKmutnb
-    ? (decodedKmutnb.suggestedMajor[langKey] || decodedKmutnb.faculty[langKey])
-    : '';
   const hiddenCourseIds = getHiddenCourses(activeUserEmail);
   const currentAssignments = classroom?.assignments || getAssignments(activeUserEmail);
   const webhookValidation = DiscordService.validateWebhookUrl(alertSettings.discordWebhookUrl || '');
@@ -502,17 +498,6 @@ export default function Settings() {
                           : `Department ${decodedKmutnb.departmentCode}`)}
                   </div>
                 </div>
-
-                {decodedKmutnb.suggestedMajor[langKey] &&
-                  major.trim() !== decodedKmutnb.suggestedMajor[langKey] && (
-                    <button
-                      type="button"
-                      onClick={() => setMajor(decodedKmutnb.suggestedMajor[langKey])}
-                      className="self-start sm:self-center shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-[#007ACC]/15 hover:bg-[#007ACC]/25 text-[#3794FF] border border-[#007ACC]/35 transition-colors cursor-pointer"
-                    >
-                      {isTh ? 'ใช้ชื่อสาขานี้' : 'Apply Major'}
-                    </button>
-                  )}
               </div>
             </div>
           )}
@@ -523,7 +508,7 @@ export default function Settings() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <InputField label={t('studentNameLabel', lang)} value={name} onChange={setName} />
             <InputField
               label={t('studentIdLabel', lang)}
@@ -539,13 +524,6 @@ export default function Settings() {
               onChange={setEmail}
               type="email"
               readOnly={isLoggedIn}
-            />
-            <InputField
-              label={t('studentMajorLabel', lang)}
-              value={major}
-              onChange={setMajor}
-              required={false}
-              placeholder={majorPlaceholder}
             />
           </div>
 

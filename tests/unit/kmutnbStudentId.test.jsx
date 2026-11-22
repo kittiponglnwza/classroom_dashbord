@@ -6,7 +6,7 @@ import Settings from '../../src/pages/Settings';
 import { AuthProvider } from '../../src/contexts/AuthContext';
 import { SettingsProvider } from '../../src/contexts/SettingsContext';
 import { ClassroomContext } from '../../src/contexts/ClassroomContext';
-import { setActiveEmail, saveToken, saveProfile } from '../../src/utils/storage';
+import { setActiveEmail, saveToken, saveProfile, getProfile } from '../../src/utils/storage';
 
 function renderSettingsPage() {
   return render(
@@ -90,15 +90,20 @@ describe('KMUTNB 13-digit Student ID Decoder & Settings Profile Card', () => {
     expect(screen.getAllByText(/Computer Science \(CS\)/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('kmutnb-profile-breakdown')).toBeInTheDocument();
 
-    // One-click Apply Major fills Major / Department input
-    fireEvent.click(screen.getByRole('button', { name: /Apply Major/i }));
-    expect(screen.getByLabelText(/Major \/ Department/i).value).toBe('Computer Science (CS)');
+    // Redundant manual Major / Department input & Apply Major button are removed
+    expect(screen.queryByLabelText(/Major \/ Department/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Apply Major/i })).not.toBeInTheDocument();
+
+    // Saving profile automatically stores decoded major
+    fireEvent.click(screen.getByRole('button', { name: /Save Preferences/i }));
+    expect(getProfile(email).major).toBe('Computer Science (CS)');
     enView.unmount();
 
     // Thai UI
     localStorage.setItem(`classroom_hub_${email}_language`, 'th');
     renderSettingsPage();
     expect(screen.getByLabelText(/รหัสนักศึกษา/i).value).toBe('6704062611115');
+    expect(screen.queryByLabelText(/สาขาวิชา \/ คณะ/i)).not.toBeInTheDocument();
     expect(screen.getByText('มจพ. กรุงเทพฯ')).toBeInTheDocument();
     expect(screen.getAllByText(/คณะวิทยาศาสตร์ประยุกต์/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ/).length).toBeGreaterThan(0);
