@@ -8,7 +8,9 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
 export default function Sidebar({ onLinkClick = null }) {
+  const isMobileDrawer = Boolean(onLinkClick);
   const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (isMobileDrawer) return false;
     if (typeof window !== 'undefined') {
       return window.matchMedia
         ? !window.matchMedia('(min-width: 1024px)').matches
@@ -23,6 +25,7 @@ export default function Sidebar({ onLinkClick = null }) {
   const location = useLocation();
 
   useEffect(() => {
+    if (isMobileDrawer) return undefined;
     const updateCollapsedState = () => {
       const isDesktopWidth = window.matchMedia
         ? window.matchMedia('(min-width: 1024px)').matches
@@ -32,7 +35,7 @@ export default function Sidebar({ onLinkClick = null }) {
 
     window.addEventListener('resize', updateCollapsedState);
     return () => window.removeEventListener('resize', updateCollapsedState);
-  }, []);
+  }, [isMobileDrawer]);
 
   const selectedCourseParam = location.pathname === '/courses'
     ? new URLSearchParams(location.search).get('selected')
@@ -180,7 +183,7 @@ export default function Sidebar({ onLinkClick = null }) {
         to="/settings"
         onClick={onLinkClick}
         className={({ isActive }) =>
-          `py-3.5 border-t border-[#3C3C3C] overflow-hidden flex items-center hover:bg-[#2A2D2E] transition-colors cursor-pointer ${
+          `py-3.5 border-t border-[#3C3C3C] shrink-0 overflow-hidden flex items-center hover:bg-[#2A2D2E] transition-colors cursor-pointer ${
             isCollapsed ? 'px-2 justify-center' : 'px-4 justify-between'
           } ${isActive ? 'bg-[#094771]/40' : ''}`
         }
