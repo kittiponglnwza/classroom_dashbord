@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Home, LayoutDashboard, BookOpen, Settings, ChevronLeft, ChevronRight, ClipboardCheck, CalendarDays, GraduationCap } from 'lucide-react';
+import { Home, ClipboardList, BookOpen, Settings, ChevronLeft, ChevronRight, ClipboardCheck, CalendarDays, GraduationCap } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { getCourseDotClass } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,7 +53,7 @@ export default function Sidebar({ onLinkClick = null }) {
 
   const navItems = [
     { name: 'Home', key: 'home', path: '/', icon: Home, count: null, end: true },
-    { name: 'Dashboard', key: 'dashboard', path: '/dashboard', icon: LayoutDashboard, count: totalActive },
+    { name: 'Assignments', key: 'assignmentsNav', path: '/dashboard', icon: ClipboardList, count: totalActive },
     { name: 'Schedule', key: 'schedule', path: '/schedule', icon: CalendarDays, count: null },
     { name: 'Courses', key: 'courses', path: '/courses', icon: BookOpen, count: null, end: true },
     { name: 'Academic', key: 'academic', path: '/academic', icon: GraduationCap, count: null },
@@ -61,23 +61,23 @@ export default function Sidebar({ onLinkClick = null }) {
 
   return (
     <aside
-      className={`bg-[#252526] border-r border-[#3C3C3C] flex flex-col transition-all duration-200 relative h-full min-h-0 select-none ${
+      className={`bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col transition-all duration-200 relative h-full min-h-0 select-none ${
         isCollapsed ? 'w-18' : 'w-60 lg:w-64'
       }`}
     >
-      <div className={`h-16 flex items-center border-b border-[#3C3C3C] ${isCollapsed ? 'justify-center px-2' : 'justify-between gap-2 px-4'}`}>
+      <div className={`h-16 flex items-center border-b border-[var(--border)] ${isCollapsed ? 'justify-center px-2' : 'justify-between gap-2 px-4'}`}>
         {!isCollapsed && (
-          <Link to="/" onClick={onLinkClick} className="flex items-center gap-2.5 overflow-hidden min-w-0">
+          <Link to="/" onClick={onLinkClick} className="flex items-center gap-2.5 overflow-hidden min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded-lg">
             <img
               src="/Logo.svg"
               alt="Classroom Hub Logo"
               className="w-8 h-8 rounded-lg shrink-0 select-none"
             />
             <div className="flex flex-col items-start min-w-0">
-              <span className="font-semibold text-sm text-[#FFFFFF] tracking-tight truncate max-w-full">
+              <span className="font-semibold text-sm text-[var(--text-heading)] tracking-tight truncate max-w-full">
                 Classroom Hub
               </span>
-              <span className="text-[11px] text-[#858585] truncate max-w-full">
+              <span className="text-[11px] text-[var(--text-muted)] truncate max-w-full">
                 {lang === 'en' ? 'Student Workspace' : 'พื้นที่จัดการการเรียน'}
               </span>
             </div>
@@ -87,7 +87,7 @@ export default function Sidebar({ onLinkClick = null }) {
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden md:flex w-7 h-7 bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] rounded-lg transition-colors items-center justify-center cursor-pointer shrink-0"
+          className="hidden md:flex w-7 h-7 bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors items-center justify-center cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -104,10 +104,10 @@ export default function Sidebar({ onLinkClick = null }) {
               onClick={onLinkClick}
               className={({ isActive }) => {
                 const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
-                return `flex items-center ${isCollapsed ? 'justify-center px-2.5 py-2.5' : 'justify-between px-3 py-2.5'} rounded-xl text-sm font-medium transition-colors ${
+                return `flex items-center ${isCollapsed ? 'justify-center px-2.5 py-2.5' : 'justify-between px-3 py-2.5'} rounded-xl text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
                   active
-                    ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50 font-semibold'
-                    : 'text-[#9D9D9D] hover:text-[#D4D4D4] hover:bg-[#2A2D2E]'
+                    ? 'bg-[var(--primary-active)]/75 text-[var(--text-heading)] border-[var(--primary)]/50 font-semibold'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] border-transparent'
                 }`;
               }}
             >
@@ -116,7 +116,7 @@ export default function Sidebar({ onLinkClick = null }) {
                 {!isCollapsed && <span className="truncate">{t(item.key, lang)}</span>}
               </div>
               {!isCollapsed && item.count !== null && item.count > 0 && (
-                <span className="bg-[#1E1E1E] text-[#D4D4D4] text-xs px-2 py-0.5 rounded-full font-medium border border-[#3C3C3C]">
+                <span className="bg-[var(--app-bg)] text-[var(--text-primary)] text-xs px-2 py-0.5 rounded-full font-medium border border-[var(--border)] tabular-nums">
                   {item.count}
                 </span>
               )}
@@ -126,7 +126,7 @@ export default function Sidebar({ onLinkClick = null }) {
 
         {!isCollapsed && visibleCourses.length > 0 && (
           <div className="space-y-1.5">
-            <h3 className="px-3 text-xs font-medium text-[#858585] flex items-center justify-between">
+            <h3 className="px-3 text-xs font-medium text-[var(--text-muted)] flex items-center justify-between">
               <span>{t('myCourses', lang)}</span>
             </h3>
             <nav aria-label="Courses Navigation" className="space-y-0.5">
@@ -138,10 +138,10 @@ export default function Sidebar({ onLinkClick = null }) {
                     key={course.id}
                     to={`/courses?selected=${encodeURIComponent(course.name)}`}
                     onClick={onLinkClick}
-                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors ${
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
                       isCourseActive
-                        ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50 font-semibold'
-                        : 'text-[#9D9D9D] hover:text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium'
+                        ? 'bg-[var(--primary-active)]/75 text-[var(--text-heading)] border-[var(--primary)]/50 font-semibold'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] border-transparent font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 overflow-hidden">
@@ -149,7 +149,7 @@ export default function Sidebar({ onLinkClick = null }) {
                       <span className="truncate">{course.name}</span>
                     </div>
                     {count > 0 && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[#1E1E1E] text-[#9D9D9D] border border-[#3C3C3C] font-medium shrink-0">
+                      <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--app-bg)] text-[var(--text-secondary)] border border-[var(--border)] font-medium shrink-0 tabular-nums">
                         {count}
                       </span>
                     )}
@@ -161,16 +161,16 @@ export default function Sidebar({ onLinkClick = null }) {
         )}
       </div>
 
-      <div className="px-3 py-2 border-t border-[#3C3C3C] shrink-0">
+      <div className="px-3 py-2 border-t border-[var(--border)] shrink-0">
         <NavLink
           to="/exam-room"
           title={isCollapsed ? t('examRoom', lang) : undefined}
           onClick={onLinkClick}
           className={({ isActive }) =>
-            `flex items-center ${isCollapsed ? 'justify-center px-2.5 py-2.5' : 'gap-3 px-3 py-2.5'} rounded-xl text-sm font-medium transition-colors ${
+            `flex items-center ${isCollapsed ? 'justify-center px-2.5 py-2.5' : 'gap-3 px-3 py-2.5'} rounded-xl text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
               isActive
-                ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50 font-semibold'
-                : 'text-[#9D9D9D] hover:text-[#D4D4D4] hover:bg-[#2A2D2E]'
+                ? 'bg-[var(--primary-active)]/75 text-[var(--text-heading)] border-[var(--primary)]/50 font-semibold'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] border-transparent'
             }`
           }
         >
@@ -183,13 +183,13 @@ export default function Sidebar({ onLinkClick = null }) {
         to="/settings"
         onClick={onLinkClick}
         className={({ isActive }) =>
-          `py-3.5 border-t border-[#3C3C3C] shrink-0 overflow-hidden flex items-center hover:bg-[#2A2D2E] transition-colors cursor-pointer ${
+          `py-3.5 border-t border-[var(--border)] shrink-0 overflow-hidden flex items-center hover:bg-[var(--surface-hover)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
             isCollapsed ? 'px-2 justify-center' : 'px-4 justify-between'
-          } ${isActive ? 'bg-[#094771]/40' : ''}`
+          } ${isActive ? 'bg-[var(--primary-active)]/50' : ''}`
         }
       >
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-[#3C3C3C] bg-[#1E1E1E] flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-[var(--border)] bg-[var(--app-bg)] flex items-center justify-center shrink-0">
             {profile.avatarUrl && failedAvatarUrl !== profile.avatarUrl ? (
               <img
                 src={profile.avatarUrl}
@@ -198,24 +198,24 @@ export default function Sidebar({ onLinkClick = null }) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-[#D4D4D4] text-xs font-semibold">
+              <span className="text-[var(--text-primary)] text-xs font-semibold">
                 {profile.name ? profile.name.charAt(0).toUpperCase() : 'S'}
               </span>
             )}
           </div>
           {!isCollapsed && (
             <div className="text-left overflow-hidden">
-              <p className="text-xs font-semibold text-[#D4D4D4] truncate">
+              <p className="text-xs font-semibold text-[var(--text-primary)] truncate">
                 {profile.name || 'Student'}
               </p>
-              <p className="text-[11px] text-[#858585] truncate">
+              <p className="text-[11px] text-[var(--text-muted)] truncate">
                 {profile.email || t('notConnected', lang)}
               </p>
             </div>
           )}
         </div>
         {!isCollapsed && (
-          <Settings size={15} className="text-[#858585] shrink-0 ml-1" />
+          <Settings size={15} className="text-[var(--text-muted)] shrink-0 ml-1" />
         )}
       </NavLink>
     </aside>

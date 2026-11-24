@@ -4,6 +4,7 @@ import KanbanBoard from '../components/KanbanBoard';
 import TaskFilters from '../components/TaskFilters';
 import TodayScheduleWidget from '../components/TodayScheduleWidget';
 import CreateTaskModal from '../components/CreateTaskModal';
+import PageHeader from '../components/PageHeader';
 import { Plus, RefreshCw, AlertTriangle, ClipboardList, Clock, BookOpen, ChevronDown, ChevronUp, Sparkles, Pin } from 'lucide-react';
 import { t } from '../utils/i18n';
 
@@ -69,34 +70,34 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#FFFFFF] tracking-tight">{t('assignmentsTitle', lang)}</h1>
-          <p className="text-xs text-[#9D9D9D] mt-1">{t('assignmentsDesc', lang)}</p>
-        </div>
-        <div className="flex items-center gap-2.5">
-          {isLoggedIn && (
+      <PageHeader
+        title={t('assignmentsTitle', lang)}
+        description={t('assignmentsDesc', lang)}
+        icon={ClipboardList}
+        actions={
+          <>
+            {isLoggedIn && (
+              <button
+                type="button"
+                onClick={() => syncClassroom()}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)] font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw size={14} className={isSyncing ? 'animate-spin text-[var(--primary-bright)]' : 'text-[var(--text-secondary)]'} />
+                <span>{t('syncClassroom', lang)}</span>
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => syncClassroom()}
-              disabled={isSyncing}
-              className="flex items-center gap-1.5 bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] text-[#D4D4D4] font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
-              <RefreshCw size={14} className={isSyncing ? 'animate-spin text-[#3794FF]' : 'text-[#9D9D9D]'} />
-              <span>{t('syncClassroom', lang)}</span>
+              <Plus size={15} />
+              <span>{t('createTask', lang)}</span>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
-          >
-            <Plus size={15} />
-            <span>{t('createTask', lang)}</span>
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <TodayScheduleWidget todayClasses={todayClasses} lang={lang} />
 
@@ -114,19 +115,19 @@ export default function Dashboard() {
       {detectedMaterials.length > 0 && (
         <div
           data-testid="smart-material-suggestion"
-          className="bg-[#232326] border border-[#34343A] rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
         >
-          <div className="flex items-center gap-2.5 text-xs text-[#D4D4D4] min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/25 flex items-center justify-center shrink-0">
-              <Sparkles size={13} className="text-sky-400" />
+          <div className="flex items-center gap-2.5 text-xs text-[var(--text-primary)] min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-[var(--primary)]/15 border border-[var(--primary)]/30 flex items-center justify-center shrink-0">
+              <Sparkles size={13} className="text-[var(--primary-bright)]" />
             </div>
             <div className="min-w-0">
-              <span className="font-medium text-[#F2F2F4]">
+              <span className="font-medium text-[var(--text-heading)]">
                 {lang === 'en'
                   ? `Found ${detectedMaterials.length} lecture material post${detectedMaterials.length > 1 ? 's' : ''}`
                   : `พบโพสต์ที่คล้ายไฟล์เรียน/สไลด์ ${detectedMaterials.length} รายการ`}
               </span>
-              <span className="text-[#8E8E93] ml-1.5 truncate">
+              <span className="text-[var(--text-muted)] ml-1.5 truncate">
                 ({detectedMaterials.slice(0, 2).map(m => m.title).join(', ')}{detectedMaterials.length > 2 ? '...' : ''})
               </span>
             </div>
@@ -135,7 +136,7 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={handleMarkDetectedAsRead}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--primary-active)]/60 hover:bg-[var(--primary-active)] border border-[var(--primary)]/40 text-[var(--info)] text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap"
           >
             <BookOpen size={13} />
             <span>
@@ -256,17 +257,17 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => setShowReadMaterials(prev => !prev)}
-                className="w-full bg-[#232326] hover:bg-[#28282C] border border-[#34343A] rounded-2xl px-4 py-3 flex items-center justify-between text-xs font-medium text-[#A0A0A8] transition-colors cursor-pointer"
+                className="w-full bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded-2xl px-4 py-3 flex items-center justify-between text-xs font-medium text-[var(--text-secondary)] transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <BookOpen size={14} className="text-sky-400" />
+                  <BookOpen size={14} className="text-[var(--primary-bright)]" />
                   <span>
                     {lang === 'en'
                       ? `Read / Lecture Materials (${readMaterialsList.length})`
                       : `อ่านแล้ว / ไฟล์เรียน (${readMaterialsList.length})`}
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-[#8E8E93]">
+                <div className="flex items-center gap-1 text-[var(--text-muted)]">
                   <span>{showReadMaterials ? (lang === 'en' ? 'Hide' : 'ซ่อน') : (lang === 'en' ? 'Show' : 'แสดง')}</span>
                   {showReadMaterials ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                 </div>

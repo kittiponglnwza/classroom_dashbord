@@ -16,6 +16,7 @@ import { getHiddenCourses, getAssignments } from '../utils/storage';
 import { examRepository } from '../repositories/examRepository';
 import { decodeKmutnbStudentId } from '../utils/kmutnbStudentId';
 import { APP_VERSION, APP_COMMIT, formatAppBuildTime, forceCheckPwaUpdate } from '../config/version';
+import PageHeader from '../components/PageHeader';
 
 const GithubIcon = ({ size = 15, className = '' }) => (
   <svg height={size} width={size} viewBox="0 0 16 16" version="1.1" fill="currentColor" className={className} aria-hidden="true">
@@ -296,28 +297,26 @@ export default function Settings() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5 pb-6">
-      {/* Minimal Page Header */}
-      <div className="border-b border-[#323236] pb-3.5">
-        <h1 className="text-lg font-semibold text-[#F2F2F4] tracking-tight flex items-center gap-2">
-          <Settings2 size={18} className="text-[#8E8E93]" />
-          <span>{t('settingsTitle', lang)}</span>
-        </h1>
-      </div>
+    <div className="space-y-6 pb-6">
+      <PageHeader
+        title={t('settingsTitle', lang)}
+        description={t('settingsDesc', lang)}
+        icon={Settings2}
+      />
 
       {saveSuccess && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2">
-          <CheckCircle2 size={14} className="text-emerald-400" />
+        <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2">
+          <CheckCircle2 size={14} className="text-[var(--success)]" />
           <span>{t('profileSuccess', lang)}</span>
         </div>
       )}
 
-      {/* 1. Minimalist Profile & Account Card */}
-      <div className="bg-[#232326] border border-[#323236] rounded-2xl p-5">
+      {/* 1. Profile & Account Card */}
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#323236]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-[#1A1A1D] border border-[#38383E] flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
                 {profile.avatarUrl && !avatarError ? (
                   <img
                     src={profile.avatarUrl}
@@ -326,7 +325,7 @@ export default function Settings() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-base font-semibold text-[#D4D4D4]">
+                  <span className="text-base font-semibold text-[var(--text-primary)]">
                     {(name || profile.name || 'S').charAt(0).toUpperCase()}
                   </span>
                 )}
@@ -334,40 +333,40 @@ export default function Settings() {
 
               <div className="min-w-0 space-y-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-sm font-semibold text-[#F2F2F4] truncate">{name || 'Student'}</h2>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-[#1A1A1D] border border-[#323236] text-[#A0A0A8]">
-                    <span className={`w-1.5 h-1.5 rounded-full ${isLoggedIn ? 'bg-emerald-400/90' : 'bg-[#7A7A80]'}`} />
+                  <h2 className="text-sm font-semibold text-[var(--text-heading)] truncate">{name || 'Student'}</h2>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)]">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isLoggedIn ? 'bg-[var(--success)]' : 'bg-[var(--text-muted)]'}`} />
                     {isLoggedIn
                       ? (lang === 'en' ? 'Connected' : 'เชื่อมต่อแล้ว')
                       : (lang === 'en' ? 'Local Mode' : 'โหมดออฟไลน์')}
                   </span>
                 </div>
 
-                <p className="text-xs text-[#8E8E93] truncate">
+                <p className="text-xs text-[var(--text-secondary)] truncate">
                   {activeUserEmail || (lang === 'en' ? 'Connect Google Classroom to sync across devices' : 'เชื่อมต่อ Google Classroom เพื่อซิงก์ข้อมูล')}
                 </p>
 
                 {decodedKmutnb && (
                   <div
                     data-testid="kmutnb-profile-breakdown"
-                    className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[11px] text-[#A0A0A8]"
+                    className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[11px] text-[var(--text-secondary)]"
                   >
-                    <span className="inline-flex items-center gap-1 text-[#D4D4D4] font-medium">
-                      <GraduationCap size={12} className="text-[#8E8E93] shrink-0" />
+                    <span className="inline-flex items-center gap-1 text-[var(--text-primary)] font-medium">
+                      <GraduationCap size={12} className="text-[var(--primary-bright)] shrink-0" />
                       <span>{decodedKmutnb.campusLabel[langKey]}</span>
                     </span>
-                    <span className="text-[#4A4A50]">•</span>
+                    <span className="text-[var(--text-muted)]">•</span>
                     <span>
                       {decodedKmutnb.yearLevel
                         ? (isTh ? `ชั้นปีที่ ${decodedKmutnb.yearLevel}` : `Year ${decodedKmutnb.yearLevel}`)
                         : (isTh ? `รหัส ${decodedKmutnb.yearShort}` : `ID ${decodedKmutnb.yearShort}`)}
                     </span>
-                    <span className="text-[#4A4A50]">•</span>
+                    <span className="text-[var(--text-muted)]">•</span>
                     <span>{decodedKmutnb.faculty[langKey]}</span>
                     {(decodedKmutnb.department || decodedKmutnb.program) && (
                       <>
-                        <span className="text-[#4A4A50]">•</span>
-                        <span className="text-[#D4D4D4]">
+                        <span className="text-[var(--text-muted)]">•</span>
+                        <span className="text-[var(--text-primary)]">
                           {decodedKmutnb.department
                             ? (decodedKmutnb.program
                                 ? `${decodedKmutnb.department[langKey]} · ${decodedKmutnb.program[langKey]}`
@@ -388,7 +387,7 @@ export default function Settings() {
                     <button
                       type="button"
                       onClick={() => setConfirmLogout(false)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[#1A1A1D] hover:bg-[#2A2A2E] text-[#D4D4D4] border border-[#343438] transition-colors cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] transition-colors cursor-pointer"
                     >
                       {t('cancelBtn', lang)}
                     </button>
@@ -407,7 +406,7 @@ export default function Settings() {
                   <button
                     type="button"
                     onClick={() => setConfirmLogout(true)}
-                    className="inline-flex items-center gap-1.5 bg-[#1A1A1D] hover:bg-rose-500/15 text-[#A0A0A8] hover:text-rose-300 border border-[#343438] hover:border-rose-500/30 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 bg-[var(--app-bg)] hover:bg-rose-500/15 text-[var(--text-secondary)] hover:text-rose-300 border border-[var(--border)] hover:border-rose-500/30 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
                   >
                     <LogOut size={13} />
                     <span>{t('disconnectBtn', lang)}</span>
@@ -417,7 +416,7 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={() => login()}
-                  className="inline-flex items-center gap-1.5 bg-[#2A2A2E] hover:bg-[#323237] text-[#F2F2F4] border border-[#3A3A40] px-4 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
                 >
                   <LogIn size={13} />
                   <span>{t('connectBtn', lang)}</span>
@@ -452,7 +451,7 @@ export default function Settings() {
             )}
             <button
               type="submit"
-              className="h-[38px] w-full sm:w-auto bg-[#2D2D32] hover:bg-[#36363C] text-[#F2F2F4] border border-[#3E3E44] px-4 rounded-xl font-medium text-xs transition-colors cursor-pointer whitespace-nowrap"
+              className="h-[38px] w-full sm:w-auto bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 rounded-xl font-medium text-xs transition-colors cursor-pointer whitespace-nowrap"
             >
               {lang === 'en' ? 'Save Preferences' : 'บันทึกการตั้งค่า'}
             </button>
@@ -463,18 +462,18 @@ export default function Settings() {
       {/* 2. Balanced Two-Column Grid: Discord Integration (Left) + Calendar & Developer (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left: Compact Discord Webhook & 24/7 Cloud Script */}
-        <div className="lg:col-span-7 bg-[#232326] border border-[#323236] rounded-2xl p-5 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 flex flex-col justify-between space-y-4">
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-[#1A1A1D] border border-[#323236] flex items-center justify-center shrink-0">
-                  <MessageSquare className="text-[#A0A0A8]" size={14} />
+                <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                  <MessageSquare className="text-[var(--primary-bright)]" size={14} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-[#F2F2F4] truncate">
+                  <h3 className="text-sm font-semibold text-[var(--text-heading)] truncate">
                     {lang === 'en' ? 'Discord Notifications' : 'แจ้งเตือน Discord'}
                   </h3>
-                  <p className="text-[11px] text-[#8E8E93] truncate">
+                  <p className="text-[11px] text-[var(--text-muted)] truncate">
                     {lang === 'en' ? 'Webhook alerts & 24/7 cloud script' : 'ยิงแจ้งเตือนเข้าแชท & รันอัตโนมัติ 24 ชม.'}
                   </p>
                 </div>
@@ -485,10 +484,10 @@ export default function Settings() {
                   data-testid="discord-webhook-status"
                   className={`text-[10.5px] px-2.5 py-0.5 rounded-full font-medium ${
                     webhookValidation.valid
-                      ? 'bg-emerald-500/10 text-emerald-300/90 border border-emerald-500/20'
+                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/25'
                       : (alertSettings.discordWebhookUrl || '').trim()
-                        ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
-                        : 'bg-[#1A1A1D] text-[#8E8E93] border border-[#323236]'
+                        ? 'bg-rose-500/10 text-rose-300 border border-rose-500/25'
+                        : 'bg-[var(--app-bg)] text-[var(--text-muted)] border border-[var(--border)]'
                   }`}
                 >
                   {webhookValidation.valid
@@ -506,7 +505,7 @@ export default function Settings() {
                     aria-label={lang === 'en' ? 'Auto-send alerts to Discord when syncing on web' : 'ส่งแจ้งเตือนเข้า Discord อัตโนมัติ'}
                     className="sr-only peer"
                   />
-                  <div className="w-8 h-4.5 bg-[#343438] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#E5E5E7] after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[#007ACC]/80" />
+                  <div className="w-8 h-4.5 bg-[var(--border)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--text-heading)] after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[var(--primary)]" />
                 </label>
               </div>
             </div>
@@ -517,7 +516,7 @@ export default function Settings() {
                 className={`px-3 py-2 rounded-xl border text-xs flex items-center justify-between ${
                   discordFeedback.type === 'error'
                     ? 'bg-rose-500/10 border-rose-500/25 text-rose-300'
-                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                    : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
                 }`}
               >
                 <span>{discordFeedback.text}</span>
@@ -533,7 +532,7 @@ export default function Settings() {
             )}
 
             <div className="space-y-1.5">
-              <label htmlFor={webhookFieldId} className="block text-[11px] font-medium text-[#8E8E93]">
+              <label htmlFor={webhookFieldId} className="block text-[11px] font-medium text-[var(--text-secondary)]">
                 {lang === 'en' ? 'Webhook URL' : 'ลิงก์ Discord Webhook'}
               </label>
               <input
@@ -543,7 +542,7 @@ export default function Settings() {
                 placeholder="https://discord.com/api/webhooks/123456789/abcdef..."
                 value={alertSettings.discordWebhookUrl || ''}
                 onChange={(e) => handleUpdateSetting?.('discordWebhookUrl', e.target.value)}
-                className="w-full bg-[#1A1A1D] border border-[#323236] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] placeholder-[#6E6E73] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#505058]"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
 
@@ -552,9 +551,9 @@ export default function Settings() {
                 type="button"
                 disabled={discordTestSending || discordDigestSending || !webhookValidation.valid}
                 onClick={handleTestDiscordWebhook}
-                className="bg-[#2D2D32] hover:bg-[#36363C] text-[#F2F2F4] border border-[#3E3E44] px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
-                {discordTestSending ? <RefreshCw size={13} className="animate-spin" /> : <MessageSquare size={13} className="text-[#A0A0A8]" />}
+                {discordTestSending ? <RefreshCw size={13} className="animate-spin" /> : <MessageSquare size={13} className="text-[var(--primary-bright)]" />}
                 <span>
                   {discordTestSending
                     ? (lang === 'en' ? 'Testing...' : 'กำลังทดสอบ...')
@@ -566,9 +565,9 @@ export default function Settings() {
                 type="button"
                 disabled={discordDigestSending || discordTestSending || !webhookValidation.valid}
                 onClick={handleSendDiscordDigest}
-                className="bg-[#1A1A1D] hover:bg-[#26262A] text-[#D4D4D4] border border-[#323236] px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
-                {discordDigestSending ? <RefreshCw size={13} className="animate-spin" /> : <Send size={13} className="text-[#8E8E93]" />}
+                {discordDigestSending ? <RefreshCw size={13} className="animate-spin" /> : <Send size={13} className="text-[var(--text-secondary)]" />}
                 <span>
                   {discordDigestSending
                     ? (lang === 'en' ? 'Sending...' : 'กำลังส่ง...')
@@ -579,10 +578,10 @@ export default function Settings() {
           </div>
 
           {/* Sleek 1-Line 24/7 Apps Script Bar */}
-          <div className="pt-3 border-t border-[#323236] space-y-3">
+          <div className="pt-3 border-t border-[var(--border)] space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-xs text-[#8E8E93]">
-                <Terminal size={13} className="text-[#8E8E93] shrink-0" />
+              <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+                <Terminal size={13} className="text-[var(--text-muted)] shrink-0" />
                 <span>
                   {lang === 'en'
                     ? `24/7 Cloud Script (${hiddenCourseIds.length} hidden excluded)`
@@ -594,9 +593,9 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={handleCopyAppsScript}
-                  className="bg-[#1A1A1D] hover:bg-[#26262A] text-[#D4D4D4] border border-[#323236] px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                  className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5"
                 >
-                  {copiedScript ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className="text-[#8E8E93]" />}
+                  {copiedScript ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className="text-[var(--text-muted)]" />}
                   <span>
                     {copiedScript
                       ? (lang === 'en' ? 'Copied!' : 'คัดลอกแล้ว!')
@@ -607,7 +606,7 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={() => setShowScriptPreview(prev => !prev)}
-                  className="bg-[#1A1A1D] hover:bg-[#26262A] text-[#8E8E93] hover:text-[#D4D4D4] border border-[#323236] px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
+                  className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
                 >
                   {showScriptPreview
                     ? (lang === 'en' ? 'Hide Code' : 'ซ่อนโค้ด')
@@ -619,7 +618,7 @@ export default function Settings() {
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Open script.google.com"
-                  className="p-1.5 rounded-lg bg-[#1A1A1D] hover:bg-[#26262A] border border-[#323236] text-[#8E8E93] hover:text-[#D4D4D4] transition-colors"
+                  className="p-1.5 rounded-lg bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors"
                 >
                   <ExternalLink size={12} />
                 </a>
@@ -628,17 +627,17 @@ export default function Settings() {
 
             {showScriptPreview && (
               <div className="space-y-2 pt-1">
-                <div className="bg-[#1A1A1D] border border-[#323236] rounded-xl p-2.5 text-[11px] text-[#8E8E93] space-y-1">
-                  <div><code className="text-[#D4D4D4]">testDiscordWebhook()</code> — {lang === 'en' ? 'Send test message from Google Cloud' : 'ทดสอบยิงเข้า Discord'}</div>
-                  <div><code className="text-[#D4D4D4]">debugDryRun()</code> — {lang === 'en' ? 'Preview tasks in log without sending' : 'เช็กงานใน Log โดยไม่ส่งจริง'}</div>
-                  <div><code className="text-[#D4D4D4]">sendClassroomDigest()</code> — {lang === 'en' ? 'Attach to hourly Time-driven Trigger' : 'ใช้ตั้งทริกเกอร์รายชั่วโมง'}</div>
+                <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-2.5 text-[11px] text-[var(--text-muted)] space-y-1">
+                  <div><code className="text-[var(--text-primary)]">testDiscordWebhook()</code> — {lang === 'en' ? 'Send test message from Google Cloud' : 'ทดสอบยิงเข้า Discord'}</div>
+                  <div><code className="text-[var(--text-primary)]">debugDryRun()</code> — {lang === 'en' ? 'Preview tasks in log without sending' : 'เช็กงานใน Log โดยไม่ส่งจริง'}</div>
+                  <div><code className="text-[var(--text-primary)]">sendClassroomDigest()</code> — {lang === 'en' ? 'Attach to hourly Time-driven Trigger' : 'ใช้ตั้งทริกเกอร์รายชั่วโมง'}</div>
                 </div>
                 <textarea
                   readOnly
                   aria-label={lang === 'en' ? 'Generated Google Apps Script Code' : 'โค้ด Google Apps Script'}
                   value={generatedAppsScript}
                   rows={6}
-                  className="w-full bg-[#161618] border border-[#323236] rounded-xl p-2.5 text-[11px] font-mono text-[#D4D4D4] focus:outline-none"
+                  className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-2.5 text-[11px] font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 />
               </div>
             )}
@@ -648,16 +647,16 @@ export default function Settings() {
         {/* Right: Calendar Sync & Compact Developer Card */}
         <div className="lg:col-span-5 flex flex-col justify-between gap-5">
           {/* Google Calendar Sync Maintenance Card */}
-          <div className="bg-[#232326] border border-[#323236] rounded-2xl p-5 space-y-3">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 space-y-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#1A1A1D] border border-[#323236] flex items-center justify-center shrink-0">
-                <RefreshCw className="text-[#A0A0A8]" size={14} />
+              <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                <RefreshCw className="text-[var(--primary-bright)]" size={14} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-[#F2F2F4]">
+                <h3 className="text-sm font-semibold text-[var(--text-heading)]">
                   {lang === 'en' ? 'Google Calendar Sync' : 'ซิงก์ปฏิทิน Google Calendar'}
                 </h3>
-                <p className="text-[11px] text-[#8E8E93]">
+                <p className="text-[11px] text-[var(--text-muted)]">
                   {lang === 'en' ? 'Sync events or clean duplicates' : 'อัปเดตตารางหรือล้างรายการซ้ำ'}
                 </p>
               </div>
@@ -680,7 +679,7 @@ export default function Settings() {
                 type="button"
                 onClick={handleSyncCalendarNow}
                 disabled={!isLoggedIn || calendarSyncState === 'syncing' || isResettingCalendar}
-                className="bg-[#2D2D32] hover:bg-[#36363C] text-[#F2F2F4] border border-[#3E3E44] px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
                 {calendarSyncState === 'syncing' && !isResettingCalendar && <RefreshCw size={12} className="animate-spin" />}
                 <span className="truncate">
@@ -693,7 +692,7 @@ export default function Settings() {
                 type="button"
                 onClick={handleResetCalendar}
                 disabled={!isLoggedIn || isResettingCalendar || calendarSyncState === 'syncing'}
-                className="bg-[#1A1A1D] hover:bg-[#26262A] text-[#D4D4D4] border border-[#323236] px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
                 {isResettingCalendar && <RefreshCw size={12} className="animate-spin" />}
                 <span className="truncate">{lang === 'en' ? 'Reset Calendar' : 'ล้างแล้วลงใหม่'}</span>
@@ -702,16 +701,16 @@ export default function Settings() {
           </div>
 
           {/* Compact Developer Card */}
-          <div className="bg-[#232326] border border-[#323236] rounded-2xl p-5 space-y-3">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-[#1A1A1D] border border-[#323236] flex items-center justify-center shrink-0">
-                  <Code size={15} className="text-[#A0A0A8]" />
+                <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                  <Code size={15} className="text-[var(--primary-bright)]" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-semibold text-[#F2F2F4] text-xs truncate">{devInfo.name}</h4>
-                  <p className="text-[11px] text-[#8E8E93] truncate">
-                    @{devInfo.nickname} • {devInfo.university} • <a href={`mailto:${devInfo.email}`} className="hover:text-[#D4D4D4] transition-colors">{devInfo.email}</a>
+                  <h4 className="font-semibold text-[var(--text-heading)] text-xs truncate">{devInfo.name}</h4>
+                  <p className="text-[11px] text-[var(--text-muted)] truncate">
+                    @{devInfo.nickname} • {devInfo.university} • <a href={`mailto:${devInfo.email}`} className="hover:text-[var(--text-primary)] transition-colors">{devInfo.email}</a>
                   </p>
                 </div>
               </div>
@@ -722,7 +721,7 @@ export default function Settings() {
                 href={devInfo.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[#1A1A1D] hover:bg-[#26262A] border border-[#323236] py-2 px-3 rounded-xl transition-colors text-xs font-medium text-[#D4D4D4]"
+                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-xl transition-colors text-xs font-medium text-[var(--text-primary)]"
               >
                 <GithubIcon size={13} />
                 <span>GitHub</span>
@@ -732,7 +731,7 @@ export default function Settings() {
                 href={devInfo.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[#1A1A1D] hover:bg-[#26262A] border border-[#323236] py-2 px-3 rounded-xl transition-colors text-xs font-medium text-[#D4D4D4]"
+                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-xl transition-colors text-xs font-medium text-[var(--text-primary)]"
               >
                 <InstagramIcon size={13} />
                 <span>Instagram</span>
@@ -745,10 +744,10 @@ export default function Settings() {
       {/* Subtle Bottom Version & Update Line */}
       <div
         data-testid="settings-version-badge"
-        className="pt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#7A7A80] border-t border-[#2A2A2E]"
+        className="pt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)]"
       >
         <div className="flex items-center gap-2 font-mono">
-          <span className="text-[#A0A0A8]">
+          <span className="text-[var(--text-secondary)]">
             Classroom Hub v{APP_VERSION}{APP_COMMIT ? ` (${APP_COMMIT})` : ''}
           </span>
           <span>•</span>
@@ -762,7 +761,7 @@ export default function Settings() {
           type="button"
           onClick={forceCheckPwaUpdate}
           title={lang === 'th' ? 'เช็กและดึงอัปเดตเวอร์ชันล่าสุด' : 'Check and reload latest update'}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#232326] hover:bg-[#2C2C30] border border-[#323236] text-[#A0A0A8] hover:text-[#F2F2F4] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer"
         >
           <RefreshCw size={11} />
           <span>{lang === 'th' ? 'เช็กอัปเดต' : 'Check for updates'}</span>

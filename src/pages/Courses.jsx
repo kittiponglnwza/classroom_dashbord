@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import AssignmentCard from '../components/AssignmentCard';
+import PageHeader from '../components/PageHeader';
+import SectionHeader from '../components/SectionHeader';
 import {
   User, BookOpen, ChevronRight, Eye, EyeOff, ArrowLeft,
   Megaphone, FileText, ExternalLink, Calendar,
@@ -10,7 +12,7 @@ import {
 import { t } from '../utils/i18n';
 import { sanitizeExternalUrl } from '../utils/sanitize';
 import {
-  getCourseBorderTopColor, getCourseTextColor, getTabStyles,
+  getCourseBorderTopColor, getTabStyles,
   getTabBadgeStyles, getTrackButtonStyles, getCourseBadgeColor, getCourseDotClass
 } from '../utils/colors';
 import { useSettings } from '../contexts/SettingsContext';
@@ -524,57 +526,90 @@ export default function Courses() {
     );
   };
 
-  return (
-    <div className="space-y-6">
-      {selectedCourseName ? (
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={handleBackToAllCourses}
-              data-testid="course-back-button"
-              className="inline-flex items-center gap-2 text-xs font-medium text-[#D4D4D4] bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] px-4 py-2 rounded-xl cursor-pointer transition-colors"
-            >
-              <ArrowLeft size={15} />
-              <span>
-                {location.state?.from === '/'
-                  ? t('backToHome', lang)
-                  : (lang === 'en' ? 'Back to All Courses' : 'กลับไปที่รายวิชาทั้งหมด')}
-              </span>
-            </button>
+  const renderCourseCollection = (courseList, isHidden, emptyNode) => {
+    if (courseList.length === 0) {
+      return emptyNode;
+    }
 
-            {location.state?.from && location.state.from !== '/courses' && (
+    if (viewMode === 'grid') {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {courseList.map((course) => renderCourseCard(course, isHidden))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {courseList.map((course) => (
+          <CourseRow
+            key={course.id}
+            course={course}
+            activeCount={getActiveCount(course)}
+            totalAssignments={assignments.filter(a => matchesCourseItem(a, course, course.name)).length}
+            totalResources={resources.filter(r => matchesCourseItem(r, course, course.name)).length}
+            isHidden={isHidden}
+            onSelect={() => handleSelectCourse(course.name)}
+            onToggleVisibility={handleToggleCourseVisibility}
+            lang={lang}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  if (selectedCourseName) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          breadcrumbs={[
+            { label: t('courses', lang), onClick: () => setSearchParams({}) },
+            { label: selectedCourseObj.code || (lang === 'en' ? 'Course Details' : 'รายละเอียดรายวิชา') }
+          ]}
+          title={selectedCourseObj.name}
+          description={
+            selectedCourseObj.instructor
+              ? `${t('instructorLabel', lang)} ${selectedCourseObj.instructor}`
+              : undefined
+          }
+          icon={BookOpen}
+          meta={
+            selectedCourseObj.code ? (
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-lg ${getCourseBadgeColor(selectedCourseObj.color)}`}>
+                {selectedCourseObj.code}
+              </span>
+            ) : null
+          }
+          actions={
+            <>
               <button
                 type="button"
-                onClick={() => setSearchParams({})}
-                className="text-xs font-medium text-[#3794FF] hover:underline cursor-pointer"
+                onClick={handleBackToAllCourses}
+                data-testid="course-back-button"
+                className="inline-flex items-center gap-2 text-xs font-medium text-[var(--text-primary)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3.5 py-2.5 rounded-xl cursor-pointer transition-colors"
               >
-                {lang === 'en' ? 'View All Courses' : 'ดูรายวิชาทั้งหมด'}
-              </button>
-            )}
-          </div>
-
-          <div className="border border-[#3C3C3C] bg-[#252526] rounded-2xl relative overflow-hidden p-6 md:p-8 space-y-3">
-            <div className={`
-              absolute top-0 left-0 right-0 h-1.5 ${getCourseBorderTopColor(selectedCourseObj.color)}
-            `} />
-            <div className="space-y-1">
-              {selectedCourseObj.code && (
-                <span className={`text-xs font-semibold ${getCourseTextColor(selectedCourseObj.color)}`}>
-                  {selectedCourseObj.code}
+                <ArrowLeft size={14} />
+                <span>
+                  {location.state?.from === '/'
+                    ? t('backToHome', lang)
+                    : (lang === 'en' ? 'Back to All Courses' : 'กลับไปที่รายวิชาทั้งหมด')}
                 </span>
+              </button>
+
+              {location.state?.from && location.state.from !== '/courses' && (
+                <button
+                  type="button"
+                  onClick={() => setSearchParams({})}
+                  className="text-xs font-medium text-[var(--primary-bright)] hover:underline cursor-pointer px-2 py-1"
+                >
+                  {lang === 'en' ? 'View All Courses' : 'ดูรายวิชาทั้งหมด'}
+                </button>
               )}
-              <h1 className="text-2xl md:text-3xl font-semibold text-[#FFFFFF] tracking-tight">
-                {selectedCourseObj.name}
-              </h1>
-            </div>
-            {selectedCourseObj.instructor && (
-              <div className="flex items-center gap-2.5 text-xs font-medium text-[#9D9D9D]">
-                <User size={14} className="text-[#858585]" />
-                <span>{t('instructorLabel', lang)} {selectedCourseObj.instructor}</span>
-              </div>
-            )}
-          </div>
+            </>
+          }
+        />
+
+        <div className={`h-1 w-full rounded-full ${getCourseBorderTopColor(selectedCourseObj.color)}`} />
 
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex bg-[#252526] border border-[#3C3C3C] p-1 rounded-xl w-fit gap-1 select-none">
@@ -887,164 +922,122 @@ export default function Courses() {
               );
             })()}
           </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={t('enrolledCoursesTitle', lang)}
+        description={t('enrolledCoursesDesc', lang)}
+        icon={BookOpen}
+      />
+
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-3">
+        <div className="relative flex-1 max-w-md">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => updateParams({ q: e.target.value })}
+            placeholder={lang === 'en' ? 'Search courses by name, code, or instructor...' : 'ค้นหาวิชาจากชื่อ, รหัส หรือ อาจารย์...'}
+            className="w-full pl-9 pr-4 py-2 bg-[var(--app-bg)] border border-[var(--border)] rounded-xl text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
+          />
         </div>
-      ) : (
-        <div className="space-y-6">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold text-[#FFFFFF] tracking-tight">{t('enrolledCoursesTitle', lang)}</h1>
-              <p className="text-xs text-[#9D9D9D] mt-1">{t('enrolledCoursesDesc', lang)}</p>
-            </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3">
-              <div className="relative flex-1 max-w-md">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#858585]" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => updateParams({ q: e.target.value })}
-                  placeholder={lang === 'en' ? 'Search courses by name, code, or instructor...' : 'ค้นหาวิชาจากชื่อ, รหัส หรือ อาจารย์...'}
-                  className="w-full pl-9 pr-4 py-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors"
-                />
-              </div>
+        <div className="flex items-center bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-0.5 shrink-0 self-end sm:self-auto">
+          <button
+            type="button"
+            onClick={() => updateParams({ view: 'grid' })}
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+              viewMode === 'grid'
+                ? 'bg-[var(--primary-active)]/70 text-[var(--primary-bright)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+            title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
+          >
+            <LayoutGrid size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => updateParams({ view: 'list' })}
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+              viewMode === 'list'
+                ? 'bg-[var(--primary-active)]/70 text-[var(--primary-bright)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+            title={lang === 'en' ? 'List view' : 'แบบรายการ'}
+          >
+            <List size={15} />
+          </button>
+        </div>
+      </div>
 
-              <div className="flex items-center bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-0.5 shrink-0 self-end sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => updateParams({ view: 'grid' })}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
-                    viewMode === 'grid'
-                      ? 'bg-[#094771]/70 text-[#3794FF]'
-                      : 'text-[#858585] hover:text-[#D4D4D4]'
-                  }`}
-                  title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
-                >
-                  <LayoutGrid size={15} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateParams({ view: 'list' })}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
-                    viewMode === 'list'
-                      ? 'bg-[#094771]/70 text-[#3794FF]'
-                      : 'text-[#858585] hover:text-[#D4D4D4]'
-                  }`}
-                  title={lang === 'en' ? 'List view' : 'แบบรายการ'}
-                >
-                  <List size={15} />
-                </button>
-              </div>
-            </div>
+      <section className="space-y-4">
+        <SectionHeader
+          title={lang === 'en' ? 'Active Courses' : 'วิชาที่แสดง'}
+          dotClass="bg-[var(--success)]"
+          count={filteredVisible.length}
+        />
+
+        {renderCourseCollection(
+          filteredVisible,
+          false,
+          <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[var(--text-secondary)] text-xs">
+            <Search size={28} className="text-[var(--text-muted)] mb-2.5 opacity-60" />
+            {searchQuery
+              ? (lang === 'en' ? 'No courses match your search.' : 'ไม่พบวิชาที่ตรงกับคำค้นหา')
+              : (lang === 'en' ? 'No active courses.' : 'ไม่มีวิชาที่แสดง')}
           </div>
+        )}
+      </section>
 
-          <div className="space-y-4">
+      {hiddenCourses.length > 0 && (
+        <section className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setShowHidden(!showHidden)}
+            className="flex items-center gap-2 group cursor-pointer w-full"
+          >
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              <h2 className="text-xs font-semibold text-[#FFFFFF]">
-                {lang === 'en' ? 'Active Courses' : 'วิชาที่แสดง'}
+              <div className="w-2 h-2 rounded-full bg-[var(--text-muted)]" />
+              <h2 className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--text-heading)] transition-colors">
+                {lang === 'en' ? 'Hidden Courses' : 'วิชาที่ซ่อน'}
               </h2>
-              <span className="text-xs text-[#858585]">({filteredVisible.length})</span>
+              <span className="text-xs text-[var(--text-muted)] tabular-nums">({filteredHidden.length})</span>
             </div>
-
-            {filteredVisible.length > 0 ? (
-              viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredVisible.map((course) => renderCourseCard(course, false))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredVisible.map((course) => (
-                    <CourseRow
-                      key={course.id}
-                      course={course}
-                      activeCount={getActiveCount(course)}
-                      totalAssignments={assignments.filter(a => matchesCourseItem(a, course, course.name)).length}
-                      totalResources={resources.filter(r => matchesCourseItem(r, course, course.name)).length}
-                      isHidden={false}
-                      onSelect={() => handleSelectCourse(course.name)}
-                      onToggleVisibility={handleToggleCourseVisibility}
-                      lang={lang}
-                    />
-                  ))}
-                </div>
-              )
+            <div className="flex-1 h-px bg-[var(--border)]" />
+            {showHidden ? (
+              <ChevronUp size={14} className="text-[var(--text-muted)] shrink-0" />
             ) : (
-              <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#9D9D9D] text-xs">
-                <Search size={28} className="text-[#858585] mb-2.5 opacity-60" />
-                {searchQuery
-                  ? (lang === 'en' ? 'No courses match your search.' : 'ไม่พบวิชาที่ตรงกับคำค้นหา')
-                  : (lang === 'en' ? 'No active courses.' : 'ไม่มีวิชาที่แสดง')}
-              </div>
+              <ChevronDown size={14} className="text-[var(--text-muted)] shrink-0" />
             )}
-          </div>
+          </button>
 
-          {hiddenCourses.length > 0 && (
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setShowHidden(!showHidden)}
-                className="flex items-center gap-2 group cursor-pointer w-full"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#858585]" />
-                  <h2 className="text-xs font-semibold text-[#9D9D9D] group-hover:text-[#FFFFFF] transition-colors">
-                    {lang === 'en' ? 'Hidden Courses' : 'วิชาที่ซ่อน'}
-                  </h2>
-                  <span className="text-xs text-[#858585]">({filteredHidden.length})</span>
-                </div>
-                <div className="flex-1 h-px bg-[#3C3C3C]" />
-                {showHidden ? (
-                  <ChevronUp size={14} className="text-[#858585] shrink-0" />
-                ) : (
-                  <ChevronDown size={14} className="text-[#858585] shrink-0" />
-                )}
-              </button>
+          {showHidden && (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleToggleBulkCourses([], false)}
+                  className="text-xs font-medium text-[var(--primary-bright)] hover:underline cursor-pointer bg-[var(--surface)] border border-[var(--border)] px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5"
+                >
+                  <Eye size={12} />
+                  <span>{t('showAll', lang)}</span>
+                </button>
+              </div>
 
-              {showHidden && (
-                <div className="space-y-4">
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleBulkCourses([], false)}
-                      className="text-xs font-medium text-[#3794FF] hover:underline cursor-pointer bg-[#252526] border border-[#3C3C3C] px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5"
-                    >
-                      <Eye size={12} />
-                      <span>{t('showAll', lang)}</span>
-                    </button>
-                  </div>
-
-                  {filteredHidden.length > 0 ? (
-                    viewMode === 'grid' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredHidden.map((course) => renderCourseCard(course, true))}
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredHidden.map((course) => (
-                          <CourseRow
-                            key={course.id}
-                            course={course}
-                            activeCount={getActiveCount(course)}
-                            totalAssignments={assignments.filter(a => matchesCourseItem(a, course, course.name)).length}
-                            totalResources={resources.filter(r => matchesCourseItem(r, course, course.name)).length}
-                            isHidden={true}
-                            onSelect={() => handleSelectCourse(course.name)}
-                            onToggleVisibility={handleToggleCourseVisibility}
-                            lang={lang}
-                          />
-                        ))}
-                      </div>
-                    )
-                  ) : (
-                    <div className="bg-[#252526] border border-[#3C3C3C] rounded-xl p-6 text-center text-[#9D9D9D] text-xs">
-                      {lang === 'en' ? 'No hidden courses match your search.' : 'ไม่พบวิชาที่ซ่อนที่ตรงกับคำค้นหา'}
-                    </div>
-                  )}
+              {renderCourseCollection(
+                filteredHidden,
+                true,
+                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 text-center text-[var(--text-secondary)] text-xs">
+                  {lang === 'en' ? 'No hidden courses match your search.' : 'ไม่พบวิชาที่ซ่อนที่ตรงกับคำค้นหา'}
                 </div>
               )}
             </div>
           )}
-        </div>
+        </section>
       )}
     </div>
   );

@@ -10,6 +10,8 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { useToast } from '../hooks/useToast';
 import RegImportModal from '../components/RegImportModal';
+import PageHeader from '../components/PageHeader';
+import { t } from '../utils/i18n';
 import { decodeRegImportHashPayload } from '../services/parsers/kmutnbRegParser';
 import {
   CURRICULUM_PRESETS,
@@ -600,73 +602,65 @@ export default function Academic() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="border-b border-[#3C3C3C] pb-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#FFFFFF] flex items-center gap-2.5 tracking-tight">
-            <GraduationCap size={23} className="text-[#3794FF]" />
-            <span>{isTh ? 'ผลการเรียน & เกณฑ์จบหลักสูตร' : 'Academic & Graduation Tracker'}</span>
-          </h1>
-          <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">
-            {isTh
-              ? 'สรุปเกรดรายเทอม คำนวณหน่วยกิตที่ผ่านแล้วเทียบเกณฑ์จบหลักสูตร และซิงค์ตารางเรียนจาก KMUTNB Reg'
-              : 'Track semester grades, passed credits toward graduation, and sync your timetable from KMUTNB Reg.'}
-          </p>
-        </div>
+      <PageHeader
+        title={t('academic', lang)}
+        description={t('academicDesc', lang)}
+        icon={GraduationCap}
+        actions={
+          <>
+            {extensionStatus?.connected && (
+              <button
+                type="button"
+                onClick={requestExtensionSync}
+                className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/35 hover:bg-emerald-500/20 text-emerald-300 font-medium text-xs px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
+                title={isTh ? 'ซิงค์ข้อมูลล่าสุดจาก Chrome Extension' : 'Sync latest from Chrome Extension'}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>Extension Sync</span>
+              </button>
+            )}
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0 self-start lg:self-auto">
-          {extensionStatus?.connected && (
+            {hasAnyData && (
+              <button
+                type="button"
+                onClick={handleToggleBlur}
+                aria-pressed={privacyBlur}
+                className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+                  privacyBlur
+                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                    : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)]'
+                }`}
+                title={isTh ? 'เบลอตัวเลขเกรดและ GPAX' : 'Blur grades & GPAX'}
+              >
+                {privacyBlur ? <Eye size={14} /> : <EyeOff size={14} />}
+                <span>{privacyBlur ? (isTh ? 'แสดงเกรด' : 'Show Grades') : (isTh ? 'ซ่อนเกรด' : 'Hide Grades')}</span>
+              </button>
+            )}
+
+            {(academicData?.enrolledCourses?.length || 0) > 0 && (
+              <Link
+                to="/schedule"
+                className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors"
+              >
+                <CalendarDays size={14} className="text-[var(--primary-bright)]" />
+                <span>{isTh ? 'ตารางเรียน' : 'Schedule'}</span>
+              </Link>
+            )}
+
             <button
               type="button"
-              onClick={requestExtensionSync}
-              className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/35 hover:bg-emerald-500/20 text-emerald-300 font-medium text-xs px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
-              title={isTh ? 'ซิงค์ข้อมูลล่าสุดจาก Chrome Extension' : 'Sync latest from Chrome Extension'}
+              onClick={() => {
+                setBookmarkletInitialText('');
+                setIsImportOpen(true);
+              }}
+              className="flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>{isTh ? 'Extension Sync' : 'Extension Sync'}</span>
+              <Upload size={14} />
+              <span>{t('importReg', lang)}</span>
             </button>
-          )}
-
-          {hasAnyData && (
-            <button
-              type="button"
-              onClick={handleToggleBlur}
-              aria-pressed={privacyBlur}
-              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
-                privacyBlur
-                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-                  : 'bg-[#252526] border-[#3C3C3C] text-[#D4D4D4] hover:bg-[#2A2D2E]'
-              }`}
-              title={isTh ? 'เบลอตัวเลขเกรดและ GPAX' : 'Blur grades & GPAX'}
-            >
-              {privacyBlur ? <Eye size={14} /> : <EyeOff size={14} />}
-              <span>{privacyBlur ? (isTh ? 'แสดงเกรด' : 'Show Grades') : (isTh ? 'ซ่อนเกรด' : 'Hide Grades')}</span>
-            </button>
-          )}
-
-          {(academicData?.enrolledCourses?.length || 0) > 0 && (
-            <Link
-              to="/schedule"
-              className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] hover:bg-[#2A2D2E] text-[#D4D4D4] font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors"
-            >
-              <CalendarDays size={14} className="text-[#3794FF]" />
-              <span>{isTh ? 'ตารางเรียน' : 'Schedule'}</span>
-            </Link>
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              setBookmarkletInitialText('');
-              setIsImportOpen(true);
-            }}
-            className="flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
-          >
-            <Upload size={14} />
-            <span>{isTh ? 'นำเข้าจาก Reg มจพ.' : 'Import KMUTNB Reg'}</span>
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Empty State */}
       {!hasAnyData ? (

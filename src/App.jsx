@@ -27,21 +27,21 @@ import CookieConsentBanner from './components/CookieConsentBanner';
 
 function NotFoundView({ lang }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4">
-      <div className="w-12 h-12 rounded-2xl bg-[#252526] border border-[#3C3C3C] flex items-center justify-center text-[#858585]">
+    <div className="min-h-[55vh] flex flex-col items-center justify-center py-16 px-4 text-center space-y-4">
+      <div className="w-12 h-12 rounded-2xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)]">
         <AlertCircle size={22} />
       </div>
       <div className="space-y-1">
-        <h1 className="text-lg font-semibold text-[#FFFFFF]">
+        <h1 className="text-xl font-semibold text-[var(--text-heading)] tracking-tight">
           {lang === 'th' ? 'ไม่พบหน้าที่คุณต้องการ' : 'Page Not Found'}
         </h1>
-        <p className="text-xs text-[#9D9D9D]">
+        <p className="text-[13px] text-[var(--text-secondary)]">
           {lang === 'th' ? 'เส้นทางนี้ไม่มีอยู่ในแอปพลิเคชัน หรืออาจถูกย้ายแล้ว' : 'The requested route does not exist or may have moved.'}
         </p>
       </div>
       <Link
         to="/"
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#007ACC] hover:bg-[#1177BB] text-white text-xs font-medium transition-colors"
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-medium transition-colors"
       >
         <ArrowLeft size={14} />
         <span>{lang === 'th' ? 'กลับหน้าแรก' : 'Back to Home'}</span>
@@ -76,11 +76,11 @@ function AppContent() {
     const accountInitial = (accountName || accountEmail || 'S').charAt(0).toUpperCase();
 
     return (
-      <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-[#18181A] text-[#D4D4D4] relative px-4 overflow-hidden">
-        {/* Ambient Background Glow matching Logo.svg gradient */}
+      <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-[var(--app-bg)] text-[var(--text-primary)] relative px-4 overflow-hidden">
+        {/* Subtle restrained ambient blue glow */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute w-[380px] h-[380px] rounded-full bg-gradient-to-tr from-[#6366f1]/12 via-[#007ACC]/10 to-[#a855f7]/12 blur-3xl"
+          className="pointer-events-none absolute w-[360px] h-[360px] rounded-full bg-[var(--primary)]/8 blur-3xl"
         />
 
         {/* Language Toggle */}
@@ -88,27 +88,25 @@ function AppContent() {
           <button
             type="button"
             onClick={toggleLang}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#252526]/90 backdrop-blur-md border border-[#3C3C3C] text-xs font-medium rounded-xl text-[#D4D4D4] hover:bg-[#2A2D2E] transition-colors cursor-pointer select-none shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-xs font-medium rounded-xl text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
-            <Globe size={13} className="text-[#858585]" />
+            <Globe size={13} className="text-[var(--text-muted)]" />
             <span>{lang === 'en' ? 'EN' : 'TH'}</span>
           </button>
         </div>
 
-        {/* Minimalist Sign-In Card */}
-        <div className="relative z-10 w-full max-w-[356px] bg-[#232326]/95 backdrop-blur-xl border border-[#38383D] ring-1 ring-white/[0.04] rounded-3xl p-7 space-y-6 text-center shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
+        {/* Minimalist VS Code Dark Modern Sign-In Card */}
+        <div className="relative z-10 w-full max-w-[360px] bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-7 space-y-6 text-center shadow-lg">
           <div className="flex flex-col items-center space-y-2">
-            <div className="relative">
-              <img
-                src="/Logo.svg"
-                alt="Classroom Hub Logo"
-                className="w-12 h-12 rounded-2xl shadow-lg ring-1 ring-white/10 select-none"
-              />
-            </div>
-            <h1 className="text-xl font-semibold text-[#FFFFFF] tracking-tight pt-1">
+            <img
+              src="/Logo.svg"
+              alt="Classroom Hub Logo"
+              className="w-12 h-12 rounded-2xl border border-[var(--border)] select-none"
+            />
+            <h1 className="text-xl font-semibold text-[var(--text-heading)] tracking-tight pt-1">
               Classroom Hub
             </h1>
-            <p className="text-[11.5px] text-[#8E8E93] tracking-wide">
+            <p className="text-xs text-[var(--text-secondary)]">
               {lang === 'en' ? 'Classroom • Schedule • Exams' : 'งานเรียน • ตารางเรียน • ตารางสอบ'}
             </p>
           </div>
@@ -133,11 +131,11 @@ function AppContent() {
                   }
                 }}
                 title={accountEmail}
-                className="group flex items-center justify-between gap-3 p-2.5 pr-3 rounded-2xl bg-[#1A1A1D] hover:bg-[#1E1E22] border border-[#34343A] hover:border-[#4A4A52] transition-all cursor-pointer text-left"
+                className="group flex items-center justify-between gap-3 p-2.5 pr-3 rounded-xl bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] hover:border-[var(--primary)]/60 transition-colors cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="relative shrink-0">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-[#3C3C3C] bg-gradient-to-br from-[#6366f1] to-[#007ACC] flex items-center justify-center shadow-inner">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-[var(--border)] bg-[var(--primary)] flex items-center justify-center">
                       {showAccountAvatar ? (
                         <img
                           src={accountPicture}
@@ -152,14 +150,14 @@ function AppContent() {
                         </span>
                       )}
                     </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#1A1A1D]" />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[var(--success)] ring-2 ring-[var(--app-bg)]" />
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-[#FFFFFF] truncate group-hover:text-[#3794FF] transition-colors">
+                    <p className="text-xs font-semibold text-[var(--text-heading)] truncate group-hover:text-[var(--primary-bright)] transition-colors">
                       {accountName}
                     </p>
-                    <p className="text-[11px] text-[#8E8E93] truncate font-mono mt-0.5">
+                    <p className="text-[11px] text-[var(--text-muted)] truncate font-mono mt-0.5">
                       {accountEmail}
                     </p>
                   </div>
@@ -175,9 +173,9 @@ function AppContent() {
               type="button"
               onClick={() => login()}
               aria-disabled={!isAuthReady}
-              className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-[#007ACC] to-[#1177BB] hover:from-[#0E86DA] hover:to-[#1683CC] active:scale-[0.99] text-white font-medium text-xs py-3 px-4 rounded-xl shadow-md shadow-[#007ACC]/20 transition-all cursor-pointer"
+              className="w-full flex items-center justify-center gap-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs py-3 px-4 rounded-xl transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
             >
-              <svg className="w-4 h-4 shrink-0 bg-white rounded-full p-0.5 shadow-xs" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z" />
@@ -190,13 +188,13 @@ function AppContent() {
               </span>
             </button>
 
-            <div className="flex items-center justify-between gap-2 pt-1 text-[11px] text-[#8E8E93]">
-              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none hover:text-[#D4D4D4] transition-colors">
+            <div className="flex items-center justify-between gap-2 pt-1 text-[11px] text-[var(--text-muted)]">
+              <label className="inline-flex items-center gap-1.5 cursor-pointer select-none hover:text-[var(--text-primary)] transition-colors">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => handleRememberMeChange && handleRememberMeChange(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded accent-[#007ACC] cursor-pointer"
+                  className="w-3.5 h-3.5 rounded accent-[var(--primary)] cursor-pointer"
                 />
                 <span>{lang === 'en' ? 'Remember me' : 'จดจำบัญชี'}</span>
               </label>
@@ -205,7 +203,7 @@ function AppContent() {
                 <button
                   type="button"
                   onClick={() => login({ selectAccount: true })}
-                  className="text-[#3794FF] hover:text-[#58A6FF] hover:underline font-medium cursor-pointer transition-colors"
+                  className="text-[var(--primary-bright)] hover:underline font-medium cursor-pointer transition-colors"
                 >
                   {lang === 'en' ? 'Switch account' : 'สลับบัญชี'}
                 </button>
@@ -217,7 +215,7 @@ function AppContent() {
         {/* Minimal Version & Latest Update Footer */}
         <div
           data-testid="login-version-info"
-          className="relative z-10 mt-4 flex items-center justify-center gap-1.5 text-[10.5px] font-mono text-[#6E6E6E] select-none"
+          className="relative z-10 mt-4 flex items-center justify-center gap-1.5 text-[10.5px] font-mono text-[var(--text-muted)] select-none"
         >
           <span>v{APP_VERSION}{APP_COMMIT ? ` (${APP_COMMIT})` : ''}</span>
           <span>•</span>
@@ -234,8 +232,8 @@ function AppContent() {
       <Layout>
         <Suspense
           fallback={
-            <div className="flex h-64 items-center justify-center text-[#858585]">
-              <div className="w-6 h-6 rounded-full border-2 border-[#3C3C3C] border-t-[#007ACC] animate-spin" />
+            <div className="min-h-[60vh] flex items-center justify-center text-[var(--text-muted)]">
+              <div className="w-6 h-6 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] animate-spin" />
             </div>
           }
         >

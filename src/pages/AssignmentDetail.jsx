@@ -11,6 +11,7 @@ import { sanitizeExternalUrl } from '../utils/sanitize';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
+import PageHeader from '../components/PageHeader';
 
 function formatDueDateDisplay(dueDate, lang) {
   if (!dueDate) return null;
@@ -229,86 +230,102 @@ export default function AssignmentDetail() {
     setIsEditingTask(false);
   };
 
+  const sourceCrumb = fromPath.startsWith('/courses')
+    ? { label: t('courses', lang), to: fromPath }
+    : fromPath === '/'
+      ? { label: t('home', lang), to: '/' }
+      : fromPath.startsWith('/schedule')
+        ? { label: t('schedule', lang), to: fromPath }
+        : { label: t('assignmentsNav', lang), to: '/dashboard' };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={handleBack}
-          data-testid="assignment-back-button"
-          className="inline-flex items-center gap-2 text-xs font-medium text-[#D4D4D4] bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] px-4 py-2 rounded-xl transition-colors cursor-pointer"
-        >
-          <ArrowLeft size={15} />
-          <span>{getBackLabel()}</span>
-        </button>
-
-        <div className="flex items-center gap-2">
-          {course && (
-            <Link
-              to={`/courses?selected=${encodeURIComponent(course)}&tab=assignments`}
-              state={{ from: `${location.pathname}${location.search}` }}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3794FF] bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] px-3.5 py-2 rounded-xl transition-colors"
-            >
-              <BookOpen size={14} />
-              <span>{t('openCoursePage', lang)}</span>
-            </Link>
-          )}
-          {isCustomTask && handleUpdateAssignment && !isEditingTask && (
+      <PageHeader
+        breadcrumbs={[
+          sourceCrumb,
+          ...(course ? [{ label: course, to: `/courses?selected=${encodeURIComponent(course)}&tab=assignments` }] : []),
+          { label: lang === 'th' ? 'รายละเอียดงาน' : 'Details' }
+        ]}
+        title={title}
+        description={courseCode ? `${courseCode} • ${course}` : course}
+        actions={
+          <>
             <button
               type="button"
-              onClick={openTaskEditor}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#D4D4D4] bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+              onClick={handleBack}
+              data-testid="assignment-back-button"
+              className="inline-flex items-center gap-2 text-xs font-medium text-[var(--text-primary)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
-              <Edit2 size={13} />
-              <span>{t('editTaskBtn', lang)}</span>
+              <ArrowLeft size={14} />
+              <span>{getBackLabel()}</span>
             </button>
-          )}
-          {isCustomTask && handleDeleteAssignment && (
-            <div className="flex items-center gap-1.5">
+            {course && (
+              <Link
+                to={`/courses?selected=${encodeURIComponent(course)}&tab=assignments`}
+                state={{ from: `${location.pathname}${location.search}` }}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--primary-bright)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3.5 py-2.5 rounded-xl transition-colors"
+              >
+                <BookOpen size={14} />
+                <span>{t('openCoursePage', lang)}</span>
+              </Link>
+            )}
+            {isCustomTask && handleUpdateAssignment && !isEditingTask && (
               <button
                 type="button"
-                onClick={() => {
-                  if (!confirmDelete) {
-                    setConfirmDelete(true);
-                    return;
-                  }
-                  handleDeleteAssignment(id);
-                  handleBack();
-                }}
-                className={`inline-flex items-center gap-1.5 text-xs font-medium px-3.5 py-2 rounded-xl border transition-colors cursor-pointer ${
-                  confirmDelete
-                    ? 'bg-rose-600 text-white border-rose-600'
-                    : 'text-rose-400 bg-[#252526] hover:bg-rose-500/15 border-[#3C3C3C]'
-                }`}
+                onClick={openTaskEditor}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-primary)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
               >
-                <Trash2 size={14} />
-                <span>{confirmDelete ? t('confirmBtn', lang) : t('deleteBtn', lang)}</span>
+                <Edit2 size={13} />
+                <span>{t('editTaskBtn', lang)}</span>
               </button>
-              {confirmDelete && (
+            )}
+            {isCustomTask && handleDeleteAssignment && (
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setConfirmDelete(false)}
-                  className="inline-flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-xl border border-[#3C3C3C] bg-[#252526] hover:bg-[#2A2D2E] text-[#D4D4D4] transition-colors cursor-pointer"
+                  onClick={() => {
+                    if (!confirmDelete) {
+                      setConfirmDelete(true);
+                      return;
+                    }
+                    handleDeleteAssignment(id);
+                    handleBack();
+                  }}
+                  className={`inline-flex items-center gap-1.5 text-xs font-medium px-3.5 py-2.5 rounded-xl border transition-colors cursor-pointer ${
+                    confirmDelete
+                      ? 'bg-rose-600 text-white border-rose-600'
+                      : 'text-rose-400 bg-[var(--surface)] hover:bg-rose-500/15 border-[var(--border)]'
+                  }`}
                 >
-                  <X size={13} />
-                  <span>{t('cancelBtn', lang)}</span>
+                  <Trash2 size={14} />
+                  <span>{confirmDelete ? t('confirmBtn', lang) : t('deleteBtn', lang)}</span>
                 </button>
-              )}
-            </div>
-          )}
-          {safeGoogleLink && (
-            <a
-              href={safeGoogleLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#D4D4D4] bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] px-3.5 py-2 rounded-xl transition-colors"
-            >
-              <span>Google Classroom</span>
-              <ExternalLink size={13} className="text-[#858585]" />
-            </a>
-          )}
-        </div>
-      </div>
+                {confirmDelete && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="inline-flex items-center gap-1 text-xs font-medium px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    <X size={13} />
+                    <span>{t('cancelBtn', lang)}</span>
+                  </button>
+                )}
+              </div>
+            )}
+            {safeGoogleLink && (
+              <a
+                href={safeGoogleLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-primary)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3.5 py-2.5 rounded-xl transition-colors"
+              >
+                <span>Google Classroom</span>
+                <ExternalLink size={13} className="text-[var(--text-muted)]" />
+              </a>
+            )}
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -416,10 +433,6 @@ export default function AssignmentDetail() {
             ) : (
               <>
                 <div className="space-y-5">
-                  <h1 className="text-2xl md:text-3xl font-semibold text-[#FFFFFF] tracking-tight leading-snug">
-                    {title}
-                  </h1>
-
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
                       <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-[#3794FF] shrink-0">

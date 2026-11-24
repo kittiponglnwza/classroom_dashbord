@@ -18,7 +18,7 @@ export default function Layout({ children }) {
   }, [mobileMenuOpen]);
 
   return (
-    <div className="flex h-screen h-dvh w-screen overflow-hidden bg-[#1E1E1E] text-[#D4D4D4]">
+    <div className="flex h-screen h-dvh w-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text-primary)]">
       <div className="hidden md:block h-full shrink-0">
         <Sidebar />
       </div>
@@ -33,14 +33,14 @@ export default function Layout({ children }) {
           }}
           className="fixed inset-0 z-50 flex md:hidden bg-black/60"
         >
-          <div className="h-full w-64 bg-[#252526] shadow-lg">
+          <div className="h-full w-64 bg-[var(--sidebar-bg)] border-r border-[var(--border)]">
             <Sidebar onLinkClick={() => setMobileMenuOpen(false)} />
           </div>
           <button
             type="button"
             onClick={() => setMobileMenuOpen(false)}
             aria-label="Close Mobile Menu"
-            className="p-2.5 text-[#D4D4D4] absolute top-3.5 right-3.5 bg-[#252526] rounded-full border border-[#3C3C3C] shadow-xs cursor-pointer"
+            className="p-2.5 text-[var(--text-primary)] hover:bg-[var(--surface-hover)] absolute top-3.5 right-3.5 bg-[var(--surface)] rounded-full border border-[var(--border)] cursor-pointer transition-colors"
           >
             <X size={18} />
           </button>
@@ -50,8 +50,8 @@ export default function Layout({ children }) {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <HeaderBar setMobileMenuOpen={setMobileMenuOpen} />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-[#1E1E1E] px-3.5 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-          <div className="max-w-6xl mx-auto w-full">
+        <main className="main-scroll-container flex-1 overflow-y-auto overflow-x-hidden bg-[var(--app-bg)] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+          <div className="max-w-[var(--page-max-width)] mx-auto w-full">
             {children}
           </div>
         </main>

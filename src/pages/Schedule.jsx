@@ -25,6 +25,7 @@ import {
   formatCourseEndDateLabel,
 } from '../utils/courseEndDate';
 import RegImportModal from '../components/RegImportModal';
+import PageHeader from '../components/PageHeader';
 import { DAYS, JS_DAY_MAP } from '../constants/dateConstants';
 
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri'];
@@ -1581,211 +1582,216 @@ export default function Schedule() {
   } : null);
 
   return (
-    <div className="space-y-5">
-      {/* ── CLEAN TOP TOOLBAR (Apple / Linear Minimal Style) ───────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Left: Month Title (clickable mini-cal) + Week Prev/Today/Next */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative" ref={miniCalRef}>
-            <button
-              type="button"
-              onClick={() => setIsMiniCalOpen((prev) => !prev)}
-              className="flex items-center gap-2 text-left group cursor-pointer"
-              title={isTh ? 'เลือกวันที่จากปฏิทิน' : 'Pick date from calendar'}
-            >
-              <h1 className="text-xl font-semibold text-[#FFFFFF] tracking-tight group-hover:text-[#3794FF] transition-colors">
-                {monthHeader || t('scheduleTitle', lang)}
-              </h1>
-              <CalendarIcon size={15} className="text-[#858585] group-hover:text-[#3794FF]" />
-            </button>
-            <p className="text-[11px] text-[#858585] mt-0.5">{weekRangeStr}</p>
+    <div className="space-y-6">
+      <PageHeader
+        title={t('schedule', lang)}
+        description={t('scheduleDesc', lang)}
+        icon={CalendarDays}
+        actions={
+          <>
+            <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-xl p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setViewType('weekly')}
+                aria-label={t('weeklyView', lang)}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
+                  viewType === 'weekly' ? 'bg-[var(--primary-active)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {isTh ? 'สัปดาห์' : 'Week'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewType('daily')}
+                aria-label={t('dailyView', lang)}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
+                  viewType === 'daily' ? 'bg-[var(--primary-active)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {isTh ? 'รายวัน' : 'Day'}
+              </button>
+            </div>
 
-            {isMiniCalOpen && (
-              <MiniCalendarPopover
-                schedule={combinedSchedule}
-                lang={lang}
-                weekOffset={weekOffset}
-                setWeekOffset={setWeekOffset}
-                weekDates={weekDates}
-                onClose={() => setIsMiniCalOpen(false)}
-              />
-            )}
-          </div>
+            <button
+              type="button"
+              onClick={() => setIsRegImportOpen(true)}
+              className="inline-flex items-center gap-1.5 bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] text-xs font-medium px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
+            >
+              <Upload size={13} className="text-[var(--primary-bright)]" />
+              <span>{t('importReg', lang)}</span>
+            </button>
 
-          <div className="flex items-center bg-[#252526] border border-[#3C3C3C] rounded-xl p-0.5 ml-1">
             <button
               type="button"
-              onClick={() => setWeekOffset((prev) => prev - 1)}
-              aria-label={t('prevWeek', lang)}
-              className="p-1.5 rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] cursor-pointer"
+              onClick={openBlankAdd}
+              className="inline-flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-medium px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
-              <ChevronLeft size={14} />
+              <Plus size={14} />
+              <span>{t('addSchedule', lang)}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setWeekOffset(0)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
-                weekOffset === 0 ? 'text-[#3794FF] font-semibold' : 'text-[#9D9D9D] hover:text-[#FFFFFF]'
-              }`}
-            >
-              {isTh ? 'วันนี้' : 'Today'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setWeekOffset((prev) => prev + 1)}
-              aria-label={t('nextWeek', lang)}
-              className="p-1.5 rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] cursor-pointer"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
+
+            <div className="relative" ref={moreMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsMoreMenuOpen((prev) => !prev)}
+                aria-label={isTh ? 'ตัวเลือกเพิ่มเติม' : 'More options'}
+                className="p-2.5 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+
+              {isMoreMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 z-40 w-56 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-1.5 shadow-2xl space-y-0.5 text-xs">
+                  {extensionStatus?.connected && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        requestExtensionSync?.();
+                        setIsMoreMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-emerald-300 hover:bg-[var(--surface-hover)] cursor-pointer text-left"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                      <span>{isTh ? 'ซิงค์จาก Extension เดี๋ยวนี้' : 'Sync from Extension'}</span>
+                    </button>
+                  )}
+
+                  {profile?.email && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSyncCalendarNow();
+                        setIsMoreMenuOpen(false);
+                      }}
+                      disabled={calSyncState === 'syncing'}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer text-left disabled:opacity-50"
+                    >
+                      <RefreshCw size={13} className={`text-[var(--primary-bright)] shrink-0 ${calSyncState === 'syncing' ? 'animate-spin' : ''}`} />
+                      <span>
+                        {calSyncState === 'syncing'
+                          ? (isTh ? 'กำลังซิงค์ปฏิทิน...' : 'Syncing Calendar...')
+                          : (isTh ? 'ซิงค์ขึ้น Google Calendar' : 'Sync Google Calendar')}
+                      </span>
+                    </button>
+                  )}
+
+                  {viewType === 'weekly' && !hasWeekendItems && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowWeekendOverride((prev) => !prev);
+                        setIsMoreMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer text-left"
+                    >
+                      <CalendarDays size={13} className="text-[var(--text-muted)] shrink-0" />
+                      <span>
+                        {showWeekendOverride
+                          ? (isTh ? 'แสดงเฉพาะ จ.–ศ.' : 'Show Mon–Fri only')
+                          : (isTh ? 'แสดง เสาร์–อาทิตย์ ด้วย' : 'Show Sat–Sun')}
+                      </span>
+                    </button>
+                  )}
+
+                  {schedule.length > 0 && (
+                    <div className="pt-1 mt-1 border-t border-[var(--border)]">
+                      {showClearConfirm ? (
+                        <div className="flex items-center gap-1 px-2 py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleClearSchedule();
+                              setShowClearConfirm(false);
+                              setIsMoreMenuOpen(false);
+                            }}
+                            className="flex-1 py-1.5 rounded-lg bg-rose-600 text-white font-medium cursor-pointer"
+                          >
+                            {t('confirmBtn', lang)}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowClearConfirm(false)}
+                            className="px-2.5 py-1.5 rounded-lg bg-[var(--app-bg)] text-[var(--text-primary)] cursor-pointer"
+                          >
+                            {t('cancelBtn', lang)}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowClearConfirm(true)}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-500/10 cursor-pointer text-left"
+                        >
+                          <Trash2 size={13} className="shrink-0" />
+                          <span>{t('clearAllSchedule', lang)}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        }
+      />
+
+      {/* Contextual Date & Week Navigation Strip */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-4 py-3">
+        <div className="relative flex items-center gap-3 flex-wrap" ref={miniCalRef}>
+          <button
+            type="button"
+            onClick={() => setIsMiniCalOpen((prev) => !prev)}
+            className="inline-flex items-center gap-2 text-left group cursor-pointer px-2.5 py-1.5 rounded-xl bg-[var(--app-bg)] border border-[var(--border)] hover:border-[var(--primary)]/60 transition-colors"
+            title={isTh ? 'เลือกวันที่จากปฏิทิน' : 'Pick date from calendar'}
+          >
+            <CalendarIcon size={14} className="text-[var(--primary-bright)] shrink-0" />
+            <span className="text-sm font-semibold text-[var(--text-heading)] group-hover:text-[var(--primary-bright)] transition-colors">
+              {monthHeader || t('scheduleTitle', lang)}
+            </span>
+          </button>
+
+          <span className="text-xs text-[var(--text-secondary)] font-medium">
+            {weekRangeStr}
+          </span>
+
+          {isMiniCalOpen && (
+            <MiniCalendarPopover
+              schedule={combinedSchedule}
+              lang={lang}
+              weekOffset={weekOffset}
+              setWeekOffset={setWeekOffset}
+              weekDates={weekDates}
+              onClose={() => setIsMiniCalOpen(false)}
+            />
+          )}
         </div>
 
-        {/* Right: Segmented View Switch + Primary Add + Compact Overflow Menu */}
-        <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
-          <div className="flex items-center bg-[#252526] border border-[#3C3C3C] rounded-xl p-0.5 text-xs">
-            <button
-              type="button"
-              onClick={() => setViewType('weekly')}
-              aria-label={t('weeklyView', lang)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
-                viewType === 'weekly' ? 'bg-[#094771]/80 text-[#FFFFFF]' : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
-              }`}
-            >
-              {isTh ? 'สัปดาห์' : 'Week'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewType('daily')}
-              aria-label={t('dailyView', lang)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${
-                viewType === 'daily' ? 'bg-[#094771]/80 text-[#FFFFFF]' : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
-              }`}
-            >
-              {isTh ? 'รายวัน' : 'Day'}
-            </button>
-          </div>
-
+        <div className="flex items-center bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-0.5">
           <button
             type="button"
-            onClick={() => setIsRegImportOpen(true)}
-            className="inline-flex items-center gap-1.5 bg-[#252526] hover:bg-[#2A2D2E] text-[#D4D4D4] border border-[#3C3C3C] text-xs font-medium px-3 py-2 rounded-xl transition-colors cursor-pointer"
+            onClick={() => setWeekOffset((prev) => prev - 1)}
+            aria-label={t('prevWeek', lang)}
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
           >
-            <Upload size={13} className="text-[#3794FF]" />
-            <span>{isTh ? 'นำเข้า Reg' : 'Import Reg'}</span>
+            <ChevronLeft size={14} />
           </button>
-
           <button
             type="button"
-            onClick={openBlankAdd}
-            className="inline-flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white text-xs font-medium px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+            onClick={() => setWeekOffset(0)}
+            className={`px-3 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+              weekOffset === 0 ? 'text-[var(--primary-bright)] font-semibold' : 'text-[var(--text-secondary)] hover:text-[var(--text-heading)]'
+            }`}
           >
-            <Plus size={14} />
-            <span>{t('addSchedule', lang)}</span>
+            {isTh ? 'วันนี้' : 'Today'}
           </button>
-
-          {/* Compact More / Sync Menu */}
-          <div className="relative" ref={moreMenuRef}>
-            <button
-              type="button"
-              onClick={() => setIsMoreMenuOpen((prev) => !prev)}
-              aria-label={isTh ? 'ตัวเลือกเพิ่มเติม' : 'More options'}
-              className="p-2 rounded-xl bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
-            >
-              <MoreHorizontal size={16} />
-            </button>
-
-            {isMoreMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 z-40 w-56 bg-[#252526] border border-[#3C3C3C] rounded-xl p-1.5 shadow-2xl space-y-0.5 text-xs">
-                {extensionStatus?.connected && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      requestExtensionSync?.();
-                      setIsMoreMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-emerald-300 hover:bg-[#2A2D2E] cursor-pointer text-left"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                    <span>{isTh ? 'ซิงค์จาก Extension เดี๋ยวนี้' : 'Sync from Extension'}</span>
-                  </button>
-                )}
-
-                {profile?.email && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleSyncCalendarNow();
-                      setIsMoreMenuOpen(false);
-                    }}
-                    disabled={calSyncState === 'syncing'}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[#D4D4D4] hover:bg-[#2A2D2E] cursor-pointer text-left disabled:opacity-50"
-                  >
-                    <RefreshCw size={13} className={`text-[#3794FF] shrink-0 ${calSyncState === 'syncing' ? 'animate-spin' : ''}`} />
-                    <span>
-                      {calSyncState === 'syncing'
-                        ? (isTh ? 'กำลังซิงค์ปฏิทิน...' : 'Syncing Calendar...')
-                        : (isTh ? 'ซิงค์ขึ้น Google Calendar' : 'Sync Google Calendar')}
-                    </span>
-                  </button>
-                )}
-
-                {viewType === 'weekly' && !hasWeekendItems && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowWeekendOverride((prev) => !prev);
-                      setIsMoreMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[#D4D4D4] hover:bg-[#2A2D2E] cursor-pointer text-left"
-                  >
-                    <CalendarDays size={13} className="text-[#858585] shrink-0" />
-                    <span>
-                      {showWeekendOverride
-                        ? (isTh ? 'แสดงเฉพาะ จ.–ศ.' : 'Show Mon–Fri only')
-                        : (isTh ? 'แสดง เสาร์–อาทิตย์ ด้วย' : 'Show Sat–Sun')}
-                    </span>
-                  </button>
-                )}
-
-                {schedule.length > 0 && (
-                  <div className="pt-1 mt-1 border-t border-[#3C3C3C]">
-                    {showClearConfirm ? (
-                      <div className="flex items-center gap-1 px-2 py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleClearSchedule();
-                            setShowClearConfirm(false);
-                            setIsMoreMenuOpen(false);
-                          }}
-                          className="flex-1 py-1.5 rounded-lg bg-rose-600 text-white font-medium cursor-pointer"
-                        >
-                          {t('confirmBtn', lang)}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowClearConfirm(false)}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#1E1E1E] text-[#D4D4D4] cursor-pointer"
-                        >
-                          {t('cancelBtn', lang)}
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setShowClearConfirm(true)}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-500/10 cursor-pointer text-left"
-                      >
-                        <Trash2 size={13} className="shrink-0" />
-                        <span>{t('clearAllSchedule', lang)}</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setWeekOffset((prev) => prev + 1)}
+            aria-label={t('nextWeek', lang)}
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
+          >
+            <ChevronRight size={14} />
+          </button>
         </div>
       </div>
 

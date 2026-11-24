@@ -16,6 +16,7 @@ import ExamCard from '../features/exams/ExamCard';
 import ExamManualModal from '../features/exams/ExamManualModal';
 import ExamUnlistedAlert from '../features/exams/ExamUnlistedAlert';
 import RegImportModal from '../components/RegImportModal';
+import PageHeader from '../components/PageHeader';
 import { EXAM_CONFIG } from '../config/exam';
 
 function getTodayLocalIso() {
@@ -168,57 +169,54 @@ export default function ExamRoom() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
-      {/* Page Header */}
-      <div className="border-b border-[#3C3C3C] pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#FFFFFF] flex items-center gap-2.5 tracking-tight">
-            <ClipboardCheck size={22} className="text-[#3794FF]" />
-            <span>{t('examTitle', lang)}</span>
-          </h1>
-          <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">{t('examDesc', lang)}</p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto flex-wrap">
-          {hasValidStudentId && EXAM_CONFIG.seatingLookupEnabled && (
+    <div className="space-y-6">
+      <PageHeader
+        title={t('examRoom', lang)}
+        description={t('examDesc', lang)}
+        icon={ClipboardCheck}
+        actions={
+          <>
+            {hasValidStudentId && EXAM_CONFIG.seatingLookupEnabled && (
+              <button
+                type="button"
+                onClick={() => handleSearch()}
+                disabled={loading}
+                className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 rounded-xl text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer disabled:opacity-50"
+                title={isTh ? 'เช็กที่นั่งสอบล่าสุดจากเว็บ มจพ.' : 'Re-check official seating by Student ID'}
+              >
+                <RefreshCw size={13} className={`text-[var(--primary-bright)] ${loading ? 'animate-spin' : ''}`} />
+                <span>{isTh ? 'เช็กที่นั่งสอบ' : 'Check Seating'}</span>
+              </button>
+            )}
+            {!isSearchVisible && EXAM_CONFIG.seatingLookupEnabled && (
+              <button
+                type="button"
+                onClick={() => setIsSearchVisible(true)}
+                className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 rounded-xl text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer"
+              >
+                <Search size={13} className="text-[var(--primary-bright)]" />
+                <span>{isTh ? 'ค้นหารหัสอื่น' : 'Other ID'}</span>
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => handleSearch()}
-              disabled={loading}
-              className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer disabled:opacity-50"
-              title={isTh ? 'เช็กที่นั่งสอบล่าสุดจากเว็บ มจพ.' : 'Re-check official seating by Student ID'}
+              onClick={() => setIsRegImportOpen(true)}
+              className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 rounded-xl text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer"
             >
-              <RefreshCw size={13} className={`text-[#3794FF] ${loading ? 'animate-spin' : ''}`} />
-              <span>{isTh ? 'เช็กที่นั่งสอบ' : 'Check Seating'}</span>
+              <Upload size={13} className="text-[var(--primary-bright)]" />
+              <span>{t('importReg', lang)}</span>
             </button>
-          )}
-          {!isSearchVisible && EXAM_CONFIG.seatingLookupEnabled && (
             <button
               type="button"
-              onClick={() => setIsSearchVisible(true)}
-              className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer"
+              onClick={openNewModal}
+              className="flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
             >
-              <Search size={13} className="text-[#3794FF]" />
-              <span>{isTh ? 'ค้นหารหัสอื่น' : 'Other ID'}</span>
+              <Plus size={14} />
+              <span>{t('addExamBtn', lang)}</span>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setIsRegImportOpen(true)}
-            className="flex items-center gap-1.5 bg-[#252526] border border-[#3C3C3C] px-3 py-2.5 rounded-xl text-xs text-[#D4D4D4] hover:bg-[#2A2D2E] font-medium transition-colors cursor-pointer"
-          >
-            <Upload size={13} className="text-[#3794FF]" />
-            <span>{t('importReg', lang)}</span>
-          </button>
-          <button
-            type="button"
-            onClick={openNewModal}
-            className="flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
-          >
-            <Plus size={14} />
-            <span>{t('addExamBtn', lang)}</span>
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {EXAM_CONFIG.seatingLookupEnabled ? (
         EXAM_CONFIG.seatingLookupUsesHttp && (

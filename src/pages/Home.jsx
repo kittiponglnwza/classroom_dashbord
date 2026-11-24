@@ -2,7 +2,9 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import TaskStats from '../components/TaskStats';
 import AssignmentCard from '../components/AssignmentCard';
-import { Calendar, ArrowRight, Megaphone, Clock, Paperclip, MapPin, CalendarDays, X, CheckCircle } from 'lucide-react';
+import PageHeader from '../components/PageHeader';
+import SectionHeader from '../components/SectionHeader';
+import { Home as HomeIcon, Calendar, ArrowRight, Megaphone, Clock, Paperclip, MapPin, CalendarDays, X, CheckCircle } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { getCourseBadgeColor } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
@@ -82,65 +84,74 @@ export default function Home() {
   const pendingCount = visibleAssignments.filter(a => a.status !== 'done' && a.status !== 'read').length;
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Banner */}
+    <div className="space-y-6">
+      <PageHeader
+        title={t('home', lang)}
+        description={t('homeDesc', lang)}
+        icon={HomeIcon}
+        actions={
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center justify-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors"
+          >
+            <span>{t('goDashboard', lang)}</span>
+            <ArrowRight size={14} />
+          </Link>
+        }
+      />
+
+      {/* Welcome Notice */}
       {showWelcome && (
-        <div className="relative bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <button
             type="button"
             onClick={handleDismissWelcome}
-            className="absolute top-3.5 right-3.5 p-1.5 text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] rounded-lg transition-colors cursor-pointer"
+            className="absolute top-3 right-3 p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors cursor-pointer"
             title={lang === 'en' ? 'Dismiss' : 'ปิด'}
+            aria-label={lang === 'en' ? 'Dismiss welcome banner' : 'ปิดข้อความต้อนรับ'}
           >
-            <X size={16} />
+            <X size={15} />
           </button>
 
-          <div className="pr-6 space-y-1.5">
-            <h1 className="text-2xl font-semibold text-[#FFFFFF] tracking-tight">
+          <div className="pr-8 space-y-0.5">
+            <h2 className="text-sm font-semibold text-[var(--text-heading)]">
               {t('welcomeBack', lang, { name: profile.name || 'Student' })}
-            </h1>
-            <p className="text-[#9D9D9D] text-sm max-w-xl">
+            </h2>
+            <p className="text-xs text-[var(--text-secondary)]">
               {pendingCount === 0
                 ? t('welcomeDescZero', lang)
                 : t('welcomeDesc', lang, { count: pendingCount })}
             </p>
           </div>
-          <Link
-            to="/dashboard"
-            className="inline-flex items-center justify-center gap-2 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-5 py-2.5 rounded-xl transition-colors self-start md:self-auto shrink-0"
-          >
-            <span>{t('goDashboard', lang)}</span>
-            <ArrowRight size={14} />
-          </Link>
         </div>
       )}
 
       {/* Task Statistics */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-[#FFFFFF] tracking-tight">{t('progressOverview', lang)}</h2>
+        <SectionHeader title={t('progressOverview', lang)} />
         <TaskStats assignments={visibleAssignments} lang={lang} exams={allExams} />
       </section>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Upcoming Deadlines & Recent Announcements */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6">
           <div className="space-y-3.5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#FFFFFF] flex items-center gap-2">
-                <Calendar size={16} className="text-[#3794FF]" />
-                <span>{t('latestAssignments', lang)}</span>
-              </h2>
-              {pendingCount > 0 && (
-                <Link
-                  to="/dashboard"
-                  className="text-xs text-[#3794FF] hover:underline font-medium inline-flex items-center gap-1"
-                >
-                  <span>{t('viewAll', lang)}</span>
-                  <ArrowRight size={12} />
-                </Link>
-              )}
-            </div>
+            <SectionHeader
+              title={t('latestAssignments', lang)}
+              icon={Calendar}
+              action={
+                pendingCount > 0 ? (
+                  <Link
+                    to="/dashboard"
+                    className="text-xs text-[var(--primary-bright)] hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    <span>{t('viewAll', lang)}</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                ) : null
+              }
+            />
 
             {upcomingAssignments.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -163,21 +174,21 @@ export default function Home() {
 
           {/* Recent Announcements */}
           <div className="space-y-3.5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#FFFFFF] flex items-center gap-2">
-                <Megaphone size={16} className="text-[#3794FF]" />
-                <span>{t('recentAnnouncements', lang)}</span>
-              </h2>
-              {recentAnnouncements.length > 0 && (
-                <Link
-                  to="/courses"
-                  className="text-xs text-[#3794FF] hover:underline font-medium inline-flex items-center gap-1"
-                >
-                  <span>{t('viewAll', lang)}</span>
-                  <ArrowRight size={12} />
-                </Link>
-              )}
-            </div>
+            <SectionHeader
+              title={t('recentAnnouncements', lang)}
+              icon={Megaphone}
+              action={
+                recentAnnouncements.length > 0 ? (
+                  <Link
+                    to="/courses"
+                    className="text-xs text-[var(--primary-bright)] hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    <span>{t('viewAll', lang)}</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                ) : null
+              }
+            />
 
             {recentAnnouncements.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
