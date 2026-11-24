@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import AssignmentCard from '../components/AssignmentCard';
 import PageHeader from '../components/PageHeader';
@@ -7,14 +7,17 @@ import {
   User, BookOpen, ChevronRight, Eye, EyeOff, ArrowLeft,
   Megaphone, FileText, ExternalLink, Calendar,
   Check, Trash2, Pin, Plus, Search, ChevronDown, ChevronUp,
-  LayoutGrid, List, Hash, Filter, FolderOpen
+  LayoutGrid, List, Hash, Filter, FolderOpen, Cloud, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { sanitizeExternalUrl } from '../utils/sanitize';
+import { getActiveEmail, getToken } from '../utils/storage';
+import { syncManager } from '../services/SyncManager';
 import {
   getCourseBorderTopColor, getTabStyles,
   getTabBadgeStyles, getTrackButtonStyles, getCourseBadgeColor, getCourseDotClass
 } from '../utils/colors';
+import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
@@ -310,10 +313,10 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onToggleVisibility(course.id); }}
-          className="p-1.5 rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
+          className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
           title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
         >
-          {isHidden ? <EyeOff size={14} className="text-rose-400" /> : <Eye size={14} />}
+          {isHidden ? <EyeOff size={15} className="text-rose-400 sm:w-[14px] sm:h-[14px]" /> : <Eye size={15} className="sm:w-[14px] sm:h-[14px]" />}
         </button>
         <ChevronRight size={15} className="text-[#858585] group-hover:text-[#3794FF] transition-colors" />
       </div>
@@ -322,6 +325,7 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
 }
 
 export default function Courses() {
+  const { isLoggedIn, accessToken, profile, login } = useAuth();
   const { lang } = useSettings();
   const {
     courses, assignments, resources, topics,
@@ -332,6 +336,31 @@ export default function Courses() {
     hiddenCourseIds, handleToggleCourseVisibility, handleToggleBulkCourses,
     isItemPinned = () => false, handleTogglePinItem
   } = useClassroomUI();
+
+  const [driveSyncState, setDriveSyncState] = useState(syncManager.state);
+  const [driveDirty, setDriveDirty] = useState(() => {
+    const activeEmail = profile?.email || getActiveEmail();
+    return activeEmail ? syncManager.isDirty(activeEmail) : false;
+  });
+
+  useEffect(() => {
+    return syncManager.subscribe((nextState) => {
+      setDriveSyncState(nextState);
+      const activeEmail = profile?.email || getActiveEmail();
+      setDriveDirty(activeEmail ? syncManager.isDirty(activeEmail) : false);
+    });
+  }, [profile?.email]);
+
+  const handleRetryCloudSync = useCallback(() => {
+    const email = profile?.email || getActiveEmail();
+    const liveToken = getToken() || accessToken;
+    if (!email) return;
+    if (!liveToken) {
+      login?.();
+      return;
+    }
+    syncManager.executeSync(liveToken, email).catch(() => {});
+  }, [accessToken, profile?.email, login]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -476,7 +505,7 @@ export default function Courses() {
       >
         <div className={`w-full h-1.5 ${getCourseBorderTopColor(course.color)}`} />
 
-        <div className="p-5 flex-1 space-y-3">
+        <div className="p-4 sm:p-5 flex-1 space-y-2.5 sm:space-y-3">
           <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#858585]">
             <span>{course.code}</span>
             <div>
@@ -493,7 +522,7 @@ export default function Courses() {
           </div>
 
           <div className="space-y-1.5">
-            <h3 className="font-semibold text-base text-[#FFFFFF] group-hover:text-[#3794FF] transition-colors leading-snug truncate" title={course.name}>
+            <h3 className="font-semibold text-[15px] sm:text-base text-[#FFFFFF] group-hover:text-[#3794FF] transition-colors leading-snug truncate" title={course.name}>
               {course.name}
             </h3>
             <div className="flex items-center gap-2 text-xs text-[#9D9D9D]">
@@ -504,7 +533,7 @@ export default function Courses() {
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-[#3C3C3C] bg-[#1E1E1E]/60 flex items-center justify-between">
+        <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-[#3C3C3C] bg-[#1E1E1E]/60 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs text-[#9D9D9D] min-w-0">
             <User size={13} className="shrink-0" />
             <span className="truncate">{course.instructor}</span>
@@ -516,10 +545,10 @@ export default function Courses() {
               e.stopPropagation();
               handleToggleCourseVisibility(course.id);
             }}
-            className="p-1.5 rounded-lg bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
+            className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer shrink-0"
             title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
           >
-            {isHidden ? <EyeOff size={13} className="text-rose-400" /> : <Eye size={13} />}
+            {isHidden ? <EyeOff size={15} className="text-rose-400 sm:w-[13px] sm:h-[13px]" /> : <Eye size={15} className="sm:w-[13px] sm:h-[13px]" />}
           </button>
         </div>
       </div>
@@ -611,12 +640,12 @@ export default function Courses() {
 
         <div className={`h-1 w-full rounded-full ${getCourseBorderTopColor(selectedCourseObj.color)}`} />
 
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex bg-[#252526] border border-[#3C3C3C] p-1 rounded-xl w-fit gap-1 select-none">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex bg-[#252526] border border-[#3C3C3C] p-1 rounded-xl w-full sm:w-fit max-w-full overflow-x-auto gap-1 select-none">
               <button
                 type="button"
                 onClick={() => updateParams({ tab: 'resources' })}
-                className={`px-4 py-1.5 rounded-lg text-xs flex items-center gap-2 transition-colors cursor-pointer border ${getTabStyles(themeColor, activeTab === 'resources')}`}
+                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs flex items-center gap-1.5 sm:gap-2 transition-colors cursor-pointer border whitespace-nowrap shrink-0 ${getTabStyles(themeColor, activeTab === 'resources')}`}
               >
                 <Megaphone size={13} />
                 <span>{t('announcementsMaterialsTab', lang)}</span>
@@ -627,7 +656,7 @@ export default function Courses() {
               <button
                 type="button"
                 onClick={() => updateParams({ tab: 'assignments' })}
-                className={`px-4 py-1.5 rounded-lg text-xs flex items-center gap-2 transition-colors cursor-pointer border ${getTabStyles(themeColor, activeTab === 'assignments')}`}
+                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs flex items-center gap-1.5 sm:gap-2 transition-colors cursor-pointer border whitespace-nowrap shrink-0 ${getTabStyles(themeColor, activeTab === 'assignments')}`}
               >
                 <BookOpen size={13} />
                 <span>{t('assignmentsTab', lang)}</span>
@@ -637,8 +666,8 @@ export default function Courses() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="relative">
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <div className="relative flex-1 sm:flex-none">
                 <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#858585]" />
                 <input
                   type="text"
@@ -646,7 +675,7 @@ export default function Courses() {
                   value={courseSearch}
                   onChange={(e) => setCourseSearch(e.target.value)}
                   placeholder={t('searchInCoursePlaceholder', lang)}
-                  className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl pl-8 pr-3 py-1.5 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] w-44 sm:w-56"
+                  className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl pl-8 pr-3 py-1.5 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] w-full sm:w-56"
                 />
               </div>
 
@@ -927,15 +956,15 @@ export default function Courses() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title={t('enrolledCoursesTitle', lang)}
         description={t('enrolledCoursesDesc', lang)}
         icon={BookOpen}
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-3">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-2.5 sm:p-3">
+        <div className="relative flex-1 w-full sm:max-w-md">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
@@ -946,7 +975,31 @@ export default function Courses() {
           />
         </div>
 
-        <div className="flex items-center bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-0.5 shrink-0 self-end sm:self-auto">
+        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+          {isLoggedIn && (driveSyncState === 'queued' || driveSyncState === 'uploading') && (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-xl bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)]">
+              <RefreshCw size={12} className="animate-spin text-[var(--primary-bright)]" />
+              <span>{lang === 'en' ? 'Saving to Cloud...' : 'กำลังซิงค์ขึ้น Cloud...'}</span>
+            </span>
+          )}
+          {isLoggedIn && driveSyncState === 'success' && !driveDirty && (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+              <Cloud size={12} />
+              <span>{lang === 'en' ? 'Synced across devices' : 'ซิงค์ข้ามอุปกรณ์แล้ว'}</span>
+            </span>
+          )}
+          {isLoggedIn && (driveSyncState === 'failed' || (driveDirty && driveSyncState === 'idle')) && (
+            <button
+              type="button"
+              onClick={handleRetryCloudSync}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/35 text-amber-300 hover:bg-amber-500/25 transition-colors cursor-pointer"
+            >
+              <AlertCircle size={12} />
+              <span>{lang === 'en' ? 'Retry Cloud Sync' : 'ซิงค์ขึ้น Cloud อีกครั้ง'}</span>
+            </button>
+          )}
+
+          <div className="flex items-center bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-0.5 shrink-0 ml-auto sm:ml-0">
           <button
             type="button"
             onClick={() => updateParams({ view: 'grid' })}
@@ -971,6 +1024,7 @@ export default function Courses() {
           >
             <List size={15} />
           </button>
+        </div>
         </div>
       </div>
 

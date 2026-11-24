@@ -1,18 +1,84 @@
 import { syncSettingsWithDrive } from './driveSync';
 import { STORAGE_CONFIG } from '../config/storage';
 import { SYNC_CONFIG } from '../config/sync';
+import { getToken, getActiveEmail } from '../utils/storage';
 import { logger } from '../utils/logger';
 
 const KEYS = STORAGE_CONFIG.keys;
+const DIRTY_KEY_PREFIX = 'classroom_hub_drive_dirty_';
 
 class SyncManager {
   constructor() {
     this.state = 'idle'; // idle | queued | uploading | success | failed | retry
+    this.lastError = null;
     this.subscribers = new Set();
     this.debounceTimer = null;
     this.stateResetTimer = null;
     this.activePromise = null;
+    this.queuedArgs = null;
     this.pendingSyncArgs = null;
+    this.lifecycleBound = false;
+    this.bindLifecycleFlush();
+  }
+
+  getDirtyKey(email = '') {
+    const lower = String(email || '').toLowerCase().trim();
+    return lower ? `${DIRTY_KEY_PREFIX}${lower}` : '';
+  }
+
+  markDirty(email = '') {
+    const key = this.getDirtyKey(email);
+    if (!key || typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(key, new Date().toISOString());
+    } catch {
+      // Ignore storage errors for dirty marker
+    }
+  }
+
+  clearDirty(email = '') {
+    const key = this.getDirtyKey(email);
+    if (!key || typeof localStorage === 'undefined') return;
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore storage errors
+    }
+  }
+
+  isDirty(email = '') {
+    const key = this.getDirtyKey(email);
+    if (!key || typeof localStorage === 'undefined') return false;
+    try {
+      return Boolean(localStorage.getItem(key));
+    } catch {
+      return false;
+    }
+  }
+
+  bindLifecycleFlush() {
+    if (this.lifecycleBound || typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+    this.lifecycleBound = true;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        this.flush({ keepalive: true });
+      } else if (document.visibilityState === 'visible') {
+        const email = getActiveEmail();
+        const token = getToken();
+        if (email && token && this.isDirty(email) && this.state !== 'uploading') {
+          this.executeSync(token, email).catch((err) => {
+            logger.debug('[SyncManager] Visibility dirty retry failed:', err?.message || err);
+          });
+        }
+      }
+    };
+    const handlePageHide = () => {
+      this.flush({ keepalive: true });
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', handlePageHide);
   }
 
   subscribe(callback) {
@@ -42,45 +108,76 @@ class SyncManager {
       this.debounceTimer = null;
     }
     this.clearResetTimer();
+    this.queuedArgs = null;
     this.pendingSyncArgs = null;
+    this.lastError = null;
     this.setState('idle');
   }
 
+  flush(options = {}) {
+    if (!this.debounceTimer || !this.queuedArgs) {
+      return null;
+    }
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = null;
+    const { accessToken, email } = this.queuedArgs;
+    this.queuedArgs = null;
+    const liveToken = getToken() || accessToken;
+    if (!liveToken || !email) {
+      return null;
+    }
+    return this.executeSync(liveToken, email, options).catch(err => {
+      logger.error('Flushed background sync failed:', err);
+      return false;
+    });
+  }
+
   /**
-   * Queue a sync operation with debouncing
+   * Queue a sync operation with debouncing (and lifecycle flush protection)
    */
-  queueSync(accessToken, email) {
-    if (!accessToken || !email) {
+  queueSync(accessToken, email, options = {}) {
+    const liveToken = getToken() || accessToken;
+    if (!liveToken || !email) {
       logger.debug('Sync ignored: Missing token or email');
       return;
     }
 
     if (this.state === 'uploading') {
-      this.pendingSyncArgs = { accessToken, email };
+      this.pendingSyncArgs = { accessToken: liveToken, email };
       return;
     }
 
     this.clearResetTimer();
+    this.queuedArgs = { accessToken: liveToken, email };
     this.setState('queued');
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
 
+    const delayMs = Number.isFinite(options.debounceMs) ? Math.max(0, options.debounceMs) : SYNC_CONFIG.debounceDelayMs;
     this.debounceTimer = setTimeout(() => {
       this.debounceTimer = null;
-      this.executeSync(accessToken, email).catch(err => {
+      const queued = this.queuedArgs || { accessToken: liveToken, email };
+      this.queuedArgs = null;
+      const tokenForRun = getToken() || queued.accessToken;
+      this.executeSync(tokenForRun, queued.email).catch(err => {
         logger.error('Background sync execution failed:', err);
       });
-    }, SYNC_CONFIG.debounceDelayMs);
+    }, delayMs);
   }
 
   /**
    * Execution wrapper with State Machine transitions
    */
-  async executeSync(accessToken, email) {
+  async executeSync(accessToken, email, options = {}) {
+    const liveToken = getToken() || accessToken;
+    if (!liveToken || !email) {
+      return false;
+    }
+
     if (this.state === 'uploading') {
       logger.debug('Sync already in progress. Scheduling follow-up run.');
-      this.pendingSyncArgs = { accessToken, email };
+      this.pendingSyncArgs = { accessToken: liveToken, email };
       return this.activePromise;
     }
 
@@ -88,9 +185,11 @@ class SyncManager {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
+    this.queuedArgs = null;
     this.clearResetTimer();
+    this.lastError = null;
     this.setState('uploading');
-    this.activePromise = this.performSync(accessToken, email);
+    this.activePromise = this.performSync(liveToken, email, options);
 
     try {
       const remoteModified = await this.activePromise;
@@ -101,6 +200,7 @@ class SyncManager {
       }, 3000);
       return remoteModified;
     } catch (err) {
+      this.lastError = err?.message || String(err);
       this.setState('failed');
       this.stateResetTimer = setTimeout(() => {
         this.stateResetTimer = null;
@@ -113,7 +213,9 @@ class SyncManager {
       if (queued) {
         this.pendingSyncArgs = null;
         setTimeout(() => {
-          this.executeSync(queued.accessToken, queued.email).catch(err => {
+          const nextToken = getToken() || queued.accessToken;
+          if (!nextToken || !queued.email) return;
+          this.executeSync(nextToken, queued.email).catch(err => {
             logger.error('Queued follow-up sync failed:', err);
           });
         }, 0);
@@ -124,9 +226,11 @@ class SyncManager {
   /**
    * High-fidelity merging & conflict resolution algorithm (Entity-level sync)
    */
-  async performSync(accessToken, email) {
+  async performSync(accessToken, email, options = {}) {
     const lowerEmail = email.toLowerCase().trim();
-    return await syncSettingsWithDrive(accessToken, lowerEmail, this.mergePayloads.bind(this));
+    const result = await syncSettingsWithDrive(accessToken, lowerEmail, this.mergePayloads.bind(this), options);
+    this.clearDirty(lowerEmail);
+    return result;
   }
 
   /**
@@ -299,17 +403,25 @@ class SyncManager {
           const mergedLimit = this.mergeDailyEmailLimit(localParsed.data || {}, remoteParsed.data || {});
           merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedLimit);
         } else {
-          // General settings, profiles, lastSync metadata: LWW based on collection timestamp
+          // General settings, hidden courses, pinned items, profiles, lastSync metadata: LWW based on numeric timestamp
           let localObj, remoteObj;
           try { localObj = JSON.parse(localStr); } catch { localObj = null; }
           try { remoteObj = JSON.parse(remoteStr); } catch { remoteObj = null; }
 
-          if (!localObj || !remoteObj || localObj.timestamp === undefined || remoteObj.timestamp === undefined) {
+          if (!localObj && remoteObj) {
+            merged[fullKey] = remoteStr;
+          } else if (!remoteObj || localObj.timestamp === undefined || remoteObj.timestamp === undefined) {
             merged[fullKey] = localStr;
           } else {
-            const localTime = new Date(localObj.timestamp || 0);
-            const remoteTime = new Date(remoteObj.timestamp || 0);
-            merged[fullKey] = remoteTime > localTime ? remoteStr : localStr;
+            const localTime = new Date(localObj.timestamp).getTime();
+            const remoteTime = new Date(remoteObj.timestamp).getTime();
+            if (!Number.isFinite(localTime) && Number.isFinite(remoteTime)) {
+              merged[fullKey] = remoteStr;
+            } else if (Number.isFinite(localTime) && !Number.isFinite(remoteTime)) {
+              merged[fullKey] = localStr;
+            } else {
+              merged[fullKey] = remoteTime > localTime ? remoteStr : localStr;
+            }
           }
         }
       } catch (err) {

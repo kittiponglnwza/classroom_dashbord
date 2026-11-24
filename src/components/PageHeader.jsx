@@ -16,7 +16,7 @@ export default function PageHeader({
 }) {
   return (
     <header
-      className={`border-b border-[var(--border)] pb-5 ${className}`}
+      className={`border-b border-[var(--border)] pb-3.5 sm:pb-5 ${className}`}
       data-testid="page-header"
     >
       {Array.isArray(breadcrumbs) && breadcrumbs.length > 0 && (
@@ -61,31 +61,31 @@ export default function PageHeader({
         </nav>
       )}
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
         <div className="min-w-0 space-y-1">
-          <div className="flex items-center flex-wrap gap-2.5">
+          <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
             {Icon && (
               <Icon
-                size={22}
-                className="text-[var(--primary-bright)] shrink-0"
+                size={20}
+                className="text-[var(--primary-bright)] shrink-0 sm:w-[22px] sm:h-[22px]"
                 aria-hidden="true"
               />
             )}
-            <h1 className="text-2xl sm:text-[26px] font-[650] text-[var(--text-heading)] tracking-tight leading-tight min-w-0 break-words">
+            <h1 className="text-xl sm:text-[26px] font-[650] text-[var(--text-heading)] tracking-tight leading-tight min-w-0 break-words">
               {title}
             </h1>
             {meta}
           </div>
 
           {description && (
-            <p className="text-[13px] sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-2xl">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-2xl">
               {description}
             </p>
           )}
         </div>
 
         {actions && (
-          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start lg:self-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto shrink-0 self-start lg:self-auto">
             {actions}
           </div>
         )}

@@ -69,14 +69,14 @@ export default function TaskFilters({
       </div>
 
       {/* Filters and Sorting */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
-          <Filter size={13} className="text-[#858585]" />
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 min-w-0">
+        <div className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] min-w-0 ${viewType === 'kanban' ? 'col-span-2 sm:col-span-1' : ''}`}>
+          <Filter size={13} className="text-[#858585] shrink-0" />
           <select
             aria-label={t('allSubjects', lang)}
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer pr-1 rounded"
+            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer pr-1 rounded w-full min-w-0 truncate"
           >
             <option value="all">{t('allSubjects', lang)}</option>
             {visibleCourses.map(c => (
@@ -86,12 +86,12 @@ export default function TaskFilters({
         </div>
 
         {viewType !== 'kanban' && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] min-w-0">
             <select
               aria-label={t('allStatuses', lang)}
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer rounded"
+              className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer rounded w-full min-w-0"
             >
               <option value="all">{t('allStatuses', lang)}</option>
               <option value="todo">{t('todo', lang)}</option>
@@ -102,13 +102,13 @@ export default function TaskFilters({
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
-          <ArrowUpDown size={13} className="text-[#858585]" />
+        <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] min-w-0">
+          <ArrowUpDown size={13} className="text-[#858585] shrink-0" />
           <select
             aria-label="Sort assignments"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer rounded"
+            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer rounded w-full min-w-0"
           >
             <option value="due-asc">{t('sortByDueAsc', lang)}</option>
             <option value="due-desc">{t('sortByDueDesc', lang)}</option>
@@ -130,13 +130,13 @@ export default function TaskFilters({
                 setSelectedStatus('all');
               }
             }}
-            className="text-xs font-medium text-[#3794FF] hover:text-[#FFFFFF] bg-[#007ACC]/15 hover:bg-[#007ACC]/30 border border-[#007ACC]/40 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+            className="text-xs font-medium text-[#3794FF] hover:text-[#FFFFFF] bg-[#007ACC]/15 hover:bg-[#007ACC]/30 border border-[#007ACC]/40 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer justify-self-start"
           >
             {t('clearFilters', lang)}
           </button>
         )}
 
-        <div className="flex items-center border border-[#3C3C3C] rounded-xl p-0.5 bg-[#1E1E1E] ml-auto md:ml-1">
+        <div className="col-span-2 sm:col-span-1 flex items-center justify-end sm:justify-start border border-[#3C3C3C] rounded-xl p-0.5 bg-[#1E1E1E] justify-self-end sm:ml-auto">
           <button
             type="button"
             onClick={() => setViewType('list')}

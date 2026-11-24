@@ -69,7 +69,7 @@ export default function Dashboard() {
   const hasActiveFilters = Boolean(searchQuery || selectedCourse !== 'all' || selectedStatus !== 'all');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title={t('assignmentsTitle', lang)}
         description={t('assignmentsDesc', lang)}
@@ -150,14 +150,14 @@ export default function Dashboard() {
 
       {/* Critical Rows (Visible in Grid and List views) */}
       {(viewType === 'grid' || viewType === 'list') && (overdueTasks.length > 0 || todayTasks.length > 0) && (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {overdueTasks.length > 0 && (
-            <div className="space-y-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl p-5">
+            <div className="space-y-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl p-3.5 sm:p-5">
               <h3 className="text-xs font-semibold text-rose-400 flex items-center gap-2">
                 <AlertTriangle size={15} className="text-rose-400" />
                 <span>{t('overdueTasksTitle', lang)} ({overdueTasks.length})</span>
               </h3>
-              <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
+              <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4' : 'flex flex-col gap-2.5'}>
                 {overdueTasks.map(task => (
                   <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode={viewType} />
                 ))}
@@ -166,12 +166,12 @@ export default function Dashboard() {
           )}
 
           {todayTasks.length > 0 && (
-            <div className="space-y-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
+            <div className="space-y-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 sm:p-5">
               <h3 className="text-xs font-semibold text-amber-400 flex items-center gap-2">
                 <Clock size={15} className="text-amber-400" />
                 <span>{t('dueTodayTitle', lang)} ({todayTasks.length})</span>
               </h3>
-              <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
+              <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4' : 'flex flex-col gap-2.5'}>
                 {todayTasks.map(task => (
                   <AssignmentCard key={task.id} assignment={task} onStatusChange={handleStatusChange} lang={lang} viewMode={viewType} />
                 ))}

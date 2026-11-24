@@ -129,7 +129,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
   if (viewMode === 'list' && !isListExpanded) {
     return (
       <div
-        className={`group bg-[#252526] border rounded-xl px-4 py-3 flex items-center justify-between gap-4 transition-colors ${getCardBorderClass()}`}
+        className={`group bg-[#252526] border rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2.5 sm:gap-4 transition-colors ${getCardBorderClass()}`}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="w-8 h-8 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] flex items-center justify-center shrink-0 text-[#3794FF]">
@@ -208,7 +208,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
 
   return (
     <div
-      className={`bg-[#252526] border rounded-2xl p-5 transition-colors flex flex-col justify-between group ${
+      className={`bg-[#252526] border rounded-2xl p-3.5 sm:p-5 transition-colors flex flex-col justify-between group ${
         viewMode === 'grid' ? 'h-full' : ''
       } ${getCardBorderClass()}`}
     >
@@ -281,7 +281,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
         </Link>
       </div>
 
-      <div className="border-t border-[#3C3C3C] pt-3.5 flex items-center justify-between mt-4">
+      <div className="border-t border-[#3C3C3C] pt-3 sm:pt-3.5 flex flex-wrap items-center justify-between gap-2 mt-3.5 sm:mt-4">
         <div className="flex items-center gap-1.5 text-xs">
           {dueStatus.icon}
           <span className={`text-xs ${dueStatus.colorClass}`}>

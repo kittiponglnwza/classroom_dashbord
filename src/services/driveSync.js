@@ -27,6 +27,7 @@ const KEYS = STORAGE_CONFIG.keys;
 const STANDARD_SCOPED_KEYS = [
   KEYS.assignments,
   KEYS.hiddenCourses,
+  KEYS.pinnedItems,
   KEYS.resources,
   KEYS.schedule,
   KEYS.exams,
@@ -103,18 +104,23 @@ export const applyRemoteSettingsPayload = (payload, expectedEmail = '') => {
     }
   });
   StorageRepository.clearMemoryCache();
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('classroom_hub_remote_applied', {
+      detail: { email: expectedEmail ? expectedEmail.toLowerCase().trim() : '' }
+    }));
+  }
 };
 
 /**
- * Checks Google Drive appDataFolder for the settings sync file (newest non-trashed).
+ * Checks Google Drive appDataFolder for the settings sync files (newest first).
  */
-async function findSyncFile(accessToken) {
+async function findSyncFiles(accessToken) {
   const q = encodeURIComponent(`name='${SYNC_FILE_NAME}' and trashed=false`);
   const url = `${DRIVE_FILES_URL}?spaces=appDataFolder&q=${q}&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime)`;
   
   const headers = { 'Authorization': `Bearer ${accessToken}` };
   const data = await httpClient.request(url, { headers });
-  return (data.files && data.files.length > 0) ? data.files[0] : null;
+  return Array.isArray(data?.files) ? data.files : [];
 }
 
 /**
@@ -151,18 +157,22 @@ async function createSyncFileWithContent(accessToken, payload, timestamp) {
 /**
  * Uploads settings payload to an existing sync file
  */
-async function uploadSyncFileContent(accessToken, fileId, payload, timestamp) {
+async function uploadSyncFileContent(accessToken, fileId, payload, timestamp, options = {}) {
   const url = `${DRIVE_UPLOAD_URL}/${fileId}?uploadType=media&fields=id,modifiedTime`;
-  const content = { version: STORAGE_CONFIG.schemaVersion, timestamp, payload };
-
-  return await httpClient.request(url, {
+  const body = JSON.stringify({ version: STORAGE_CONFIG.schemaVersion, timestamp, payload });
+  const reqOptions = {
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(content)
-  });
+    body
+  };
+  if (options.keepalive && body.length < 60000) {
+    reqOptions.keepalive = true;
+  }
+
+  return await httpClient.request(url, reqOptions);
 }
 
 /**
@@ -188,7 +198,7 @@ async function downloadSyncFileContent(accessToken, fileId) {
  * Synchronizes local settings with Google Drive appDataFolder.
  * Integrates merge-based conflict resolution and avoids stale pre-await local snapshots.
  */
-export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
+export async function syncSettingsWithDrive(accessToken, email, mergeCallback, options = {}) {
   if (!accessToken || !email) return false;
 
   const lowerEmail = email.toLowerCase().trim();
@@ -196,7 +206,8 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
 
   try {
     logger.info('[Drive Sync] Querying sync file on Google Drive...');
-    const file = await findSyncFile(accessToken);
+    const files = await findSyncFiles(accessToken);
+    const file = files.length > 0 ? files[0] : null;
 
     if (!file) {
       logger.info('[Drive Sync] Sync file not found. Creating new sync file...');
@@ -221,6 +232,7 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
     const preDownloadSerialized = canonicalPayloadString(preDownloadLocal);
     const cachedMeta = driveSyncStateCache.get(lowerEmail);
     if (
+      files.length === 1 &&
       cachedMeta &&
       file.id &&
       file.modifiedTime &&
@@ -234,12 +246,31 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
 
     logger.info('[Drive Sync] Sync file found. Downloading remote state...');
     const remoteData = await downloadSyncFileContent(accessToken, file.id);
+    let remotePayload = remoteData?.payload || null;
+    let mergedDuplicateFile = false;
+    if (files.length > 1) {
+      // Reconcile accidental duplicate sync files (e.g. concurrent first logins) into the newest file
+      for (const dupFile of files.slice(1, 3)) {
+        if (!dupFile?.id) continue;
+        try {
+          const dupData = await downloadSyncFileContent(accessToken, dupFile.id);
+          if (dupData?.payload && typeof dupData.payload === 'object') {
+            remotePayload = remotePayload
+              ? mergeCallback(remotePayload, dupData.payload, lowerEmail)
+              : dupData.payload;
+            mergedDuplicateFile = true;
+          }
+        } catch (dupErr) {
+          logger.warn('[Drive Sync] Failed reading duplicate sync file:', dupErr?.message || dupErr);
+        }
+      }
+    }
     const localPayload = getLocalSettingsPayload(lowerEmail);
 
-    if (!remoteData || !remoteData.payload) {
+    if (!remotePayload) {
       logger.info('[Drive Sync] Remote sync file was empty. Uploading current state...');
       const now = new Date().toISOString();
-      const uploadedFile = await uploadSyncFileContent(accessToken, file.id, localPayload, now);
+      const uploadedFile = await uploadSyncFileContent(accessToken, file.id, localPayload, now, options);
       localStorage.setItem(timeKey, now);
       const nextModifiedTime = uploadedFile?.modifiedTime;
       if (file.id && nextModifiedTime) {
@@ -255,14 +286,14 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
     }
 
     // Perform fine-grained merge using fresh local state vs downloaded remote payload
-    const mergedPayload = mergeCallback(localPayload, remoteData.payload, lowerEmail);
+    const mergedPayload = mergeCallback(localPayload, remotePayload, lowerEmail);
 
     const localSerialized = canonicalPayloadString(localPayload);
-    const remoteSerialized = canonicalPayloadString(remoteData.payload);
+    const remoteSerialized = canonicalPayloadString(remoteData?.payload || {});
     const mergedSerialized = canonicalPayloadString(mergedPayload);
 
     const localIsOutOfSync = localSerialized !== mergedSerialized;
-    const remoteIsOutOfSync = remoteSerialized !== mergedSerialized;
+    const remoteIsOutOfSync = mergedDuplicateFile || remoteSerialized !== mergedSerialized;
 
     let appliedRemote = false;
 
@@ -276,7 +307,7 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
     if (remoteIsOutOfSync) {
       logger.info('[Drive Sync] Remote data requires update. Uploading merged state to Google Drive...');
       const now = new Date().toISOString();
-      const uploadedFile = await uploadSyncFileContent(accessToken, file.id, mergedPayload, now);
+      const uploadedFile = await uploadSyncFileContent(accessToken, file.id, mergedPayload, now, options);
       localStorage.setItem(timeKey, now);
       latestModifiedTime = uploadedFile?.modifiedTime || '';
     } else {

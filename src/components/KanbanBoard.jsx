@@ -32,13 +32,13 @@ const KanbanBoard = React.memo(function KanbanBoard({ todoTasks, doingTasks, don
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
       {columns.map(col => {
         const EmptyIcon = col.emptyIcon;
         return (
           <div
             key={col.key}
-            className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4 lg:p-5 flex flex-col h-full min-h-[420px]"
+            className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-4 lg:p-5 flex flex-col h-full min-h-[160px] lg:min-h-[420px]"
           >
             <div className="flex items-center justify-between mb-4 border-b border-[#3C3C3C] pb-3">
               <div className="flex items-center gap-2.5">

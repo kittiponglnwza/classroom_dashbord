@@ -429,6 +429,7 @@ export const resetDatabase = (email) => {
     StorageRepository.remove(DELETED_IDS_KEY, userEmail);
     StorageRepository.remove(`classroom_hub_calendar_event_map_${userEmail}`);
     StorageRepository.remove(`classroom_hub_settings_last_updated_${userEmail}`);
+    StorageRepository.remove(`classroom_hub_drive_dirty_${userEmail}`);
     StorageRepository.remove(`classroom_hub_${userEmail}_language`);
     StorageRepository.remove(`classroom_hub_schema_version_${userEmail}`);
     

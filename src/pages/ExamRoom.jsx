@@ -169,7 +169,7 @@ export default function ExamRoom() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title={t('examRoom', lang)}
         description={t('examDesc', lang)}

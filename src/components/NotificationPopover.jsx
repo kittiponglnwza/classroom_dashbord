@@ -280,9 +280,9 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
       role="dialog"
       aria-modal="true"
       aria-labelledby="notification-popover-title"
-      className="fixed left-4 right-4 top-20 sm:absolute sm:left-auto sm:right-0 sm:top-12 z-50 sm:w-[400px] bg-[#252526] border border-[#3C3C3C] rounded-2xl shadow-xl p-4 space-y-4 text-xs text-[#D4D4D4] animate-fade-in"
+      className="fixed left-3 right-3 top-16 sm:top-12 sm:absolute sm:left-auto sm:right-0 z-50 sm:w-[400px] max-h-[calc(100dvh-5rem)] overflow-y-auto bg-[#252526] border border-[#3C3C3C] rounded-2xl shadow-xl p-3.5 sm:p-4 space-y-3.5 sm:space-y-4 text-xs text-[#D4D4D4] animate-fade-in"
     >
-      <div className="flex items-center justify-between border-b border-[#3C3C3C] pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#3C3C3C] pb-3">
         <h3 id="notification-popover-title" className="font-semibold text-xs text-[#FFFFFF] flex items-center gap-2">
           <Bell size={14} className="text-[#3794FF]" />
           {lang === 'en' ? 'Gmail & Calendar Alerts' : 'การแจ้งเตือน Gmail และ Calendar'}

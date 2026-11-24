@@ -721,42 +721,42 @@ export default function Academic() {
       ) : (
         <>
           {/* 4 KPI Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 md:gap-4">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4">
             {/* KPI 1: GPAX */}
-            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs text-[#9D9D9D]">
-                <span>{isTh ? 'เกรดเฉลี่ยสะสม (GPAX)' : 'Cumulative GPAX'}</span>
-                <Award size={15} className="text-[#3794FF]" />
+            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5 space-y-1.5 sm:space-y-2">
+              <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-[#9D9D9D]">
+                <span className="truncate">{isTh ? 'เกรดเฉลี่ยสะสม (GPAX)' : 'Cumulative GPAX'}</span>
+                <Award size={14} className="text-[#3794FF] shrink-0 sm:w-[15px] sm:h-[15px]" />
               </div>
-              <div className={`text-3xl font-bold text-[#FFFFFF] tracking-tight font-mono ${blurCls}`}>
+              <div className={`text-2xl sm:text-3xl font-bold text-[#FFFFFF] tracking-tight font-mono ${blurCls}`}>
                 {formatGpa(summary.gpax)}
               </div>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center justify-between gap-1.5 flex-wrap">
                 {standingBadge && (
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md border ${standingBadge.cls}`}>
                     {standingBadge.label}
                   </span>
                 )}
-                <span className={`text-[11px] text-[#858585] font-mono ${blurCls}`}>
+                <span className={`text-[10.5px] sm:text-[11px] text-[#858585] font-mono ${blurCls}`}>
                   GP {summary.totalGP} / CG {summary.totalCG}
                 </span>
               </div>
             </div>
 
             {/* KPI 2: Passed Credits vs Graduation Requirement */}
-            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs text-[#9D9D9D]">
-                <span>{isTh ? 'หน่วยกิตผ่านสะสม' : 'Passed Credits'}</span>
-                <CheckCircle2 size={15} className="text-emerald-400" />
+            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5 space-y-1.5 sm:space-y-2">
+              <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-[#9D9D9D]">
+                <span className="truncate">{isTh ? 'หน่วยกิตผ่านสะสม' : 'Passed Credits'}</span>
+                <CheckCircle2 size={14} className="text-emerald-400 shrink-0 sm:w-[15px] sm:h-[15px]" />
               </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-bold text-[#FFFFFF] font-mono">{gradProgress.totalPassed}</span>
-                <span className="text-sm text-[#858585] font-mono">/ {gradProgress.totalRequired}</span>
-                <span className="text-xs text-emerald-400 font-semibold ml-auto">
+              <div className="flex items-baseline gap-1 sm:gap-1.5">
+                <span className="text-2xl sm:text-3xl font-bold text-[#FFFFFF] font-mono">{gradProgress.totalPassed}</span>
+                <span className="text-xs sm:text-sm text-[#858585] font-mono">/ {gradProgress.totalRequired}</span>
+                <span className="text-[11px] sm:text-xs text-emerald-400 font-semibold ml-auto">
                   {gradProgress.overallPassedPct}%
                 </span>
               </div>
-              <div className="text-[11px] text-[#9D9D9D] flex items-center gap-2 flex-wrap">
+              <div className="text-[10.5px] sm:text-[11px] text-[#9D9D9D] flex items-center gap-1.5 flex-wrap">
                 <span>
                   {summary.passedCourses.length} {isTh ? 'วิชาที่ผ่านแล้ว' : 'passed courses'}
                 </span>
@@ -769,27 +769,27 @@ export default function Academic() {
             </div>
 
             {/* KPI 3: Retake / Failed Courses */}
-            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs text-[#9D9D9D]">
-                <span>{isTh ? 'วิชาไม่ผ่าน / รีเกรด' : 'Failed / Retakes'}</span>
+            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5 space-y-1.5 sm:space-y-2">
+              <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-[#9D9D9D]">
+                <span className="truncate">{isTh ? 'วิชาไม่ผ่าน / รีเกรด' : 'Failed / Retakes'}</span>
                 <AlertTriangle
-                  size={15}
-                  className={summary.failedCourses.length > 0 ? 'text-rose-400' : 'text-emerald-400'}
+                  size={14}
+                  className={`shrink-0 sm:w-[15px] sm:h-[15px] ${summary.failedCourses.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}
                 />
               </div>
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-1.5 sm:gap-2">
                 <span
-                  className={`text-3xl font-bold font-mono ${
+                  className={`text-2xl sm:text-3xl font-bold font-mono ${
                     summary.failedCourses.length > 0 ? 'text-rose-400' : 'text-emerald-400'
                   }`}
                 >
                   {summary.failedCourses.length}
                 </span>
-                <span className="text-xs text-[#9D9D9D]">
+                <span className="text-[11px] sm:text-xs text-[#9D9D9D]">
                   {isTh ? 'วิชาที่ยังติด F' : 'unresolved F'}
                 </span>
               </div>
-              <div className="text-[11px] text-[#9D9D9D]">
+              <div className="text-[10.5px] sm:text-[11px] text-[#9D9D9D]">
                 {summary.retakingCourses.length > 0 ? (
                   <span className="text-[#3794FF] font-medium">
                     {isTh
@@ -807,22 +807,22 @@ export default function Academic() {
             </div>
 
             {/* KPI 4: Latest Term GPA */}
-            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs text-[#9D9D9D]">
-                <span>
+            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5 space-y-1.5 sm:space-y-2">
+              <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-[#9D9D9D]">
+                <span className="truncate">
                   {isTh ? 'GPA เทอมล่าสุด' : 'Latest Term GPA'}
                   {summary.latestSemesterId ? ` (${summary.latestSemesterId})` : ''}
                 </span>
                 {summary.gpaDelta !== null && summary.gpaDelta < 0 ? (
-                  <TrendingDown size={15} className="text-rose-400" />
+                  <TrendingDown size={14} className="text-rose-400 shrink-0 sm:w-[15px] sm:h-[15px]" />
                 ) : (
-                  <TrendingUp size={15} className="text-emerald-400" />
+                  <TrendingUp size={14} className="text-emerald-400 shrink-0 sm:w-[15px] sm:h-[15px]" />
                 )}
               </div>
-              <div className={`text-3xl font-bold text-[#FFFFFF] font-mono ${blurCls}`}>
+              <div className={`text-2xl sm:text-3xl font-bold text-[#FFFFFF] font-mono ${blurCls}`}>
                 {formatGpa(summary.latestGpa)}
               </div>
-              <div className={`text-[11px] ${blurCls}`}>
+              <div className={`text-[10.5px] sm:text-[11px] ${blurCls}`}>
                 {summary.gpaDelta !== null ? (
                   <span className={summary.gpaDelta >= 0 ? 'text-emerald-400 font-medium' : 'text-rose-400 font-medium'}>
                     {summary.gpaDelta >= 0 ? `+${summary.gpaDelta.toFixed(2)}` : summary.gpaDelta.toFixed(2)}{' '}
@@ -1171,10 +1171,10 @@ export default function Academic() {
                               catCourses.map((course) => (
                                 <div
                                   key={course.courseCode}
-                                  className="flex items-center justify-between gap-2 bg-[#252526] border border-[#3C3C3C] rounded-lg px-2.5 py-1.5 text-[11px]"
+                                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#252526] border border-[#3C3C3C] rounded-lg px-2.5 py-2 sm:py-1.5 text-[11px]"
                                 >
                                   <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
                                       <span className="font-mono text-[#9D9D9D]">{course.courseCode}</span>
                                       {course.isPassed ? (
                                         <span className={`px-1.5 py-0.25 rounded border font-semibold ${getGradeBadgeClass(course.bestPassedGrade)} ${blurCls}`}>
@@ -1195,7 +1195,7 @@ export default function Academic() {
                                     aria-label={`Category for ${course.courseCode}`}
                                     value={gradProgress.resolvedCategoryByCode[course.courseCode] || cat.id}
                                     onChange={(e) => handleChangeCourseCategory(course.courseCode, e.target.value)}
-                                    className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-md px-1.5 py-1 text-[10px] text-[#D4D4D4] max-w-[125px] cursor-pointer"
+                                    className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-md px-2 py-1 text-[10.5px] sm:text-[10px] text-[#D4D4D4] w-full sm:w-auto sm:max-w-[140px] cursor-pointer"
                                   >
                                     {gradProgress.categoryProgress.map((opt) => (
                                       <option key={opt.id} value={opt.id}>
@@ -1331,21 +1331,21 @@ export default function Academic() {
                         <table className="w-full text-left text-xs">
                           <thead>
                             <tr className="border-b border-[#3C3C3C] text-[11px] text-[#858585] bg-[#1E1E1E]/60">
-                              <th className="px-4 py-2.5 font-medium">{isTh ? 'รหัสวิชา' : 'Code'}</th>
-                              <th className="px-4 py-2.5 font-medium">{isTh ? 'ชื่อรายวิชา' : 'Course Name'}</th>
-                              <th className="px-3 py-2.5 font-medium text-center">{isTh ? 'ตอน' : 'Sec'}</th>
-                              <th className="px-3 py-2.5 font-medium text-center">{isTh ? 'หน่วยกิต' : 'Cr'}</th>
-                              <th className="px-4 py-2.5 font-medium text-right">{isTh ? 'เกรด' : 'Grade'}</th>
+                              <th className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-medium whitespace-nowrap">{isTh ? 'รหัสวิชา' : 'Code'}</th>
+                              <th className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-medium min-w-[140px]">{isTh ? 'ชื่อรายวิชา' : 'Course Name'}</th>
+                              <th className="px-2 sm:px-3 py-2 sm:py-2.5 font-medium text-center whitespace-nowrap">{isTh ? 'ตอน' : 'Sec'}</th>
+                              <th className="px-2 sm:px-3 py-2 sm:py-2.5 font-medium text-center whitespace-nowrap">{isTh ? 'นก.' : 'Cr'}</th>
+                              <th className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-medium text-right whitespace-nowrap">{isTh ? 'เกรด' : 'Grade'}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#3C3C3C]/60">
                             {sem.filteredCourses.map((c, idx) => (
                               <tr key={`${c.courseCode}-${idx}`} className="hover:bg-[#2A2D2E]/60">
-                                <td className="px-4 py-2.5 font-mono text-[#9D9D9D]">{c.courseCode}</td>
-                                <td className="px-4 py-2.5 text-[#FFFFFF] font-medium">{c.courseName}</td>
-                                <td className="px-3 py-2.5 text-center text-[#9D9D9D]">{c.section || '-'}</td>
-                                <td className="px-3 py-2.5 text-center font-mono text-[#D4D4D4]">{c.credits}</td>
-                                <td className="px-4 py-2.5 text-right">
+                                <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-mono text-[#9D9D9D] whitespace-nowrap">{c.courseCode}</td>
+                                <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-[#FFFFFF] font-medium">{c.courseName}</td>
+                                <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[#9D9D9D] whitespace-nowrap">{c.section || '-'}</td>
+                                <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center font-mono text-[#D4D4D4] whitespace-nowrap">{c.credits}</td>
+                                <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-right whitespace-nowrap">
                                   <span
                                     className={`inline-block min-w-[2.2rem] text-center px-2 py-0.5 rounded-md border font-semibold font-mono ${getGradeBadgeClass(
                                       c.grade
@@ -1360,18 +1360,18 @@ export default function Academic() {
                             {isInProgressEmpty &&
                               academicData.enrolledCourses.map((ec) => (
                                 <tr key={`enrolled-${ec.courseCode}`} className="hover:bg-[#2A2D2E]/60">
-                                  <td className="px-4 py-2.5 font-mono text-[#9D9D9D]">{ec.courseCode}</td>
-                                  <td className="px-4 py-2.5 text-[#FFFFFF] font-medium">
+                                  <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-mono text-[#9D9D9D] whitespace-nowrap">{ec.courseCode}</td>
+                                  <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-[#FFFFFF] font-medium">
                                     {ec.engName || ec.thaiName}
                                     {ec.thaiName && ec.engName && (
                                       <span className="block text-[11px] text-[#858585] font-normal">{ec.thaiName}</span>
                                     )}
                                   </td>
-                                  <td className="px-3 py-2.5 text-center text-[#9D9D9D]">
+                                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[#9D9D9D] whitespace-nowrap">
                                     {(ec.sections || []).join(', ') || '-'}
                                   </td>
-                                  <td className="px-3 py-2.5 text-center font-mono text-[#D4D4D4]">{ec.credits}</td>
-                                  <td className="px-4 py-2.5 text-right">
+                                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center font-mono text-[#D4D4D4] whitespace-nowrap">{ec.credits}</td>
+                                  <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-right whitespace-nowrap">
                                     <span className="inline-block px-2 py-0.5 rounded-md border bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40 text-[11px] font-medium">
                                       {isTh ? 'กำลังเรียน' : 'In Progress'}
                                     </span>

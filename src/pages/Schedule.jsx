@@ -599,9 +599,9 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
   }, [schedule, weekDates]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Clean 7-Day Selector Pill Strip */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {DAYS.map((day) => {
           const isSelected = selectedDay === day;
           const isToday = day === todayKey;
@@ -611,7 +611,7 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
               key={day}
               type="button"
               onClick={() => setSelectedDay(day)}
-              className={`py-2.5 px-2 rounded-xl flex flex-col items-center justify-center transition-colors border cursor-pointer ${
+              className={`py-2 px-1 sm:py-2.5 sm:px-2 rounded-xl flex flex-col items-center justify-center transition-colors border cursor-pointer ${
                 isSelected
                   ? 'bg-[#007ACC] text-white border-[#007ACC]'
                   : isToday
@@ -619,8 +619,8 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
                     : 'bg-[#252526] text-[#9D9D9D] border-[#3C3C3C] hover:text-[#FFFFFF] hover:bg-[#2A2D2E]'
               }`}
             >
-              <span className="text-[11px] font-medium">{t(DAY_SHORT_KEYS[day], lang)}</span>
-              <span className="text-sm font-semibold font-mono mt-0.5">{weekDates[day].dayNum}</span>
+              <span className="text-[10.5px] sm:text-[11px] font-medium">{t(DAY_SHORT_KEYS[day], lang)}</span>
+              <span className="text-xs sm:text-sm font-semibold font-mono mt-0.5">{weekDates[day].dayNum}</span>
               <span
                 className={`w-1.5 h-1.5 rounded-full mt-1 ${
                   count > 0 ? (isSelected ? 'bg-white' : 'bg-[#3794FF]') : 'bg-transparent'
@@ -632,15 +632,15 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
       </div>
 
       {/* Day Header */}
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-[#FFFFFF]">{weekDates[selectedDay].dayName}</h2>
-          <span className="text-xs text-[#858585]">{weekDates[selectedDay].formatted}</span>
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="text-sm font-semibold text-[#FFFFFF] truncate">{weekDates[selectedDay].dayName}</h2>
+          <span className="text-xs text-[#858585] shrink-0">{weekDates[selectedDay].formatted}</span>
         </div>
         <button
           type="button"
           onClick={() => onClickAdd(selectedDay, '09:00', '10:00', weekDates[selectedDay].dateStr)}
-          className="text-xs text-[#3794FF] hover:underline font-medium inline-flex items-center gap-1 cursor-pointer"
+          className="text-xs text-[#3794FF] hover:underline font-medium inline-flex items-center gap-1 cursor-pointer shrink-0"
         >
           <Plus size={13} />
           <span>{lang === 'th' ? 'เพิ่มคาบวันนี้' : 'Add to this day'}</span>
@@ -657,10 +657,10 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
                 key={entry.id}
                 type="button"
                 onClick={() => onClickCard(entry, weekDates[selectedDay].dateStr)}
-                className="w-full text-left bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] hover:border-[#007ACC]/60 rounded-2xl p-4 transition-colors flex items-center gap-4 group cursor-pointer"
+                className="w-full text-left bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] hover:border-[#007ACC]/60 rounded-2xl p-3 sm:p-4 transition-colors flex items-center gap-2.5 sm:gap-4 group cursor-pointer"
               >
                 {/* Time Column */}
-                <div className="w-16 shrink-0 text-right font-mono">
+                <div className="w-13 sm:w-16 shrink-0 text-right font-mono">
                   <div className="text-xs font-semibold text-[#FFFFFF]">{entry.startTime}</div>
                   <div className="text-[11px] text-[#858585] mt-0.5">{entry.endTime}</div>
                 </div>
@@ -888,7 +888,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto shadow-2xl">
         <div className="px-5 py-4 border-b border-[#3C3C3C] flex items-center justify-between">
           <h2 className="text-sm font-semibold text-[#FFFFFF]">
             {isEdit ? t('editSchedule', lang) : t('addSchedule', lang)}
@@ -1254,7 +1254,9 @@ export default function Schedule() {
 
   const isTh = lang === 'th';
   const todayKey = getTodayKey();
-  const viewType = searchParams.get('view') || 'weekly';
+  const isCompactViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+  const defaultViewType = isCompactViewport ? 'daily' : 'weekly';
+  const viewType = searchParams.get('view') || defaultViewType;
   const rawSelectedDay = searchParams.get('day') || todayKey;
   const selectedDay = DAYS.includes(rawSelectedDay) ? rawSelectedDay : todayKey;
   const weekOffset = parseInt(searchParams.get('week') || '0', 10) || 0;
@@ -1263,7 +1265,7 @@ export default function Schedule() {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       Object.entries(updates).forEach(([k, v]) => {
-        if (v === null || v === undefined || (k === 'view' && v === 'weekly') || (k === 'week' && Number(v) === 0)) {
+        if (v === null || v === undefined || (k === 'view' && v === defaultViewType) || (k === 'week' && Number(v) === 0)) {
           next.delete(k);
         } else {
           next.set(k, String(v));
@@ -1271,7 +1273,7 @@ export default function Schedule() {
       });
       return next;
     }, { replace: true });
-  }, [setSearchParams]);
+  }, [setSearchParams, defaultViewType]);
 
   const setViewType = useCallback((v) => updateScheduleParams({ view: v }), [updateScheduleParams]);
   const setSelectedDay = useCallback((d) => updateScheduleParams({ day: d }), [updateScheduleParams]);
@@ -1582,7 +1584,7 @@ export default function Schedule() {
   } : null);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title={t('schedule', lang)}
         description={t('scheduleDesc', lang)}
@@ -1736,7 +1738,7 @@ export default function Schedule() {
       />
 
       {/* Contextual Date & Week Navigation Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3">
         <div className="relative flex items-center gap-3 flex-wrap" ref={miniCalRef}>
           <button
             type="button"
@@ -1796,11 +1798,11 @@ export default function Schedule() {
       </div>
 
       {/* ── CALM SUMMARY STRIP + LAYER TOGGLES ─────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#252526] border border-[#3C3C3C] rounded-2xl px-4 py-3 text-xs">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Clock size={14} className="text-[#3794FF] shrink-0" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#252526] border border-[#3C3C3C] rounded-2xl px-3.5 py-3 sm:px-4 text-xs">
+        <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+          <Clock size={14} className="text-[#3794FF] shrink-0 mt-0.5 sm:mt-0" />
           {todayClasses.length > 0 ? (
-            <div className="truncate text-[#D4D4D4]">
+            <div className="line-clamp-2 sm:line-clamp-none sm:truncate text-[#D4D4D4]">
               <span className="font-semibold text-[#FFFFFF]">
                 {isTh ? `วันนี้ ${todayClasses.length} คาบ` : `Today: ${todayClasses.length} classes`}
               </span>

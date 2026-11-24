@@ -84,7 +84,7 @@ export default function Home() {
   const pendingCount = visibleAssignments.filter(a => a.status !== 'done' && a.status !== 'read').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title={t('home', lang)}
         description={t('homeDesc', lang)}
@@ -254,8 +254,8 @@ export default function Home() {
         </div>
 
         {/* Right Column: Today's Classes & Next Exam Widget */}
-        <div className="space-y-6">
-          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 space-y-4">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4 sm:p-6 space-y-3.5 sm:space-y-4">
             <div className="flex items-center justify-between border-b border-[#3C3C3C] pb-3">
               <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
                 <CalendarDays size={15} className="text-[#3794FF]" />
