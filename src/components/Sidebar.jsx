@@ -8,7 +8,12 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
 export default function Sidebar({ onLinkClick = null }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
   const [failedAvatarUrl, setFailedAvatarUrl] = useState(null);
   const { profile } = useAuth();
   const { lang } = useSettings();
@@ -40,7 +45,7 @@ export default function Sidebar({ onLinkClick = null }) {
   return (
     <aside
       className={`bg-[#252526] border-r border-[#3C3C3C] flex flex-col transition-all duration-200 relative h-screen select-none ${
-        isCollapsed ? 'w-18' : 'w-64'
+        isCollapsed ? 'w-18' : 'w-60 lg:w-64'
       }`}
     >
       <div className={`h-16 flex items-center border-b border-[#3C3C3C] ${isCollapsed ? 'justify-center px-2' : 'justify-between gap-2 px-4'}`}>

@@ -40,7 +40,7 @@ export default function TaskFilters({
   return (
     <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3">
       {/* Search */}
-      <div className="relative flex-1 max-w-sm">
+      <div className="relative flex-1 w-full lg:max-w-sm">
         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#858585]">
           <Search size={15} />
         </span>

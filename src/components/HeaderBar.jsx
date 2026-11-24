@@ -36,7 +36,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
   const bellButtonRef = useRef(null);
 
   return (
-    <header className="h-16 border-b border-[#333337] bg-[#222225] px-4 lg:px-6 xl:px-8 flex items-center justify-between gap-3 shrink-0 z-30">
+    <header className="h-16 border-b border-[#333337] bg-[#222225] px-4 md:px-5 lg:px-6 xl:px-8 flex items-center justify-between gap-3 shrink-0 z-30">
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
@@ -48,12 +48,12 @@ export default function HeaderBar({ setMobileMenuOpen }) {
         </button>
         <div className="hidden sm:flex items-center gap-2 min-w-0">
           {isLoggedIn ? (
-            <span className="inline-flex items-center gap-2 text-xs font-medium bg-[#1A1A1D] text-[#A0A0A8] border border-[#323236] px-3 py-1 rounded-full whitespace-nowrap truncate">
+            <span className="inline-flex items-center gap-2 text-xs font-medium bg-[#1A1A1D] text-[#A0A0A8] border border-[#323236] px-3 py-1 rounded-full whitespace-nowrap truncate max-w-[170px] md:max-w-none">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/90 shrink-0" />
               <span>{t('googleConnected', lang)}</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-2 text-xs font-medium bg-amber-500/10 text-amber-300/90 border border-amber-500/25 px-3 py-1 rounded-full whitespace-nowrap truncate">
+            <span className="inline-flex items-center gap-2 text-xs font-medium bg-amber-500/10 text-amber-300/90 border border-amber-500/25 px-3 py-1 rounded-full whitespace-nowrap truncate max-w-[170px] md:max-w-none">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
               <span>{t('mockActive', lang)}</span>
             </span>
@@ -61,7 +61,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2.5 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         {isLoggedIn && (
           <button
             type="button"

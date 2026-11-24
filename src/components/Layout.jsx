@@ -18,7 +18,7 @@ export default function Layout({ children }) {
   }, [mobileMenuOpen]);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#1E1E1E] text-[#D4D4D4]">
+    <div className="flex h-screen h-dvh w-screen overflow-hidden bg-[#1E1E1E] text-[#D4D4D4]">
       <div className="hidden md:block h-full shrink-0">
         <Sidebar />
       </div>
@@ -50,7 +50,7 @@ export default function Layout({ children }) {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <HeaderBar setMobileMenuOpen={setMobileMenuOpen} />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-[#1E1E1E] px-4 py-6 md:px-8 md:py-8">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-[#1E1E1E] px-3.5 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
           <div className="max-w-6xl mx-auto w-full">
             {children}
           </div>

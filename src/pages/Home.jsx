@@ -180,7 +180,7 @@ export default function Home() {
             </div>
 
             {recentAnnouncements.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {recentAnnouncements.map((ann) => {
                   const formattedDate = new Date(ann.creationTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'th-TH', {
                     day: 'numeric',

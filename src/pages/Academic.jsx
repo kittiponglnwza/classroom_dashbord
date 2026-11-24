@@ -601,7 +601,7 @@ export default function Academic() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="border-b border-[#3C3C3C] pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-[#3C3C3C] pb-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[#FFFFFF] flex items-center gap-2.5 tracking-tight">
             <GraduationCap size={23} className="text-[#3794FF]" />
@@ -614,7 +614,7 @@ export default function Academic() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 self-start lg:self-auto">
           {extensionStatus?.connected && (
             <button
               type="button"
@@ -727,7 +727,7 @@ export default function Academic() {
       ) : (
         <>
           {/* 4 KPI Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 md:gap-4">
             {/* KPI 1: GPAX */}
             <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-2">
               <div className="flex items-center justify-between text-xs text-[#9D9D9D]">
@@ -845,7 +845,7 @@ export default function Academic() {
 
           {/* Navigation Tabs */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex bg-[#252526] border border-[#3C3C3C] p-1 rounded-xl gap-1 overflow-x-auto max-w-full">
+            <div className="flex bg-[#252526] border border-[#3C3C3C] p-1 rounded-xl gap-1 overflow-x-auto max-w-full scrollbar-none">
               {[
                 { id: 'overview', icon: GraduationCap, labelTh: 'เกณฑ์จบ & ภาพรวม', labelEn: 'Graduation & Overview' },
                 { id: 'grades', icon: BookOpen, labelTh: `เกรดรายเทอม (${summary.semesters.length})`, labelEn: `Semesters (${summary.semesters.length})` },
@@ -856,7 +856,7 @@ export default function Academic() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3.5 py-2 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer ${
+                  className={`px-3 py-2 sm:px-3.5 sm:py-2 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer ${
                     activeTab === tab.id
                       ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50'
                       : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
@@ -868,11 +868,11 @@ export default function Academic() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsCurriculumModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-[#252526] border border-[#3C3C3C] text-[#D4D4D4] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-[#252526] border border-[#3C3C3C] text-[#D4D4D4] hover:bg-[#2A2D2E] transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
                 <SlidersHorizontal size={13} className="text-[#3794FF]" />
                 <span>{isTh ? 'แก้ไขเกณฑ์จบ' : 'Edit Criteria'}</span>
@@ -880,7 +880,7 @@ export default function Academic() {
               <button
                 type="button"
                 onClick={handleClearAcademic}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   confirmClear
                     ? 'bg-rose-600 border-rose-600 text-white'
                     : 'bg-[#252526] border-[#3C3C3C] text-[#9D9D9D] hover:text-rose-400'
@@ -893,7 +893,7 @@ export default function Academic() {
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
-                  className="px-2.5 py-2 rounded-xl text-xs bg-[#252526] border border-[#3C3C3C] text-[#D4D4D4] cursor-pointer"
+                  className="px-2.5 py-2 rounded-xl text-xs bg-[#252526] border border-[#3C3C3C] text-[#D4D4D4] cursor-pointer whitespace-nowrap shrink-0"
                 >
                   {isTh ? 'ยกเลิก' : 'Cancel'}
                 </button>
@@ -972,7 +972,7 @@ export default function Academic() {
                 </div>
 
                 {/* Graduation Conditions Checklist */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 border-t border-[#3C3C3C]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 pt-2 border-t border-[#3C3C3C]">
                   {[
                     {
                       ok: gradProgress.checklist.creditsMet,
@@ -1529,7 +1529,7 @@ export default function Academic() {
 
           {/* ══ TAB 4: WHAT-IF GPA SIMULATOR ══════════════════════════ */}
           {activeTab === 'simulator' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 lg:gap-6">
               {/* Left: Course Grade Picker */}
               <div className="lg:col-span-2 bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
