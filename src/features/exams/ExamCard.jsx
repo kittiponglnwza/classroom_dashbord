@@ -105,11 +105,11 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
 
   if (layout === 'list') {
     return (
-      <div className="bg-[#252526] border border-[#3C3C3C] hover:border-[#007ACC]/70 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors relative overflow-hidden">
+      <div className="bg-[#252526] border border-[#3C3C3C] hover:border-[#007ACC]/70 rounded-2xl p-4 sm:p-5 transition-colors relative overflow-hidden">
         <div className={`absolute top-0 left-0 bottom-0 w-1 ${cardStyle.strip}`} />
 
-        <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 min-w-0 pl-2">
-          <div className="min-w-[150px] max-w-[280px]">
+        <div className="pl-2.5 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1.25fr)_auto_minmax(11.5rem,0.75fr)] items-center gap-x-4 gap-y-3">
+          <div className="min-w-0">
             <div className="flex items-center gap-1.5 mb-1">
               <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${cardStyle.badge}`}>
                 {exam.courseCode}
@@ -121,30 +121,30 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
             </h4>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-[#9D9D9D]">
-            <div className="flex items-center gap-1.5">
-              <Calendar size={13} className={cardStyle.accentText} />
-              <span className="text-[#D4D4D4] font-medium">{exam.date}</span>
+          <div className="sm:col-span-2 lg:col-span-1 sm:order-3 lg:order-2 flex flex-wrap sm:grid sm:grid-cols-[7.5rem_6.25rem_minmax(6.5rem,1fr)] lg:grid-cols-[7.5rem_6.25rem_6.5rem] items-center gap-x-4 gap-y-1.5 text-xs text-[#9D9D9D] tabular-nums">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Calendar size={13} className={`shrink-0 ${cardStyle.accentText}`} />
+              <span className="text-[#D4D4D4] font-medium whitespace-nowrap truncate">{exam.date}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Clock size={13} className={cardStyle.accentText} />
-              <span className="text-[#D4D4D4] font-medium">{exam.time}</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Clock size={13} className={`shrink-0 ${cardStyle.accentText}`} />
+              <span className="text-[#D4D4D4] font-medium whitespace-nowrap truncate">{exam.time}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <MapPin size={13} className={cardStyle.accentText} />
-              <span className="truncate max-w-[140px] text-[#D4D4D4] font-medium" title={exam.room || '-'}>{exam.room || '-'}</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <MapPin size={13} className={`shrink-0 ${cardStyle.accentText}`} />
+              <span className="truncate text-[#D4D4D4] font-medium" title={exam.room || '-'}>{exam.room || '-'}</span>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 border-t sm:border-t-0 border-[#3C3C3C] pt-3 sm:pt-0">
-          {exam.seat && (
-            <div className="flex flex-col items-start sm:items-end bg-[#1E1E1E] px-3 py-1 rounded-xl border border-[#3C3C3C]">
-              <span className="text-[10px] text-[#858585] font-medium">{t('seatCol', lang)}</span>
-              <span className="text-xs font-semibold text-[#FFFFFF]">{exam.seat}</span>
-            </div>
-          )}
-          {renderActions(14)}
+          <div className="sm:order-2 lg:order-3 flex items-center justify-between sm:justify-end gap-3 shrink-0 border-t sm:border-t-0 border-[#3C3C3C] pt-3 sm:pt-0">
+            {exam.seat && (
+              <div className="flex flex-col items-start sm:items-end bg-[#1E1E1E] px-3 py-1 rounded-xl border border-[#3C3C3C]">
+                <span className="text-[10px] text-[#858585] font-medium">{t('seatCol', lang)}</span>
+                <span className="text-xs font-semibold text-[#FFFFFF]">{exam.seat}</span>
+              </div>
+            )}
+            {renderActions(14)}
+          </div>
         </div>
       </div>
     );
