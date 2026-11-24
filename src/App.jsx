@@ -1,7 +1,7 @@
 import { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Layout from './components/Layout';
-import { Globe, BookOpen, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Globe, AlertCircle, ArrowLeft } from 'lucide-react';
 import { t } from './utils/i18n';
 import { APP_VERSION, APP_COMMIT, formatAppBuildTime } from './config/version';
 
@@ -84,9 +84,11 @@ function AppContent() {
         {/* Minimalist Sign-In Card */}
         <div className="w-full max-w-[340px] bg-[#252526] border border-[#3C3C3C] rounded-2xl p-7 space-y-6 text-center shadow-xl">
           <div className="flex flex-col items-center space-y-2">
-            <div className="w-11 h-11 rounded-2xl bg-[#007ACC]/15 text-[#3794FF] border border-[#007ACC]/30 flex items-center justify-center">
-              <BookOpen size={20} />
-            </div>
+            <img
+              src="/Logo.svg"
+              alt="Classroom Hub Logo"
+              className="w-11 h-11 rounded-xl shadow-sm select-none"
+            />
             <h1 className="text-lg font-semibold text-[#FFFFFF] tracking-tight pt-1">
               Classroom Hub
             </h1>

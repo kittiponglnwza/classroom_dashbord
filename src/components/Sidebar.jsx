@@ -46,9 +46,11 @@ export default function Sidebar({ onLinkClick = null }) {
       <div className={`h-16 flex items-center border-b border-[#3C3C3C] ${isCollapsed ? 'justify-center px-2' : 'justify-between gap-2 px-4'}`}>
         {!isCollapsed && (
           <Link to="/" onClick={onLinkClick} className="flex items-center gap-2.5 overflow-hidden min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-[#007ACC] text-white font-semibold text-xs flex items-center justify-center shrink-0">
-              CH
-            </div>
+            <img
+              src="/Logo.svg"
+              alt="Classroom Hub Logo"
+              className="w-8 h-8 rounded-lg shrink-0 select-none"
+            />
             <div className="flex flex-col items-start min-w-0">
               <span className="font-semibold text-sm text-[#FFFFFF] tracking-tight truncate max-w-full">
                 Classroom Hub
