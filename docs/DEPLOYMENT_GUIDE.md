@@ -63,7 +63,10 @@ vercel --prod
 
 ## 4. Exam Seating Proxy Configuration
 
-Both `vite.config.js` (development proxy) and `vercel.json` (production rewrite) map `/api/exam-room` to `http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`. Keep both files pointed at the same target if the university updates or moves the endpoint (and prefer switching to HTTPS as soon as the university supports it).
+- Development (`vite.config.js`) proxies `/api/exam-room` to `http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`.
+- Production runs the Vercel Serverless Function `api/exam-room.js` (while `vercel.json` excludes `/api/` from the SPA catch-all rewrite). Keep `UPSTREAM_EXAM_URL` in `api/exam-room.js` and the target in `vite.config.js` aligned if the university moves endpoints (and switch to HTTPS once supported).
+- Make sure `VITE_GOOGLE_CLIENT_ID` is available to Serverless Runtime in Vercel **Project Settings > Environment Variables** (or set `GOOGLE_CLIENT_ID`) so `/api/exam-room` binds token checks strictly to your OAuth Client ID.
+- Optional distributed rate limiting: add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in Vercel Environment Variables to enforce rate limits across all serverless instances (without them, `api/exam-room.js` uses an in-memory per-instance fallback).
 
 ## 5. Optional 24/7 Google Apps Script
 

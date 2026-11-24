@@ -1,10 +1,22 @@
 import { Result, ApiError, NetworkError } from '../../utils/result';
 import { EXAM_CONFIG } from '../../config/exam';
+import { getToken } from '../../utils/storage';
+import { httpClient } from '../../utils/httpClient';
+
+const trySilentRefresh = async () => {
+  if (!httpClient?.silentRefreshCallback) return null;
+  try {
+    return await httpClient.refreshAccessToken();
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Fetches raw HTML from the KMUTNB exam proxy.
+ * Attaches the user's Google OAuth Bearer token when present and refreshes once on 401.
  * Implements timeout and external AbortSignal cancellation.
- * 
+ *
  * @param {string} studentId - 13 digit student ID
  * @param {AbortSignal} signal - AbortSignal for cancelling requests
  * @returns {Promise<{success: boolean, data?: string, error?: Error}>} Result pattern
@@ -34,14 +46,52 @@ export const fetchExamHtml = async (studentId, signal) => {
 
   try {
     const endpoint = EXAM_CONFIG.proxyEndpoint || '/api/exam-room';
-    const response = await fetch(`${endpoint}?IDcard=${encodeURIComponent(studentId)}`, {
-      signal: controller.signal
-    });
-    
+    const requestUrl = `${endpoint}?IDcard=${encodeURIComponent(studentId)}`;
+    const performFetch = (authToken) => {
+      const options = authToken
+        ? { headers: { Authorization: `Bearer ${authToken}` }, signal: controller.signal }
+        : { signal: controller.signal };
+      return fetch(requestUrl, options);
+    };
+
+    let token = getToken();
+    if (!token && httpClient?.silentRefreshCallback) {
+      token = await trySilentRefresh();
+    }
+
+    const abortCheck = () => {
+      if (!controller.signal.aborted) return null;
+      if (timedOut) {
+        return Result.fail(new NetworkError('Exam database request timed out. Please try again.'));
+      }
+      const cancelErr = new Error('Aborted');
+      cancelErr.name = 'AbortError';
+      return Result.fail(cancelErr);
+    };
+
+    const abortedBeforeFetch = abortCheck();
+    if (abortedBeforeFetch) return abortedBeforeFetch;
+
+    let response = await performFetch(token);
+    if (response.status === 401 && httpClient?.silentRefreshCallback) {
+      const refreshedToken = await trySilentRefresh();
+      if (refreshedToken) {
+        const abortedBeforeRetry = abortCheck();
+        if (abortedBeforeRetry) return abortedBeforeRetry;
+        response = await performFetch(refreshedToken);
+      }
+    }
+
     if (!response.ok) {
+      if (response.status === 429) {
+        return Result.fail(new ApiError('Too many exam seating requests. Please wait a minute and try again.', 429));
+      }
+      if (response.status === 401) {
+        return Result.fail(new ApiError('Google session expired or unauthorized (401). Please sign in again.', 401));
+      }
       return Result.fail(new ApiError(`Server returned status: ${response.status}`, response.status));
     }
-    
+
     const htmlText = await response.text();
     if (htmlText && htmlText.includes('<div id="root">')) {
       return Result.fail(new ApiError('Exam proxy returned application shell instead of exam database HTML.', 502));

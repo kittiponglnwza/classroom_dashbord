@@ -62,10 +62,10 @@ Sends embed payloads for deadline reminders, new posts, Sunday summaries, and ma
 ## 6. KMUTNB Exam Seating Proxy
 
 - **Endpoint**: `GET /api/exam-room?IDcard={studentId}`
-- **Routing**:
+- **Routing & Guards**:
   - Dev (`vite.config.js`): Proxied to `http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`
-  - Production (`vercel.json`): Rewritten to `http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`
-- **Notes**: Uses a 15-second timeout and rejects responses containing `<div id="root">` (SPA shell fallback) as an upstream 502 error. Because the upstream university endpoint uses plain HTTP, student IDs are not encrypted on the proxy-to-university leg.
+  - Production (`api/exam-room.js` + `vercel.json`): Serverless proxy that validates a 13-digit `IDcard`, verifies the caller's `Authorization: Bearer <token>` against Google `tokeninfo` (`aud`/`azp`), checks same-origin headers, enforces per-user/per-IP rate limits (Upstash Redis REST if configured, in-memory fallback otherwise), and forwards only `?IDcard=...` to SciBase without forwarding auth headers.
+- **Notes**: Uses a 15-second client timeout (`examApi.js`) and rejects responses containing `<div id="root">` (SPA shell fallback) as an upstream 502 error. Because the upstream university endpoint uses plain HTTP, student IDs are not encrypted on the proxy-to-university leg.
 
 ## 7. Retry and Error Handling (`httpClient.js`)
 

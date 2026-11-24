@@ -45,9 +45,13 @@ Production deployments on Vercel apply these headers in `vercel.json`:
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 
-## 6. Known Risk: KMUTNB Exam Seating Lookup Over HTTP
+## 6. Exam Seating Proxy Controls and Known HTTP Limitation
 
-Automatic exam-room lookup proxies `/api/exam-room?IDcard={studentId}` to the university's SciBase endpoint (`http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`). While Browser-to-Vercel traffic uses HTTPS, the Vercel-to-university connection uses plain HTTP with the Student ID in the query string. That upstream leg is not encrypted, and URL query strings may appear in upstream server or proxy logs.
+Automatic exam-room lookup requests `GET /api/exam-room?IDcard={studentId}` with the signed-in user's Google OAuth `access_token` (`Authorization: Bearer ...`). On Vercel production deployments, requests run through the serverless function `api/exam-room.js` rather than an open edge rewrite:
+
+- **Authentication & Input Validation**: Only `GET` requests carrying an active Google OAuth token issued for this app (`aud`/`azp` checked against Google `tokeninfo`) and an exact 13-digit `IDcard` are forwarded. Extra query parameters, caller `Authorization`, and `Cookie` headers are stripped before contacting the university endpoint.
+- **Origin & Rate Limiting**: Cross-site browser requests and disallowed `Origin`/`Referer` headers are rejected (`403`). Successful callers are rate-limited (20 req/min per signed-in user and 60 req/min per IP, using Upstash Redis REST when configured or an in-memory fallback otherwise).
+- **Known Upstream HTTP Limitation**: The Vercel-to-university connection (`http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`) still uses plain HTTP with the Student ID in the query string. While Browser-to-Vercel traffic uses HTTPS, that upstream leg is not encrypted, and URL query strings may appear in upstream server or proxy logs.
 
 Because the frontend cannot upgrade a third-party server to HTTPS, the Exam Room page displays a warning banner before the lookup UI, and automatic lookup can be turned off at any time via `EXAM_CONFIG.seatingLookupEnabled` in `src/config/exam.js` while keeping Reg import and manual exams available.
 

@@ -166,6 +166,26 @@ class HttpClient {
   }
 
   /**
+   * Refreshes the Google OAuth access token via the registered silent refresh callback,
+   * deduplicating concurrent refresh attempts.
+   * @returns {Promise<string|null>}
+   */
+  async refreshAccessToken() {
+    if (!this.silentRefreshCallback) {
+      return null;
+    }
+    try {
+      if (!this.refreshingPromise) {
+        this.refreshingPromise = Promise.resolve().then(() => this.silentRefreshCallback());
+      }
+      const newAccessToken = await this.refreshingPromise;
+      return newAccessToken || null;
+    } finally {
+      this.refreshingPromise = null;
+    }
+  }
+
+  /**
    * Handles 401 Unauthorized errors by attempting a silent token refresh
    * @param {string} url
    * @param {RequestInit} options
@@ -182,13 +202,7 @@ class HttpClient {
     }
 
     try {
-      // Prevent multiple concurrent silent refreshes by sharing the active promise
-      if (!this.refreshingPromise) {
-        this.refreshingPromise = this.silentRefreshCallback();
-      }
-
-      const newAccessToken = await this.refreshingPromise;
-      this.refreshingPromise = null;
+      const newAccessToken = await this.refreshAccessToken();
 
       if (!newAccessToken) {
         throw new AuthError('Silent refresh failed.');
@@ -204,7 +218,6 @@ class HttpClient {
       return await this.request(url, { ...options, headers: updatedHeaders, _retried401: true }, attempt);
 
     } catch (refreshErr) {
-      this.refreshingPromise = null;
       logger.error('Silent refresh failed. Forcing logout.', refreshErr);
       this.triggerLogout();
       throw new AuthError('Session expired. Please log in again.');

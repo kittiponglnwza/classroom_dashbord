@@ -2,10 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EXAM_CONFIG } from '../../src/config/exam';
 import { fetchExamHtml } from '../../src/services/api/examApi';
 import { ApiError, NetworkError } from '../../src/utils/result';
+import { clearToken, saveToken } from '../../src/utils/storage';
+import { httpClient } from '../../src/utils/httpClient';
 
 describe('fetchExamHtml', () => {
   afterEach(() => {
     EXAM_CONFIG.seatingLookupEnabled = true;
+    clearToken();
+    httpClient.registerCallbacks(null, null);
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -123,5 +127,56 @@ describe('fetchExamHtml', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBeInstanceOf(NetworkError);
     expect(result.error.message).toMatch(/Could not connect/i);
+  });
+
+  it('attaches Google Bearer token from session storage when logged in', async () => {
+    saveToken('my-session-token', 3600);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '<table></table>',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await fetchExamHtml('6401012345678');
+
+    expect(result).toEqual({ success: true, data: '<table></table>' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/exam-room?IDcard=6401012345678',
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer my-session-token' },
+        signal: expect.any(AbortSignal),
+      })
+    );
+  });
+
+  it('refreshes expired token via httpClient and retries once on 401', async () => {
+    saveToken('stale-token', 3600);
+    const refreshMock = vi.fn().mockResolvedValue('fresh-token');
+    httpClient.registerCallbacks(refreshMock, vi.fn());
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce({ ok: true, text: async () => '<table><tr><td>OK</td></tr></table>' });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await fetchExamHtml('6401012345678');
+
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][1].headers).toEqual({ Authorization: 'Bearer fresh-token' });
+    expect(result).toEqual({ success: true, data: '<table><tr><td>OK</td></tr></table>' });
+  });
+
+  it('returns 429 ApiError when the proxy rate-limits the request', async () => {
+    saveToken('my-session-token', 3600);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429 }));
+
+    const result = await fetchExamHtml('6401012345678');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeInstanceOf(ApiError);
+    expect(result.error.status).toBe(429);
+    expect(result.error.message).toMatch(/Too many exam seating requests/i);
   });
 });
