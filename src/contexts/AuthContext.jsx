@@ -265,6 +265,7 @@ export const AuthProvider = ({ children }) => {
     const profileToSave = { ...updatedProfile, isCustomized: true };
     saveProfile(profileToSave, email);
     setProfile(profileToSave);
+    setRememberedAccount(getRememberMe() ? buildRememberedAccount(email) : null);
     if (accessToken) {
       syncManager.queueSync(accessToken, email);
     }
