@@ -1,56 +1,76 @@
 # API Reference
 
-CH Classroom Hub interacts heavily with Google's REST APIs. We act entirely as a client-side application consuming these services. This document outlines the endpoints, request structures, and error codes handled by our application.
+CH Classroom Hub communicates directly with external REST APIs from the browser, except for the KMUTNB exam seating lookup which goes through a same-origin proxy path.
 
-## 1. Google Classroom API
+## 1. Google Classroom API (`https://classroom.googleapis.com/v1`)
 
-The primary source of truth for coursework, courses, and announcements.
+All Classroom endpoints paginate with `GoogleRepository.fetchAllPages` using `pageSize=100` (capped at 50 pages with duplicate `pageToken` protection).
 
-### 1.1 List Courses
-- **Endpoint**: `GET https://classroom.googleapis.com/v1/courses`
-- **Scopes Required**: `https://www.googleapis.com/auth/classroom.courses.readonly`
-- **Parameters**: 
-  - `studentId`: 'me'
-  - `courseStates`: 'ACTIVE'
-- **Response Handling**: The application parses the `courses` array. We extract `id`, `name`, `section`, `descriptionHeading`, `room`, `courseState`, and `alternateLink`.
+- **List Active Courses**: `GET /courses?studentId=me&courseStates=ACTIVE&pageSize=100`
+  - Scope: `classroom.courses.readonly`
+- **List Coursework**: `GET /courses/{courseId}/courseWork?pageSize=100`
+  - Scope: `classroom.coursework.me.readonly`
+- **List Student Submissions**: `GET /courses/{courseId}/courseWork/-/studentSubmissions?userId=me&pageSize=100`
+  - Scope: `classroom.coursework.me.readonly`
+  - Maps `TURNED_IN` and `RETURNED` states to `done`.
+- **List Announcements**: `GET /courses/{courseId}/announcements?pageSize=100`
+  - Scope: `classroom.announcements.readonly`
+- **List Coursework Materials**: `GET /courses/{courseId}/courseWorkMaterials?pageSize=100`
+  - Scope: `classroom.courseworkmaterials.readonly`
+- **List Topics**: `GET /courses/{courseId}/topics?pageSize=100`
+  - Scope: `classroom.topics.readonly`
 
-### 1.2 List CourseWork
-- **Endpoint**: `GET https://classroom.googleapis.com/v1/courses/{courseId}/courseWork`
-- **Scopes Required**: `https://www.googleapis.com/auth/classroom.coursework.me.readonly`
-- **Response Handling**: 
-  - Due dates are converted from Google's `Year-Month-Day` / `Hours-Minutes` format into standard JavaScript `Date` objects.
-  - Materials and Attachments are mapped to internal application components.
+## 2. Google Drive API (`appDataFolder`)
 
-### 1.3 List Announcements
-- **Endpoint**: `GET https://classroom.googleapis.com/v1/courses/{courseId}/announcements`
-- **Scopes Required**: `https://www.googleapis.com/auth/classroom.announcements.readonly`
-- **Behavior**: Used to fetch the latest teacher posts. Text content is rendered through React JSX, which escapes text, and external links are checked with the app's URL sanitizer.
+Stores a single JSON sync file named `classroom_hub_sync_settings.json` inside the user's hidden application data folder.
 
-## 2. Google Drive API (App Data Folder)
+- **Scope**: `drive.appdata`
+- **Find Sync File**: `GET https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=...&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime)`
+- **Download Content**: `GET https://www.googleapis.com/drive/v3/files/{fileId}?alt=media`
+  - Skipped when both `file.modifiedTime` and the canonical local payload match the last synced snapshot in memory.
+- **Create / Update**:
+  - `POST https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime`
+  - `PATCH https://www.googleapis.com/upload/drive/v3/files/{fileId}?uploadType=media&fields=id,modifiedTime`
+- **Conflict Resolution**: `SyncManager.mergePayloads` merges each collection item-by-item using update timestamps and deletion tombstones before writing back.
 
-Used as a pseudo-database to synchronize user preferences, schedules, and custom metadata (e.g., Exam Rooms, Hidden Courses) across devices.
+## 3. Google Calendar API (`https://www.googleapis.com/calendar/v3`)
 
-### 2.1 Find Sync File
-- **Endpoint**: `GET https://www.googleapis.com/drive/v3/files`
-- **Scopes Required**: `https://www.googleapis.com/auth/drive.appdata`
-- **Parameters**:
-  - `spaces`: 'appDataFolder'
-  - `q`: `name='classroom_hub_sync_settings.json'`
+Pushes weekly class schedules, exam events, and pending assignment deadlines to the user's primary calendar.
 
-### 2.2 Create / Update Sync File
-- **Endpoint**: `POST / PUT https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`
-- **Payload**: Contains stringified JSON of the user's `SettingsContext` and `ClassroomContext` state.
-- **Conflict Resolution**: Collection records are merged locally using their update metadata and deletion tombstones, then the merged payload is written back to Drive.
+- **Scope**: `calendar.events`
+- **Endpoints**:
+  - `GET /calendars/primary/events` (filtered to events tagged with Classroom Hub `extendedProperties` metadata so user-created personal events are untouched)
+  - `POST /calendars/primary/events`
+  - `PATCH /calendars/primary/events/{eventId}`
+  - `DELETE /calendars/primary/events/{eventId}` (used to clean up deleted, completed, hidden, or duplicate Classroom Hub events)
 
-## 3. Error Handling & Codes
+## 4. Gmail API
 
-Our `httpClient` intercepts API requests and maps specific Google error codes into human-readable warnings:
+Sends due-date reminders, new-post digests, Sunday summaries, and manual test emails.
 
-- **HTTP 401 (Unauthorized)**: Triggers a silent token refresh via the GIS client. If it fails, forces a hard logout.
-- **HTTP 403 (Forbidden)**: Usually signifies insufficient scopes or a missing Classroom account. Handled as a non-retryable fatal error.
-- **HTTP 429 (Too Many Requests)**: Triggers our internal Exponential Backoff mechanism.
-- **HTTP 5xx (Internal Server Errors)**: Retryable. If persistent, displays an "API Unreachable" boundary error to the user.
+- **Scope**: `gmail.send`
+- **Endpoint**: `POST https://gmail.googleapis.com/gmail/v1/users/me/messages/send`
+- **Payload**: Base64url-encoded RFC 822 MIME message with UTF-8 subject encoding and escaped HTML body. Enforces a client-side limit of 10 emails per day per account.
 
-## 4. KMUTNB Exam Seating
+## 5. Discord Webhooks
 
-Automatic seat lookup calls `/api/exam-room?IDcard={studentId}` through a proxy to the university endpoint. The upstream currently uses HTTP, so student IDs are not encrypted on the Vercel-to-university leg. Users can also import Reg data or add exam schedules manually.
+Sends embed payloads for deadline reminders, new posts, Sunday summaries, and manual tests.
+
+- **Endpoint**: `POST https://discord.com/api/webhooks/{id}/{token}` (also accepts `discordapp.com`, `ptb.discord.com`, `canary.discord.com` over HTTPS, with optional numeric `thread_id`)
+- **Behavior**: `DiscordService` validates the URL, truncates fields to Discord's embed limits, sets a 10-second timeout, and retries once on HTTP 429 using `retry_after` (bounded to 3 seconds).
+
+## 6. KMUTNB Exam Seating Proxy
+
+- **Endpoint**: `GET /api/exam-room?IDcard={studentId}`
+- **Routing**:
+  - Dev (`vite.config.js`): Proxied to `http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`
+  - Production (`vercel.json`): Rewritten to `http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`
+- **Notes**: Uses a 15-second timeout and rejects responses containing `<div id="root">` (SPA shell fallback) as an upstream 502 error. Because the upstream university endpoint uses plain HTTP, student IDs are not encrypted on the proxy-to-university leg.
+
+## 7. Retry and Error Handling (`httpClient.js`)
+
+Google API calls run through `httpClient.request` with a 10-second request timeout:
+
+- **HTTP 401**: Deduplicates concurrent refreshes via `refreshingPromise`, triggers a silent GIS token refresh, and retries once (`_retried401`). If refresh fails, marks the session expired.
+- **HTTP 429 / 403 Rate Limit / 5xx / Network Timeout**: Retries up to 3 attempts with exponential backoff (`1s` base, `15s` max) and random jitter, unless cancelled by an `AbortSignal`.
+- **Other HTTP 4xx**: Fails immediately without retrying.

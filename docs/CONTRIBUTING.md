@@ -1,122 +1,55 @@
-# Contributing to CH Classroom Hub
+# Contributing
 
-Thank you for your interest in contributing to **CH Classroom Hub**! This project is maintained by a small team and welcomes community contributions.
+Thanks for helping improve CH Classroom Hub. Here is how to run the project locally and what checks to run before opening a pull request.
 
-This document outlines the coding standards, branch strategies, and process for contributing to the repository.
+## Local Setup
 
-## Table of Contents
-1. [Getting Started](#getting-started)
-2. [Development Workflow](#development-workflow)
-3. [Branching Strategy](#branching-strategy)
-4. [Commit Convention](#commit-convention)
-5. [Coding Style](#coding-style)
-6. [Testing](#testing)
+Requires Node.js 20.19+ or 22.12+ (for Vite 8).
 
----
-
-## Getting Started
-
-To get started with local development, follow these steps:
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/kittiponglnwza/classroom-dashboard.git
-   cd classroom-dashboard
-   ```
-
-2. **Install dependencies:**
-   Make sure you have Node.js 20.19+ or 22.12+ installed (required by Vite 8).
-   ```bash
-   npm install
-   ```
-
-3. **Set up Environment Variables:**
-   Create a `.env` file in the root directory. You will need a Google Client ID.
-   ```env
-   VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-   ```
-
-4. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
-   The application will be available at `http://localhost:5173`.
-
----
-
-## Development Workflow
-
-1. Create an issue to discuss the changes you'd like to make, or pick an existing issue.
-2. Fork the repository and create a new branch based on the issue.
-3. Make your changes in your feature branch.
-4. Run type checking, tests, and linting to ensure quality standards.
-5. Commit your changes using Conventional Commits.
-6. Open a Pull Request (PR) against the `master` branch.
-
----
-
-## Branching Strategy
-
-We use a simplified Git Flow for managing branches:
-- `master`: The production-ready state. Do not commit directly here.
-- `feat/feature-name`: For new features (e.g., `feat/dark-mode`).
-- `fix/bug-name`: For bug fixes (e.g., `fix/oauth-token-refresh`).
-- `docs/doc-name`: For documentation updates.
-
----
-
-## Commit Convention
-
-This project enforces [Conventional Commits](https://www.conventionalcommits.org/) using Husky and Commitlint. Your commit messages must follow this structure:
-
-```
-<type>[optional scope]: <description>
-```
-
-**Common Types:**
-- `feat`: A new feature
-- `fix`: A bug fix
-- `docs`: Documentation only changes
-- `style`: Changes that do not affect the meaning of the code (white-space, formatting)
-- `refactor`: A code change that neither fixes a bug nor adds a feature
-- `perf`: A code change that improves performance
-- `test`: Adding missing tests or correcting existing tests
-- `chore`: Changes to the build process or auxiliary tools
-
-**Example:**
 ```bash
-git commit -m "feat(auth): implement silent token refresh"
+git clone https://github.com/kittiponglnwza/classroom_dashbord.git
+cd classroom_dashbord
+npm install
 ```
 
----
+Create a `.env` file in the project root:
 
-## Coding Style
+```env
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+```
 
-- We use **ESLint** to enforce JavaScript/React coding standards.
-- Before committing, run `npm run typecheck` and `npm run lint` to catch TypeScript and JavaScript issues.
-- React components must use functional components and Hooks.
-- Tailwind CSS is the primary styling solution; avoid inline styles unless strictly necessary.
+Start the local dev server at `http://localhost:5173`:
 
----
-
-## Testing
-
-CH Classroom Hub strictly enforces the Test Pyramid strategy.
-When submitting a Pull Request, ensure that:
-1. You have written tests for your new feature or bug fix.
-2. All existing tests pass.
-
-Run the test suite via:
 ```bash
-npm run test
+npm run dev
 ```
 
-Check the TypeScript files via:
+## Branches and Commits
+
+- Keep `master` deployable; work on a branch such as `feat/<name>`, `fix/<name>`, or `docs/<name>` and open a PR against `master`.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`commitlint.config.js`), for example:
+  - `feat(exam): add fallback banner for previous-semester results`
+  - `fix(sidebar): keep mobile drawer expanded on narrow screens`
+  - `docs: update security and API reference`
+
+Common commit types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`.
+
+## Code Guidelines
+
+- Use functional React components and hooks.
+- Style with Tailwind CSS utilities rather than inline styles where possible.
+- Never render untrusted strings with `dangerouslySetInnerHTML`, and always pass external URLs through `sanitizeExternalUrl()` (`src/utils/sanitize.js`).
+- Keep user-scoped `localStorage` keys tied to the active email via `StorageRepository` or the helpers in `src/utils/storage.js`.
+
+## Verification Checks
+
+Run the same checks CI executes before pushing:
+
 ```bash
-npm run typecheck
+npm run typecheck   # TypeScript type checks (tsc --noEmit)
+npm run lint        # ESLint across src and tests
+npm run coverage    # Vitest suite + coverage thresholds
+npm run build       # Production Vite build
 ```
 
-To view coverage:
-```bash
-npm run coverage
-```
+You can also run `npm run test` for a faster test run without coverage reporting.

@@ -1,94 +1,78 @@
-# CH Classroom Hub 🎓
+# CH Classroom Hub
 
-> **ลิงก์เข้าใช้งานแอปพลิเคชัน (Live URL):** [https://classrooms-hub.vercel.app/](https://classrooms-hub.vercel.app/)
+Live app: [https://classrooms-hub.vercel.app/](https://classrooms-hub.vercel.app/)
 
-**CH Classroom Hub** คือแดชบอร์ดสำหรับนักศึกษาที่ออกแบบมาในสไตล์มินิมอล (คล้าย Notion) เพื่อรวบรวมรายวิชา, การบ้าน, ประกาศ, และสื่อการเรียนการสอนจาก **Google Classroom** ให้อยู่ในหน้าจอเดียวแบบเรียลไทม์ ตัวแอปใช้ธีมสีเข้มระดับพรีเมียม (Premium Dark-slate aesthetic) เพื่อช่วยลดอาการปวดตาในช่วงเวลาที่ต้องอ่านหนังสือนานๆ
+CH Classroom Hub is a dark-mode student dashboard built to keep Google Classroom coursework, class timetables, exam seating, GPA tracking, and deadline alerts in one place. It runs entirely in the browser using Google APIs and local storage, with no custom backend server.
 
----
+## Features
 
-## 🚀 ฟีเจอร์หลัก (Key Features)
+- **Google Sign-In and Multi-Account Isolation**: Signs in with Google Identity Services using short-lived OAuth tokens stored in `sessionStorage` (never `localStorage`). Local caches are scoped by email so multiple Google accounts can share a browser without mixing data.
+- **Coursework Dashboard**: Tracks assignments across To Do, In Progress, Completed, and Read (Material) states, highlights due-today and overdue work, supports list/grid/Kanban views, and includes per-task notes.
+- **Courses and Pinning**: Groups course materials and announcements by topic, lets you pin important posts to the top, and lets you hide old or finished courses individually or in bulk.
+- **Schedule and Google Calendar Sync**: Displays daily and weekly timetables, checks for time conflicts, pauses recurring class events during exam weeks, and keeps Google Calendar events synced without creating duplicates.
+- **Exam Room**: Checks official KMUTNB exam seating through `/api/exam-room` (with a visible warning that the university endpoint currently uses unencrypted HTTP), and supports importing exam dates from KMUTNB Reg or adding exams manually.
+- **Academic and GPA Tools**: Imports grade reports and timetables from KMUTNB Reg, plots term GPA and cumulative GPAX trends, checks graduation credit progress, includes a What-If GPA simulator and target GPAX calculator, and lets you blur grades on screen.
+- **Notifications**: Sends due-date reminders, new-post digests, and Sunday weekly summaries through Gmail or a Discord Webhook, plus a copyable Google Apps Script for 24/7 Discord alerts.
+- **Cross-Device Sync and Companion Extension**: Syncs settings, hidden courses, notes, schedules, and custom tasks through your private Google Drive `appDataFolder`, and pairs with a Chrome/Edge extension in `extension/` for automatic Reg imports without storing passwords.
 
-1. **🔒 ล็อกอินผ่าน Google (Google Sign-In)**:
-   - เข้าสู่ระบบผ่านบัญชี Google ของคุณได้โดยตรง (รองรับทั้งอีเมลสถาบัน `@email.kmutnb.ac.th` และ Gmail ทั่วไป)
-   - Access Token มีอายุจำกัดและเก็บใน Session Storage ของเบราว์เซอร์ โดยไม่บันทึกลง LocalStorage
+## Tech Stack
 
-2. **💾 จัดการข้อมูลแยกตามบัญชี (Scoped User Preferences)**:
-   - สลับบัญชี Google ได้อย่างปลอดภัย ข้อมูลแคชทั้งหมดใน LocalStorage จะถูกแยกเก็บตามที่อยู่อีเมลของผู้ใช้ เพื่อป้องกันข้อมูลรั่วไหลระหว่างบัญชี
+- **Frontend**: React 19, Vite 8, React Router 7
+- **Styling and Icons**: Tailwind CSS v4, Lucide React
+- **Testing and Tooling**: Vitest, Testing Library, TypeScript (`tsc --noEmit`), ESLint, Husky, Commitlint
+- **APIs**: Google Identity Services, Google Classroom, Google Drive AppData, Google Calendar, Gmail, Discord Webhooks
 
-3. **👁️ ตัวกรองซ่อนรายวิชา (Course Visibility Filters)**:
-   - สามารถซ่อนรายวิชาที่เรียนจบแล้วหรือรายวิชาจากเทอมที่แล้วได้ ทั้งแบบเลือกทีละวิชาหรือซ่อนทีละหลายวิชา
-   - การบ้านจากวิชาที่ถูกซ่อนจะถูกลบออกจากหน้าแดชบอร์ดโดยอัตโนมัติ ช่วยลดความเกะกะบนหน้าจอ
+## Documentation
 
-4. **📅 แดชบอร์ดติดตามงานขั้นสูง (Advanced Coursework Dashboard)**:
-   - ดูการบ้านโดยแยกหมวดหมู่เป็น "กำหนดส่งวันนี้" (Due Today) และ "เลยกำหนดส่ง" (Overdue)
-   - ระบบนับถอยหลังที่แม่นยำ แสดงเวลากำหนดส่งได้ละเอียดถึงระดับนาที
+- [User Manual](./docs/USER_MANUAL.md) - How to use each page and feature
+- [Architecture](./docs/ARCHITECTURE.md) - How contexts, caching, and sync work
+- [API Reference](./docs/API_REFERENCE.md) - External endpoints, retries, and error handling
+- [Security](./docs/SECURITY.md) - Auth flow, storage isolation, XSS defenses, and known risks
+- [Deployment Guide](./docs/DEPLOYMENT_GUIDE.md) - Google Cloud setup and Vercel deployment
+- [Contributing](./docs/CONTRIBUTING.md) - Local workflow, commits, and checks
+- [ADRs](./docs/ADR/) - Short architecture decision notes
+- [Extension Guide](./extension/README.md) - Installing and using the Chrome/Edge Reg sync extension
+- [Changelog](./CHANGELOG.md) - Release notes
 
-5. **📝 สมุดโน้ตสไตล์ Notion (Notion-style Notepad)**:
-   - ร่างโน้ตหรือติดตามความคืบหน้าของการบ้านในพื้นที่ส่วนตัว (Local workspace) ที่ผูกติดกับงานแต่ละชิ้น
+## Quick Start
 
-6. **🔔 ระบบแจ้งเตือนผ่าน Gmail (Gmail Notification System)**:
-   - **แจ้งเตือนแม่นยำตามวัน**: รับอีเมลแจ้งเตือนล่วงหน้า 3 วัน, 1 วัน, และในวันที่ครบกำหนดส่งการบ้าน
-   - **สรุปงานวันอาทิตย์ (Sunday Digest)**: อีเมลสรุปงานที่ไม่มีกำหนดส่งชัดเจนเป็นรายสัปดาห์
-   - **ระบบกันสแปม (Anti-Spam)**: รวมประกาศและโพสต์ใหม่ๆ ไว้ในอีเมลสรุปฉบับเดียวเพื่อไม่ให้รกกล่องจดหมาย
+Requires Node.js 20.19+ or 22.12+.
 
----
-
-## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
-
-* **Frontend Framework**: React 19 (Vite 8)
-* **Routing**: React Router 7 (การนำทางแบบ SPA client-side)
-* **Styling**: Vanilla CSS + Tailwind CSS v4 (บังคับใช้ธีม Dark-slate)
-* **Icons**: Lucide React
-* **Integration APIs**: Google Identity Services (OAuth 2.0 Implicit flow) + Google Classroom API + Google Drive API
-
----
-
-## 📚 เอกสารประกอบ (Documentation)
-
-หากต้องการดูรายละเอียดเชิงลึกเกี่ยวกับสถาปัตยกรรม, การติดตั้ง, และการใช้งาน สามารถอ้างอิงจากเอกสารด้านล่างนี้:
-
-- **[สถาปัตยกรรม (ARCHITECTURE.md)](./docs/ARCHITECTURE.md)**: การออกแบบระบบและการไหลของข้อมูล
-- **[อ้างอิง API (API_REFERENCE.md)](./docs/API_REFERENCE.md)**: Endpoints ของ Google API และการจัดการข้อผิดพลาด
-- **[นโยบายความปลอดภัย (SECURITY.md)](./docs/SECURITY.md)**: ขั้นตอนการทำงานของ OAuth, การจัดเก็บ Token, และการป้องกัน XSS
-- **[คู่มือการตั้งค่าขึ้นเซิร์ฟเวอร์ (DEPLOYMENT_GUIDE.md)](./docs/DEPLOYMENT_GUIDE.md)**: คำแนะนำในการนำขึ้น Vercel และการตั้งค่า Google Cloud Console
-- **[คู่มือผู้ใช้งาน (USER_MANUAL_TH.md)](./docs/USER_MANUAL_TH.md)**: คู่มือภาษาไทยสำหรับผู้ใช้งานทั่วไป
-- **[การร่วมพัฒนา (CONTRIBUTING.md)](./docs/CONTRIBUTING.md)**: แนวทางในการร่วมพัฒนาโค้ด (Contributing guidelines)
-- **[บันทึกการเปลี่ยนแปลง (CHANGELOG.md)](./CHANGELOG.md)**: ประวัติการอัปเดตเวอร์ชั่น (Version history)
-- **[ADRs](./docs/ADR/)**: บันทึกการตัดสินใจเชิงสถาปัตยกรรม (Architecture Decision Records) ที่อธิบายเหตุผลของการเลือกใช้เทคโนโลยีหลัก
-
----
-
-## ⚙️ เริ่มต้นใช้งาน (Quick Start สำหรับนักพัฒนา)
-
-### 1. โคลนโปรเจกต์ & ติดตั้ง (Clone & Install)
 ```bash
-git clone https://github.com/kittiponglnwza/classroom-dashboard.git
-cd classroom-dashboard
+git clone https://github.com/kittiponglnwza/classroom_dashbord.git
+cd classroom_dashbord
 npm install
 ```
 
-### 2. ตัวแปรสภาพแวดล้อม (Environment Variables)
-สร้างไฟล์ `.env` ในโฟลเดอร์หลัก (Root directory) และใส่ Google Client ID ของคุณลงไป:
+Create a `.env` file in the project root with your Google OAuth Client ID:
+
 ```env
 VITE_GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
 ```
 
-### 3. รันเซิร์ฟเวอร์ (Run Development Server)
+Start the dev server:
+
 ```bash
 npm run dev
 ```
 
----
+Useful scripts:
 
-## 👨‍💻 ข้อมูลนักพัฒนา (Developer Information)
+```bash
+npm run typecheck   # Check TypeScript files
+npm run lint        # Run ESLint
+npm run test        # Run unit tests
+npm run coverage    # Run tests with coverage thresholds
+npm run build       # Build production bundle and PWA assets
+```
 
-* **ชื่อ**: Kittipong Teerasee (กิตติพงษ์ ธีระสี)
-* **รหัสนักศึกษา**: 6704082611115
-* **สถาบัน**: มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ (KMUTNB)
-* **GitHub**: [kittiponglnwza](https://github.com/kittiponglnwza)
+## Developer
 
----
+- **Name**: Kittipong Teerasee
+- **Student ID**: 6704082611115
+- **University**: King Mongkut's University of Technology North Bangkok (KMUTNB)
+- **GitHub**: [kittiponglnwza](https://github.com/kittiponglnwza)
 
-## 📄 ลิขสิทธิ์ (License)
+## License
 
-โปรเจกต์นี้ใช้ลิขสิทธิ์แบบ MIT License - สามารถอ่านรายละเอียดเพิ่มเติมได้ที่ไฟล์ [LICENSE](LICENSE)
+Licensed under the MIT License. See [LICENSE](LICENSE).

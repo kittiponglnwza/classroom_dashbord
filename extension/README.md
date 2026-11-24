@@ -1,21 +1,24 @@
-# CH Classroom Hub — KMUTNB Reg Auto-Sync Extension
+# CH Classroom Hub - KMUTNB Reg Auto-Sync Extension
 
-ส่วนเสริมสำหรับ Chrome / Edge (Manifest V3) ที่ช่วยให้ **CH Classroom Hub** ซิงค์ตารางเรียน วันสอบ และผลการศึกษาจาก `reg.kmutnb.ac.th` อัตโนมัติทุกครั้งที่คุณเปิดดูหน้าเว็บ **โดยไม่ต้องเก็บรหัสผ่าน ICIT และไม่ต้องก๊อปวางเอง**
+Chrome and Edge (Manifest V3) companion extension that captures your timetable, exam dates, and grade reports from `reg.kmutnb.ac.th` and syncs them into CH Classroom Hub automatically whenever you visit Reg. It never asks for or stores your ICIT password or cookies.
 
-## วิธีติดตั้ง (3 ขั้นตอน)
+## Install
 
-1. เปิด Chrome พิมพ์ `chrome://extensions` (หรือ Edge พิมพ์ `edge://extensions`)
-2. เปิดสวิตช์ **Developer mode** (โหมดนักพัฒนาซอฟต์แวร์) มุมขวาบน
-3. กดปุ่ม **Load unpacked** (โหลดส่วนขยายที่ไม่ได้แพ็กเกจ) แล้วเลือกโฟลเดอร์ `extension/` ของโปรเจกต์นี้
+1. Open `chrome://extensions` in Chrome (or `edge://extensions` in Edge).
+2. Turn on **Developer mode** in the top-right corner.
+3. Click **Load unpacked** and select the `extension/` folder from this repository.
 
-## วิธีใช้งาน
+## Usage
 
-1. เปิดหน้า **ตารางเรียน/สอบ** (`https://reg.kmutnb.ac.th/registrar/timetable`) และ/หรือ **ผลการศึกษา** (`https://reg.kmutnb.ac.th/registrar/grade`) ด้วยบัญชี ICIT ของคุณตามปกติ
-2. Extension จะจับข้อมูลตารางให้อัตโนมัติ (ขึ้นป้ายสีเขียวเล็กๆ มุมขวาล่าง)
-3. เปิดเว็บ **CH Classroom Hub** (`https://classrooms-hub.vercel.app`) → ข้อมูลตารางเรียน วันสอบ เกรด และเกณฑ์จบหลักสูตรจะซิงค์เข้าเว็บ + Google Drive + Google Calendar ให้อัตโนมัติทันที!
-4. รอบหน้าเมื่อเทอมเปลี่ยนหรือเกรดออก แค่เปิดหน้า Reg มจพ. อีกรอบ ระบบก็จะอัปเดตให้อัตโนมัติเช่นเดิม
+1. Sign in to `reg.kmutnb.ac.th` as usual and open your **Timetable** (`https://reg.kmutnb.ac.th/registrar/timetable`) and/or **Grade Report** (`https://reg.kmutnb.ac.th/registrar/grade`).
+2. The extension captures the table data locally and shows a small green confirmation toast in the bottom-right corner.
+3. Open CH Classroom Hub (`https://classrooms-hub.vercel.app/` or local dev). Your timetable, exam dates, grades, and graduation progress sync automatically and trigger Drive and Calendar updates.
 
-## ความปลอดภัย
-- ไม่เก็บรหัสผ่านหรือ Cookie ของ ICIT
-- ตัดชื่อ-สกุล เบอร์ติดต่อ และเมนูระบบทิ้งก่อนบันทึก
-- ขอสิทธิ์เฉพาะ `storage` และ `activeTab` เท่านั้น และทำงานเฉพาะบน `reg.kmutnb.ac.th/registrar/*` กับ `classrooms-hub.vercel.app`
+Whenever grades or schedules change in a new term, visit the Reg pages again and the extension will push the updated snapshot on your next visit to the web app.
+
+## Privacy and Permissions
+
+- **Permissions**: Requests `storage`, `activeTab`, and `scripting`, with host access scoped strictly to `https://*.kmutnb.ac.th/registrar/*`.
+- **No credentials stored**: Does not touch passwords or ICIT session cookies.
+- **Data minimization**: Strips names, contact details, and page navigation chrome before storing snapshots.
+- **Origin and account checks**: `bridge.js` only communicates via `window.postMessage` with `https://classrooms-hub.vercel.app` and local Vite dev/preview origins, and the web app checks a one-way FNV-1a Student ID hash so snapshots from one student account cannot overwrite another.

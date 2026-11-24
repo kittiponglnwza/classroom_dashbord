@@ -1,56 +1,43 @@
-# Security Policy & Architecture
+# Security Policy and Architecture
 
-CH Classroom Hub prioritizes the security and privacy of student data. This document outlines the security architecture, threat models, and mitigation strategies implemented in the application.
+CH Classroom Hub is a client-side web application with no custom backend. This document describes how authentication, local data, external links, and third-party connections are handled, along with known transport limitations.
 
-## 1. Authentication Strategy
+## 1. Authentication and Tokens
 
-The application uses Google's OAuth 2.0 implementation via the Google Identity Services (GIS) SDK (`window.google.accounts.oauth2.initTokenClient`).
+The app uses the Google Identity Services (GIS) Token Client (`window.google.accounts.oauth2.initTokenClient`).
 
-### OAuth Token Client Flow
-- We utilize the client-side GIS Token Client flow, which returns a short-lived `access_token` (~1 hour) directly to browser memory without exposing client secrets or requiring a backend server.
-- The `access_token` requests these scopes. Classroom scopes are read-only; Gmail and Calendar scopes allow the app to send email and create or update calendar events, and Drive App Data stores the user's private sync file:
-  - `https://www.googleapis.com/auth/classroom.courses.readonly`
-  - `https://www.googleapis.com/auth/classroom.coursework.me.readonly`
-  - `https://www.googleapis.com/auth/classroom.announcements.readonly`
-  - `https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly`
-  - `https://www.googleapis.com/auth/classroom.topics.readonly`
-  - `https://www.googleapis.com/auth/drive.appdata`
-  - `https://www.googleapis.com/auth/calendar.events`
-  - `https://www.googleapis.com/auth/gmail.send`
-  - `openid`, `email`, `profile`
+- **Short-lived tokens**: Login returns an OAuth `access_token` (~1 hour lifetime) without storing a client secret or persistent refresh token.
+- **Session-only token storage**: The `access_token` is held in React state (`AuthContext`) and `sessionStorage` (`classroom_hub_access_token`) alongside `classroom_hub_access_token_expires_at` with a 60-second clock-skew guard. It is never written to `localStorage`.
+- **Scopes requested**:
+  - Read-only Classroom scopes: `classroom.courses.readonly`, `classroom.coursework.me.readonly`, `classroom.announcements.readonly`, `classroom.courseworkmaterials.readonly`, `classroom.topics.readonly`
+  - Sync and alerts: `drive.appdata`, `calendar.events`, `gmail.send`
+  - Identity: `openid`, `email`, `profile`
+- **Logout vs closing a tab**: Closing the tab clears `sessionStorage` (and therefore the token), while cached academic data and settings remain in `localStorage` if **Remember me** is enabled. Clicking **Disconnect** revokes the active token with Google (`window.google.accounts.oauth2.revoke`) and wipes all user-scoped caches via `resetDatabase(email)`. On shared or public computers, always click **Disconnect** before leaving.
 
-## 2. Token Storage & Lifecycle Management
+## 2. Per-User Data Isolation
 
-Token security is critical for a frontend-only application:
+- **Scoped storage keys**: Every `localStorage` cache key includes the user's lowercase email (`${baseKey}_${email}`), keeping accounts separated in shared browsers.
+- **Drive sync allowlist**: Incoming keys from Google Drive `appDataFolder` are checked against `isSafeSyncKey` in `src/services/driveSync.js` before writing to `localStorage`.
+- **Calendar isolation**: `calendarSync.js` tags Classroom Hub events with `extendedProperties` metadata so reconciliation only modifies or removes events created by Classroom Hub.
+- **Companion extension bridge**: `extension/bridge.js` and `ClassroomContext` accept `window.postMessage` events only from the same window and explicit allowed origins (`https://classrooms-hub.vercel.app` and local Vite ports), and compare a one-way FNV-1a hash of the student's 13-digit ID (`hashStudentIdForBridge`) to prevent snapshots from one KMUTNB Reg account from overwriting a different Classroom Hub account.
 
-- **In-Memory & Session Storage Only:** The Google OAuth token is kept in React state (`AuthContext`) and `sessionStorage` (`classroom_hub_access_token`) with an explicit expiration timestamp (`classroom_hub_access_token_expires_at`) and a 60-second clock-skew guard.
-- **No LocalStorage for Tokens:** Raw OAuth tokens are never stored in `localStorage`.
-- **Google revocation & local wipe on logout:** On explicit logout, the browser invokes `window.google.accounts.oauth2.revoke(accessToken)` and scrubs the user's local caches via `resetDatabase(email)`.
+## 3. XSS, Email, and URL Protections
 
-## 3. Data Scoping & Multi-User Segregation
+- **JSX escaping**: Classroom text and user notes in React are rendered through JSX's default text escaping; `dangerouslySetInnerHTML` is not used. The companion extension's toast in `extension/regContent.js` renders fixed strings and numeric counts inside a Shadow DOM root.
+- **Email MIME and HTML escaping**: Outbound Gmail messages in `NotificationService.js` and `GoogleRepository.js` escape all dynamic text with `escapeHtml()`, restrict course accent colors to a fixed hex allowlist (`getHexColor`), and strip `[\r\n]` from email headers.
+- **URL validation**: External links from Classroom, Drive, YouTube, Forms, and KMUTNB SciBase pass through `sanitizeExternalUrl()` (`src/utils/sanitize.js`), which rejects `javascript:`, `data:`, and non-HTTP(S) schemes. Both `https:` and `http:` are allowed so university links without TLS still open.
 
-To support multiple Google Accounts sharing the same browser safely:
+## 4. Discord Webhooks and Google Apps Script
 
-- All user-scoped keys in `localStorage` are formatted as `${baseKey}_${email}` (e.g., `classroom_hub_assignments_student@kmutnb.ac.th`) via `StorageRepository.getCacheKey`.
-- Google Drive `appDataFolder` payloads are validated against a strict key allowlist (`isSafeSyncKey` in `src/services/driveSync.js`) before being applied to `localStorage`.
-- Companion Chrome/Edge Extension (`extension/`) snapshots are restricted to explicit application origins (`https://classrooms-hub.vercel.app` and local dev ports) and bound to a one-way FNV-1a hash of the student's 13-digit Student ID (`hashStudentIdForBridge`) to prevent cross-account overwrites.
+- Discord Webhook URLs are never stored in `VITE_*` build-time variables. Each user saves their own URL in Settings or the notification popover, stored per account in `localStorage` and synced privately to their Google Drive `appDataFolder`.
+- `DiscordService.validateWebhookUrl` accepts only `https:` URLs targeting official Discord webhook hosts and valid `/api/webhooks/{id}/{token}` paths. The UI masks tokens via `DiscordService.maskWebhookUrl`.
+- Note that copying the optional 24/7 Google Apps Script from Settings embeds the user's Discord Webhook URL into the generated script text. Treat copied scripts like a secret and do not share them publicly.
 
-## 4. XSS & Injection Protection
+## 5. Content Security Policy and Security Headers
 
-- **React JSX Escaping:** User-generated and Classroom text in the React UI is rendered through React's default text escaping. The companion extension's toast is assembled from fixed labels and derived counts in a shadow root.
-- **URL Validation:** All external links from Google Classroom, Drive, YouTube, Forms, and KMUTNB SciBase are validated via `sanitizeExternalUrl()` (`src/utils/sanitize.js`), permitting only `https:` and `http:` schemes.
-- **Email HTML & MIME Escaping:** Outbound Gmail notification templates escape all dynamic text via `escapeHtml()`, restrict course accent colors to a fixed hex allowlist (`getHexColor`), and strip `[\r\n]` from MIME headers.
+Production deployments on Vercel apply these headers in `vercel.json`:
 
-## 5. Secret Management
-
-- The application is a client-side Single Page Application (SPA).
-- Only public identifiers (such as `VITE_GOOGLE_CLIENT_ID`) may use the `VITE_` build-time prefix.
-- User-specific credentials such as personal Discord Webhook URLs must **never** be placed in `VITE_*` environment variables; they are configured per user in Settings, masked in the UI (`DiscordService.maskWebhookUrl`), and synced privately to each user's Google Drive `appDataFolder`.
-
-## 6. Content Security Policy (CSP) & Security Headers
-
-Production deployments on Vercel enforce strict security headers in `vercel.json`:
-- `Content-Security-Policy` restricting `script-src` to `'self' https://accounts.google.com` and `frame-ancestors 'none'`
+- `Content-Security-Policy`: Restricts scripts to `'self' https://accounts.google.com`, connections to `'self'`, Google APIs, and official Discord webhook domains, frames to `https://accounts.google.com`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`, and `object-src 'none'`.
 - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
 - `Cross-Origin-Opener-Policy: same-origin-allow-popups`
 - `X-Frame-Options: DENY`
@@ -58,11 +45,12 @@ Production deployments on Vercel enforce strict security headers in `vercel.json
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 
-## 7. External Exam Lookup Transport
+## 6. Known Risk: KMUTNB Exam Seating Lookup Over HTTP
 
-Automatic exam-room lookup currently sends the student's ID in the `IDcard` query parameter to the university's SciBase endpoint over HTTP. The Vercel-to-university connection has no TLS protection, and URL-based server logs may retain the ID. The frontend cannot secure that upstream leg by itself. The app shows a warning before the lookup UI; prefer an official HTTPS endpoint when one becomes available.
+Automatic exam-room lookup proxies `/api/exam-room?IDcard={studentId}` to the university's SciBase endpoint (`http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`). While Browser-to-Vercel traffic uses HTTPS, the Vercel-to-university connection uses plain HTTP with the Student ID in the query string. That upstream leg is not encrypted, and URL query strings may appear in upstream server or proxy logs.
+
+Because the frontend cannot upgrade a third-party server to HTTPS, the Exam Room page displays a warning banner before the lookup UI, and automatic lookup can be turned off at any time via `EXAM_CONFIG.seatingLookupEnabled` in `src/config/exam.js` while keeping Reg import and manual exams available.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability within CH Classroom Hub, please do not disclose it publicly.
-Instead, send an email to the repository owner at [kitipongzaza566@gmail.com]. All security issues will be treated with the highest priority and addressed swiftly.
+If you find a security issue in CH Classroom Hub, please do not open a public issue. Email `kitipongzaza566@gmail.com` directly with reproduction details.

@@ -1,23 +1,19 @@
 # Deployment Guide
 
-This guide provides instructions for deploying CH Classroom Hub to production and setting up the required Google Cloud Console integrations.
+This guide covers Google Cloud OAuth setup and deploying CH Classroom Hub to Vercel.
 
 ## 1. Google Cloud Console Setup
 
-The application requires a Google OAuth 2.0 Client ID to authenticate users and fetch Classroom data.
-
-### Step-by-Step
-1. Navigate to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a new project (e.g., "Classroom Hub").
-3. Go to **APIs & Services > Library** and enable the following APIs:
+1. Open [Google Cloud Console](https://console.cloud.google.com/) and create a project.
+2. Go to **APIs & Services > Library** and enable:
    - Google Classroom API
    - Google Drive API
-   - Gmail API (for in-app email notifications)
-   - Google Calendar API (for calendar sync)
-4. Go to **APIs & Services > OAuth consent screen**.
-   - Choose **External** (unless restricting to an organizational workspace).
-   - Fill out the App Name, User support email, and Developer contact information.
-   - Configure the scopes requested by the app:
+   - Gmail API (needed for in-app email reminders)
+   - Google Calendar API (needed for calendar sync)
+3. Go to **APIs & Services > OAuth consent screen**:
+   - Choose **External** (or Internal if deploying only for a single Workspace domain).
+   - Fill in the app name, support email, and developer contact email.
+   - Add the scopes requested by `src/config/google.js`:
      - `https://www.googleapis.com/auth/classroom.courses.readonly`
      - `https://www.googleapis.com/auth/classroom.coursework.me.readonly`
      - `https://www.googleapis.com/auth/classroom.announcements.readonly`
@@ -27,44 +23,48 @@ The application requires a Google OAuth 2.0 Client ID to authenticate users and 
      - `https://www.googleapis.com/auth/gmail.send`
      - `https://www.googleapis.com/auth/calendar.events`
      - `openid`, `email`, and `profile`
-   - Gmail and Calendar features will be unavailable if their APIs or scopes are omitted.
-   - Add yourself as a Test User if the app is still in testing mode.
-5. Go to **APIs & Services > Credentials**.
-   - Click **Create Credentials > OAuth client ID**.
-   - Application type: **Web application**.
-   - Add Authorized JavaScript origins: `http://localhost:5173` (for local dev) and your production URL (e.g., `https://classrooms-hub.vercel.app`).
-   - Add Authorized redirect URIs (same as origins).
-   - Click Create and copy the generated **Client ID**.
+   - While the consent screen is in **Testing** mode, add every tester's email under **Test users**; otherwise sign-in will be blocked for other users.
+4. Go to **APIs & Services > Credentials**:
+   - Click **Create Credentials > OAuth client ID** and select **Web application**.
+   - Add **Authorized JavaScript origins**: `http://localhost:5173` for local development and your production URL (for example `https://classrooms-hub.vercel.app`).
+   - Add matching **Authorized redirect URIs** if prompted, then save and copy the **Client ID**.
 
 ## 2. Environment Variables
 
-Create a `.env` file in the root of your project or configure the environment variables on your hosting provider.
+Only the public Google OAuth Client ID is needed at build time:
 
 ```env
 VITE_GOOGLE_CLIENT_ID=your-client-id-here.apps.googleusercontent.com
 ```
 
-## 3. Deploying to Vercel (Recommended)
+Do not put private credentials or personal Discord Webhook URLs into `VITE_*` environment variables, as `VITE_*` values are embedded into the public client bundle.
 
-Vercel is the recommended hosting platform for Vite/React applications.
+## 3. Deploying to Vercel
 
-### Using Vercel CLI
-1. Install Vercel CLI: `npm i -g vercel`
-2. Run `vercel` in the project root.
-3. Follow the prompts to link the project.
-4. Add the `VITE_GOOGLE_CLIENT_ID` in the Vercel dashboard under Settings > Environment Variables.
-5. Deploy to production using `vercel --prod`.
+### Vercel CLI
 
-### Using GitHub Integration
-1. Push your code to a GitHub repository.
-2. Go to Vercel and Import Project from GitHub.
-3. Add the `VITE_GOOGLE_CLIENT_ID` environment variable during the setup phase.
-4. Vercel will automatically build (`npm run build`) and deploy the application.
+```bash
+npm i -g vercel
+vercel
+```
 
-## 4. Google Apps Script Integration (Optional)
+Add `VITE_GOOGLE_CLIENT_ID` in **Project Settings > Environment Variables** on Vercel, then deploy to production:
 
-If you plan to utilize the Email Notification system, you must deploy the Apps Script code attached to a user's Google Account and trigger it via a generated webhook. (Refer to the `Settings` page in the UI for the Apps Script payload generation).
+```bash
+vercel --prod
+```
 
-## 5. Exam Seating Lookup
+### GitHub Integration
 
-Automatic exam seating lookup uses the university's current HTTP endpoint. The student ID is sent in the request query string, and the Vercel-to-university connection is not encrypted. The dev proxy in `vite.config.js` and production rewrite in `vercel.json` must point to the same endpoint. Prefer an official HTTPS endpoint when one becomes available.
+1. Push the repository to GitHub.
+2. Import the project in Vercel.
+3. Add `VITE_GOOGLE_CLIENT_ID` in Environment Variables.
+4. Vercel runs `npm run build` and serves `dist/` using the headers and rewrites in `vercel.json`.
+
+## 4. Exam Seating Proxy Configuration
+
+Both `vite.config.js` (development proxy) and `vercel.json` (production rewrite) map `/api/exam-room` to `http://www.scibase.kmutnb.ac.th/examroom/datatrain.php`. Keep both files pointed at the same target if the university updates or moves the endpoint (and prefer switching to HTTPS as soon as the university supports it).
+
+## 5. Optional 24/7 Google Apps Script
+
+In-app Gmail and Discord notifications only run while the web app is open and syncing. If users want hourly alerts while the browser is closed, they can copy the generated Google Apps Script from **Settings**, paste it into [script.google.com](https://script.google.com), enable the **Google Classroom API** service, and add an hourly trigger for `sendClassroomDigest`.

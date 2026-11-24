@@ -1,19 +1,23 @@
-# ADR 0001: Using Google Drive AppData for Synchronization
+# ADR 0001: Google Drive AppData for Cross-Device Sync
 
 **Date**: 2026-07-09
 **Status**: Accepted
 
 ## Context
-CH Classroom Hub needs a way to persist user preferences (e.g., hidden courses, schedule configurations, manual exam entries) across multiple devices (e.g., laptop and mobile). Because this is a frontend-only SPA (Single Page Application) built for a portfolio/student-use case, deploying and maintaining a dedicated backend server and database (like PostgreSQL or MongoDB) introduces unnecessary cost, complexity, and operational overhead.
+
+CH Classroom Hub needs to sync user preferences, hidden courses, task completion states, personal notes, timetables, academic records, and manual exams across devices. Running a dedicated backend database would add hosting cost, server maintenance, and another layer of user data management.
 
 ## Decision
-We will use the **Google Drive AppData API** (`https://www.googleapis.com/auth/drive.appdata`) as our primary synchronization backend.
+
+Use the Google Drive AppData API (`https://www.googleapis.com/auth/drive.appdata`) as the remote sync store (`classroom_hub_sync_settings.json`).
 
 ## Rationale
-- **Zero Cost & Zero Maintenance:** We do not need to host a database server. 
-- **Security & Privacy:** The `appDataFolder` is a hidden, application-specific folder. The user retains complete ownership of their data, and third-party apps cannot access it.
-- **Convenience:** The user is already authenticating with Google to access Classroom data. Reusing this credential for Drive access provides a frictionless experience.
+
+- **No backend required**: Keeps the app a pure static SPA hosted on Vercel.
+- **Private per-user storage**: Files in `appDataFolder` belong to the user's own Google Drive and are hidden from normal Drive browsing and other applications.
+- **Single sign-in flow**: Users already sign in with Google for Classroom, so Drive sync does not require a second account.
 
 ## Consequences
-- **Positive:** Serverless architecture, high privacy, zero backend costs.
-- **Negative:** Drive API is slower than a traditional database. To mitigate this, we employ a heavy LocalStorage caching strategy (`offline-first` approach) and only sync in the background.
+
+- **Trade-off**: Google Drive requests are noticeably slower than a dedicated database API.
+- **Mitigation**: All reads come from `localStorage` first (`StorageRepository` with an in-memory cache). Syncing runs in the background, checks `file.modifiedTime` before downloading `alt=media`, and merges collections item-by-item using field timestamps and deletion tombstones so devices converge cleanly without overwriting edits.
