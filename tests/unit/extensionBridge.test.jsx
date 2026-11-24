@@ -8,6 +8,7 @@ import { ToastProvider } from '../../src/contexts/ToastContext';
 import { ClassroomProvider } from '../../src/contexts/ClassroomContext';
 import { setActiveEmail, saveToken, getSchedule, getAcademicData } from '../../src/utils/storage';
 import { examRepository } from '../../src/repositories/examRepository';
+import { hashStudentIdForBridge } from '../../src/utils/kmutnbStudentId';
 
 vi.mock('../../src/services/SyncManager', () => ({
   syncManager: {
@@ -182,5 +183,57 @@ describe('Chrome Extension Auto-Sync Bridge', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(getSchedule('extuser@email.kmutnb.ac.th')).toHaveLength(0);
     expect(screen.queryByText('Extension Sync')).not.toBeInTheDocument();
+  });
+
+  it('blocks extension snapshot auto-import when studentIdHash belongs to another student', async () => {
+    setActiveEmail('s6704062611115@email.kmutnb.ac.th');
+    renderAcademicApp();
+
+    // Snapshot captured from a different student ID (6704062699999)
+    const otherSidHash = hashStudentIdForBridge('6704062699999');
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window,
+        origin: window.location.origin,
+        data: {
+          channel: 'CH_EXTENSION_BRIDGE',
+          source: 'extension',
+          type: 'REG_SNAPSHOT_DATA',
+          status: { connected: true, version: '1.2.2', timetableCount: 1, gradeCount: 1 },
+          payload: {
+            timetable: { text: TIMETABLE_SNAPSHOT, hash: 'tt-other', studentIdHash: otherSidHash, count: 1 },
+            grade: { text: GRADE_SNAPSHOT, hash: 'gr-other', studentIdHash: otherSidHash, count: 1 },
+          },
+        },
+      })
+    );
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getSchedule('s6704062611115@email.kmutnb.ac.th')).toHaveLength(0);
+    expect(getAcademicData('s6704062611115@email.kmutnb.ac.th').semesters).toHaveLength(0);
+
+    // Matching studentIdHash (6704062611115) imports normally
+    const ownSidHash = hashStudentIdForBridge('6704062611115');
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window,
+        origin: window.location.origin,
+        data: {
+          channel: 'CH_EXTENSION_BRIDGE',
+          source: 'extension',
+          type: 'REG_SNAPSHOT_DATA',
+          status: { connected: true, version: '1.2.2', timetableCount: 1, gradeCount: 1 },
+          payload: {
+            timetable: { text: TIMETABLE_SNAPSHOT, hash: 'tt-own', studentIdHash: ownSidHash, count: 1 },
+            grade: { text: GRADE_SNAPSHOT, hash: 'gr-own', studentIdHash: ownSidHash, count: 1 },
+          },
+        },
+      })
+    );
+
+    await waitFor(() => {
+      expect(getSchedule('s6704062611115@email.kmutnb.ac.th')).toHaveLength(1);
+      expect(getAcademicData('s6704062611115@email.kmutnb.ac.th').semesters).toHaveLength(1);
+    });
   });
 });

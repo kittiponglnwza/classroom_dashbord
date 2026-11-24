@@ -100,9 +100,11 @@ export const GoogleRepository = {
    * Send Gmail Notification (RFC 822 MIME message format)
    */
   async sendEmail(accessToken, toEmail, subject, htmlBody) {
-    const utf8Subject = `=?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
+    const safeToEmail = String(toEmail || '').replace(/[\r\n]+/g, '').trim();
+    const cleanSubject = String(subject || '').replace(/[\r\n]+/g, ' ').trim();
+    const utf8Subject = `=?utf-8?B?${btoa(unescape(encodeURIComponent(cleanSubject)))}?=`;
     const emailLines = [
-      `To: ${toEmail}`,
+      `To: ${safeToEmail}`,
       `Subject: ${utf8Subject}`,
       'Content-Type: text/html; charset=utf-8',
       'MIME-Version: 1.0',

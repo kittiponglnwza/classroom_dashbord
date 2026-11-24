@@ -72,6 +72,17 @@
   }
 
   /**
+   * Computes a one-way privacy-preserving hash of the 13-digit Student ID on the Reg page
+   * so Classroom Hub can prevent cross-account overwrites without storing raw student PII.
+   */
+  function detectStudentIdHashFromDom() {
+    const bodyText = document.body?.innerText || '';
+    const match = bodyText.match(/\b(\d{13})\b/);
+    if (!match) return null;
+    return hashString(`ch_sid_${match[1]}`);
+  }
+
+  /**
    * Primary extractor: reads live DOM <table> rows directly so multi-line <br>/<div>
    * cells (Thai+Eng course titles, wrapped headers, exam date+time) become clean 1-line TSV rows.
    */
@@ -345,11 +356,13 @@
         return { captured: true, changed: false, kind, count: extracted.count, slotCount: extracted.slotCount };
       }
 
+      const studentIdHash = detectStudentIdHashFromDom();
       const updated = {
         ...current,
         [kind]: {
           text: extracted.text,
           hash: nextHash,
+          studentIdHash,
           count: extracted.count,
           slotCount: extracted.slotCount || 0,
           capturedAt: new Date().toISOString(),

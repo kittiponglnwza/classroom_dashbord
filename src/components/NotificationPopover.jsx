@@ -670,12 +670,20 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                 </label>
 
                 <div className="space-y-1.5">
-                  <label htmlFor={discordWebhookInputId} className="block text-[11px] text-[#9D9D9D] font-medium">
-                    {lang === 'en' ? 'Discord Webhook URL:' : 'ลิงก์ Discord Webhook:'}
-                  </label>
+                  <div className="flex items-center justify-between gap-2">
+                    <label htmlFor={discordWebhookInputId} className="block text-[11px] text-[#9D9D9D] font-medium">
+                      {lang === 'en' ? 'Discord Webhook URL:' : 'ลิงก์ Discord Webhook:'}
+                    </label>
+                    {discordCheck.valid && (
+                      <span className="text-[10px] font-mono text-[#858585] truncate max-w-[180px]">
+                        {DiscordService.maskWebhookUrl(alertSettings.discordWebhookUrl)}
+                      </span>
+                    )}
+                  </div>
                   <input
                     id={discordWebhookInputId}
-                    type="url"
+                    type="password"
+                    autoComplete="off"
                     placeholder="https://discord.com/api/webhooks/..."
                     value={alertSettings.discordWebhookUrl || ''}
                     onChange={(e) => handleUpdateSetting('discordWebhookUrl', e.target.value)}

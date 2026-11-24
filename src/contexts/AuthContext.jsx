@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { 
   getToken, saveToken, clearToken, getActiveEmail, setActiveEmail, 
-  getProfile, saveProfile, getRememberMe, setRememberMe, clearAcademicLocalData
+  getProfile, saveProfile, getRememberMe, setRememberMe, clearAcademicLocalData, resetDatabase
 } from '../utils/storage';
 import { initGoogleClient } from '../services/googleClassroomClient';
 import { StorageRepository } from '../repositories/StorageRepository';
@@ -133,13 +133,24 @@ export const AuthProvider = ({ children }) => {
     }
   }, [clearSessionState]);
 
-  // Explicit user logout: forget the account on this device as well
-  // and scrub sensitive local academic/grade records (restored via Drive appDataFolder on next login).
+  // Explicit user logout: revoke OAuth token with Google, forget the account on this device,
+  // and scrub all user-scoped local caches (restored via Drive appDataFolder on next login).
   const handleForceLogout = useCallback(() => {
     const previousEmail = getActiveEmail();
+    const tokenToRevoke = accessToken || getToken();
+    if (tokenToRevoke && typeof window !== 'undefined' && typeof window.google?.accounts?.oauth2?.revoke === 'function') {
+      try {
+        window.google.accounts.oauth2.revoke(tokenToRevoke, () => {
+          logger.info('[Auth] Google OAuth token revoked.');
+        });
+      } catch (err) {
+        logger.warn('[Auth] Failed to revoke Google OAuth token:', err);
+      }
+    }
     clearSessionState();
     if (previousEmail) {
       clearAcademicLocalData(previousEmail);
+      resetDatabase(previousEmail);
     }
     setAuthError(null);
     setActiveEmail('');
@@ -147,7 +158,7 @@ export const AuthProvider = ({ children }) => {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem('lastExamSearch');
     }
-  }, [clearSessionState]);
+  }, [accessToken, clearSessionState]);
 
   useEffect(() => {
     const handleStorage = (e) => {

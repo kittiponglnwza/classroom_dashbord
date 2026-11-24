@@ -427,6 +427,8 @@ export const resetDatabase = (email) => {
     StorageRepository.remove(DELETED_IDS_KEY, userEmail);
     StorageRepository.remove(`classroom_hub_calendar_event_map_${userEmail}`);
     StorageRepository.remove(`classroom_hub_settings_last_updated_${userEmail}`);
+    StorageRepository.remove(`classroom_hub_${userEmail}_language`);
+    StorageRepository.remove(`classroom_hub_schema_version_${userEmail}`);
     
     return {
       assignments: [],
@@ -457,21 +459,9 @@ export const setEnableEmailAlerts = (enabled, email) => {
   StorageRepository.set('classroom_hub_enable_email_alerts', enabled, email);
 };
 
-const getEnvDiscordWebhookUrl = () => {
-  try {
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.MODE !== 'test') {
-      return String(import.meta.env.VITE_DISCORD_WEBHOOK_URL || '').trim();
-    }
-  } catch {
-    // Ignore if import.meta is unavailable
-  }
-  return '';
-};
-
 export const getAlertSettings = (email) => {
   const key = 'classroom_hub_alert_settings';
   const stored = StorageRepository.get(key, email, true);
-  const envWebhookUrl = getEnvDiscordWebhookUrl();
   const defaults = {
     due3Days: true,
     due1Day: true,
@@ -483,15 +473,11 @@ export const getAlertSettings = (email) => {
     calendarReminderEnabled: true,
     calendarReminderValue: 10,
     calendarReminderUnit: 'minutes',
-    discordEnabled: Boolean(envWebhookUrl),
-    discordWebhookUrl: envWebhookUrl
+    discordEnabled: false,
+    discordWebhookUrl: ''
   };
   if (!stored) return defaults;
-  const merged = { ...defaults, ...stored };
-  if (!merged.discordWebhookUrl && envWebhookUrl) {
-    merged.discordWebhookUrl = envWebhookUrl;
-  }
-  return merged;
+  return { ...defaults, ...stored };
 };
 
 export const saveAlertSettings = (settings, email) => {

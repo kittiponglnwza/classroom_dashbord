@@ -9,7 +9,6 @@ export const SYNC_CONFIG = {
   featureFlags: {
     backgroundGmail: false, // Disabled due to client-side implicit flow limitations
     examParser: true,
-    experimentalSync: true,
-    clientSideEncryption: false // Set to true if Web Crypto AES-GCM is active
+    experimentalSync: true
   }
 };

@@ -14,6 +14,7 @@ import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { NotificationService } from '../services/NotificationService';
 import { examRepository } from '../repositories/examRepository';
 import { parseKmutnbRegInput } from '../services/parsers/kmutnbRegParser';
+import { hashStudentIdForBridge } from '../utils/kmutnbStudentId';
 import { getCookieConsent } from '../utils/cookieConsent';
 import { useAuth } from './AuthContext';
 import { useSettings } from './SettingsContext';
@@ -580,6 +581,29 @@ export const ClassroomProvider = ({ children }) => {
 
       if (msg.type === 'REG_SNAPSHOT_DATA') {
         if (!isLoggedIn) return;
+        const activeEmail = getActiveEmail();
+        const storedProfile = activeEmail ? getProfile(activeEmail) : null;
+        const cleanProfileId = String(storedProfile?.studentId || '').replace(/[\s-]/g, '').trim();
+        const activeStudentId = /^\d{13}$/.test(cleanProfileId)
+          ? cleanProfileId
+          : (String(activeEmail || '').match(/\d{13}/)?.[0] || '');
+        const expectedSidHash = hashStudentIdForBridge(activeStudentId);
+        const incomingSidHashes = [
+          msg.payload?.timetable?.studentIdHash,
+          msg.payload?.grade?.studentIdHash
+        ].filter((h) => typeof h === 'string' && h.trim().length > 0);
+
+        if (expectedSidHash && incomingSidHashes.length > 0 && incomingSidHashes.some((h) => h !== expectedSidHash)) {
+          logger.warn('[Extension Bridge] Blocked snapshot import due to Student ID hash mismatch.');
+          addToast(
+            langRef.current === 'th'
+              ? 'ข้อมูลใน Extension เป็นของรหัสนักศึกษาอื่น — ระบบบล็อกการเขียนทับข้อมูลของคุณแล้ว'
+              : 'Extension snapshot belongs to a different Student ID — auto-sync blocked to protect your account.',
+            'warning'
+          );
+          return;
+        }
+
         const timetableText = msg.payload?.timetable?.text || '';
         const gradeText = msg.payload?.grade?.text || '';
         const combined = [timetableText, gradeText].filter(Boolean).join('\n\n');

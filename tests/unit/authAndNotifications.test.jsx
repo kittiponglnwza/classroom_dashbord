@@ -34,9 +34,12 @@ describe('Authentication Persistence & Consent Hints', () => {
     vi.clearAllMocks();
   });
 
-  it('preserves rememberedAccount across browser restarts (when sessionStorage is cleared) and clears it only on explicit logout', () => {
-    setActiveEmail('student@kmutnb.ac.th');
-    saveProfile({ name: 'Somchai', email: 'student@kmutnb.ac.th' }, 'student@kmutnb.ac.th');
+  it('preserves rememberedAccount across browser restarts (when sessionStorage is cleared) and clears it + revokes token + wipes localStorage on explicit logout', () => {
+    const email = 'student@kmutnb.ac.th';
+    setActiveEmail(email);
+    saveProfile({ name: 'Somchai', email }, email);
+    const revokeSpy = vi.fn((_tok, cb) => cb && cb());
+    window.google = { accounts: { oauth2: { revoke: revokeSpy } } };
 
     let latestAuth;
     function Probe() {
@@ -51,15 +54,18 @@ describe('Authentication Persistence & Consent Hints', () => {
     );
 
     expect(latestAuth.isLoggedIn).toBe(false);
-    expect(getActiveEmail()).toBe('student@kmutnb.ac.th');
-    expect(latestAuth.rememberedAccount?.email).toBe('student@kmutnb.ac.th');
+    expect(getActiveEmail()).toBe(email);
+    expect(latestAuth.rememberedAccount?.email).toBe(email);
 
+    saveToken('active-oauth-token', 3600);
     act(() => {
       latestAuth.logout();
     });
 
+    expect(revokeSpy).toHaveBeenCalledWith('active-oauth-token', expect.any(Function));
     expect(getActiveEmail()).toBe('');
     expect(latestAuth.rememberedAccount).toBeNull();
+    expect(localStorage.getItem(`classroom_hub_profile_${email}`)).toBeNull();
   });
 
   it('passes login_hint + empty prompt for remembered users and settles silent refresh when error_callback fires', async () => {

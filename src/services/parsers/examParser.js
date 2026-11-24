@@ -166,14 +166,23 @@ export const parseExamHtml = (htmlText, lang) => {
     links.forEach(a => {
       const href = sanitizeExternalUrl(a.getAttribute('href') || '');
       if (!href) return;
-      if (isAllowedHostname(href, (u) => u.hostname.toLowerCase() === 'drive.google.com')) {
+      if (
+        isAllowedHostname(
+          href,
+          (u) =>
+            u.protocol === 'https:' &&
+            u.hostname.toLowerCase() === 'drive.google.com' &&
+            (u.pathname.startsWith('/file/') || u.pathname.startsWith('/drive/'))
+        )
+      ) {
         pdfLink = href;
       } else if (
         isAllowedHostname(
           href,
           (u) =>
-            u.hostname.toLowerCase() === 'forms.gle' ||
-            (u.hostname.toLowerCase() === 'docs.google.com' && u.pathname.startsWith('/forms'))
+            u.protocol === 'https:' &&
+            ((u.hostname.toLowerCase() === 'forms.gle' && /^\/[A-Za-z0-9_-]+$/.test(u.pathname)) ||
+              (u.hostname.toLowerCase() === 'docs.google.com' && u.pathname.startsWith('/forms/')))
         )
       ) {
         formLink = href;

@@ -110,6 +110,23 @@ export function extractStudentIdFromEmail(email) {
 }
 
 /**
+ * Computes a deterministic one-way FNV-1a hash of a 13-digit KMUTNB Student ID
+ * matching extension/regContent.js (`ch_sid_<13digits>`) to verify account ownership
+ * of extension snapshots without storing raw Student IDs in extension storage.
+ */
+export function hashStudentIdForBridge(rawId) {
+  const clean = normalizeStudentId(rawId);
+  if (!/^\d{13}$/.test(clean)) return '';
+  const str = `ch_sid_${clean}`;
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16);
+}
+
+/**
  * Current Thai academic year in B.E. (semester 1 starts around June).
  */
 export function getCurrentAcademicYearBE(now = new Date()) {

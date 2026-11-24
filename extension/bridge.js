@@ -3,8 +3,18 @@
   const CHANNEL = 'CH_EXTENSION_BRIDGE';
   const STORAGE_KEY = 'ch_reg_snapshots_v3';
   const DELIVERED_KEY = 'ch_reg_delivered_v3';
-  const EXTENSION_VERSION = '1.2.0';
+  const EXTENSION_VERSION = '1.2.2';
+  const ALLOWED_ORIGINS = new Set([
+    'https://classrooms-hub.vercel.app',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:4173',
+  ]);
   const PAGE_ORIGIN = window.location.origin;
+
+  if (!ALLOWED_ORIGINS.has(PAGE_ORIGIN)) {
+    return;
+  }
 
   function buildStatus(snapshots = {}, delivered = {}) {
     return {

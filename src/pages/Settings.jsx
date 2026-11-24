@@ -611,12 +611,20 @@ export default function Settings() {
             )}
 
             <div className="space-y-1.5">
-              <label htmlFor={webhookFieldId} className="block text-[11px] font-medium text-[#9D9D9D]">
-                {lang === 'en' ? 'Webhook URL' : 'ลิงก์ Discord Webhook'}
-              </label>
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor={webhookFieldId} className="block text-[11px] font-medium text-[#9D9D9D]">
+                  {lang === 'en' ? 'Webhook URL' : 'ลิงก์ Discord Webhook'}
+                </label>
+                {webhookValidation.valid && (
+                  <span className="text-[10px] font-mono text-[#858585] truncate max-w-[240px]" title="Masked Webhook URL">
+                    {DiscordService.maskWebhookUrl(alertSettings.discordWebhookUrl)}
+                  </span>
+                )}
+              </div>
               <input
                 id={webhookFieldId}
-                type="url"
+                type="password"
+                autoComplete="off"
                 placeholder="https://discord.com/api/webhooks/123456789/abcdef..."
                 value={alertSettings.discordWebhookUrl || ''}
                 onChange={(e) => handleUpdateSetting?.('discordWebhookUrl', e.target.value)}
