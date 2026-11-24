@@ -7,6 +7,8 @@ import { syncManager } from '../../services/SyncManager';
 import { calendarSyncManager } from '../../services/CalendarSyncManager';
 import { getToken, recordDeletedId } from '../../utils/storage';
 import { logger } from '../../utils/logger';
+import { EXAM_CONFIG } from '../../config/exam';
+import { t } from '../../utils/i18n';
 
 const notifyExamsUpdated = (email) => {
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
@@ -64,7 +66,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
   const [status, setStatus] = useState(() => {
     if (initialHasSciBaseCache) return 'success';
     const cleanInitId = String(resolveInitialStudentId(activeEmail, profileStudentId) || '').replace(/[\s-]/g, '').trim();
-    return /^\d{13}$/.test(cleanInitId) ? 'loading' : 'idle';
+    return EXAM_CONFIG.seatingLookupEnabled && /^\d{13}$/.test(cleanInitId) ? 'loading' : 'idle';
   });
   const [error, setError] = useState(null);
 
@@ -95,7 +97,11 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     setSciBaseChecked(nextHasSciBase);
     const hasSearched = !!sessionStorage.getItem('lastExamSearch');
     setSearchTriggered(hasSearched || nextHasSciBase || !!(parsed.manualExams && parsed.manualExams.length > 0));
-    setStatus(nextHasSciBase ? 'success' : (/^\d{13}$/.test(String(nextStudentId || '').replace(/[\s-]/g, '').trim()) ? 'loading' : 'idle'));
+    setStatus(
+      nextHasSciBase
+        ? 'success'
+        : (EXAM_CONFIG.seatingLookupEnabled && /^\d{13}$/.test(String(nextStudentId || '').replace(/[\s-]/g, '').trim()) ? 'loading' : 'idle')
+    );
     setError(null);
   }
 
@@ -141,6 +147,12 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     const validResult = examRepository.validateStudentId(targetIdInput, lang);
     if (!validResult.success) {
       setError(validResult.error.message);
+      setStatus('error');
+      return;
+    }
+
+    if (!EXAM_CONFIG.seatingLookupEnabled) {
+      setError(t('examLookupUnavailable', lang));
       setStatus('error');
       return;
     }
@@ -202,10 +214,10 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     }
   }, [studentId, lang, activeEmail, ownStudentId]);
 
-  // StrictMode-safe SciBase-first check: always queries the official exam seating site
-  // before falling back to KMUTNB Reg exams whenever a valid 13-digit studentId is present
-  // and no fresh SciBase result is cached.
+  // Check SciBase before using the KMUTNB Reg fallback only when its transport is enabled.
   useEffect(() => {
+    if (!EXAM_CONFIG.seatingLookupEnabled) return;
+
     const cleanId = String(studentId || '').replace(/[\s-]/g, '').trim();
     if (!/^\d{13}$/.test(cleanId) || sciBaseChecked) return;
 

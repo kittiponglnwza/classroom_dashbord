@@ -1,6 +1,6 @@
 import { useState, useContext, useMemo } from 'react';
 import {
-  ClipboardCheck, Lock, AlertCircle, CheckCircle2, Plus, Search,
+  ClipboardCheck, AlertCircle, CheckCircle2, Plus, Search,
   LayoutGrid, List, Upload, RefreshCw
 } from 'lucide-react';
 import { t } from '../utils/i18n';
@@ -16,6 +16,7 @@ import ExamCard from '../features/exams/ExamCard';
 import ExamManualModal from '../features/exams/ExamManualModal';
 import ExamUnlistedAlert from '../features/exams/ExamUnlistedAlert';
 import RegImportModal from '../components/RegImportModal';
+import { EXAM_CONFIG } from '../config/exam';
 
 function getTodayLocalIso() {
   const now = new Date();
@@ -178,7 +179,7 @@ export default function ExamRoom() {
           <p className="text-xs text-[#9D9D9D] mt-1 leading-relaxed">{t('examDesc', lang)}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto flex-wrap">
-          {hasValidStudentId && (
+          {hasValidStudentId && EXAM_CONFIG.seatingLookupEnabled && (
             <button
               type="button"
               onClick={() => handleSearch()}
@@ -190,7 +191,7 @@ export default function ExamRoom() {
               <span>{isTh ? 'เช็กที่นั่งสอบ' : 'Check Seating'}</span>
             </button>
           )}
-          {!isSearchVisible && (
+          {!isSearchVisible && EXAM_CONFIG.seatingLookupEnabled && (
             <button
               type="button"
               onClick={() => setIsSearchVisible(true)}
@@ -219,13 +220,23 @@ export default function ExamRoom() {
         </div>
       </div>
 
-      {/* Security Notice & Search Form */}
-      {isSearchVisible && (
-        <div className="space-y-4">
-          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4 flex items-start gap-3 text-xs max-w-2xl text-[#9D9D9D] leading-relaxed">
-            <Lock size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
-            <p>{t('securityWarning', lang)}</p>
+      {EXAM_CONFIG.seatingLookupEnabled ? (
+        EXAM_CONFIG.seatingLookupUsesHttp && (
+          <div role="status" className="bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs px-4 py-3 rounded-xl flex items-start gap-2.5 max-w-3xl">
+            <AlertCircle size={15} className="shrink-0 mt-0.5 text-amber-300" />
+            <p>{t('examLookupWarning', lang)}</p>
           </div>
+        )
+      ) : (
+        <div role="status" className="bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D] text-xs px-4 py-3 rounded-xl flex items-start gap-2.5 max-w-3xl">
+          <AlertCircle size={15} className="shrink-0 mt-0.5 text-[#3794FF]" />
+          <p>{t('examLookupUnavailable', lang)}</p>
+        </div>
+      )}
+
+      {/* Security Notice & Search Form */}
+      {isSearchVisible && EXAM_CONFIG.seatingLookupEnabled && (
+        <div className="space-y-4">
           <ExamSearchForm
             studentId={studentId}
             setStudentId={setStudentId}

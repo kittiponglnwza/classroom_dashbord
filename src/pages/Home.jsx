@@ -71,7 +71,7 @@ export default function Home() {
   }, [visibleResources]);
 
   const activeEmail = (profile?.email || '').toLowerCase().trim();
-  const { allExams, hasCheckedExams, unlistedInfo, isFetching: isFetchingExams } = useExams(
+  const { allExams, hasCheckedExams, unlistedInfo, isFetching: isFetchingExams, seatingLookupEnabled } = useExams(
     activeEmail,
     lang,
     schedule,
@@ -307,6 +307,7 @@ export default function Home() {
             unlistedInfo={unlistedInfo}
             hasCheckedExams={hasCheckedExams}
             isFetchingExams={isFetchingExams}
+            seatingLookupEnabled={seatingLookupEnabled}
             lang={lang}
           />
         </div>

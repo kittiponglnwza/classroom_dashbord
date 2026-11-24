@@ -23,7 +23,7 @@ const isExamUpcoming = (exam, now) => {
   return true;
 };
 
-export default function NextExamWidget({ allExams, unlistedInfo, hasCheckedExams, isFetchingExams, lang }) {
+export default function NextExamWidget({ allExams, unlistedInfo, hasCheckedExams, isFetchingExams, seatingLookupEnabled, lang }) {
   let nextExam = null;
 
   if (hasCheckedExams) {
@@ -67,15 +67,19 @@ export default function NextExamWidget({ allExams, unlistedInfo, hasCheckedExams
             {lang === 'en' ? 'Check your Exam Seating & Rooms' : 'ตรวจสอบตารางและที่นั่งสอบ'}
           </p>
           <p className="text-xs text-[#9D9D9D] leading-relaxed">
-            {lang === 'en'
-              ? 'Connect to KMUTNB database to check your exam schedule, locations, and seat numbers.'
-              : 'เชื่อมต่อฐานข้อมูล มจพ. เพื่อตรวจสอบวิชาสอบ ห้องสอบ และเลขที่นั่งสอบของคุณ'}
+            {seatingLookupEnabled
+              ? (lang === 'en'
+                  ? 'Connect to KMUTNB database to check your exam schedule, locations, and seat numbers.'
+                  : 'เชื่อมต่อฐานข้อมูล มจพ. เพื่อตรวจสอบวิชาสอบ ห้องสอบ และเลขที่นั่งสอบของคุณ')
+              : t('examLookupUnavailable', lang)}
           </p>
           <Link
             to="/exam-room"
             className="inline-flex items-center gap-1 text-xs text-[#3794FF] hover:underline font-medium pt-1"
           >
-            <span>{lang === 'en' ? 'Check Seating now' : 'ตรวจสอบที่นี่'}</span>
+            <span>{seatingLookupEnabled
+              ? (lang === 'en' ? 'Check Seating now' : 'ตรวจสอบที่นี่')
+              : (lang === 'en' ? 'Add exams manually' : 'เพิ่มตารางสอบเอง')}</span>
             <ArrowRight size={12} />
           </Link>
         </div>

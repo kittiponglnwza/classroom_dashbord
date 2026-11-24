@@ -4,6 +4,7 @@ import { syncManager } from '../services/SyncManager';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { getToken } from '../utils/storage';
 import { getMergedExams } from '../utils/examMerger';
+import { EXAM_CONFIG } from '../config/exam';
 import { Exam, UnlistedExamInfo } from '../types/models';
 
 interface ExamState {
@@ -38,7 +39,7 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
         const hasManual = Boolean(data.manualExams && data.manualExams.length > 0);
         initialHasRemote = hasCachedExams || hasUnlisted;
 
-        if (initialHasRemote || (hasManual && !implicitStudentId)) {
+        if (initialHasRemote || (hasManual && (!implicitStudentId || !EXAM_CONFIG.seatingLookupEnabled))) {
           initialChecked = true;
         }
         initialUnlisted = data.unlisted || null;
@@ -67,7 +68,7 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
   const lastScopeKeyRef = useRef(`${activeEmail}::${implicitStudentId || ''}`);
 
   const [isFetching, setIsFetching] = useState(() => {
-    return !examState.hasCheckedExams && !!implicitStudentId;
+    return EXAM_CONFIG.seatingLookupEnabled && !examState.hasCheckedExams && !!implicitStudentId;
   });
 
   // Reset / resync exam cache on activeEmail or studentId changes and when ClassroomContext finishes a Drive sync
@@ -124,7 +125,9 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
 
       if (hasManual) {
         setExamState(prev => {
-          const shouldBeChecked = !implicitStudentId ? true : prev.hasCheckedExams;
+          const shouldBeChecked = !implicitStudentId || !EXAM_CONFIG.seatingLookupEnabled
+            ? true
+            : prev.hasCheckedExams;
           if (scopeChanged || JSON.stringify(prev.allExams) !== JSON.stringify(newExams) || prev.hasCheckedExams !== shouldBeChecked) {
             return { allExams: newExams, hasCheckedExams: shouldBeChecked, unlistedInfo: null };
           }
@@ -141,7 +144,7 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
 
   useEffect(() => {
     const fetchKey = `${activeEmail}::${implicitStudentId || ''}`;
-    if (activeEmail && implicitStudentId && !examState.hasCheckedExams && !fetchAttempted.current && completedFetchKeyRef.current !== fetchKey) {
+    if (EXAM_CONFIG.seatingLookupEnabled && activeEmail && implicitStudentId && !examState.hasCheckedExams && !fetchAttempted.current && completedFetchKeyRef.current !== fetchKey) {
       const controller = new AbortController();
       let settled = false;
       fetchAttempted.current = true;
@@ -196,6 +199,7 @@ export function useExams(activeEmail: string, lang: string, scheduleDeps: unknow
     allExams: examState.allExams,
     hasCheckedExams: examState.hasCheckedExams,
     unlistedInfo: examState.unlistedInfo,
-    isFetching
+    isFetching,
+    seatingLookupEnabled: EXAM_CONFIG.seatingLookupEnabled
   };
 }

@@ -10,6 +10,10 @@ import { EXAM_CONFIG } from '../../config/exam';
  * @returns {Promise<{success: boolean, data?: string, error?: Error}>} Result pattern
  */
 export const fetchExamHtml = async (studentId, signal) => {
+  if (!EXAM_CONFIG.seatingLookupEnabled) {
+    return Result.fail(new ApiError('Automatic exam seating lookup is paused until an HTTPS endpoint is available.', 503));
+  }
+
   const controller = new AbortController();
   let timedOut = false;
   const timeoutId = setTimeout(() => {

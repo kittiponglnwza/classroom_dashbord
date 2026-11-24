@@ -1,4 +1,7 @@
 export const EXAM_CONFIG = {
+  // The university endpoint currently uses HTTP; see docs/SECURITY.md for the transport warning.
+  seatingLookupEnabled: true,
+  seatingLookupUsesHttp: true,
   proxyEndpoint: '/api/exam-room',
   fallbackPdfLink: 'https://drive.google.com/file/d/16iviW6ZcL0G0VK8lQFPJ2cNEmiPrxBnj/view?usp=sharing',
   fallbackFormLink: 'https://forms.gle/ddH1GnaBQzaa57xV9',
