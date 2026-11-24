@@ -60,10 +60,10 @@ export default defineConfig({
         'pwa-512x512.png',
       ],
       manifest: {
-        name: 'Classroom Hub | Student Dashboard',
+        name: 'Classroom Hub | Student Workspace',
         short_name: 'Classroom Hub',
         description:
-          'Classroom Hub - A premium, dark-mode Notion-like dashboard for students to manage Google Classroom assignments.',
+          'Manage Google Classroom coursework, class timetables, exam seating, GPA progress, and deadline alerts in one workspace.',
         theme_color: '#1E1E1E',
         background_color: '#1E1E1E',
         display: 'standalone',
