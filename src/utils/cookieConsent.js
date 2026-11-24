@@ -2,6 +2,16 @@ const CONSENT_COOKIE_NAME = 'classroom_hub_consent';
 const CONSENT_STORAGE_KEY = 'classroom_hub_cookie_consent';
 const CONSENT_VERSION = 1;
 const CONSENT_MAX_AGE_SECONDS = 365 * 24 * 60 * 60; // 365 days
+export const CONSENT_CHANGE_EVENT = 'classroom-hub-consent-changed';
+
+function notifyConsentChanged() {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+  try {
+    window.dispatchEvent(new CustomEvent(CONSENT_CHANGE_EVENT));
+  } catch {
+    // Ignore environments without CustomEvent support.
+  }
+}
 
 /**
  * Builds RFC 6265 compliant cookie attribute string for client-managed consent cookie.
@@ -143,6 +153,7 @@ export function saveCookieConsent({ preferences = true, analytics = false, statu
     localStorage.removeItem('hide_welcome_banner');
   }
 
+  notifyConsentChanged();
   return record;
 }
 
@@ -153,11 +164,20 @@ export function clearCookieConsent() {
   if (typeof localStorage !== 'undefined') {
     localStorage.removeItem(CONSENT_STORAGE_KEY);
   }
+  notifyConsentChanged();
+}
+
+/**
+ * Returns true only when the user has explicitly opted in to optional analytics.
+ */
+export function hasAnalyticsConsent() {
+  return getCookieConsent()?.analytics === true;
 }
 
 export const COOKIE_CONSENT_CONSTANTS = {
   CONSENT_COOKIE_NAME,
   CONSENT_STORAGE_KEY,
+  CONSENT_CHANGE_EVENT,
   CONSENT_VERSION,
   CONSENT_MAX_AGE_SECONDS
 };
