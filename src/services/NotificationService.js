@@ -440,7 +440,7 @@ export class NotificationService {
       const targetUrl = (webhookUrlOverride || alertSettings.discordWebhookUrl || '').trim();
 
       const todoTasks = (Array.isArray(assignments) ? assignments : []).filter(a => {
-        if (a.status === 'done') return false;
+        if (a.status === 'done' || a.status === 'read') return false;
         if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
         return true;
       });
@@ -484,7 +484,7 @@ export class NotificationService {
       const hiddenCourseIds = getHiddenCourses(toEmail);
       
       const todoTasks = assignments.filter(a => {
-        if (a.status === 'done') return false;
+        if (a.status === 'done' || a.status === 'read') return false;
         if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
         return true;
       });
@@ -588,7 +588,7 @@ export class NotificationService {
 
     const hiddenCourseIds = getHiddenCourses(toEmail);
     const activeTodoAssignments = assignments.filter(a => {
-      if (a.status === 'done') return false;
+      if (a.status === 'done' || a.status === 'read') return false;
       if (a.courseId && hiddenCourseIds.includes(a.courseId)) return false;
       return true;
     });

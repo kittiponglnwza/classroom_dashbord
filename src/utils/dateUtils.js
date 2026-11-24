@@ -54,8 +54,22 @@ export const formatRelativeTime = (timestamp, lang = 'en') => {
   });
 };
 
+const HOMEWORK_KEYWORDS_RE = /\b(homework|hw|assignment|submission|submit|proposal|quiz|exam|midterm|final|project|report|exercise|worksheet|test)\b|การบ้าน|ส่งงาน|แบบฝึกหัด|รายงาน|โปรเจกต์|โครงงาน|สอบ/i;
+const LECTURE_MATERIAL_RE = /^(?:ch(?:\.|apter)?\s*\d+|lec(?:ture)?\s*\d*|slide(?:s)?\b|week\s*\d+|unit\s*\d+|module\s*\d+|topic\s*\d+|handout\b|บทที่\s*\d+|สไลด์|เอกสารประกอบ|เนื้อหา|ใบความรู้)/i;
+
+export const isResolvedStatus = (status) => status === 'done' || status === 'read';
+
+export const isLikelyLectureMaterial = (assignment) => {
+  if (!assignment || assignment.isCustom) return false;
+  const title = String(assignment.title || '').trim();
+  if (!title) return false;
+  if (HOMEWORK_KEYWORDS_RE.test(title)) return false;
+  return LECTURE_MATERIAL_RE.test(title);
+};
+
 export const calculateDueState = (dueDate, status) => {
   if (status === 'done') return { type: 'done', isOverdue: false };
+  if (status === 'read') return { type: 'read', isOverdue: false };
   if (!dueDate) return { type: 'noDate', isOverdue: false };
 
   const now = new Date();

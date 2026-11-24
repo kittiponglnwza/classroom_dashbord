@@ -44,10 +44,10 @@ export default function Home() {
     }
   };
 
-  // Filter out completed and get nearest due dates (items with valid dueDate first)
+  // Filter out completed/read and get nearest due dates (items with valid dueDate first)
   const upcomingAssignments = useMemo(() => {
     return visibleAssignments
-      .filter(a => a.status !== 'done')
+      .filter(a => a.status !== 'done' && a.status !== 'read')
       .sort((a, b) => {
         const parsedA = parseLocalDateInput(a.dueDate, { endOfDayForDateOnly: true });
         const parsedB = parseLocalDateInput(b.dueDate, { endOfDayForDateOnly: true });
@@ -79,7 +79,7 @@ export default function Home() {
   );
   const todayClasses = useTodayClasses(schedule, profile);
 
-  const pendingCount = visibleAssignments.filter(a => a.status !== 'done').length;
+  const pendingCount = visibleAssignments.filter(a => a.status !== 'done' && a.status !== 'read').length;
 
   return (
     <div className="space-y-8">

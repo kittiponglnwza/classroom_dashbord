@@ -440,10 +440,10 @@ export async function syncClassroomDataToCalendar(
     }
   }
 
-  // 3. Pending assignment due dates (exclude completed tasks and hidden courses)
+  // 3. Pending assignment due dates (exclude completed/read tasks and hidden courses)
   for (const a of assignments) {
     if (!a || !a.dueDate) continue;
-    if (a.status === 'done') continue;
+    if (a.status === 'done' || a.status === 'read') continue;
     if (a.courseId && hiddenCourseIds.includes(a.courseId)) continue;
     try {
       const body = buildAssignmentEvent(a);

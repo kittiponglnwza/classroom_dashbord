@@ -365,7 +365,7 @@ export default function Courses() {
   }, []);
 
   const getActiveCount = (course) => {
-    return assignments.filter(a => a.status !== 'done' && matchesCourseItem(a, course, course.name)).length;
+    return assignments.filter(a => a.status !== 'done' && a.status !== 'read' && matchesCourseItem(a, course, course.name)).length;
   };
 
   const courseAssignments = assignments.filter((a) => matchesCourseItem(a, selectedCourseObj, selectedCourseName));

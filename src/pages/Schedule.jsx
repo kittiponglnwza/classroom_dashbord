@@ -1368,7 +1368,7 @@ export default function Schedule() {
 
   const assignmentScheduleEntries = useMemo(() => {
     return visibleAssignments
-      .filter((a) => a.status !== 'done' && a.dueDate)
+      .filter((a) => a.status !== 'done' && a.status !== 'read' && a.dueDate)
       .map((a) => {
         let dateVal;
         let startTime;

@@ -25,9 +25,10 @@ const isExamStillUpcoming = (exam, now) => {
 };
 
 const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en', exams = [] }) {
-  const total = assignments.length;
-  const todo = assignments.filter(a => a.status === 'todo').length;
-  const done = assignments.filter(a => a.status === 'done').length;
+  const actionable = assignments.filter(a => a.status !== 'read');
+  const total = actionable.length;
+  const todo = actionable.filter(a => a.status === 'todo').length;
+  const done = actionable.filter(a => a.status === 'done').length;
 
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
 

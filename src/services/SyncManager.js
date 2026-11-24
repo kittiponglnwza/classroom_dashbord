@@ -364,7 +364,7 @@ class SyncManager {
         return { status: localItem.status || remoteItem.status, statusUpdatedAt: localItem.statusUpdatedAt };
       }
       return {
-        status: localItem.status === 'done' ? 'done' : (remoteItem.status || localItem.status),
+        status: (localItem.status === 'done' || localItem.status === 'read') ? localItem.status : (remoteItem.status || localItem.status),
         statusUpdatedAt: undefined
       };
     };

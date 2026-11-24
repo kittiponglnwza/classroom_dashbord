@@ -31,6 +31,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
       case 'todo': return 'bg-[#858585]';
       case 'doing': return 'bg-amber-400';
       case 'done': return 'bg-emerald-400';
+      case 'read': return 'bg-sky-400';
       default: return 'bg-[#858585]';
     }
   };
@@ -40,6 +41,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
       case 'todo': return 'text-[#9D9D9D]';
       case 'doing': return 'text-amber-400';
       case 'done': return 'text-emerald-400';
+      case 'read': return 'text-sky-400';
       default: return 'text-[#9D9D9D]';
     }
   };
@@ -53,6 +55,13 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
           text: t('completed', lang),
           colorClass: 'text-emerald-400 font-medium',
           icon: <CheckCircle2 size={13} className="text-emerald-400" />,
+          isOverdue: false
+        };
+      case 'read':
+        return {
+          text: t('read', lang),
+          colorClass: 'text-sky-400 font-medium',
+          icon: <BookOpen size={13} className="text-sky-400" />,
           isOverdue: false
         };
       case 'noDate':
@@ -151,9 +160,10 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
               onChange={(e) => onStatusChange(id, e.target.value)}
               className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer select-none ${getStatusTextColor()}`}
             >
-              <option value="todo">{t('todo', lang)}</option>
-              <option value="doing">{t('doing', lang)}</option>
-              <option value="done">{t('done', lang)}</option>
+              <option value="todo" className="bg-[#252526] text-[#D4D4D4]">{t('todo', lang)}</option>
+              <option value="doing" className="bg-[#252526] text-[#D4D4D4]">{t('doing', lang)}</option>
+              <option value="done" className="bg-[#252526] text-[#D4D4D4]">{t('done', lang)}</option>
+              <option value="read" className="bg-[#252526] text-[#D4D4D4]">{t('read', lang)}</option>
             </select>
           </div>
 
@@ -207,9 +217,10 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
               onChange={(e) => onStatusChange(id, e.target.value)}
               className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer pr-1 select-none ${getStatusTextColor()}`}
             >
-              <option value="todo">{t('todo', lang)}</option>
-              <option value="doing">{t('doing', lang)}</option>
-              <option value="done">{t('done', lang)}</option>
+              <option value="todo" className="bg-[#252526] text-[#D4D4D4]">{t('todo', lang)}</option>
+              <option value="doing" className="bg-[#252526] text-[#D4D4D4]">{t('doing', lang)}</option>
+              <option value="done" className="bg-[#252526] text-[#D4D4D4]">{t('done', lang)}</option>
+              <option value="read" className="bg-[#252526] text-[#D4D4D4]">{t('read', lang)}</option>
             </select>
           </div>
         </div>

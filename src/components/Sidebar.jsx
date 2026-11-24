@@ -21,13 +21,13 @@ export default function Sidebar({ onLinkClick = null }) {
 
   const getActiveCount = (course) => {
     return visibleAssignments.filter(a => {
-      if (a.status === 'done') return false;
+      if (a.status === 'done' || a.status === 'read') return false;
       if (a.courseId && course.id) return a.courseId === course.id;
       return a.course === course.name;
     }).length;
   };
 
-  const totalActive = visibleAssignments.filter(a => a.status !== 'done').length;
+  const totalActive = visibleAssignments.filter(a => a.status !== 'done' && a.status !== 'read').length;
 
   const navItems = [
     { name: 'Home', key: 'home', path: '/', icon: Home, count: null, end: true },

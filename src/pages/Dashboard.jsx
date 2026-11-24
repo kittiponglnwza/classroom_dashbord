@@ -4,7 +4,7 @@ import KanbanBoard from '../components/KanbanBoard';
 import TaskFilters from '../components/TaskFilters';
 import TodayScheduleWidget from '../components/TodayScheduleWidget';
 import CreateTaskModal from '../components/CreateTaskModal';
-import { Plus, RefreshCw, AlertTriangle, ClipboardList, Clock } from 'lucide-react';
+import { Plus, RefreshCw, AlertTriangle, ClipboardList, Clock, BookOpen, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { t } from '../utils/i18n';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +21,7 @@ export default function Dashboard() {
   const { visibleAssignments, visibleCourses } = useClassroomUI();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showReadMaterials, setShowReadMaterials] = useState(false);
 
   const {
     searchQuery, setSearchQuery,
@@ -34,7 +35,8 @@ export default function Dashboard() {
     todayTasks,
     todoTasks,
     doingTasks,
-    doneTasks
+    doneTasks,
+    detectedMaterials = []
   } = useDashboardFilters(visibleAssignments);
 
   const todayClasses = useTodayClasses(schedule, profile);
@@ -43,7 +45,23 @@ export default function Dashboard() {
     ...overdueTasks.map(t => t.id),
     ...todayTasks.map(t => t.id)
   ]);
-  const mainListAssignments = sortedAssignments.filter(a => !criticalTaskIds.has(a.id));
+
+  const readMaterialsList = selectedStatus === 'all'
+    ? sortedAssignments.filter(a => a.status === 'read')
+    : [];
+
+  const mainListAssignments = sortedAssignments.filter(a => {
+    if (criticalTaskIds.has(a.id)) return false;
+    if (selectedStatus === 'all' && a.status === 'read') return false;
+    return true;
+  });
+
+  const handleMarkDetectedAsRead = () => {
+    detectedMaterials.forEach((item) => {
+      handleStatusChange(item.id, 'read');
+    });
+  };
+
   const hasActiveFilters = Boolean(searchQuery || selectedCourse !== 'all' || selectedStatus !== 'all');
 
   return (
@@ -88,6 +106,43 @@ export default function Dashboard() {
         clearFilters={clearFilters}
         visibleCourses={visibleCourses} lang={lang}
       />
+
+      {/* Smart Auto-Detect Lecture Materials Suggestion */}
+      {detectedMaterials.length > 0 && (
+        <div
+          data-testid="smart-material-suggestion"
+          className="bg-[#232326] border border-[#34343A] rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-2.5 text-xs text-[#D4D4D4] min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/25 flex items-center justify-center shrink-0">
+              <Sparkles size={13} className="text-sky-400" />
+            </div>
+            <div className="min-w-0">
+              <span className="font-medium text-[#F2F2F4]">
+                {lang === 'en'
+                  ? `Found ${detectedMaterials.length} lecture material post${detectedMaterials.length > 1 ? 's' : ''}`
+                  : `พบโพสต์ที่คล้ายไฟล์เรียน/สไลด์ ${detectedMaterials.length} รายการ`}
+              </span>
+              <span className="text-[#8E8E93] ml-1.5 truncate">
+                ({detectedMaterials.slice(0, 2).map(m => m.title).join(', ')}{detectedMaterials.length > 2 ? '...' : ''})
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleMarkDetectedAsRead}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+          >
+            <BookOpen size={13} />
+            <span>
+              {lang === 'en'
+                ? `Mark all ${detectedMaterials.length} as Read`
+                : `มาร์คเป็น "อ่านแล้ว" ทั้งหมด (${detectedMaterials.length})`}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Critical Rows (Visible in Grid and List views) */}
       {(viewType === 'grid' || viewType === 'list') && (overdueTasks.length > 0 || todayTasks.length > 0) && (
@@ -165,6 +220,44 @@ export default function Dashboard() {
               ))}
             </div>
           ) : null}
+
+          {/* Collapsible Drawer for Read / Lecture Materials */}
+          {readMaterialsList.length > 0 && (
+            <div className="pt-3">
+              <button
+                type="button"
+                onClick={() => setShowReadMaterials(prev => !prev)}
+                className="w-full bg-[#232326] hover:bg-[#28282C] border border-[#34343A] rounded-2xl px-4 py-3 flex items-center justify-between text-xs font-medium text-[#A0A0A8] transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen size={14} className="text-sky-400" />
+                  <span>
+                    {lang === 'en'
+                      ? `Read / Lecture Materials (${readMaterialsList.length})`
+                      : `อ่านแล้ว / ไฟล์เรียน (${readMaterialsList.length})`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-[#8E8E93]">
+                  <span>{showReadMaterials ? (lang === 'en' ? 'Hide' : 'ซ่อน') : (lang === 'en' ? 'Show' : 'แสดง')}</span>
+                  {showReadMaterials ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                </div>
+              </button>
+
+              {showReadMaterials && (
+                <div className={`mt-3 ${viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}`}>
+                  {readMaterialsList.map((assignment) => (
+                    <AssignmentCard
+                      key={assignment.id}
+                      assignment={assignment}
+                      onStatusChange={handleStatusChange}
+                      lang={lang}
+                      viewMode={viewType}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

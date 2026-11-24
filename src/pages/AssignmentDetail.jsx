@@ -175,6 +175,8 @@ export default function AssignmentDetail() {
     switch (state.type) {
       case 'done':
         return { text: t('completed', lang), color: 'text-emerald-400' };
+      case 'read':
+        return { text: t('read', lang), color: 'text-sky-400' };
       case 'noDate':
         return { text: t('noDueDate', lang), color: 'text-[#9D9D9D]' };
       case 'overdue':
@@ -329,12 +331,15 @@ export default function AssignmentDetail() {
                       ? 'text-[#D4D4D4]'
                       : status === 'doing'
                         ? 'text-amber-400'
-                        : 'text-emerald-400'
+                        : status === 'read'
+                          ? 'text-sky-400'
+                          : 'text-emerald-400'
                   }`}
                 >
-                  <option value="todo">{t('todo', lang)}</option>
-                  <option value="doing">{t('doing', lang)}</option>
-                  <option value="done">{t('done', lang)}</option>
+                  <option value="todo" className="bg-[#252526] text-[#D4D4D4]">{t('todo', lang)}</option>
+                  <option value="doing" className="bg-[#252526] text-[#D4D4D4]">{t('doing', lang)}</option>
+                  <option value="done" className="bg-[#252526] text-[#D4D4D4]">{t('done', lang)}</option>
+                  <option value="read" className="bg-[#252526] text-[#D4D4D4]">{t('read', lang)}</option>
                 </select>
               </div>
             </div>

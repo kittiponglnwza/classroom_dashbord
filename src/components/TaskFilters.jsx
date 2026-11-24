@@ -97,6 +97,7 @@ export default function TaskFilters({
               <option value="todo">{t('todo', lang)}</option>
               <option value="doing">{t('doing', lang)}</option>
               <option value="done">{t('done', lang)}</option>
+              <option value="read">{t('read', lang)}</option>
             </select>
           </div>
         )}

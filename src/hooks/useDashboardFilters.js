@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useInRouterContext, useSearchParams } from 'react-router-dom';
-import { isDueToday, isOverdue, parseLocalDateInput } from '../utils/dateUtils';
+import { isDueToday, isOverdue, isResolvedStatus, isLikelyLectureMaterial, parseLocalDateInput } from '../utils/dateUtils';
 
 function useRouterUrlFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -126,16 +126,21 @@ export function useDashboardFilters(visibleAssignments = []) {
     });
   }, [filteredAssignments, sortBy]);
 
-  // Critical groups respect active status filter (so filtering by 'done' never shows overdue todo items)
+  // Critical groups respect active status filter (so filtering by 'done' or 'read' never shows overdue todo items)
   const overdueTasks = useMemo(() => {
-    if (selectedStatus === 'done') return [];
-    return filteredAssignments.filter(a => a.status !== 'done' && isOverdue(a.dueDate));
+    if (isResolvedStatus(selectedStatus)) return [];
+    return filteredAssignments.filter(a => !isResolvedStatus(a.status) && isOverdue(a.dueDate));
   }, [filteredAssignments, selectedStatus]);
 
   const todayTasks = useMemo(() => {
-    if (selectedStatus === 'done') return [];
-    return filteredAssignments.filter(a => a.status !== 'done' && !isOverdue(a.dueDate) && isDueToday(a.dueDate));
+    if (isResolvedStatus(selectedStatus)) return [];
+    return filteredAssignments.filter(a => !isResolvedStatus(a.status) && !isOverdue(a.dueDate) && isDueToday(a.dueDate));
   }, [filteredAssignments, selectedStatus]);
+
+  // Lecture materials auto-detected among currently active ('todo') items
+  const detectedMaterials = useMemo(() => {
+    return filteredAssignments.filter(a => a.status === 'todo' && isLikelyLectureMaterial(a));
+  }, [filteredAssignments]);
 
   // Kanban columns
   const allFilteredAssignments = useMemo(() => {
@@ -152,6 +157,7 @@ export function useDashboardFilters(visibleAssignments = []) {
   const todoTasks = useMemo(() => allFilteredAssignments.filter(a => a.status === 'todo'), [allFilteredAssignments]);
   const doingTasks = useMemo(() => allFilteredAssignments.filter(a => a.status === 'doing'), [allFilteredAssignments]);
   const doneTasks = useMemo(() => allFilteredAssignments.filter(a => a.status === 'done'), [allFilteredAssignments]);
+  const readTasks = useMemo(() => allFilteredAssignments.filter(a => a.status === 'read'), [allFilteredAssignments]);
 
   return {
     searchQuery, setSearchQuery,
@@ -165,6 +171,8 @@ export function useDashboardFilters(visibleAssignments = []) {
     todayTasks,
     todoTasks,
     doingTasks,
-    doneTasks
+    doneTasks,
+    readTasks,
+    detectedMaterials
   };
 }
