@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
 import { Link, useInRouterContext } from 'react-router-dom';
-import { Menu, Bell, RefreshCw, Globe, Download } from 'lucide-react';
+import { Menu, Bell, RefreshCw, Globe, Download, HelpCircle } from 'lucide-react';
 import { t } from '../utils/i18n';
 import NotificationPopover from './NotificationPopover';
+import QuickGuideModal from './QuickGuideModal';
 import { formatRelativeTime } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -32,6 +33,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
   const { canInstall, promptInstall } = usePwaInstall();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [failedAvatarUrl, setFailedAvatarUrl] = useState(null);
   const bellButtonRef = useRef(null);
 
@@ -100,6 +102,16 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           <span>{lang === 'en' ? 'EN' : 'TH'}</span>
         </button>
 
+        <button
+          type="button"
+          onClick={() => setIsGuideOpen(true)}
+          aria-label={lang === 'en' ? 'Student Quick Guide' : 'คู่มือใช้งาน'}
+          title={lang === 'en' ? 'Quick Guide' : 'คู่มือใช้งาน'}
+          className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors border bg-[var(--surface)] hover:bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+        >
+          <HelpCircle size={15} />
+        </button>
+
         <div className="relative shrink-0">
           <button
             type="button"
@@ -152,6 +164,12 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           </div>
         </SafeLink>
       </div>
+
+      <QuickGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        lang={lang}
+      />
     </header>
   );
 }

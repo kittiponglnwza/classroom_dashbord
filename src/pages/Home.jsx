@@ -304,11 +304,33 @@ export default function Home() {
                 })}
               </div>
             ) : (
-              <div className="py-8 text-center border border-dashed border-[#3C3C3C] rounded-xl bg-[#1E1E1E]/60 flex flex-col items-center justify-center">
-                <CalendarDays size={24} className="text-[#858585] mb-2 opacity-60" />
-                <p className="text-xs text-[#9D9D9D] font-medium">
-                  {lang === 'en' ? 'No classes scheduled today.' : 'วันนี้ไม่มีตารางเรียน'}
-                </p>
+              <div className="py-7 px-4 text-center border border-dashed border-[var(--border)] rounded-xl bg-[var(--app-bg)]/60 flex flex-col items-center justify-center space-y-2.5">
+                <CalendarDays size={24} className="text-[var(--text-muted)] opacity-60" />
+                {Array.isArray(schedule) && schedule.length > 0 ? (
+                  <p className="text-xs text-[var(--text-secondary)] font-medium">
+                    {lang === 'en' ? 'No classes scheduled today.' : 'วันนี้ไม่มีตารางเรียน'}
+                  </p>
+                ) : (
+                  <>
+                    <div className="space-y-0.5">
+                      <p className="text-xs text-[var(--text-primary)] font-medium">
+                        {lang === 'en' ? 'No timetable imported yet' : 'ยังไม่มีตารางเรียนในระบบ'}
+                      </p>
+                      <p className="text-[11px] text-[var(--text-muted)]">
+                        {lang === 'en'
+                          ? 'Copy-paste from KMUTNB Reg in 10 seconds or add classes.'
+                          : 'ก๊อปวางจากเว็บ Reg มจพ. ใน 10 วิ หรือเพิ่มคาบเรียนเองได้เลย'}
+                      </p>
+                    </div>
+                    <Link
+                      to="/schedule"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--primary)]/15 hover:bg-[var(--primary)]/25 text-[var(--primary-bright)] border border-[var(--primary)]/35 transition-colors"
+                    >
+                      <span>{lang === 'en' ? 'Go to Schedule & Import Reg' : 'ไปตารางเรียน / นำเข้า Reg'}</span>
+                      <ArrowRight size={12} />
+                    </Link>
+                  </>
+                )}
               </div>
             )}
           </div>

@@ -224,7 +224,7 @@ export default function RegImportModal({
           {/* Input Mode Selector */}
           <div className="grid grid-cols-2 sm:grid-cols-4 bg-[#1E1E1E] border border-[#3C3C3C] p-1 rounded-xl gap-1">
             {[
-              { id: 'paste', icon: ClipboardPaste, labelTh: 'วางข้อความ', labelEn: 'Paste Text' },
+              { id: 'paste', icon: ClipboardPaste, labelTh: 'วางข้อความ (แนะนำ)', labelEn: 'Paste (Recommended)' },
               { id: 'extension', icon: Puzzle, labelTh: 'Extension (Auto)', labelEn: 'Extension (Auto)' },
               { id: 'file', icon: Upload, labelTh: 'ไฟล์ .html', labelEn: '.html File' },
               { id: 'bookmarklet', icon: Bookmark, labelTh: 'Bookmarklet', labelEn: 'Bookmarklet' },
@@ -337,13 +337,18 @@ export default function RegImportModal({
               <ol className="list-decimal list-inside space-y-1.5 text-[#9D9D9D] leading-relaxed">
                 <li>
                   {isTh
-                    ? 'เปิดหน้า chrome://extensions (หรือ edge://extensions) แล้วเปิดสวิตช์ Developer mode'
+                    ? 'กดปุ่ม "ดาวน์โหลด Extension (.zip)" ด้านล่าง แล้วคลิกขวาแตกไฟล์ (Extract All) ลงโฟลเดอร์'
+                    : 'Click "Download Extension (.zip)" below and extract it into a folder on your computer.'}
+                </li>
+                <li>
+                  {isTh
+                    ? 'เปิดหน้า chrome://extensions (Chrome) หรือ edge://extensions (Edge) แล้วเปิดสวิตช์ Developer mode มุมขวาบน'
                     : 'Open chrome://extensions (or edge://extensions) and enable Developer mode.'}
                 </li>
                 <li>
                   {isTh
-                    ? 'กดปุ่ม Load unpacked แล้วเลือกโฟลเดอร์ extension/ ในโปรเจกต์ Classrooms'
-                    : 'Click Load unpacked and select the extension/ folder from this repository.'}
+                    ? 'กดปุ่ม Load unpacked แล้วเลือกโฟลเดอร์ที่เพิ่งแตกไฟล์ออกมา'
+                    : 'Click Load unpacked and select the extracted folder.'}
                 </li>
                 <li>
                   {isTh
@@ -352,31 +357,41 @@ export default function RegImportModal({
                 </li>
               </ol>
 
-              {extensionStatus?.connected && (
-                <div className="pt-1 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      requestExtensionSync?.();
-                      onClose?.();
-                    }}
-                    className="inline-flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <RefreshCw size={13} />
-                    <span>{isTh ? 'ดึงข้อมูลล่าสุดจาก Extension เดี๋ยวนี้' : 'Pull Latest from Extension'}</span>
-                  </button>
-                  {extensionStatus.timetableCount > 0 && (
-                    <span className="text-[11px] text-[#9D9D9D]">
-                      {isTh ? `ตารางเรียนพร้อมส่ง: ${extensionStatus.timetableCount} วิชา` : `Timetable ready: ${extensionStatus.timetableCount} courses`}
-                    </span>
-                  )}
-                  {extensionStatus.gradeCount > 0 && (
-                    <span className="text-[11px] text-[#9D9D9D]">
-                      {isTh ? `ผลการศึกษาพร้อมส่ง: ${extensionStatus.gradeCount} เทอม` : `Grades ready: ${extensionStatus.gradeCount} semesters`}
-                    </span>
-                  )}
-                </div>
-              )}
+              <div className="pt-1 flex flex-wrap items-center gap-2">
+                <a
+                  href="/classrooms-reg-extension.zip"
+                  download="classrooms-reg-extension.zip"
+                  className="inline-flex items-center gap-1.5 bg-[#252526] hover:bg-[#2A2D2E] text-[#FFFFFF] border border-[#3C3C3C] font-medium px-3.5 py-2 rounded-lg transition-colors"
+                >
+                  <Upload size={13} className="rotate-180 text-[#3794FF]" />
+                  <span>{isTh ? 'ดาวน์โหลด Extension (.zip)' : 'Download Extension (.zip)'}</span>
+                </a>
+                {extensionStatus?.connected && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        requestExtensionSync?.();
+                        onClose?.();
+                      }}
+                      className="inline-flex items-center gap-1.5 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <RefreshCw size={13} />
+                      <span>{isTh ? 'ดึงข้อมูลล่าสุดจาก Extension เดี๋ยวนี้' : 'Pull Latest from Extension'}</span>
+                    </button>
+                    {extensionStatus.timetableCount > 0 && (
+                      <span className="text-[11px] text-[#9D9D9D]">
+                        {isTh ? `ตารางเรียนพร้อมส่ง: ${extensionStatus.timetableCount} วิชา` : `Timetable ready: ${extensionStatus.timetableCount} courses`}
+                      </span>
+                    )}
+                    {extensionStatus.gradeCount > 0 && (
+                      <span className="text-[11px] text-[#9D9D9D]">
+                        {isTh ? `ผลการศึกษาพร้อมส่ง: ${extensionStatus.gradeCount} เทอม` : `Grades ready: ${extensionStatus.gradeCount} semesters`}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           )}
 
