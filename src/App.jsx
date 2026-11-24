@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Layout from './components/Layout';
 import { Globe, BookOpen, AlertCircle, ArrowLeft } from 'lucide-react';
 import { t } from './utils/i18n';
+import { APP_VERSION, APP_COMMIT, formatAppBuildTime } from './config/version';
 
 // Lazy loaded pages
 const Home = lazy(() => import('./pages/Home'));
@@ -88,8 +89,8 @@ function AppContent() {
             </div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold text-[#FFFFFF] tracking-tight">Classroom Hub</h1>
-              <span className="bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] text-[10px] px-2 py-0.5 rounded-full font-medium">
-                Beta
+              <span className="bg-[#1E1E1E] border border-[#3C3C3C] text-[#3794FF] text-[10px] px-2 py-0.5 rounded-full font-mono font-medium">
+                v{APP_VERSION}
               </span>
             </div>
             <p className="text-xs text-[#9D9D9D]">
@@ -149,6 +150,18 @@ function AppContent() {
             <p className="text-xs text-[#858585] leading-relaxed pt-2 border-t border-[#3C3C3C]">
               {t('loginFooterText', lang)}
             </p>
+
+            <div
+              data-testid="login-version-info"
+              className="pt-1 flex items-center justify-center gap-1.5 text-[10.5px] font-mono text-[#6E6E6E]"
+            >
+              <span>v{APP_VERSION}{APP_COMMIT ? ` (${APP_COMMIT})` : ''}</span>
+              <span>•</span>
+              <span>
+                {lang === 'th' ? 'อัปเดตล่าสุด ' : 'Updated '}
+                {formatAppBuildTime(lang)}
+              </span>
+            </div>
           </div>
         </div>
         <CookieConsentBanner />

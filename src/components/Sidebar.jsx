@@ -3,6 +3,7 @@ import { NavLink, Link, useLocation } from 'react-router-dom';
 import { Home, LayoutDashboard, BookOpen, Settings, ChevronLeft, ChevronRight, ClipboardCheck, CalendarDays, GraduationCap } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { getCourseDotClass } from '../utils/colors';
+import { APP_VERSION } from '../config/version';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
@@ -50,9 +51,14 @@ export default function Sidebar({ onLinkClick = null }) {
               CH
             </div>
             <div className="flex flex-col items-start min-w-0">
-              <span className="font-semibold text-sm text-[#FFFFFF] tracking-tight truncate">
-                Classroom Hub
-              </span>
+              <div className="flex items-center gap-1.5 max-w-full">
+                <span className="font-semibold text-sm text-[#FFFFFF] tracking-tight truncate">
+                  Classroom Hub
+                </span>
+                <span className="text-[9.5px] font-mono px-1.5 py-0.25 rounded bg-[#1E1E1E] border border-[#3C3C3C] text-[#3794FF] shrink-0">
+                  v{APP_VERSION}
+                </span>
+              </div>
               <span className="text-[11px] text-[#858585] truncate">
                 {lang === 'en' ? 'Student Workspace' : 'พื้นที่จัดการการเรียน'}
               </span>

@@ -15,6 +15,7 @@ import { getAppsScriptTemplate } from '../utils/appsScriptTemplate';
 import { getHiddenCourses, getAssignments } from '../utils/storage';
 import { examRepository } from '../repositories/examRepository';
 import { decodeKmutnbStudentId } from '../utils/kmutnbStudentId';
+import { APP_VERSION, APP_COMMIT, formatAppBuildTime, forceCheckPwaUpdate } from '../config/version';
 
 const GithubIcon = ({ size = 15, className = '' }) => (
   <svg height={size} width={size} viewBox="0 0 16 16" version="1.1" fill="currentColor" className={className} aria-hidden="true">
@@ -297,13 +298,36 @@ export default function Settings() {
   return (
     <div className="max-w-4xl mx-auto space-y-5">
       {/* Compact Page Header */}
-      <div className="flex items-center justify-between border-b border-[#3C3C3C] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#3C3C3C] pb-4">
         <div>
           <h1 className="text-xl font-semibold text-[#FFFFFF] tracking-tight flex items-center gap-2">
             <Settings2 size={20} className="text-[#3794FF]" />
             <span>{t('settingsTitle', lang)}</span>
           </h1>
           <p className="text-xs text-[#9D9D9D] mt-0.5">{t('settingsDesc', lang)}</p>
+        </div>
+
+        <div
+          data-testid="settings-version-badge"
+          className="flex flex-wrap items-center gap-2 bg-[#252526] border border-[#3C3C3C] rounded-xl px-3 py-1.5 text-[11px] text-[#9D9D9D] self-start sm:self-auto"
+        >
+          <span className="font-mono font-semibold text-[#3794FF]">
+            v{APP_VERSION}{APP_COMMIT ? ` (${APP_COMMIT})` : ''}
+          </span>
+          <span className="text-[#3C3C3C]">•</span>
+          <span>
+            {lang === 'th' ? 'อัปเดต ' : 'Updated '}
+            {formatAppBuildTime(lang)}
+          </span>
+          <button
+            type="button"
+            onClick={forceCheckPwaUpdate}
+            title={lang === 'th' ? 'เช็กและดึงอัปเดตเวอร์ชันล่าสุด' : 'Check and reload latest update'}
+            className="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] text-[#D4D4D4] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+          >
+            <RefreshCw size={11} className="text-[#3794FF]" />
+            <span>{lang === 'th' ? 'เช็กอัปเดต' : 'Update'}</span>
+          </button>
         </div>
       </div>
 
