@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getLocalSettingsPayload } from '../../src/services/driveSync';
+import { getLocalSettingsPayload, syncSettingsWithDrive, clearDriveSyncCache } from '../../src/services/driveSync';
+import { httpClient } from '../../src/utils/httpClient';
 import { STORAGE_CONFIG } from '../../src/config/storage';
 
 const KEYS = STORAGE_CONFIG.keys;
 
 describe('driveSync', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.restoreAllMocks();
     localStorage.clear();
+    clearDriveSyncCache();
   });
 
   describe('getLocalSettingsPayload', () => {
@@ -36,6 +38,38 @@ describe('driveSync', () => {
       expect(result).toEqual({
         [`${KEYS.assignments}_test@email.com`]: 'data1'
       });
+    });
+  });
+
+  describe('syncSettingsWithDrive metadata cache', () => {
+    it('skips downloading alt=media when remote modifiedTime and local payload are unchanged', async () => {
+      const email = 'fast@kmutnb.ac.th';
+      const key = `${KEYS.assignments}_${email}`;
+      localStorage.setItem(key, JSON.stringify({ data: [] }));
+
+      const remotePayload = { [key]: JSON.stringify({ data: [] }) };
+      const reqSpy = vi.spyOn(httpClient, 'request')
+        // 1st sync: list -> download
+        .mockResolvedValueOnce({ files: [{ id: 'file-1', modifiedTime: '2026-11-24T10:00:00.000Z' }] })
+        .mockResolvedValueOnce({ payload: remotePayload })
+        // 2nd sync: list only (unchanged modifiedTime + unchanged local)
+        .mockResolvedValueOnce({ files: [{ id: 'file-1', modifiedTime: '2026-11-24T10:00:00.000Z' }] })
+        // 3rd sync: list with newer modifiedTime -> downloads again
+        .mockResolvedValueOnce({ files: [{ id: 'file-1', modifiedTime: '2026-11-24T10:01:00.000Z' }] })
+        .mockResolvedValueOnce({ payload: remotePayload });
+
+      const mergeCb = vi.fn((local) => local);
+
+      await syncSettingsWithDrive('tok', email, mergeCb);
+      expect(reqSpy).toHaveBeenCalledTimes(2);
+
+      // 2nd sync hits fast path: only 1 metadata list call, no alt=media download
+      await syncSettingsWithDrive('tok', email, mergeCb);
+      expect(reqSpy).toHaveBeenCalledTimes(3);
+
+      // 3rd sync sees changed modifiedTime -> downloads again
+      await syncSettingsWithDrive('tok', email, mergeCb);
+      expect(reqSpy).toHaveBeenCalledTimes(5);
     });
   });
 });

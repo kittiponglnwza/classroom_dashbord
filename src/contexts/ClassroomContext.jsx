@@ -3,13 +3,14 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { 
   getAssignments, updateAssignmentStatus, updateAssignmentNotes, updateAssignmentDueDate,
   addAssignment, deleteAssignment, getCourses, saveCourses, getLastSync, setLastSync,
-  syncClassroomAssignments, getToken, getProfile, recordDeletedId,
+  syncClassroomAssignments, getToken, getProfile, recordDeletedId, getHiddenCourses,
   getResources, saveResources, saveAssignments, getActiveEmail, setActiveEmail, resetDatabase,
   getSchedule, saveSchedule, getTopics, saveTopics,
   getAcademicData, saveAcademicData, createDefaultAcademicData
 } from '../utils/storage';
 import { ClassroomService } from '../services/ClassroomService';
 import { syncManager } from '../services/SyncManager';
+import { clearDriveSyncCache } from '../services/driveSync';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { NotificationService } from '../services/NotificationService';
 import { examRepository } from '../repositories/examRepository';
@@ -101,6 +102,7 @@ export const ClassroomProvider = ({ children }) => {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadLocalData(activeEmail);
     } else {
+      clearDriveSyncCache();
       loadLocalData('');
       autoSyncedRef.current = false;
     }
@@ -150,13 +152,85 @@ export const ClassroomProvider = ({ children }) => {
 
     try {
       logger.info('[Sync] Loading profile and classroom updates...');
-      const userProfile = await ClassroomService.fetchProfile(tokenToUse, { signal: effectiveSignal });
-      if (isStaleRun()) return false;
-      const userEmail = userProfile.email.toLowerCase().trim();
+      const cachedEmail = getActiveEmail();
+      const initialHiddenIds = cachedEmail ? getHiddenCourses(cachedEmail) : [];
+      const getLatestToken = () => getToken() || tokenToUse;
 
-      setActiveEmail(userEmail);
-      await syncManager.executeSync(tokenToUse, userEmail);
-      if (isStaleRun()) return false;
+      const triggerExamFetch = (emailForExam) => {
+        const storedProfile = getProfile(emailForExam);
+        const cleanProfileId = String(storedProfile?.studentId || '').replace(/[\s-]/g, '');
+        const implicitStudentId = /^\d{13}$/.test(cleanProfileId)
+          ? cleanProfileId
+          : (emailForExam.match(/\d{13}/)?.[0] || null);
+        if (!implicitStudentId) return;
+        examRepository.fetchExams(implicitStudentId, langRef.current, effectiveSignal).then(result => {
+          if (isStaleRun()) return;
+          if (result.success && ((result.data.exams && result.data.exams.length > 0) || result.data.unlisted)) {
+            const currentCache = examRepository.getCachedExams(emailForExam);
+            const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
+            examRepository.saveToCache(emailForExam, result.data.exams || [], currentManual, result.data.unlisted);
+            sessionStorage.setItem('lastExamSearch', implicitStudentId);
+            const latestTok = getLatestToken();
+            syncManager.queueSync(latestTok, emailForExam);
+            calendarSyncManager.queueSync(latestTok, emailForExam);
+          }
+        }).catch(err => {
+          if (err?.name !== 'AbortError') logger.error('[Sync] Background exam fetch failed', err);
+        });
+      };
+
+      let userProfile;
+      let classroomData;
+
+      if (cachedEmail) {
+        triggerExamFetch(cachedEmail);
+        const [profileRes, , classroomRes] = await Promise.all([
+          ClassroomService.fetchProfile(tokenToUse, { signal: effectiveSignal }),
+          syncManager.executeSync(tokenToUse, cachedEmail).catch(err => {
+            logger.warn('[Sync] Pre-sync Drive merge skipped:', err?.message || err);
+            return false;
+          }),
+          ClassroomService.fetchClassroomData(tokenToUse, {
+            signal: effectiveSignal,
+            getToken: getLatestToken,
+            hiddenCourseIds: initialHiddenIds
+          })
+        ]);
+        if (isStaleRun()) return false;
+        userProfile = profileRes;
+        classroomData = classroomRes;
+      } else {
+        userProfile = await ClassroomService.fetchProfile(tokenToUse, { signal: effectiveSignal });
+        if (isStaleRun()) return false;
+        const freshEmail = userProfile.email.toLowerCase().trim();
+        setActiveEmail(freshEmail);
+        triggerExamFetch(freshEmail);
+
+        const [, classroomRes] = await Promise.all([
+          syncManager.executeSync(tokenToUse, freshEmail).catch(err => {
+            logger.warn('[Sync] Pre-sync Drive merge skipped:', err?.message || err);
+            return false;
+          }),
+          ClassroomService.fetchClassroomData(tokenToUse, {
+            signal: effectiveSignal,
+            getToken: getLatestToken,
+            hiddenCourseIds: getHiddenCourses(freshEmail)
+          })
+        ]);
+        if (isStaleRun()) return false;
+        classroomData = classroomRes;
+      }
+
+      const userEmail = userProfile.email.toLowerCase().trim();
+      if (cachedEmail && userEmail !== cachedEmail) {
+        setActiveEmail(userEmail);
+        await syncManager.executeSync(tokenToUse, userEmail).catch(err => {
+          logger.warn('[Sync] Drive sync for switched account skipped:', err?.message || err);
+          return false;
+        });
+        if (isStaleRun()) return false;
+        triggerExamFetch(userEmail);
+      }
 
       updateProfileFromGoogle(userProfile);
 
@@ -173,35 +247,37 @@ export const ClassroomProvider = ({ children }) => {
       loadLocalData(userEmail);
       reloadSettings();
 
-      const storedProfile = getProfile(userEmail);
-      const cleanProfileId = String(storedProfile?.studentId || '').replace(/[\s-]/g, '');
-      const implicitStudentId = /^\d{13}$/.test(cleanProfileId)
-        ? cleanProfileId
-        : (userEmail.match(/\d{13}/)?.[0] || null);
-      if (implicitStudentId) {
-        examRepository.fetchExams(implicitStudentId, effectiveLang, effectiveSignal).then(result => {
-          if (isStaleRun()) return;
-          if (result.success && ((result.data.exams && result.data.exams.length > 0) || result.data.unlisted)) {
-            const currentCache = examRepository.getCachedExams(userEmail);
-            const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
-            examRepository.saveToCache(userEmail, result.data.exams || [], currentManual, result.data.unlisted);
-            sessionStorage.setItem('lastExamSearch', implicitStudentId);
-            const freshToken = getToken() || tokenToUse;
-            syncManager.queueSync(freshToken, userEmail);
-            calendarSyncManager.queueSync(freshToken, userEmail);
-          }
-        }).catch(err => {
-          if (err?.name !== 'AbortError') logger.error('[Sync] Background exam fetch failed', err);
+      // If Drive sync unhid any course that we skipped in parallel, fetch just those unhidden courses now
+      const latestHiddenSet = new Set(getHiddenCourses(userEmail));
+      const skippedBeforeSync = classroomData.skippedCourseIds || [];
+      const newlyUnhiddenIds = skippedBeforeSync.filter(id => !latestHiddenSet.has(id));
+      if (newlyUnhiddenIds.length > 0) {
+        const extraData = await ClassroomService.fetchClassroomData(tokenToUse, {
+          signal: effectiveSignal,
+          getToken: getLatestToken,
+          onlyCourseIds: newlyUnhiddenIds,
+          knownCourses: classroomData.courses
         });
+        if (isStaleRun()) return false;
+        const unhiddenSet = new Set(newlyUnhiddenIds);
+        classroomData = {
+          ...classroomData,
+          assignments: [...(classroomData.assignments || []), ...(extraData.assignments || [])],
+          resources: [...(classroomData.resources || []), ...(extraData.resources || [])],
+          topics: [...(classroomData.topics || []), ...(extraData.topics || [])],
+          skippedCourseIds: skippedBeforeSync.filter(id => !unhiddenSet.has(id)),
+          failedCourseIds: Array.from(new Set([...(classroomData.failedCourseIds || []), ...(extraData.failedCourseIds || [])])),
+          failedFeeds: {
+            coursework: [...(classroomData.failedFeeds?.coursework || []), ...(extraData.failedFeeds?.coursework || [])],
+            submissions: [...(classroomData.failedFeeds?.submissions || []), ...(extraData.failedFeeds?.submissions || [])],
+            announcements: [...(classroomData.failedFeeds?.announcements || []), ...(extraData.failedFeeds?.announcements || [])],
+            materials: [...(classroomData.failedFeeds?.materials || []), ...(extraData.failedFeeds?.materials || [])],
+            topics: [...(classroomData.failedFeeds?.topics || []), ...(extraData.failedFeeds?.topics || [])]
+          }
+        };
       }
 
-      const classroomData = await ClassroomService.fetchClassroomData(tokenToUse, {
-        signal: effectiveSignal,
-        getToken: () => getToken() || tokenToUse
-      });
-      if (isStaleRun()) return false;
-
-      const freshToken = getToken() || tokenToUse;
+      const freshToken = getLatestToken();
       const prevAssignments = getAssignments(userEmail);
       const prevResources = getResources(userEmail);
       const prevTopics = getTopics(userEmail);
@@ -209,34 +285,35 @@ export const ClassroomProvider = ({ children }) => {
       const cachedResourceIds = prevResources.map(r => r.id);
       const lastSync = getLastSync(userEmail);
 
-      // Granular per-feed preservation on partial Classroom API failure
+      // Granular per-feed preservation on partial Classroom API failure or intentionally skipped hidden courses
+      const skippedSet = new Set(classroomData.skippedCourseIds || []);
       const failedCW = new Set(classroomData.failedFeeds?.coursework || classroomData.failedCourseIds || []);
       const failedAnn = new Set(classroomData.failedFeeds?.announcements || classroomData.failedCourseIds || []);
       const failedMat = new Set(classroomData.failedFeeds?.materials || classroomData.failedCourseIds || []);
       const failedTop = new Set(classroomData.failedFeeds?.topics || classroomData.failedCourseIds || []);
 
-      const freshAssignments = failedCW.size > 0
+      const freshAssignments = (failedCW.size > 0 || skippedSet.size > 0)
         ? [
-            ...classroomData.assignments.filter(a => !failedCW.has(a.courseId)),
-            ...prevAssignments.filter(a => failedCW.has(a.courseId) && !String(a.id).startsWith('assign-'))
+            ...classroomData.assignments.filter(a => !failedCW.has(a.courseId) && !skippedSet.has(a.courseId)),
+            ...prevAssignments.filter(a => (failedCW.has(a.courseId) || skippedSet.has(a.courseId)) && !String(a.id).startsWith('assign-'))
           ]
         : classroomData.assignments;
 
-      const freshResources = (failedAnn.size > 0 || failedMat.size > 0)
+      const freshResources = (failedAnn.size > 0 || failedMat.size > 0 || skippedSet.size > 0)
         ? [
             ...(classroomData.resources || []).filter(r =>
-              r.type === 'announcement' ? !failedAnn.has(r.courseId) : !failedMat.has(r.courseId)
+              !skippedSet.has(r.courseId) && (r.type === 'announcement' ? !failedAnn.has(r.courseId) : !failedMat.has(r.courseId))
             ),
             ...prevResources.filter(r =>
-              r.type === 'announcement' ? failedAnn.has(r.courseId) : failedMat.has(r.courseId)
+              skippedSet.has(r.courseId) || (r.type === 'announcement' ? failedAnn.has(r.courseId) : failedMat.has(r.courseId))
             )
           ]
         : (classroomData.resources || []);
 
-      const freshTopics = failedTop.size > 0
+      const freshTopics = (failedTop.size > 0 || skippedSet.size > 0)
         ? [
-            ...(classroomData.topics || []).filter(t => !failedTop.has(t.courseId)),
-            ...prevTopics.filter(t => failedTop.has(t.courseId))
+            ...(classroomData.topics || []).filter(t => !failedTop.has(t.courseId) && !skippedSet.has(t.courseId)),
+            ...prevTopics.filter(t => failedTop.has(t.courseId) || skippedSet.has(t.courseId))
           ]
         : (classroomData.topics || []);
 
@@ -270,31 +347,33 @@ export const ClassroomProvider = ({ children }) => {
         hasAnyPartialFailure ? 'warning' : 'success'
       );
 
-      await new Promise(resolve => setTimeout(resolve, 0));
-      if (isStaleRun()) return false;
-      try {
-        if (lastSync) {
-          await NotificationService.evaluateNewPostDigest(
-            freshToken, userEmail, freshAssignments, 
-            freshResources, cachedAssignmentIds, cachedResourceIds
+      // Run notifications, calendar sync, and Drive push asynchronously without blocking the Sync button
+      void (async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+        if (isStaleRun()) return;
+        try {
+          if (lastSync) {
+            await NotificationService.evaluateNewPostDigest(
+              freshToken, userEmail, freshAssignments, 
+              freshResources, cachedAssignmentIds, cachedResourceIds
+            );
+          }
+          await NotificationService.evaluateNotifications(
+            freshToken, userEmail, syncedAssigns, 
+            classroomData.courses, freshResources,
+            { prevLastSync: lastSync }
           );
+        } catch (err) {
+          logger.error('Error processing digest alerts during sync:', err);
+        } finally {
+          if (!isStaleRun()) {
+            reloadSettings();
+            const postToken = getLatestToken();
+            calendarSyncManager.queueSync(postToken, userEmail);
+            syncManager.queueSync(postToken, userEmail);
+          }
         }
-        await NotificationService.evaluateNotifications(
-          freshToken, userEmail, syncedAssigns, 
-          classroomData.courses, freshResources,
-          { prevLastSync: lastSync }
-        );
-      } catch (err) {
-        logger.error('Error processing digest alerts during sync:', err);
-      } finally {
-        if (!isStaleRun()) {
-          reloadSettings();
-          calendarSyncManager.queueSync(freshToken, userEmail);
-          syncManager.executeSync(freshToken, userEmail).catch(() => {
-            syncManager.queueSync(freshToken, userEmail);
-          });
-        }
-      }
+      })();
       return true;
 
     } catch (e) {
@@ -390,8 +469,61 @@ export const ClassroomProvider = ({ children }) => {
     calendarSyncManager.queueSync(accessToken, email);
   }, [accessToken]);
 
+  const syncCourses = useCallback(async (courseIds = []) => {
+    const tokenToUse = getToken() || accessToken;
+    const email = getActiveEmail();
+    const ids = Array.from(new Set((Array.isArray(courseIds) ? courseIds : []).filter(Boolean)));
+    if (!tokenToUse || !email || ids.length === 0) return false;
+    if (activeSyncRef.current) return false;
+
+    const generation = sessionGenerationRef.current;
+    try {
+      const data = await ClassroomService.fetchClassroomData(tokenToUse, {
+        getToken: () => getToken() || tokenToUse,
+        onlyCourseIds: ids,
+        knownCourses: coursesRef.current
+      });
+      if (generation !== sessionGenerationRef.current || getActiveEmail() !== email) return false;
+
+      const targetSet = new Set(ids);
+      const failedCW = new Set(data.failedFeeds?.coursework || []);
+      const failedAnn = new Set(data.failedFeeds?.announcements || []);
+      const failedMat = new Set(data.failedFeeds?.materials || []);
+      const failedTop = new Set(data.failedFeeds?.topics || []);
+
+      const prevAssignments = getAssignments(email);
+      const prevResources = getResources(email);
+      const prevTopics = getTopics(email);
+
+      const mergedAssignments = [
+        ...prevAssignments.filter(a => !targetSet.has(a.courseId) || failedCW.has(a.courseId) || String(a.id).startsWith('assign-')),
+        ...(data.assignments || []).filter(a => !failedCW.has(a.courseId))
+      ];
+      const mergedResources = [
+        ...prevResources.filter(r => !targetSet.has(r.courseId) || (r.type === 'announcement' ? failedAnn.has(r.courseId) : failedMat.has(r.courseId))),
+        ...(data.resources || []).filter(r => (r.type === 'announcement' ? !failedAnn.has(r.courseId) : !failedMat.has(r.courseId)))
+      ];
+      const mergedTopics = [
+        ...prevTopics.filter(t => !targetSet.has(t.courseId) || failedTop.has(t.courseId)),
+        ...(data.topics || []).filter(t => !failedTop.has(t.courseId))
+      ];
+
+      const syncedAssigns = syncClassroomAssignments(mergedAssignments, email);
+      saveResources(mergedResources, email);
+      saveTopics(mergedTopics, email);
+      setAssignments(syncedAssigns);
+      setResources(mergedResources);
+      setTopics(mergedTopics);
+      return true;
+    } catch (err) {
+      logger.warn('[Sync] Failed refreshing unhidden courses:', err?.message || err);
+      return false;
+    }
+  }, [accessToken]);
+
   const resetData = useCallback(() => {
     const email = getActiveEmail();
+    clearDriveSyncCache(email);
     const reset = resetDatabase(email);
     setAssignments(reset.assignments);
     setCourses(reset.courses);
@@ -665,7 +797,7 @@ export const ClassroomProvider = ({ children }) => {
     return () => window.removeEventListener('message', handleBridgeMessage);
   }, [isLoggedIn, handleImportRegData, addToast]);
 
-  const isSyncing = isClassroomFetching || syncState === 'uploading' || syncState === 'queued';
+  const isSyncing = isClassroomFetching;
 
   useEffect(() => {
     if (!isLoggedIn || !accessToken) {
@@ -693,13 +825,13 @@ export const ClassroomProvider = ({ children }) => {
 
   const value = React.useMemo(() => ({
     assignments, courses, resources, schedule, academicData, extensionStatus, isSyncing, lastSyncTime, syncState, topics,
-    syncClassroom, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
+    syncClassroom, syncCourses, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
     handleUpdateAssignment, handleDeleteAssignment, handleDeleteScheduleEntry, handleSaveScheduleEntry,
     handleClearSchedule, handleSaveAcademicData, handleImportRegData, requestExtensionSync,
     handleTrackAsAssignment, handleUntrackAssignment, resetData
   }), [
     assignments, courses, resources, schedule, academicData, extensionStatus, isSyncing, lastSyncTime, syncState, topics,
-    syncClassroom, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
+    syncClassroom, syncCourses, handleStatusChange, handleNotesChange, handleDueDateChange, handleAddAssignment,
     handleUpdateAssignment, handleDeleteAssignment, handleDeleteScheduleEntry, handleSaveScheduleEntry,
     handleClearSchedule, handleSaveAcademicData, handleImportRegData, requestExtensionSync,
     handleTrackAsAssignment, handleUntrackAssignment, resetData

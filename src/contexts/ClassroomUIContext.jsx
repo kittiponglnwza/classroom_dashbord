@@ -10,7 +10,7 @@ export const ClassroomUIContext = createContext(null);
 
 export const ClassroomUIProvider = ({ children }) => {
   const { accessToken, isLoggedIn, profile } = useAuth();
-  const { courses, assignments, resources } = useClassroom();
+  const { courses, assignments, resources, syncCourses } = useClassroom();
   
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
   const hiddenCourseIdsRef = useRef(hiddenCourseIds);
@@ -63,7 +63,8 @@ export const ClassroomUIProvider = ({ children }) => {
   const handleToggleCourseVisibility = useCallback((courseId) => {
     const email = getActiveEmail();
     const current = hiddenCourseIdsRef.current;
-    const updated = current.includes(courseId)
+    const isUnhiding = current.includes(courseId);
+    const updated = isUnhiding
       ? current.filter(id => id !== courseId)
       : [...current, courseId];
     hiddenCourseIdsRef.current = updated;
@@ -71,17 +72,27 @@ export const ClassroomUIProvider = ({ children }) => {
     saveHiddenCourses(updated, email);
     syncManager.queueSync(accessToken, email);
     calendarSyncManager.queueSync(accessToken, email);
-  }, [accessToken]);
+    if (isUnhiding && accessToken) {
+      syncCourses?.([courseId]);
+    }
+  }, [accessToken, syncCourses]);
 
   const handleToggleBulkCourses = useCallback((courseIds, shouldHideAll) => {
     const email = getActiveEmail();
+    const prevHidden = hiddenCourseIdsRef.current;
     const updated = shouldHideAll ? [...courseIds] : [];
     hiddenCourseIdsRef.current = updated;
     setHiddenCourseIds(updated);
     saveHiddenCourses(updated, email);
     syncManager.queueSync(accessToken, email);
     calendarSyncManager.queueSync(accessToken, email);
-  }, [accessToken]);
+    if (!shouldHideAll && accessToken) {
+      const unhiddenIds = prevHidden.filter(id => courseIds.includes(id));
+      if (unhiddenIds.length > 0) {
+        syncCourses?.(unhiddenIds);
+      }
+    }
+  }, [accessToken, syncCourses]);
 
   const handleTogglePinItem = useCallback((itemId) => {
     if (!itemId) return;

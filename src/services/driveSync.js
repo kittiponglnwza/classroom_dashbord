@@ -7,6 +7,18 @@ const DRIVE_FILES_URL = 'https://www.googleapis.com/drive/v3/files';
 const DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 const SYNC_FILE_NAME = 'classroom_hub_sync_settings.json';
 
+// Per-email metadata/payload cache to skip redundant alt=media downloads when Drive file & local state are unchanged
+const driveSyncStateCache = new Map();
+
+export const clearDriveSyncCache = (email = '') => {
+  const lower = String(email || '').toLowerCase().trim();
+  if (lower) {
+    driveSyncStateCache.delete(lower);
+  } else {
+    driveSyncStateCache.clear();
+  }
+};
+
 const KEYS = STORAGE_CONFIG.keys;
 
 /**
@@ -125,7 +137,7 @@ async function createSyncFileWithContent(accessToken, payload, timestamp) {
     `${content}\r\n` +
     `--${boundary}--`;
 
-  const url = `${DRIVE_UPLOAD_URL}?uploadType=multipart`;
+  const url = `${DRIVE_UPLOAD_URL}?uploadType=multipart&fields=id,modifiedTime`;
   return await httpClient.request(url, {
     method: 'POST',
     headers: {
@@ -140,10 +152,10 @@ async function createSyncFileWithContent(accessToken, payload, timestamp) {
  * Uploads settings payload to an existing sync file
  */
 async function uploadSyncFileContent(accessToken, fileId, payload, timestamp) {
-  const url = `${DRIVE_UPLOAD_URL}/${fileId}?uploadType=media`;
+  const url = `${DRIVE_UPLOAD_URL}/${fileId}?uploadType=media&fields=id,modifiedTime`;
   const content = { version: STORAGE_CONFIG.schemaVersion, timestamp, payload };
 
-  await httpClient.request(url, {
+  return await httpClient.request(url, {
     method: 'PATCH',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -190,9 +202,33 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
       logger.info('[Drive Sync] Sync file not found. Creating new sync file...');
       const localPayload = getLocalSettingsPayload(lowerEmail);
       const now = new Date().toISOString();
-      await createSyncFileWithContent(accessToken, localPayload, now);
+      const createdFile = await createSyncFileWithContent(accessToken, localPayload, now);
       localStorage.setItem(timeKey, now);
+      if (createdFile?.id && createdFile?.modifiedTime) {
+        driveSyncStateCache.set(lowerEmail, {
+          fileId: createdFile.id,
+          modifiedTime: createdFile.modifiedTime,
+          serialized: canonicalPayloadString(localPayload)
+        });
+      } else {
+        driveSyncStateCache.delete(lowerEmail);
+      }
       logger.info('[Drive Sync] Initial settings pushed successfully.');
+      return false;
+    }
+
+    const preDownloadLocal = getLocalSettingsPayload(lowerEmail);
+    const preDownloadSerialized = canonicalPayloadString(preDownloadLocal);
+    const cachedMeta = driveSyncStateCache.get(lowerEmail);
+    if (
+      cachedMeta &&
+      file.id &&
+      file.modifiedTime &&
+      cachedMeta.fileId === file.id &&
+      cachedMeta.modifiedTime === file.modifiedTime &&
+      cachedMeta.serialized === preDownloadSerialized
+    ) {
+      logger.debug('[Drive Sync] Skipping download; remote modifiedTime and local state unchanged.');
       return false;
     }
 
@@ -203,8 +239,18 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
     if (!remoteData || !remoteData.payload) {
       logger.info('[Drive Sync] Remote sync file was empty. Uploading current state...');
       const now = new Date().toISOString();
-      await uploadSyncFileContent(accessToken, file.id, localPayload, now);
+      const uploadedFile = await uploadSyncFileContent(accessToken, file.id, localPayload, now);
       localStorage.setItem(timeKey, now);
+      const nextModifiedTime = uploadedFile?.modifiedTime;
+      if (file.id && nextModifiedTime) {
+        driveSyncStateCache.set(lowerEmail, {
+          fileId: file.id,
+          modifiedTime: nextModifiedTime,
+          serialized: canonicalPayloadString(localPayload)
+        });
+      } else {
+        driveSyncStateCache.delete(lowerEmail);
+      }
       return false;
     }
 
@@ -226,13 +272,25 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback) {
       appliedRemote = true;
     }
 
+    let latestModifiedTime = file.modifiedTime || '';
     if (remoteIsOutOfSync) {
       logger.info('[Drive Sync] Remote data requires update. Uploading merged state to Google Drive...');
       const now = new Date().toISOString();
-      await uploadSyncFileContent(accessToken, file.id, mergedPayload, now);
+      const uploadedFile = await uploadSyncFileContent(accessToken, file.id, mergedPayload, now);
       localStorage.setItem(timeKey, now);
+      latestModifiedTime = uploadedFile?.modifiedTime || '';
     } else {
       logger.info('[Drive Sync] Local and remote data are fully in sync.');
+    }
+
+    if (file.id && latestModifiedTime) {
+      driveSyncStateCache.set(lowerEmail, {
+        fileId: file.id,
+        modifiedTime: latestModifiedTime,
+        serialized: mergedSerialized
+      });
+    } else {
+      driveSyncStateCache.delete(lowerEmail);
     }
 
     return appliedRemote;

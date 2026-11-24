@@ -52,7 +52,7 @@ export const GoogleRepository = {
    * Fetch active enrolled courses
    */
   async fetchCourses(accessToken, options = {}) {
-    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses?studentId=me&courseStates=ACTIVE`;
+    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses?studentId=me&courseStates=ACTIVE&pageSize=100`;
     return await this.fetchAllPages(url, accessToken, 'courses', options);
   },
 
@@ -60,7 +60,7 @@ export const GoogleRepository = {
    * Fetch coursework (assignments) for a specific course
    */
   async fetchCoursework(accessToken, courseId, options = {}) {
-    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/courseWork`;
+    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/courseWork?pageSize=100`;
     return await this.fetchAllPages(url, accessToken, 'courseWork', options);
   },
 
@@ -68,7 +68,7 @@ export const GoogleRepository = {
    * Fetch student submissions for a specific course
    */
   async fetchSubmissions(accessToken, courseId, options = {}) {
-    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/courseWork/-/studentSubmissions?userId=me`;
+    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/courseWork/-/studentSubmissions?userId=me&pageSize=100`;
     return await this.fetchAllPages(url, accessToken, 'studentSubmissions', options);
   },
 
@@ -76,7 +76,7 @@ export const GoogleRepository = {
    * Fetch announcements for a specific course
    */
   async fetchAnnouncements(accessToken, courseId, options = {}) {
-    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/announcements`;
+    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/announcements?pageSize=100`;
     return await this.fetchAllPages(url, accessToken, 'announcements', options);
   },
 
@@ -84,7 +84,7 @@ export const GoogleRepository = {
    * Fetch course work materials for a specific course
    */
   async fetchMaterials(accessToken, courseId, options = {}) {
-    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/courseWorkMaterials`;
+    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/courseWorkMaterials?pageSize=100`;
     return await this.fetchAllPages(url, accessToken, 'courseWorkMaterial', options);
   },
 
@@ -92,7 +92,7 @@ export const GoogleRepository = {
    * Fetch topics for a specific course
    */
   async fetchTopics(accessToken, courseId, options = {}) {
-    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/topics`;
+    const url = `${GOOGLE_CONFIG.classroomBaseUrl}/courses/${encodeURIComponent(courseId)}/topics?pageSize=100`;
     return await this.fetchAllPages(url, accessToken, 'topic', options);
   },
 
