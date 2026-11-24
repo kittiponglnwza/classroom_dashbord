@@ -293,7 +293,7 @@
           }
           .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
           .brand { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #FFFFFF; }
-          .badge { background: #007ACC; color: #FFFFFF; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; }
+          .brand-logo { width: 22px; height: 22px; display: block; flex-shrink: 0; }
           .close { background: transparent; border: none; color: #858585; font-size: 16px; cursor: pointer; padding: 0 2px; line-height: 1; }
           .close:hover { color: #FFFFFF; }
           .title { font-size: 12px; font-weight: 600; color: #34D399; margin: 6px 0 2px; }
@@ -312,7 +312,19 @@
         </style>
         <div class="card">
           <div class="top">
-            <div class="brand"><span class="badge">CH</span><span>Classroom Hub Sync</span></div>
+            <div class="brand">
+              <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+                <defs>
+                  <linearGradient id="chLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#6366f1" />
+                    <stop offset="100%" stop-color="#a855f7" />
+                  </linearGradient>
+                </defs>
+                <rect x="1.5" y="1.5" width="29" height="29" rx="7.5" fill="#0b0f19" stroke="url(#chLogoGrad)" stroke-width="2" />
+                <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="900" letter-spacing="-0.5px">CH</text>
+              </svg>
+              <span>Classroom Hub Sync</span>
+            </div>
             <button class="close" type="button" aria-label="Close">&times;</button>
           </div>
           <div class="title">${titleText}</div>
