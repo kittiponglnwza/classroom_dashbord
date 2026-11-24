@@ -399,6 +399,7 @@ export const resetDatabase = (email) => {
     StorageRepository.remove(KEYS.resources);
     StorageRepository.remove(KEYS.lastSync);
     StorageRepository.remove(KEYS.hiddenCourses);
+    StorageRepository.remove(KEYS.pinnedItems);
     clearToken();
     return {
       assignments: initialAssignments,
@@ -420,6 +421,7 @@ export const resetDatabase = (email) => {
     StorageRepository.remove(KEYS.resources, userEmail);
     StorageRepository.remove(KEYS.lastSync, userEmail);
     StorageRepository.remove(KEYS.hiddenCourses, userEmail);
+    StorageRepository.remove(KEYS.pinnedItems, userEmail);
     StorageRepository.remove(KEYS.schedule, userEmail);
     StorageRepository.remove(KEYS.exams, userEmail);
     StorageRepository.remove(KEYS.topics, userEmail);
@@ -446,6 +448,17 @@ export const getHiddenCourses = (email) => {
 
 export const saveHiddenCourses = (hiddenIds, email) => {
   StorageRepository.set(KEYS.hiddenCourses, hiddenIds, email);
+};
+
+/* Pinned Items (Assignments & Course Resources) */
+export const getPinnedItems = (email) => {
+  const stored = StorageRepository.get(KEYS.pinnedItems, email, true);
+  return Array.isArray(stored) ? stored.map(String) : [];
+};
+
+export const savePinnedItems = (pinnedIds, email) => {
+  const normalized = Array.isArray(pinnedIds) ? Array.from(new Set(pinnedIds.map(String))) : [];
+  StorageRepository.set(KEYS.pinnedItems, normalized, email);
 };
 
 /* Gmail Notifications Scoped Helpers */

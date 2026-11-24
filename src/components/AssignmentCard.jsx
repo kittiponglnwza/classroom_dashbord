@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Paperclip, AlertCircle, CheckCircle2, Clock, ExternalLink, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, Paperclip, AlertCircle, CheckCircle2, Clock, ExternalLink, BookOpen, ChevronDown, ChevronUp, Pin } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { calculateDueState } from '../utils/dateUtils';
 import { sanitizeExternalUrl } from '../utils/sanitize';
+import { useClassroomUI } from '../contexts/ClassroomUIContext';
 
 const COURSE_DOT_COLORS = {
   emerald: 'bg-emerald-400',
@@ -16,6 +17,9 @@ const COURSE_DOT_COLORS = {
 
 const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatusChange, lang = 'en', viewMode = 'grid' }) {
   const { id, title, course, dueDate, status, points, attachments, courseColor, googleLink } = assignment;
+  const ui = useClassroomUI();
+  const isPinned = Boolean(ui?.isItemPinned?.(id));
+  const handleTogglePin = ui?.handleTogglePinItem;
   const safeGoogleLink = sanitizeExternalUrl(googleLink);
   const pointsLabel = typeof points === 'number'
     ? `${points} ${lang === 'en' ? 'pts' : 'คะแนน'}`
@@ -114,6 +118,9 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
     if (dueStatus.isOverdue) {
       return 'border-rose-500/40 hover:border-rose-400/60';
     }
+    if (isPinned) {
+      return 'border-amber-500/35 hover:border-amber-400/55';
+    }
     return 'border-[#3C3C3C] hover:border-[#007ACC]/70';
   };
 
@@ -143,11 +150,30 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <div className="hidden sm:flex items-center gap-1.5">
             {dueStatus.icon}
             <span className={`text-xs ${dueStatus.colorClass}`}>{dueStatus.text}</span>
           </div>
+
+          {handleTogglePin && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTogglePin(id);
+              }}
+              aria-label={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin' : 'ปักหมุด')}
+              title={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin to top' : 'ปักหมุดไว้บนสุด')}
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                isPinned
+                  ? 'text-amber-400 bg-amber-500/15 border-amber-500/30'
+                  : 'text-[#858585] hover:text-[#D4D4D4] bg-[#1E1E1E] border-[#3C3C3C]'
+              }`}
+            >
+              <Pin size={13} className={isPinned ? 'fill-amber-400/30' : ''} />
+            </button>
+          )}
 
           <div
             onClick={(e) => e.stopPropagation()}
@@ -209,19 +235,40 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-[#1E1E1E] border border-[#3C3C3C] px-2.5 py-1 rounded-lg hover:border-[#454545] transition-colors shrink-0">
-            <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
-            <select
-              aria-label={`${title} status`}
-              value={status}
-              onChange={(e) => onStatusChange(id, e.target.value)}
-              className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer pr-1 select-none ${getStatusTextColor()}`}
-            >
-              <option value="todo" className="bg-[#252526] text-[#D4D4D4]">{t('todo', lang)}</option>
-              <option value="doing" className="bg-[#252526] text-[#D4D4D4]">{t('doing', lang)}</option>
-              <option value="done" className="bg-[#252526] text-[#D4D4D4]">{t('done', lang)}</option>
-              <option value="read" className="bg-[#252526] text-[#D4D4D4]">{t('read', lang)}</option>
-            </select>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {handleTogglePin && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTogglePin(id);
+                }}
+                aria-label={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin' : 'ปักหมุด')}
+                title={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin to top' : 'ปักหมุดไว้บนสุด')}
+                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  isPinned
+                    ? 'text-amber-400 bg-amber-500/15 border-amber-500/30'
+                    : 'text-[#858585] hover:text-[#D4D4D4] bg-[#1E1E1E] border-[#3C3C3C]'
+                }`}
+              >
+                <Pin size={13} className={isPinned ? 'fill-amber-400/30' : ''} />
+              </button>
+            )}
+
+            <div className="flex items-center gap-1.5 bg-[#1E1E1E] border border-[#3C3C3C] px-2.5 py-1 rounded-lg hover:border-[#454545] transition-colors shrink-0">
+              <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
+              <select
+                aria-label={`${title} status`}
+                value={status}
+                onChange={(e) => onStatusChange(id, e.target.value)}
+                className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer pr-1 select-none ${getStatusTextColor()}`}
+              >
+                <option value="todo" className="bg-[#252526] text-[#D4D4D4]">{t('todo', lang)}</option>
+                <option value="doing" className="bg-[#252526] text-[#D4D4D4]">{t('doing', lang)}</option>
+                <option value="done" className="bg-[#252526] text-[#D4D4D4]">{t('done', lang)}</option>
+                <option value="read" className="bg-[#252526] text-[#D4D4D4]">{t('read', lang)}</option>
+              </select>
+            </div>
           </div>
         </div>
 

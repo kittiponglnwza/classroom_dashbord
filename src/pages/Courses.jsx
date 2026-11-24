@@ -4,7 +4,7 @@ import AssignmentCard from '../components/AssignmentCard';
 import {
   User, BookOpen, ChevronRight, Eye, EyeOff, ArrowLeft,
   Megaphone, FileText, ExternalLink, Calendar,
-  Check, Trash2, Pin, Search, ChevronDown, ChevronUp,
+  Check, Trash2, Pin, Plus, Search, ChevronDown, ChevronUp,
   LayoutGrid, List, Hash, Filter, FolderOpen
 } from 'lucide-react';
 import { t } from '../utils/i18n';
@@ -22,6 +22,8 @@ function ResourceCard({
   assignments = [],
   onTrackAsAssignment,
   onUntrackAssignment,
+  isPinned = false,
+  onTogglePin = null,
   courseColor,
   lang = 'en',
   viewMode = 'grid',
@@ -77,11 +79,29 @@ function ResourceCard({
             {title}
           </span>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <div className="hidden sm:flex items-center gap-1.5 text-[#858585]">
             <Calendar size={12} />
             <span className="text-xs">{formattedDate}</span>
           </div>
+          {onTogglePin && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePin(id);
+              }}
+              aria-label={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin' : 'ปักหมุด')}
+              title={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin to top' : 'ปักหมุดไว้บนสุด')}
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                isPinned
+                  ? 'text-amber-400 bg-amber-500/15 border-amber-500/30'
+                  : 'text-[#858585] hover:text-[#D4D4D4] bg-[#1E1E1E] border-[#3C3C3C]'
+              }`}
+            >
+              <Pin size={13} className={isPinned ? 'fill-amber-400/30' : ''} />
+            </button>
+          )}
           <div className="p-1 rounded-md text-[#858585] group-hover:text-[#FFFFFF] transition-colors">
             <ChevronDown size={15} />
           </div>
@@ -93,7 +113,11 @@ function ResourceCard({
   return (
     <div
       className={`bg-[#252526] border rounded-2xl p-5 transition-colors flex flex-col justify-between ${
-        isHighlighted ? 'border-[#007ACC]' : 'border-[#3C3C3C]'
+        isHighlighted
+          ? 'border-[#007ACC]'
+          : isPinned
+            ? 'border-amber-500/35'
+            : 'border-[#3C3C3C]'
       }`}
     >
       {viewMode === 'list' && (
@@ -111,15 +135,35 @@ function ResourceCard({
       )}
 
       <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3 text-xs">
+        <div className="flex items-center justify-between gap-2 text-xs">
           <span className={`px-2 py-0.5 rounded-md font-medium flex items-center gap-1.5 ${resourceType.badge}`}>
             {resourceType.icon}
             {resourceType.label}
           </span>
-          <span className="text-[#858585] flex items-center gap-1 text-[11px]">
-            <Calendar size={11} />
-            {formattedDate}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[#858585] flex items-center gap-1 text-[11px]">
+              <Calendar size={11} />
+              {formattedDate}
+            </span>
+            {onTogglePin && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePin(id);
+                }}
+                aria-label={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin' : 'ปักหมุด')}
+                title={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin to top' : 'ปักหมุดไว้บนสุด')}
+                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  isPinned
+                    ? 'text-amber-400 bg-amber-500/15 border-amber-500/30'
+                    : 'text-[#858585] hover:text-[#D4D4D4] bg-[#1E1E1E] border-[#3C3C3C]'
+                }`}
+              >
+                <Pin size={12} className={isPinned ? 'fill-amber-400/30' : ''} />
+              </button>
+            )}
+          </div>
         </div>
 
         <h3 className="text-[#FFFFFF] font-semibold text-sm leading-snug">{title}</h3>
@@ -192,7 +236,7 @@ function ResourceCard({
             onClick={() => onTrackAsAssignment(resource)}
             className={`text-xs font-medium px-3 py-1.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 ${getTrackButtonStyles(courseColor, false)}`}
           >
-            <Pin size={12} />
+            <Plus size={12} />
             <span>{t('trackAsTask', lang)}</span>
           </button>
         )}
@@ -283,7 +327,8 @@ export default function Courses() {
   } = useClassroom();
 
   const {
-    hiddenCourseIds, handleToggleCourseVisibility, handleToggleBulkCourses
+    hiddenCourseIds, handleToggleCourseVisibility, handleToggleBulkCourses,
+    isItemPinned = () => false, handleTogglePinItem
   } = useClassroomUI();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -651,30 +696,27 @@ export default function Courses() {
             )}
 
             {activeTab === 'assignments' ? (() => {
-              const grouped = groupItemsByTopic(courseAssignments);
-              const hasAnyFiltered = Object.values(grouped).some(arr => arr.length > 0);
+              const filteredAll = filterCourseItems(courseAssignments);
+              const pinnedAssignments = filteredAll.filter(item => isItemPinned(item.id));
+              const unpinnedAssignments = courseAssignments.filter(item => !isItemPinned(item.id));
+              const grouped = groupItemsByTopic(unpinnedAssignments);
+              const hasAnyFiltered = pinnedAssignments.length > 0 || Object.values(grouped).some(arr => arr.length > 0);
               return (
                 <div className="space-y-6">
                   {courseAssignments.length > 0 && hasAnyFiltered ? (
-                    Object.entries(grouped).map(([topicId, items]) => {
-                      if (items.length === 0) return null;
-                      const topicName = topicId === 'none'
-                        ? (lang === 'en' ? 'Other Assignments' : 'งานอื่นๆ')
-                        : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
-
-                      return (
-                        <div key={topicId} className="space-y-3">
-                          {(topicId !== 'none' || courseTopics.length > 0) && (
-                            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
-                              <Hash size={15} className="text-[#3794FF]" />
-                              <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
-                              <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
-                                {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
-                              </span>
-                            </div>
-                          )}
+                    <>
+                      {pinnedAssignments.length > 0 && (
+                        <div className="space-y-3 bg-amber-500/5 border border-amber-500/25 rounded-2xl p-4">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+                            <Pin size={14} className="text-amber-400 fill-amber-400/30" />
+                            <span>
+                              {lang === 'en'
+                                ? `Pinned Assignments (${pinnedAssignments.length})`
+                                : `งานที่ปักหมุดไว้ (${pinnedAssignments.length})`}
+                            </span>
+                          </div>
                           <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
-                            {items.map((assignment) => (
+                            {pinnedAssignments.map((assignment) => (
                               <AssignmentCard
                                 key={assignment.id}
                                 assignment={assignment}
@@ -685,8 +727,39 @@ export default function Courses() {
                             ))}
                           </div>
                         </div>
-                      );
-                    })
+                      )}
+                      {Object.entries(grouped).map(([topicId, items]) => {
+                        if (items.length === 0) return null;
+                        const topicName = topicId === 'none'
+                          ? (lang === 'en' ? 'Other Assignments' : 'งานอื่นๆ')
+                          : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
+
+                        return (
+                          <div key={topicId} className="space-y-3">
+                            {(topicId !== 'none' || courseTopics.length > 0) && (
+                              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
+                                <Hash size={15} className="text-[#3794FF]" />
+                                <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
+                                <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
+                                  {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
+                                </span>
+                              </div>
+                            )}
+                            <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
+                              {items.map((assignment) => (
+                                <AssignmentCard
+                                  key={assignment.id}
+                                  assignment={assignment}
+                                  onStatusChange={handleStatusChange}
+                                  lang={lang}
+                                  viewMode={viewMode}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
                   ) : (
                     <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#9D9D9D] text-xs gap-3">
                       <BookOpen size={28} className="text-[#858585] opacity-60" />
@@ -712,36 +785,35 @@ export default function Courses() {
                 </div>
               );
             })() : (() => {
-              const grouped = groupItemsByTopic(courseResources);
-              const hasAnyFiltered = Object.values(grouped).some(arr => arr.length > 0);
+              const filteredAll = filterCourseItems(courseResources);
+              const pinnedResources = filteredAll.filter(item => isItemPinned(item.id));
+              const unpinnedResources = courseResources.filter(item => !isItemPinned(item.id));
+              const grouped = groupItemsByTopic(unpinnedResources);
+              const hasAnyFiltered = pinnedResources.length > 0 || Object.values(grouped).some(arr => arr.length > 0);
               return (
                 <div className="space-y-6">
                   {courseResources.length > 0 && hasAnyFiltered ? (
-                    Object.entries(grouped).map(([topicId, items]) => {
-                      if (items.length === 0) return null;
-                      const topicName = topicId === 'none'
-                        ? (lang === 'en' ? 'Other Resources' : 'สื่ออื่นๆ')
-                        : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
-
-                      return (
-                        <div key={topicId} className="space-y-3">
-                          {(topicId !== 'none' || courseTopics.length > 0) && (
-                            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
-                              <Hash size={15} className="text-[#3794FF]" />
-                              <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
-                              <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
-                                {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
-                              </span>
-                            </div>
-                          )}
+                    <>
+                      {pinnedResources.length > 0 && (
+                        <div className="space-y-3 bg-amber-500/5 border border-amber-500/25 rounded-2xl p-4">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+                            <Pin size={14} className="text-amber-400 fill-amber-400/30" />
+                            <span>
+                              {lang === 'en'
+                                ? `Pinned Posts & Materials (${pinnedResources.length})`
+                                : `ปักหมุดไว้ (${pinnedResources.length})`}
+                            </span>
+                          </div>
                           <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
-                            {items.map((resource) => (
+                            {pinnedResources.map((resource) => (
                               <ResourceCard
                                 key={resource.id}
                                 resource={resource}
                                 assignments={assignments}
                                 onTrackAsAssignment={handleTrackAsAssignment}
                                 onUntrackAssignment={handleUntrackAssignment}
+                                isPinned={true}
+                                onTogglePin={handleTogglePinItem}
                                 courseColor={themeColor}
                                 lang={lang}
                                 viewMode={viewMode}
@@ -750,8 +822,45 @@ export default function Courses() {
                             ))}
                           </div>
                         </div>
-                      );
-                    })
+                      )}
+                      {Object.entries(grouped).map(([topicId, items]) => {
+                        if (items.length === 0) return null;
+                        const topicName = topicId === 'none'
+                          ? (lang === 'en' ? 'Other Resources' : 'สื่ออื่นๆ')
+                          : courseTopics.find(tItem => tItem.id === topicId)?.name || 'Topic';
+
+                        return (
+                          <div key={topicId} className="space-y-3">
+                            {(topicId !== 'none' || courseTopics.length > 0) && (
+                              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
+                                <Hash size={15} className="text-[#3794FF]" />
+                                <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
+                                <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
+                                  {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
+                                </span>
+                              </div>
+                            )}
+                            <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-3'}>
+                              {items.map((resource) => (
+                                <ResourceCard
+                                  key={resource.id}
+                                  resource={resource}
+                                  assignments={assignments}
+                                  onTrackAsAssignment={handleTrackAsAssignment}
+                                  onUntrackAssignment={handleUntrackAssignment}
+                                  isPinned={isItemPinned(resource.id)}
+                                  onTogglePin={handleTogglePinItem}
+                                  courseColor={themeColor}
+                                  lang={lang}
+                                  viewMode={viewMode}
+                                  isHighlighted={highlightedId && String(resource.id) === String(highlightedId)}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
                   ) : (
                     <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#9D9D9D] text-xs gap-3">
                       <Megaphone size={28} className="text-[#858585] opacity-60" />

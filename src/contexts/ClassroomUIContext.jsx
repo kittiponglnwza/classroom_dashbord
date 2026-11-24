@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { getHiddenCourses, saveHiddenCourses, getActiveEmail } from '../utils/storage';
+import { getHiddenCourses, saveHiddenCourses, getPinnedItems, savePinnedItems, getActiveEmail } from '../utils/storage';
 import { useClassroom } from './ClassroomContext';
 import { useAuth } from './AuthContext';
 import { syncManager } from '../services/SyncManager';
@@ -14,13 +14,20 @@ export const ClassroomUIProvider = ({ children }) => {
   
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
   const hiddenCourseIdsRef = useRef(hiddenCourseIds);
+  const [pinnedItemIds, setPinnedItemIds] = useState([]);
+  const pinnedItemIdsRef = useRef(pinnedItemIds);
 
   useEffect(() => {
     hiddenCourseIdsRef.current = hiddenCourseIds;
   }, [hiddenCourseIds]);
 
+  useEffect(() => {
+    pinnedItemIdsRef.current = pinnedItemIds;
+  }, [pinnedItemIds]);
+
   const loadHiddenCourses = useCallback((email = '') => {
     setHiddenCourseIds(getHiddenCourses(email));
+    setPinnedItemIds(getPinnedItems(email));
   }, []);
 
   useEffect(() => {
@@ -41,7 +48,7 @@ export const ClassroomUIProvider = ({ children }) => {
       }
     });
     const handleStorage = (e) => {
-      if (e.key && e.key.startsWith('classroom_hub_hidden_courses')) {
+      if (e.key && (e.key.startsWith('classroom_hub_hidden_courses') || e.key.startsWith('classroom_hub_pinned_items'))) {
         const activeEmail = profile?.email || getActiveEmail();
         if (activeEmail) loadHiddenCourses(activeEmail);
       }
@@ -76,6 +83,27 @@ export const ClassroomUIProvider = ({ children }) => {
     calendarSyncManager.queueSync(accessToken, email);
   }, [accessToken]);
 
+  const handleTogglePinItem = useCallback((itemId) => {
+    if (!itemId) return;
+    const key = String(itemId);
+    const email = getActiveEmail();
+    const current = pinnedItemIdsRef.current;
+    const updated = current.includes(key)
+      ? current.filter(id => id !== key)
+      : [key, ...current];
+    pinnedItemIdsRef.current = updated;
+    setPinnedItemIds(updated);
+    savePinnedItems(updated, email);
+    if (accessToken && email) {
+      syncManager.queueSync(accessToken, email);
+    }
+  }, [accessToken]);
+
+  const isItemPinned = useCallback((itemId) => {
+    if (!itemId) return false;
+    return pinnedItemIds.includes(String(itemId));
+  }, [pinnedItemIds]);
+
   const courseNameMap = useMemo(() => new Map(courses.map(c => [c.name, c])), [courses]);
 
   const visibleCourses = useMemo(() => 
@@ -106,13 +134,17 @@ export const ClassroomUIProvider = ({ children }) => {
 
   const value = useMemo(() => ({
     hiddenCourseIds,
+    pinnedItemIds,
+    isItemPinned,
+    handleTogglePinItem,
     visibleCourses,
     visibleAssignments,
     visibleResources,
     handleToggleCourseVisibility,
     handleToggleBulkCourses
   }), [
-    hiddenCourseIds, visibleCourses, visibleAssignments, visibleResources,
+    hiddenCourseIds, pinnedItemIds, isItemPinned, handleTogglePinItem,
+    visibleCourses, visibleAssignments, visibleResources,
     handleToggleCourseVisibility, handleToggleBulkCourses
   ]);
 

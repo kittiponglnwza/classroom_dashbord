@@ -4,7 +4,7 @@ import KanbanBoard from '../components/KanbanBoard';
 import TaskFilters from '../components/TaskFilters';
 import TodayScheduleWidget from '../components/TodayScheduleWidget';
 import CreateTaskModal from '../components/CreateTaskModal';
-import { Plus, RefreshCw, AlertTriangle, ClipboardList, Clock, BookOpen, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { Plus, RefreshCw, AlertTriangle, ClipboardList, Clock, BookOpen, ChevronDown, ChevronUp, Sparkles, Pin } from 'lucide-react';
 import { t } from '../utils/i18n';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -18,7 +18,7 @@ export default function Dashboard() {
   const { isLoggedIn, profile } = useAuth();
   const { lang } = useSettings();
   const { schedule, handleStatusChange, handleAddAssignment, isSyncing, syncClassroom } = useClassroom();
-  const { visibleAssignments, visibleCourses } = useClassroomUI();
+  const { visibleAssignments, visibleCourses, isItemPinned = () => false } = useClassroomUI();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showReadMaterials, setShowReadMaterials] = useState(false);
@@ -50,11 +50,14 @@ export default function Dashboard() {
     ? sortedAssignments.filter(a => a.status === 'read')
     : [];
 
-  const mainListAssignments = sortedAssignments.filter(a => {
+  const allMainAssignments = sortedAssignments.filter(a => {
     if (criticalTaskIds.has(a.id)) return false;
     if (selectedStatus === 'all' && a.status === 'read') return false;
     return true;
   });
+
+  const pinnedMainAssignments = allMainAssignments.filter(a => isItemPinned(a.id));
+  const mainListAssignments = allMainAssignments.filter(a => !isItemPinned(a.id));
 
   const handleMarkDetectedAsRead = () => {
     detectedMaterials.forEach((item) => {
@@ -179,11 +182,36 @@ export default function Dashboard() {
 
       {/* Grid or List View Main Content */}
       {(viewType === 'grid' || viewType === 'list') && (
-        <div className="space-y-3.5">
-          <h3 className="text-xs font-semibold text-[#9D9D9D] flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#3794FF]" />
-            <span>{t('allCourseAssignments', lang, { count: mainListAssignments.length })}</span>
-          </h3>
+        <div className="space-y-4">
+          {pinnedMainAssignments.length > 0 && (
+            <div className="space-y-3 bg-amber-500/5 border border-amber-500/25 rounded-2xl p-4">
+              <h3 className="text-xs font-semibold text-amber-300 flex items-center gap-2">
+                <Pin size={14} className="text-amber-400 fill-amber-400/30" />
+                <span>
+                  {lang === 'en'
+                    ? `Pinned Assignments (${pinnedMainAssignments.length})`
+                    : `งานที่ปักหมุดไว้ (${pinnedMainAssignments.length})`}
+                </span>
+              </h3>
+              <div className={viewType === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
+                {pinnedMainAssignments.map((assignment) => (
+                  <AssignmentCard
+                    key={assignment.id}
+                    assignment={assignment}
+                    onStatusChange={handleStatusChange}
+                    lang={lang}
+                    viewMode={viewType}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-3.5">
+            <h3 className="text-xs font-semibold text-[#9D9D9D] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#3794FF]" />
+              <span>{t('allCourseAssignments', lang, { count: mainListAssignments.length })}</span>
+            </h3>
           {sortedAssignments.length === 0 ? (
             <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center">
               <ClipboardList size={36} className="text-[#858585] mb-3 opacity-60" />
@@ -220,6 +248,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : null}
+          </div>
 
           {/* Collapsible Drawer for Read / Lecture Materials */}
           {readMaterialsList.length > 0 && (

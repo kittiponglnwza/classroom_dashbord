@@ -12,7 +12,8 @@ export const STORAGE_CONFIG = {
     schedule: 'classroom_hub_schedule',
     exams: 'classroom_hub_exam_results',
     topics: 'classroom_hub_topics',
-    academic: 'classroom_hub_academic'
+    academic: 'classroom_hub_academic',
+    pinnedItems: 'classroom_hub_pinned_items'
   },
   
   // Cache TTLs in milliseconds (mapped by both short alias and full storage base key)
