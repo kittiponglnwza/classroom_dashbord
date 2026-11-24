@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { Home, LayoutDashboard, BookOpen, Settings, ChevronLeft, ChevronRight, ClipboardCheck, CalendarDays, GraduationCap } from 'lucide-react';
 import { t } from '../utils/i18n';
@@ -10,7 +10,9 @@ import { useClassroomUI } from '../contexts/ClassroomUIContext';
 export default function Sidebar({ onLinkClick = null }) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
-      return window.innerWidth < 1024;
+      return window.matchMedia
+        ? !window.matchMedia('(min-width: 1024px)').matches
+        : window.innerWidth < 1024;
     }
     return false;
   });
@@ -19,6 +21,18 @@ export default function Sidebar({ onLinkClick = null }) {
   const { lang } = useSettings();
   const { visibleCourses, visibleAssignments } = useClassroomUI();
   const location = useLocation();
+
+  useEffect(() => {
+    const updateCollapsedState = () => {
+      const isDesktopWidth = window.matchMedia
+        ? window.matchMedia('(min-width: 1024px)').matches
+        : window.innerWidth >= 1024;
+      setIsCollapsed(!isDesktopWidth);
+    };
+
+    window.addEventListener('resize', updateCollapsedState);
+    return () => window.removeEventListener('resize', updateCollapsedState);
+  }, []);
 
   const selectedCourseParam = location.pathname === '/courses'
     ? new URLSearchParams(location.search).get('selected')
@@ -44,7 +58,7 @@ export default function Sidebar({ onLinkClick = null }) {
 
   return (
     <aside
-      className={`bg-[#252526] border-r border-[#3C3C3C] flex flex-col transition-all duration-200 relative h-screen select-none ${
+      className={`bg-[#252526] border-r border-[#3C3C3C] flex flex-col transition-all duration-200 relative h-full min-h-0 select-none ${
         isCollapsed ? 'w-18' : 'w-60 lg:w-64'
       }`}
     >
@@ -76,7 +90,7 @@ export default function Sidebar({ onLinkClick = null }) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-6">
         <nav aria-label="Main Navigation" className="space-y-1">
           {navItems.map((item) => (
             <NavLink
