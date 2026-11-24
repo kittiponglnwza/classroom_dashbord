@@ -8,7 +8,7 @@ The application uses Google's OAuth 2.0 implementation via the Google Identity S
 
 ### OAuth Token Client Flow
 - We utilize the client-side GIS Token Client flow, which returns a short-lived `access_token` (~1 hour) directly to browser memory without exposing client secrets or requiring a backend server.
-- The `access_token` requests only the scopes required for student operations:
+- The `access_token` requests these scopes. Classroom scopes are read-only; Gmail and Calendar scopes allow the app to send email and create or update calendar events, and Drive App Data stores the user's private sync file:
   - `https://www.googleapis.com/auth/classroom.courses.readonly`
   - `https://www.googleapis.com/auth/classroom.coursework.me.readonly`
   - `https://www.googleapis.com/auth/classroom.announcements.readonly`
@@ -25,7 +25,7 @@ Token security is critical for a frontend-only application:
 
 - **In-Memory & Session Storage Only:** The Google OAuth token is kept in React state (`AuthContext`) and `sessionStorage` (`classroom_hub_access_token`) with an explicit expiration timestamp (`classroom_hub_access_token_expires_at`) and a 60-second clock-skew guard.
 - **No LocalStorage for Tokens:** Raw OAuth tokens are never stored in `localStorage`.
-- **Server-Side Revocation & Full Wipe on Logout:** On explicit logout, the app invokes `window.google.accounts.oauth2.revoke(accessToken)` and scrubs all user-scoped caches from `localStorage` via `resetDatabase(email)`.
+- **Google revocation & local wipe on logout:** On explicit logout, the browser invokes `window.google.accounts.oauth2.revoke(accessToken)` and scrubs the user's local caches via `resetDatabase(email)`.
 
 ## 3. Data Scoping & Multi-User Segregation
 
@@ -37,7 +37,7 @@ To support multiple Google Accounts sharing the same browser safely:
 
 ## 4. XSS & Injection Protection
 
-- **React JSX Escaping:** All user-generated and Classroom content is rendered through React's default text escaping; `dangerouslySetInnerHTML` is never used.
+- **React JSX Escaping:** User-generated and Classroom text in the React UI is rendered through React's default text escaping. The companion extension's toast is assembled from fixed labels and derived counts in a shadow root.
 - **URL Validation:** All external links from Google Classroom, Drive, YouTube, Forms, and KMUTNB SciBase are validated via `sanitizeExternalUrl()` (`src/utils/sanitize.js`), permitting only `https:` and `http:` schemes.
 - **Email HTML & MIME Escaping:** Outbound Gmail notification templates escape all dynamic text via `escapeHtml()`, restrict course accent colors to a fixed hex allowlist (`getHexColor`), and strip `[\r\n]` from MIME headers.
 
@@ -57,6 +57,10 @@ Production deployments on Vercel enforce strict security headers in `vercel.json
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+
+## 7. External Exam Lookup Transport
+
+Automatic exam-room lookup currently sends the student's ID in the `IDcard` query parameter to the university's SciBase endpoint over HTTP. The Vercel-to-university connection has no TLS protection, and URL-based server logs may retain the ID. The frontend cannot secure that upstream leg by itself. The app shows a warning before the lookup UI; prefer an official HTTPS endpoint when one becomes available.
 
 ## Reporting a Vulnerability
 

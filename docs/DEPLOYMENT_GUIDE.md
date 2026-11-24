@@ -12,14 +12,22 @@ The application requires a Google OAuth 2.0 Client ID to authenticate users and 
 3. Go to **APIs & Services > Library** and enable the following APIs:
    - Google Classroom API
    - Google Drive API
+   - Gmail API (for in-app email notifications)
+   - Google Calendar API (for calendar sync)
 4. Go to **APIs & Services > OAuth consent screen**.
    - Choose **External** (unless restricting to an organizational workspace).
    - Fill out the App Name, User support email, and Developer contact information.
-   - Add the necessary scopes:
-     - `.../auth/classroom.courses.readonly`
-     - `.../auth/classroom.coursework.me.readonly`
-     - `.../auth/classroom.announcements.readonly`
-     - `.../auth/drive.appdata`
+   - Configure the scopes requested by the app:
+     - `https://www.googleapis.com/auth/classroom.courses.readonly`
+     - `https://www.googleapis.com/auth/classroom.coursework.me.readonly`
+     - `https://www.googleapis.com/auth/classroom.announcements.readonly`
+     - `https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly`
+     - `https://www.googleapis.com/auth/classroom.topics.readonly`
+     - `https://www.googleapis.com/auth/drive.appdata`
+     - `https://www.googleapis.com/auth/gmail.send`
+     - `https://www.googleapis.com/auth/calendar.events`
+     - `openid`, `email`, and `profile`
+   - Gmail and Calendar features will be unavailable if their APIs or scopes are omitted.
    - Add yourself as a Test User if the app is still in testing mode.
 5. Go to **APIs & Services > Credentials**.
    - Click **Create Credentials > OAuth client ID**.
@@ -56,3 +64,7 @@ Vercel is the recommended hosting platform for Vite/React applications.
 ## 4. Google Apps Script Integration (Optional)
 
 If you plan to utilize the Email Notification system, you must deploy the Apps Script code attached to a user's Google Account and trigger it via a generated webhook. (Refer to the `Settings` page in the UI for the Apps Script payload generation).
+
+## 5. Exam Seating Lookup
+
+Automatic exam seating lookup uses the university's current HTTP endpoint. The student ID is sent in the request query string, and the Vercel-to-university connection is not encrypted. The dev proxy in `vite.config.js` and production rewrite in `vercel.json` must point to the same endpoint. Prefer an official HTTPS endpoint when one becomes available.

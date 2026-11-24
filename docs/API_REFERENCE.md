@@ -24,7 +24,7 @@ The primary source of truth for coursework, courses, and announcements.
 ### 1.3 List Announcements
 - **Endpoint**: `GET https://classroom.googleapis.com/v1/courses/{courseId}/announcements`
 - **Scopes Required**: `https://www.googleapis.com/auth/classroom.announcements.readonly`
-- **Behavior**: Used to fetch the latest teacher posts. Texts are sanitized via DOMPurify before rendering.
+- **Behavior**: Used to fetch the latest teacher posts. Text content is rendered through React JSX, which escapes text, and external links are checked with the app's URL sanitizer.
 
 ## 2. Google Drive API (App Data Folder)
 
@@ -35,12 +35,12 @@ Used as a pseudo-database to synchronize user preferences, schedules, and custom
 - **Scopes Required**: `https://www.googleapis.com/auth/drive.appdata`
 - **Parameters**:
   - `spaces`: 'appDataFolder'
-  - `q`: `name='classrooms_sync_data.json'`
+  - `q`: `name='classroom_hub_sync_settings.json'`
 
 ### 2.2 Create / Update Sync File
 - **Endpoint**: `POST / PUT https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`
 - **Payload**: Contains stringified JSON of the user's `SettingsContext` and `ClassroomContext` state.
-- **Conflict Resolution**: The app relies on a timestamp heuristic (`updatedAt`) to merge incoming remote data with local modifications before writing back to Drive.
+- **Conflict Resolution**: Collection records are merged locally using their update metadata and deletion tombstones, then the merged payload is written back to Drive.
 
 ## 3. Error Handling & Codes
 
@@ -50,3 +50,7 @@ Our `httpClient` intercepts API requests and maps specific Google error codes in
 - **HTTP 403 (Forbidden)**: Usually signifies insufficient scopes or a missing Classroom account. Handled as a non-retryable fatal error.
 - **HTTP 429 (Too Many Requests)**: Triggers our internal Exponential Backoff mechanism.
 - **HTTP 5xx (Internal Server Errors)**: Retryable. If persistent, displays an "API Unreachable" boundary error to the user.
+
+## 4. KMUTNB Exam Seating
+
+Automatic seat lookup calls `/api/exam-room?IDcard={studentId}` through a proxy to the university endpoint. The upstream currently uses HTTP, so student IDs are not encrypted on the Vercel-to-university leg. Users can also import Reg data or add exam schedules manually.

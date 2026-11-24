@@ -19,6 +19,30 @@ const APP_BUILD_TIME = new Date().toISOString()
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor',
+              test: /node_modules[\\/]/,
+              entriesAware: true,
+              minSize: 20 * 1024,
+              priority: 10,
+            },
+            {
+              name: 'shared',
+              entriesAware: true,
+              minShareCount: 2,
+              minSize: 20 * 1024,
+              priority: 5,
+            },
+          ],
+        },
+      },
+    },
+  },
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(APP_VERSION),
     'import.meta.env.VITE_APP_COMMIT': JSON.stringify(APP_COMMIT),

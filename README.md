@@ -8,9 +8,9 @@
 
 ## 🚀 ฟีเจอร์หลัก (Key Features)
 
-1. **🔒 ล็อกอินผ่าน Google อย่างปลอดภัย (Secure Google Auth)**:
+1. **🔒 ล็อกอินผ่าน Google (Google Sign-In)**:
    - เข้าสู่ระบบผ่านบัญชี Google ของคุณได้โดยตรง (รองรับทั้งอีเมลสถาบัน `@email.kmutnb.ac.th` และ Gmail ทั่วไป)
-   - ปลอดภัย 100%: ระบบจัดการ Access Tokens ภายใน Session Storage ของเบราว์เซอร์เท่านั้น
+   - Access Token มีอายุจำกัดและเก็บใน Session Storage ของเบราว์เซอร์ โดยไม่บันทึกลง LocalStorage
 
 2. **💾 จัดการข้อมูลแยกตามบัญชี (Scoped User Preferences)**:
    - สลับบัญชี Google ได้อย่างปลอดภัย ข้อมูลแคชทั้งหมดใน LocalStorage จะถูกแยกเก็บตามที่อยู่อีเมลของผู้ใช้ เพื่อป้องกันข้อมูลรั่วไหลระหว่างบัญชี

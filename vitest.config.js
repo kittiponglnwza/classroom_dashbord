@@ -20,10 +20,10 @@ export default defineConfig({
         'src/contexts/**'
       ],
       thresholds: {
-        lines: 40,
-        functions: 40,
-        branches: 30,
-        statements: 40
+        lines: 68,
+        functions: 65,
+        branches: 50,
+        statements: 65
       }
     }
   }

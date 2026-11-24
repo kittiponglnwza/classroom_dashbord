@@ -25,7 +25,7 @@ To get started with local development, follow these steps:
    ```
 
 2. **Install dependencies:**
-   Make sure you have Node.js (v18 or higher) installed.
+   Make sure you have Node.js 20.19+ or 22.12+ installed (required by Vite 8).
    ```bash
    npm install
    ```
@@ -49,7 +49,7 @@ To get started with local development, follow these steps:
 1. Create an issue to discuss the changes you'd like to make, or pick an existing issue.
 2. Fork the repository and create a new branch based on the issue.
 3. Make your changes in your feature branch.
-4. Run tests and linting to ensure quality standards.
+4. Run type checking, tests, and linting to ensure quality standards.
 5. Commit your changes using Conventional Commits.
 6. Open a Pull Request (PR) against the `master` branch.
 
@@ -93,7 +93,7 @@ git commit -m "feat(auth): implement silent token refresh"
 ## Coding Style
 
 - We use **ESLint** to enforce JavaScript/React coding standards.
-- Before committing, run `npm run lint` to catch and fix stylistic issues.
+- Before committing, run `npm run typecheck` and `npm run lint` to catch TypeScript and JavaScript issues.
 - React components must use functional components and Hooks.
 - Tailwind CSS is the primary styling solution; avoid inline styles unless strictly necessary.
 
@@ -109,6 +109,11 @@ When submitting a Pull Request, ensure that:
 Run the test suite via:
 ```bash
 npm run test
+```
+
+Check the TypeScript files via:
+```bash
+npm run typecheck
 ```
 
 To view coverage:
