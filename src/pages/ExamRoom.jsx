@@ -168,7 +168,7 @@ export default function ExamRoom() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4">
       {/* Page Header */}
       <div className="border-b border-[#3C3C3C] pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -222,15 +222,15 @@ export default function ExamRoom() {
 
       {EXAM_CONFIG.seatingLookupEnabled ? (
         EXAM_CONFIG.seatingLookupUsesHttp && (
-          <div role="status" className="bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs px-4 py-3 rounded-xl flex items-start gap-2.5 max-w-3xl">
+          <div role="status" className="bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
             <AlertCircle size={15} className="shrink-0 mt-0.5 text-amber-300" />
-            <p>{t('examLookupWarning', lang)}</p>
+            <p className="leading-relaxed">{t('examLookupWarning', lang)}</p>
           </div>
         )
       ) : (
-        <div role="status" className="bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D] text-xs px-4 py-3 rounded-xl flex items-start gap-2.5 max-w-3xl">
+        <div role="status" className="bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D] text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
           <AlertCircle size={15} className="shrink-0 mt-0.5 text-[#3794FF]" />
-          <p>{t('examLookupUnavailable', lang)}</p>
+          <p className="leading-relaxed">{t('examLookupUnavailable', lang)}</p>
         </div>
       )}
 
@@ -249,9 +249,9 @@ export default function ExamRoom() {
 
       {/* Error Message (non-blocking if Reg fallback exams exist) */}
       {error && !loading && (
-        <div className="bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs px-4 py-3 rounded-xl flex items-center gap-2 max-w-2xl">
-          <AlertCircle size={15} className="shrink-0" />
-          <span>
+        <div className="bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
+          <AlertCircle size={15} className="shrink-0 mt-0.5" />
+          <span className="leading-relaxed">
             {sortedExams.length > 0
               ? (isTh
                   ? `เชื่อมต่อเว็บเช็กที่นั่งสอบไม่ได้ (${error}) — แสดงตารางสอบจาก Reg แทน`
@@ -275,10 +275,10 @@ export default function ExamRoom() {
 
       {/* Resolved Results (shown after SciBase-first check completes) */}
       {((studentId.trim() !== '' && searchTriggered) || sortedExams.length > 0 || unlistedInfo) && !loading && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {isOutdatedData && (
-            <div className="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium p-4 rounded-2xl flex items-start gap-3">
-              <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium px-4 py-3 rounded-xl flex items-start gap-2.5">
+              <AlertCircle size={15} className="text-amber-400 shrink-0 mt-0.5" />
               <p className="leading-relaxed">
                 {lang === 'en'
                   ? 'The system currently shows exam schedules from the previous semester. It seems the university has not updated the exam database for the new semester yet.'
@@ -289,8 +289,8 @@ export default function ExamRoom() {
 
           {/* Viewing another Student ID banner */}
           {isViewingOtherStudentId && (
-            <div className="bg-[#007ACC]/15 border border-[#007ACC]/40 text-[#D4D4D4] text-xs px-4 py-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2">
-              <span>
+            <div className="bg-[#007ACC]/15 border border-[#007ACC]/40 text-[#D4D4D4] text-xs px-4 py-3 rounded-xl flex flex-wrap items-center justify-between gap-3">
+              <span className="leading-relaxed">
                 {isTh
                   ? `กำลังดูที่นั่งสอบจาก SciBase ของรหัส ${searchedStudentId} (ไม่บันทึกทับตารางของคุณ)`
                   : `Viewing SciBase seating for Student ID ${searchedStudentId} (does not overwrite your schedule)`}
@@ -301,7 +301,7 @@ export default function ExamRoom() {
                   setShowRawSciBase(false);
                   resetToOwnStudentId();
                 }}
-                className="text-[#3794FF] hover:underline font-medium cursor-pointer shrink-0"
+                className="text-[#58A6FF] hover:bg-[#007ACC]/15 px-2.5 py-1 rounded-lg font-medium cursor-pointer shrink-0 whitespace-nowrap transition-colors"
               >
                 {isTh ? 'กลับไปดูของฉัน' : 'Back to my ID'}
               </button>
@@ -310,9 +310,9 @@ export default function ExamRoom() {
 
           {/* Source Status Banner */}
           {!isViewingOtherStudentId && sortedExams.length > 0 && isActiveTabSciBasePrimary && (
-            <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs px-4 py-2.5 rounded-xl flex items-center gap-2">
-              <CheckCircle2 size={14} className="shrink-0" />
-              <span>
+            <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs px-4 py-3 rounded-xl flex items-center gap-2.5">
+              <CheckCircle2 size={15} className="shrink-0" />
+              <span className="leading-relaxed">
                 {isTh
                   ? `ใช้ตารางที่นั่งสอบทางการจากเว็บ มจพ. เป็นหลัก (${displayedExams.length} รายการ)`
                   : `Using official Student ID seating schedule as primary source (${displayedExams.length} exams)`}
@@ -321,7 +321,7 @@ export default function ExamRoom() {
           )}
 
           {!isViewingOtherStudentId && sortedExams.length > 0 && !isActiveTabSciBasePrimary && isActiveTabRegFallback && (
-            <div className="bg-[#007ACC]/10 border border-[#007ACC]/30 text-[#D4D4D4] text-xs px-4 py-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="bg-[#007ACC]/10 border border-[#007ACC]/30 text-[#D4D4D4] text-xs px-4 py-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
@@ -338,7 +338,7 @@ export default function ExamRoom() {
                 <button
                   type="button"
                   onClick={() => setShowRawSciBase((prev) => !prev)}
-                  className="text-[11px] font-medium text-[#3794FF] hover:underline shrink-0 self-end sm:self-center cursor-pointer"
+                  className="text-[11px] font-medium text-[#58A6FF] bg-[#007ACC]/15 hover:bg-[#007ACC]/25 px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 self-end sm:self-center cursor-pointer"
                 >
                   {viewingRawSciBase
                     ? (isTh ? 'กลับไปดูตารางเทอมปัจจุบัน' : 'Back to current term')

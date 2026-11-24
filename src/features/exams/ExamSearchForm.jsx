@@ -5,7 +5,7 @@ import { t } from '../../utils/i18n';
 export default function ExamSearchForm({ studentId, setStudentId, onSearch, loading, lang }) {
   const inputId = useId();
   return (
-    <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 max-w-2xl">
+    <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 sm:p-6">
       <form onSubmit={onSearch} className="space-y-3">
         <label htmlFor={inputId} className="block text-xs font-semibold text-[#FFFFFF]">
           {lang === 'en' ? 'Student Seating Search (KMUTNB Only)' : 'ค้นหาที่นั่งสอบนักศึกษา (เฉพาะ มจพ.)'}

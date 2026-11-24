@@ -9,7 +9,7 @@ export default function ExamUnlistedAlert({ unlistedInfo, lang }) {
   const safeFormLink = sanitizeExternalUrl(unlistedInfo.formLink);
 
   return (
-    <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 space-y-5 max-w-2xl">
+    <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 space-y-5">
       <div className="flex items-start gap-3.5">
         <div className="p-2.5 bg-[#1E1E1E] border border-rose-500/30 rounded-xl text-rose-400 shrink-0">
           <AlertCircle size={20} />
