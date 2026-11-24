@@ -3,7 +3,6 @@ import { NavLink, Link, useLocation } from 'react-router-dom';
 import { Home, LayoutDashboard, BookOpen, Settings, ChevronLeft, ChevronRight, ClipboardCheck, CalendarDays, GraduationCap } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { getCourseDotClass } from '../utils/colors';
-import { APP_VERSION } from '../config/version';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
@@ -44,22 +43,17 @@ export default function Sidebar({ onLinkClick = null }) {
         isCollapsed ? 'w-18' : 'w-64'
       }`}
     >
-      <div className={`h-16 flex items-center border-b border-[#3C3C3C] ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+      <div className={`h-16 flex items-center border-b border-[#3C3C3C] ${isCollapsed ? 'justify-center px-2' : 'justify-between gap-2 px-4'}`}>
         {!isCollapsed && (
-          <Link to="/" onClick={onLinkClick} className="flex items-center gap-2.5 overflow-hidden">
+          <Link to="/" onClick={onLinkClick} className="flex items-center gap-2.5 overflow-hidden min-w-0">
             <div className="w-8 h-8 rounded-lg bg-[#007ACC] text-white font-semibold text-xs flex items-center justify-center shrink-0">
               CH
             </div>
             <div className="flex flex-col items-start min-w-0">
-              <div className="flex items-center gap-1.5 max-w-full">
-                <span className="font-semibold text-sm text-[#FFFFFF] tracking-tight truncate">
-                  Classroom Hub
-                </span>
-                <span className="text-[9.5px] font-mono px-1.5 py-0.25 rounded bg-[#1E1E1E] border border-[#3C3C3C] text-[#3794FF] shrink-0">
-                  v{APP_VERSION}
-                </span>
-              </div>
-              <span className="text-[11px] text-[#858585] truncate">
+              <span className="font-semibold text-sm text-[#FFFFFF] tracking-tight truncate max-w-full">
+                Classroom Hub
+              </span>
+              <span className="text-[11px] text-[#858585] truncate max-w-full">
                 {lang === 'en' ? 'Student Workspace' : 'พื้นที่จัดการการเรียน'}
               </span>
             </div>
