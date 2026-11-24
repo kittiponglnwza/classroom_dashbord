@@ -17,6 +17,7 @@ import { examRepository } from '../repositories/examRepository';
 import { decodeKmutnbStudentId } from '../utils/kmutnbStudentId';
 import { APP_VERSION, APP_COMMIT, formatAppBuildTime, forceCheckPwaUpdate } from '../config/version';
 import PageHeader from '../components/PageHeader';
+import DiscordWebhookInput from '../components/DiscordWebhookInput';
 
 const GithubIcon = ({ size = 15, className = '' }) => (
   <svg height={size} width={size} viewBox="0 0 16 16" version="1.1" fill="currentColor" className={className} aria-hidden="true">
@@ -535,14 +536,11 @@ export default function Settings() {
               <label htmlFor={webhookFieldId} className="block text-[11px] font-medium text-[var(--text-secondary)]">
                 {lang === 'en' ? 'Webhook URL' : 'ลิงก์ Discord Webhook'}
               </label>
-              <input
+              <DiscordWebhookInput
                 id={webhookFieldId}
-                type="password"
-                autoComplete="off"
-                placeholder="https://discord.com/api/webhooks/123456789/abcdef..."
                 value={alertSettings.discordWebhookUrl || ''}
-                onChange={(e) => handleUpdateSetting?.('discordWebhookUrl', e.target.value)}
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                onChange={(nextVal) => handleUpdateSetting?.('discordWebhookUrl', nextVal)}
+                lang={lang}
               />
             </div>
 

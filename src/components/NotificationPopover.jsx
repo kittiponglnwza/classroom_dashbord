@@ -9,6 +9,7 @@ import { triggerManualDigest, triggerTestEmail, triggerManualDiscordDigest, trig
 import { DiscordService } from '../services/DiscordService';
 import { syncManager } from '../services/SyncManager';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
+import DiscordWebhookInput from './DiscordWebhookInput';
 
 function resolveNotificationTarget(log, assignments = []) {
   if (log.targetPath) return log.targetPath;
@@ -670,24 +671,15 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                 </label>
 
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <label htmlFor={discordWebhookInputId} className="block text-[11px] text-[#9D9D9D] font-medium">
-                      {lang === 'en' ? 'Discord Webhook URL:' : 'ลิงก์ Discord Webhook:'}
-                    </label>
-                    {discordCheck.valid && (
-                      <span className="text-[10px] font-mono text-[#858585] truncate max-w-[180px]">
-                        {DiscordService.maskWebhookUrl(alertSettings.discordWebhookUrl)}
-                      </span>
-                    )}
-                  </div>
-                  <input
+                  <label htmlFor={discordWebhookInputId} className="block text-[11px] text-[#9D9D9D] font-medium">
+                    {lang === 'en' ? 'Discord Webhook URL:' : 'ลิงก์ Discord Webhook:'}
+                  </label>
+                  <DiscordWebhookInput
                     id={discordWebhookInputId}
-                    type="password"
-                    autoComplete="off"
-                    placeholder="https://discord.com/api/webhooks/..."
                     value={alertSettings.discordWebhookUrl || ''}
-                    onChange={(e) => handleUpdateSetting('discordWebhookUrl', e.target.value)}
-                    className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-lg px-2.5 py-1.5 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]"
+                    onChange={(nextVal) => handleUpdateSetting('discordWebhookUrl', nextVal)}
+                    lang={lang}
+                    compact
                   />
                 </div>
 
