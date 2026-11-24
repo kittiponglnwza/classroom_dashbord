@@ -1,5 +1,6 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import Layout from './components/Layout';
 import { Globe, AlertCircle, ArrowLeft } from 'lucide-react';
 import { t } from './utils/i18n';
@@ -266,6 +267,7 @@ export default function App() {
               <ClassroomProvider>
                 <ClassroomUIProvider>
                   <AppContent />
+                  <Analytics />
                 </ClassroomUIProvider>
               </ClassroomProvider>
             </ToastProvider>
