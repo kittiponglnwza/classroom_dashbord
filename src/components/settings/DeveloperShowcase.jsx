@@ -252,13 +252,13 @@ export default function DeveloperShowcase({
 
           <div
             aria-hidden="true"
-            className="grid grid-rows-5 grid-flow-col gap-[3px] justify-between py-1"
+            className="grid grid-rows-5 grid-flow-col gap-[3px] justify-between py-1 overflow-hidden"
           >
-            {CONTRIB_LEVELS[0].map((_, colIdx) =>
+            {CONTRIB_LEVELS[0].slice(0, 22).map((_, colIdx) =>
               CONTRIB_LEVELS.map((row, rowIdx) => (
                 <span
                   key={`${colIdx}-${rowIdx}`}
-                  className={`w-[7px] h-[7px] rounded-[2px] ${LEVEL_COLORS[row[colIdx]]}`}
+                  className={`w-1.5 h-1.5 rounded-[2px] ${LEVEL_COLORS[row[colIdx]]}`}
                 />
               ))
             )}

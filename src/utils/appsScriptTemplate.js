@@ -100,6 +100,7 @@ export function getAppsScriptTemplate(hiddenCourseIds = [], options = {}) {
   const timeZone = normalizeTimezone(options?.timezone, DEFAULT_TIMEZONE);
   const maxRetries = Math.min(Math.max(Number(options?.maxRetries ?? 2), 1), 4);
   const safeDashboardUrl = sanitizeExternalUrl(options?.dashboardUrl) || 'https://classrooms-hub.vercel.app/';
+  const safeAvatarUrl = DiscordService.resolveAvatarUrl(options?.avatarUrl);
 
   const fallbackSnapshot = sanitizeAcademicFallback(options?.schedule, options?.mergedExams);
 
@@ -148,6 +149,7 @@ var CONFIG = {
   QUIET_HOURS_ALLOW_CRITICAL: ${JSON.stringify(quietHoursAllowCritical)},
   HIDDEN_COURSE_IDS: ${hiddenArrayStr},
   DASHBOARD_URL: ${JSON.stringify(safeDashboardUrl)},
+  AVATAR_URL: ${JSON.stringify(safeAvatarUrl)},
   TIMEZONE: ${JSON.stringify(timeZone)},
   MAX_RETRIES: ${JSON.stringify(maxRetries)},
   STORAGE_KEY_V2: 'ch_notified_records_v2',
@@ -469,6 +471,7 @@ function testDiscordWebhook() {
   var nowStr = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'dd MMM yyyy HH:mm:ss');
   var payload = {
     username: 'Classroom Hub (24/7 Cloud)',
+    avatar_url: CONFIG.AVATAR_URL,
     embeds: [{
       title: 'Discord + Google Apps Script Connected',
       description: 'Classroom Hub 24/7 background assistant is active and ready to deliver scheduled notifications.',
@@ -946,6 +949,7 @@ function sendClassroomDigest() {
       for (var b = 0; b < embeds.length; b += 10) {
         var res = postDiscordWebhookWithRetry(webhookUrl, {
           username: 'Classroom Hub',
+          avatar_url: CONFIG.AVATAR_URL,
           embeds: embeds.slice(b, b + 10)
         });
         if (!res.ok) {

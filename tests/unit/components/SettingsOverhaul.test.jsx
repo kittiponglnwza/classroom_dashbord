@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Settings from '../../../src/pages/Settings';
+import { DiscordService } from '../../../src/services/DiscordService';
 import { AuthProvider } from '../../../src/contexts/AuthContext';
 import { SettingsProvider } from '../../../src/contexts/SettingsContext';
 import { ClassroomContext } from '../../../src/contexts/ClassroomContext';
@@ -118,5 +119,9 @@ describe('Modular Settings UI Overhaul (Student Pass, Live Discord Preview, Clou
     const ghLink = screen.getByRole('link', { name: /GitHub Profile/i });
     expect(ghLink).toHaveAttribute('href', 'https://github.com/kittiponglnwza');
     expect(screen.getByTestId('settings-version-badge')).toBeInTheDocument();
+
+    // Verify Discord webhook payload includes HTTPS PNG avatar_url so Discord shows CH icon instead of default Clyde avatar
+    const sanitized = DiscordService.sanitizePayload({ content: 'Hello' });
+    expect(sanitized.avatar_url).toMatch(/^https:\/\/.+\/pwa-192x192\.png$/);
   });
 });

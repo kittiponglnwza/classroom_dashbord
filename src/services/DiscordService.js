@@ -37,7 +37,31 @@ export const DISCORD_COLORS = {
   purple: 0xC586C0
 };
 
+export const DEFAULT_DISCORD_AVATAR_URL =
+  'https://raw.githubusercontent.com/kittiponglnwza/classroom_dashbord/master/public/pwa-192x192.png';
+
 export class DiscordService {
+  /**
+   * Resolves a publicly reachable HTTPS PNG avatar URL for Discord Webhook messages.
+   * Uses the live HTTPS deployment origin when available, falling back to the public repository icon on localhost.
+   */
+  static resolveAvatarUrl(customUrl = '') {
+    const explicit = sanitizeExternalUrl(customUrl);
+    if (explicit && explicit.startsWith('https://')) {
+      return explicit;
+    }
+
+    if (
+      typeof window !== 'undefined' &&
+      window.location?.protocol === 'https:' &&
+      window.location?.origin &&
+      !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname || '')
+    ) {
+      return `${window.location.origin}/pwa-192x192.png`;
+    }
+
+    return DEFAULT_DISCORD_AVATAR_URL;
+  }
   /**
    * Validates and normalizes a Discord Webhook URL.
    * Rejects non-HTTPS protocols, non-Discord domains, and malformed webhook paths.
@@ -133,7 +157,8 @@ export class DiscordService {
    */
   static sanitizePayload(payload = {}) {
     const safePayload = {
-      username: this.truncate(payload.username || 'Classroom Hub', 80, 'Classroom Hub')
+      username: this.truncate(payload.username || 'Classroom Hub', 80, 'Classroom Hub'),
+      avatar_url: this.resolveAvatarUrl(payload.avatar_url)
     };
 
     if (payload.content) {
