@@ -746,14 +746,19 @@ describe('Classroom Hub — Personal Academic Assistant Notification Overhaul (2
         </MemoryRouter>
       );
 
-      for (const testId of [
-        'preview-morning-briefing-btn',
-        'preview-assignment-btn',
-        'preview-exam-btn',
-        'preview-weekly-btn'
+      // Open Discord Assistant category
+      fireEvent.click(screen.getByTestId('settings-nav-discord'));
+      expect(screen.getByTestId('discord-live-embed-card')).toBeInTheDocument();
+
+      for (const modeTestId of [
+        'preview-mode-morning',
+        'preview-mode-assignment',
+        'preview-mode-exam',
+        'preview-mode-weekly'
       ]) {
+        fireEvent.click(screen.getByTestId(modeTestId));
         await act(async () => {
-          fireEvent.click(screen.getByTestId(testId));
+          fireEvent.click(screen.getByTestId('send-selected-preview-btn'));
           await new Promise((r) => setTimeout(r, 0));
         });
       }

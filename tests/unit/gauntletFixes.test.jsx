@@ -966,6 +966,9 @@ describe('Gauntlet Regression Protections', () => {
         </MemoryRouter>
       );
 
+      // Switch to Discord Assistant category in modular Settings shell
+      fireEvent.click(screen.getByTestId('settings-nav-discord'));
+
       expect(screen.getByTestId('discord-webhook-status').textContent).toMatch(/Not Configured|ยังไม่ตั้งค่า/);
 
       const webhookInput = screen.getByPlaceholderText(/https:\/\/discord\.com\/api\/webhooks/i);
@@ -987,9 +990,8 @@ describe('Gauntlet Regression Protections', () => {
       expect(webhookSpy.mock.calls[0][0]).toBe(validWebhook);
       expect(getNotificationHistory(email).some(h => h.type === 'test_discord')).toBe(true);
 
-      // Open Code & Debug Guide preview
-      const previewBtn = screen.getByText(/View Code & Debug Guide|ดูโค้ดและวิธีตั้งค่า/i);
-      fireEvent.click(previewBtn);
+      // Switch to dedicated 24/7 Cloud Script category
+      fireEvent.click(screen.getByTestId('settings-nav-cloud'));
 
       const codeArea = screen.getByLabelText(/Generated Google Apps Script Code|โค้ด Google Apps Script/i);
       // Security hardening: by default, webhook token stays out of generated Code.gs source (uses Script Properties)

@@ -148,7 +148,7 @@ export const translations = {
     
     // Settings Page
     settingsTitle: 'Hub Profile & Settings',
-    settingsDesc: 'Manage your credentials, connect Classroom API integrations, and view developer bio details.',
+    settingsDesc: 'Student identity, Google Calendar sync, Discord alerts, and 24/7 cloud automation',
     profileSuccess: 'Profile settings saved',
     profileSettingsHeader: 'Student Profile Settings',
     avatarUrlLabel: 'Avatar Image URL',
@@ -435,7 +435,7 @@ export const translations = {
     
     // Settings Page
     settingsTitle: 'โปรไฟล์ & ตั้งค่า',
-    settingsDesc: 'จัดการข้อมูลนักศึกษา ล็อกอิน API และดูข้อมูลประวัติระบบแจ้งเตือน',
+    settingsDesc: 'จัดการบัตรโปรไฟล์นักศึกษา ซิงก์ปฏิทิน Google และตั้งค่าแจ้งเตือน Discord อัตโนมัติ',
     profileSuccess: 'บันทึกข้อมูลโปรไฟล์แล้ว',
     profileSettingsHeader: 'ตั้งค่าโปรไฟล์นักศึกษา',
     avatarUrlLabel: 'ลิงก์รูปภาพประจำตัว (Avatar)',
