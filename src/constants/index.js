@@ -64,44 +64,44 @@ export const COURSE_COLOR_PALETTE = ['emerald', 'blue', 'amber', 'rose', 'purple
 export const EXAM_CARD_COLORS = [
   {
     theme: 'blue',
-    strip: 'bg-[#007ACC]',
+    strip: 'bg-[var(--primary)]',
     glow: '',
-    badge: 'bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40',
-    accentText: 'text-[#3794FF]'
-  },
-  {
-    theme: 'purple',
-    strip: 'bg-purple-500',
-    glow: '',
-    badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-    accentText: 'text-purple-400'
+    badge: 'bg-[var(--app-bg)] text-[var(--primary-bright)] border-[var(--border-strong)]',
+    accentText: 'text-[var(--primary-bright)]'
   },
   {
     theme: 'emerald',
-    strip: 'bg-emerald-500',
+    strip: 'bg-emerald-500/80',
     glow: '',
-    badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    badge: 'bg-[var(--app-bg)] text-emerald-400 border-[var(--border-strong)]',
     accentText: 'text-emerald-400'
   },
   {
     theme: 'amber',
-    strip: 'bg-amber-500',
+    strip: 'bg-amber-500/80',
     glow: '',
-    badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    badge: 'bg-[var(--app-bg)] text-amber-400 border-[var(--border-strong)]',
     accentText: 'text-amber-400'
   },
   {
-    theme: 'rose',
-    strip: 'bg-rose-500',
+    theme: 'slate',
+    strip: 'bg-[var(--text-muted)]',
     glow: '',
-    badge: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+    badge: 'bg-[var(--app-bg)] text-[var(--text-primary)] border-[var(--border-strong)]',
+    accentText: 'text-[var(--text-secondary)]'
+  },
+  {
+    theme: 'rose',
+    strip: 'bg-rose-500/80',
+    glow: '',
+    badge: 'bg-[var(--app-bg)] text-rose-400 border-[var(--border-strong)]',
     accentText: 'text-rose-400'
   },
   {
     theme: 'indigo',
-    strip: 'bg-[#007ACC]',
+    strip: 'bg-[var(--primary)]',
     glow: '',
-    badge: 'bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40',
-    accentText: 'text-[#3794FF]'
+    badge: 'bg-[var(--app-bg)] text-[var(--primary-bright)] border-[var(--border-strong)]',
+    accentText: 'text-[var(--primary-bright)]'
   }
 ];

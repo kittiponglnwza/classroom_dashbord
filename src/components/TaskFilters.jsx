@@ -38,11 +38,11 @@ export default function TaskFilters({
   );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3">
+    <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3">
       {/* Search */}
       <div className="relative flex-1 w-full lg:max-w-sm">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#858585]">
-          <Search size={15} />
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--text-muted)]">
+          <Search size={15} strokeWidth={1.5} />
         </span>
         <input
           type="text"
@@ -50,7 +50,7 @@ export default function TaskFilters({
           placeholder={t('searchPlaceholder', lang)}
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl pl-9 pr-8 py-2 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors"
+          className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg pl-9 pr-8 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
         />
         {localSearch && (
           <button
@@ -61,22 +61,22 @@ export default function TaskFilters({
               setSearchQuery('');
             }}
             aria-label="Clear search"
-            className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[#858585] hover:text-[#FFFFFF] cursor-pointer"
+            className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[var(--text-muted)] hover:text-[var(--text-heading)] cursor-pointer"
           >
-            <X size={13} />
+            <X size={14} strokeWidth={1.5} />
           </button>
         )}
       </div>
 
       {/* Filters and Sorting */}
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 min-w-0">
-        <div className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] min-w-0 ${viewType === 'kanban' ? 'col-span-2 sm:col-span-1' : ''}`}>
-          <Filter size={13} className="text-[#858585] shrink-0" />
+        <div className={`flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] min-w-0 ${viewType === 'kanban' ? 'col-span-2 sm:col-span-1' : ''}`}>
+          <Filter size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
           <select
             aria-label={t('allSubjects', lang)}
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer pr-1 rounded w-full min-w-0 truncate"
+            className="bg-transparent text-xs font-medium text-[var(--text-primary)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] cursor-pointer pr-1 rounded w-full min-w-0 truncate"
           >
             <option value="all">{t('allSubjects', lang)}</option>
             {visibleCourses.map(c => (
@@ -86,12 +86,12 @@ export default function TaskFilters({
         </div>
 
         {viewType !== 'kanban' && (
-          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] min-w-0">
+          <div className="flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] min-w-0">
             <select
               aria-label={t('allStatuses', lang)}
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer rounded w-full min-w-0"
+              className="bg-transparent text-xs font-medium text-[var(--text-primary)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] cursor-pointer rounded w-full min-w-0"
             >
               <option value="all">{t('allStatuses', lang)}</option>
               <option value="todo">{t('todo', lang)}</option>
@@ -102,13 +102,13 @@ export default function TaskFilters({
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] min-w-0">
-          <ArrowUpDown size={13} className="text-[#858585] shrink-0" />
+        <div className="flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] min-w-0">
+          <ArrowUpDown size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
           <select
             aria-label="Sort assignments"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-transparent text-xs font-medium text-[#D4D4D4] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] cursor-pointer rounded w-full min-w-0"
+            className="bg-transparent text-xs font-medium text-[var(--text-primary)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] cursor-pointer rounded w-full min-w-0"
           >
             <option value="due-asc">{t('sortByDueAsc', lang)}</option>
             <option value="due-desc">{t('sortByDueDesc', lang)}</option>
@@ -130,48 +130,48 @@ export default function TaskFilters({
                 setSelectedStatus('all');
               }
             }}
-            className="text-xs font-medium text-[#3794FF] hover:text-[#FFFFFF] bg-[#007ACC]/15 hover:bg-[#007ACC]/30 border border-[#007ACC]/40 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer justify-self-start"
+            className="text-xs font-medium text-[var(--primary-bright)] hover:text-[var(--text-heading)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border-strong)] px-3 h-9 rounded-lg transition-colors cursor-pointer justify-self-start"
           >
             {t('clearFilters', lang)}
           </button>
         )}
 
-        <div className="col-span-2 sm:col-span-1 flex items-center justify-end sm:justify-start border border-[#3C3C3C] rounded-xl p-0.5 bg-[#1E1E1E] justify-self-end sm:ml-auto">
+        <div className="col-span-2 sm:col-span-1 flex items-center justify-end sm:justify-start border border-[var(--border)] rounded-lg p-1 bg-[var(--app-bg)] justify-self-end sm:ml-auto">
           <button
             type="button"
             onClick={() => setViewType('list')}
             aria-label="List View"
             aria-pressed={viewType === 'list'}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] ${
-              viewType === 'list' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
+            className={`p-1.5 rounded transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] ${
+              viewType === 'list' ? 'bg-[var(--surface-elevated)] text-[var(--primary-bright)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
             title="List View"
           >
-            <List size={15} />
+            <List size={15} strokeWidth={1.5} />
           </button>
           <button
             type="button"
             onClick={() => setViewType('grid')}
             aria-label="Grid View"
             aria-pressed={viewType === 'grid'}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] ${
-              viewType === 'grid' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
+            className={`p-1.5 rounded transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] ${
+              viewType === 'grid' ? 'bg-[var(--surface-elevated)] text-[var(--primary-bright)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
             title="Grid View"
           >
-            <LayoutGrid size={15} />
+            <LayoutGrid size={15} strokeWidth={1.5} />
           </button>
           <button
             type="button"
             onClick={() => setViewType('kanban')}
             aria-label="Kanban Board"
             aria-pressed={viewType === 'kanban'}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#007ACC] ${
-              viewType === 'kanban' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
+            className={`p-1.5 rounded transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] ${
+              viewType === 'kanban' ? 'bg-[var(--surface-elevated)] text-[var(--primary-bright)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
             title="Kanban Board"
           >
-            <Kanban size={15} />
+            <Kanban size={15} strokeWidth={1.5} />
           </button>
         </div>
       </div>

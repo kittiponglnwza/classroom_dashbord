@@ -14,7 +14,7 @@ import { sanitizeExternalUrl } from '../utils/sanitize';
 import { getActiveEmail, getToken } from '../utils/storage';
 import { syncManager } from '../services/SyncManager';
 import {
-  getCourseBorderTopColor, getTabStyles,
+  getTabStyles,
   getTabBadgeStyles, getTrackButtonStyles, getCourseBadgeColor, getCourseDotClass
 } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
@@ -74,19 +74,19 @@ function ResourceCard({
             setIsListExpanded(true);
           }
         }}
-        className="group bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer transition-colors"
+        className="group bg-[var(--surface)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#1E1E1E] border border-[#3C3C3C]">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[var(--app-bg)] border border-[var(--border)]">
             {resourceType.icon}
           </div>
-          <span className="text-sm font-semibold text-[#D4D4D4] truncate group-hover:text-[#3794FF] transition-colors">
+          <span className="text-sm font-medium text-[var(--text-heading)] truncate group-hover:text-[var(--primary-bright)] transition-colors">
             {title}
           </span>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
-          <div className="hidden sm:flex items-center gap-1.5 text-[#858585]">
-            <Calendar size={12} />
+          <div className="hidden sm:flex items-center gap-1.5 text-[var(--text-muted)] font-mono tabular-nums">
+            <Calendar size={13} strokeWidth={1.5} />
             <span className="text-xs">{formattedDate}</span>
           </div>
           {onTogglePin && (
@@ -100,15 +100,15 @@ function ResourceCard({
               title={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin to top' : 'ปักหมุดไว้บนสุด')}
               className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
                 isPinned
-                  ? 'text-amber-400 bg-amber-500/15 border-amber-500/30'
-                  : 'text-[#858585] hover:text-[#D4D4D4] bg-[#1E1E1E] border-[#3C3C3C]'
+                  ? 'text-amber-400 bg-amber-500/12 border-amber-500/30'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--app-bg)] border-[var(--border)]'
               }`}
             >
-              <Pin size={13} className={isPinned ? 'fill-amber-400/30' : ''} />
+              <Pin size={14} strokeWidth={1.5} className={isPinned ? 'fill-amber-400/25' : ''} />
             </button>
           )}
-          <div className="p-1 rounded-md text-[#858585] group-hover:text-[#FFFFFF] transition-colors">
-            <ChevronDown size={15} />
+          <div className="p-1 rounded-md text-[var(--text-muted)] group-hover:text-[var(--text-heading)] transition-colors">
+            <ChevronDown size={15} strokeWidth={1.5} />
           </div>
         </div>
       </div>
@@ -117,37 +117,37 @@ function ResourceCard({
 
   return (
     <div
-      className={`bg-[#252526] border rounded-2xl p-5 transition-colors flex flex-col justify-between ${
+      className={`bg-[var(--surface)] border rounded-xl p-5 transition-colors flex flex-col justify-between ${
         isHighlighted
-          ? 'border-[#007ACC]'
+          ? 'border-[var(--primary)]'
           : isPinned
-            ? 'border-amber-500/35'
-            : 'border-[#3C3C3C]'
+            ? 'border-amber-500/30'
+            : 'border-[var(--border)]'
       }`}
     >
       {viewMode === 'list' && (
-        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-[#3C3C3C] pb-2.5">
-          <span className="text-xs font-medium text-[#9D9D9D]">{resourceType.label}</span>
+        <div className="flex justify-between items-center -mt-1 mb-3 border-b border-[var(--border)] pb-2.5">
+          <span className="text-xs font-medium text-[var(--text-secondary)]">{resourceType.label}</span>
           <button
             type="button"
             onClick={() => setIsListExpanded(false)}
-            className="p-1 text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors cursor-pointer"
             title={lang === 'en' ? 'Collapse' : 'ย่อ'}
           >
-            <ChevronUp size={15} />
+            <ChevronUp size={15} strokeWidth={1.5} />
           </button>
         </div>
       )}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2 text-xs">
-          <span className={`px-2 py-0.5 rounded-md font-medium flex items-center gap-1.5 ${resourceType.badge}`}>
+          <span className={`px-2 py-0.5 rounded font-medium flex items-center gap-1.5 ${resourceType.badge}`}>
             {resourceType.icon}
             {resourceType.label}
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-[#858585] flex items-center gap-1 text-[11px]">
-              <Calendar size={11} />
+            <span className="text-[var(--text-muted)] flex items-center gap-1 text-[11px] font-mono tabular-nums">
+              <Calendar size={12} strokeWidth={1.5} />
               {formattedDate}
             </span>
             {onTogglePin && (
@@ -161,26 +161,26 @@ function ResourceCard({
                 title={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin to top' : 'ปักหมุดไว้บนสุด')}
                 className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
                   isPinned
-                    ? 'text-amber-400 bg-amber-500/15 border-amber-500/30'
-                    : 'text-[#858585] hover:text-[#D4D4D4] bg-[#1E1E1E] border-[#3C3C3C]'
+                    ? 'text-amber-400 bg-amber-500/12 border-amber-500/30'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--app-bg)] border-[var(--border)]'
                 }`}
               >
-                <Pin size={12} className={isPinned ? 'fill-amber-400/30' : ''} />
+                <Pin size={13} strokeWidth={1.5} className={isPinned ? 'fill-amber-400/25' : ''} />
               </button>
             )}
           </div>
         </div>
 
-        <h3 className="text-[#FFFFFF] font-semibold text-sm leading-snug">{title}</h3>
+        <h3 className="text-[var(--text-heading)] font-medium text-sm leading-snug">{title}</h3>
 
         {description && description !== title && (
           <div className="space-y-1">
-            <p className="text-xs text-[#9D9D9D] whitespace-pre-line leading-relaxed break-words">{displayText}</p>
+            <p className="text-xs text-[var(--text-secondary)] whitespace-pre-line leading-relaxed break-words">{displayText}</p>
             {shouldTruncate && (
               <button
                 type="button"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-xs text-[#3794FF] hover:underline font-medium cursor-pointer mt-1"
+                className="text-xs text-[var(--primary-bright)] hover:underline font-medium cursor-pointer mt-1"
               >
                 {isExpanded ? (lang === 'en' ? 'Show Less' : 'ย่อข้อความ') : (lang === 'en' ? 'Read More' : 'อ่านเพิ่มเติม')}
               </button>
@@ -190,8 +190,8 @@ function ResourceCard({
       </div>
 
       {attachments && attachments.length > 0 && (
-        <div className="border-t border-[#3C3C3C] pt-3.5 mt-4 space-y-1.5">
-          <span className="text-[11px] text-[#858585] font-medium block mb-1">
+        <div className="border-t border-[var(--border)] pt-3.5 mt-4 space-y-1.5">
+          <span className="text-[11px] text-[var(--text-muted)] font-medium block mb-1">
             {lang === 'en' ? `Attachments (${attachments.length})` : `ไฟล์แนบ (${attachments.length})`}
           </span>
           <div className="space-y-1.5">
@@ -204,13 +204,13 @@ function ResourceCard({
                   href={safeAttLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between p-2 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] hover:border-[#007ACC]/70 text-xs text-[#D4D4D4] transition-colors"
+                  className="flex items-center justify-between p-2 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] hover:border-[var(--border-strong)] text-xs text-[var(--text-primary)] transition-colors"
                 >
                   <div className="flex items-center gap-2 truncate">
-                    <ExternalLink size={12} className="text-[#3794FF] shrink-0" />
+                    <ExternalLink size={13} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
                     <span className="truncate font-medium">{att.name}</span>
                   </div>
-                  <span className="text-[11px] text-[#858585] shrink-0 ml-2">{att.size}</span>
+                  <span className="text-[11px] font-mono text-[var(--text-muted)] shrink-0 ml-2">{att.size}</span>
                 </a>
               );
             })}
@@ -218,11 +218,11 @@ function ResourceCard({
         </div>
       )}
 
-      <div className="border-t border-[#3C3C3C] pt-3.5 mt-4 flex items-center justify-between gap-3">
+      <div className="border-t border-[var(--border)] pt-3.5 mt-4 flex items-center justify-between gap-3">
         {isTracked ? (
-          <div className="inline-flex items-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 overflow-hidden">
+          <div className="inline-flex items-center rounded-lg border border-emerald-500/25 bg-emerald-500/12 overflow-hidden">
             <span className="text-xs font-medium px-3 py-1.5 text-emerald-400 inline-flex items-center gap-1.5">
-              <Check size={12} />
+              <Check size={13} strokeWidth={1.5} />
               <span>{t('trackedAsTask', lang)}</span>
             </span>
             <button
@@ -230,18 +230,18 @@ function ResourceCard({
               onClick={() => onUntrackAssignment(id)}
               title={t('untrackTask', lang)}
               aria-label={t('untrackTask', lang)}
-              className="px-2 py-1.5 text-rose-400 hover:bg-rose-500/20 border-l border-emerald-500/30 transition-colors cursor-pointer"
+              className="px-2 py-1.5 text-rose-400 hover:bg-rose-500/20 border-l border-emerald-500/25 transition-colors cursor-pointer"
             >
-              <Trash2 size={12} />
+              <Trash2 size={13} strokeWidth={1.5} />
             </button>
           </div>
         ) : (
           <button
             type="button"
             onClick={() => onTrackAsAssignment(resource)}
-            className={`text-xs font-medium px-3 py-1.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 ${getTrackButtonStyles(courseColor, false)}`}
+            className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors cursor-pointer flex items-center gap-1.5 ${getTrackButtonStyles(courseColor, false)}`}
           >
-            <Plus size={12} />
+            <Plus size={13} strokeWidth={1.5} />
             <span>{t('trackAsTask', lang)}</span>
           </button>
         )}
@@ -251,10 +251,10 @@ function ResourceCard({
             href={safeGoogleLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-[#3794FF] hover:underline font-medium inline-flex items-center gap-1 shrink-0"
+            className="text-xs text-[var(--primary-bright)] hover:underline font-medium inline-flex items-center gap-1 shrink-0"
           >
             <span>{t('viewOnClassroom', lang)}</span>
-            <ExternalLink size={11} />
+            <ExternalLink size={12} strokeWidth={1.5} />
           </a>
         )}
       </div>
@@ -274,38 +274,38 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
           onSelect();
         }
       }}
-      className={`flex items-center gap-4 px-4 py-3.5 bg-[#252526] border border-[#3C3C3C] rounded-xl cursor-pointer transition-colors hover:border-[#007ACC]/70 group ${
+      className={`flex items-center gap-4 px-4 py-3.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl cursor-pointer transition-colors hover:border-[var(--border-strong)] group ${
         isHidden ? 'opacity-60' : ''
       }`}
     >
-      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${getCourseDotClass(course.color)}`} />
+      <div className={`w-2 h-2 rounded-full shrink-0 ${getCourseDotClass(course.color)}`} />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium text-[#858585]">{course.code}</span>
+          <span className="text-[11px] font-mono text-[var(--text-muted)]">{course.code}</span>
           {activeCount > 0 && !isHidden && (
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/30">
+            <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-amber-500/12 text-amber-400 border border-amber-500/25 tabular-nums">
               {activeCount} {lang === 'en' ? 'active' : 'งานค้าง'}
             </span>
           )}
           {isHidden && (
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-[#1E1E1E] text-[#858585] border border-[#3C3C3C]">
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[var(--app-bg)] text-[var(--text-muted)] border border-[var(--border)]">
               {t('hiddenLabel', lang)}
             </span>
           )}
         </div>
-        <p className="text-sm font-semibold text-[#D4D4D4] truncate group-hover:text-[#3794FF] transition-colors">
+        <p className="text-sm font-medium text-[var(--text-heading)] truncate group-hover:text-[var(--primary-bright)] transition-colors">
           {course.name}
         </p>
       </div>
 
-      <div className="hidden sm:flex items-center gap-4 text-xs text-[#9D9D9D] shrink-0">
-        <span className="flex items-center gap-1"><BookOpen size={12} /> {totalAssignments}</span>
-        <span className="flex items-center gap-1"><FileText size={12} /> {totalResources}</span>
+      <div className="hidden sm:flex items-center gap-4 text-xs text-[var(--text-secondary)] font-mono tabular-nums shrink-0">
+        <span className="flex items-center gap-1.5"><BookOpen size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {totalAssignments}</span>
+        <span className="flex items-center gap-1.5"><FileText size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {totalResources}</span>
       </div>
 
-      <div className="hidden md:flex items-center gap-1.5 text-xs text-[#9D9D9D] shrink-0 max-w-[160px]">
-        <User size={12} className="shrink-0" />
+      <div className="hidden md:flex items-center gap-1.5 text-xs text-[var(--text-secondary)] shrink-0 max-w-[160px]">
+        <User size={13} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
         <span className="truncate">{course.instructor}</span>
       </div>
 
@@ -313,12 +313,12 @@ function CourseRow({ course, activeCount, totalAssignments, totalResources, isHi
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onToggleVisibility(course.id); }}
-          className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
+          className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
           title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
         >
-          {isHidden ? <EyeOff size={15} className="text-rose-400 sm:w-[14px] sm:h-[14px]" /> : <Eye size={15} className="sm:w-[14px] sm:h-[14px]" />}
+          {isHidden ? <EyeOff size={15} strokeWidth={1.5} className="text-rose-400" /> : <Eye size={15} strokeWidth={1.5} />}
         </button>
-        <ChevronRight size={15} className="text-[#858585] group-hover:text-[#3794FF] transition-colors" />
+        <ChevronRight size={15} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--primary-bright)] transition-colors" />
       </div>
     </div>
   );
@@ -499,22 +499,23 @@ export default function Courses() {
             handleSelectCourse(course.name);
           }
         }}
-        className={`bg-[#252526] border border-[#3C3C3C] hover:border-[#007ACC]/70 rounded-2xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-colors ${
+        className={`bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-colors ${
           isHidden ? 'opacity-60' : ''
         }`}
       >
-        <div className={`w-full h-1.5 ${getCourseBorderTopColor(course.color)}`} />
-
-        <div className="p-4 sm:p-5 flex-1 space-y-2.5 sm:space-y-3">
-          <div className="flex items-center justify-between gap-2 text-xs font-medium text-[#858585]">
-            <span>{course.code}</span>
+        <div className="p-4 sm:p-5 flex-1 space-y-3">
+          <div className="flex items-center justify-between gap-2 text-xs font-medium text-[var(--text-muted)]">
+            <span className="inline-flex items-center gap-2 font-mono text-[11px]">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${getCourseDotClass(course.color)}`} />
+              <span>{course.code || 'COURSE'}</span>
+            </span>
             <div>
               {isHidden ? (
-                <span className="bg-[#1E1E1E] text-[#858585] border border-[#3C3C3C] px-2 py-0.5 rounded-md text-[11px]">
+                <span className="bg-[var(--app-bg)] text-[var(--text-muted)] border border-[var(--border)] px-2 py-0.5 rounded text-[11px]">
                   {t('hiddenLabel', lang)}
                 </span>
               ) : activeCount > 0 ? (
-                <span className={`px-2 py-0.5 rounded-md text-[11px] ${getCourseBadgeColor(course.color)}`}>
+                <span className={`px-2 py-0.5 rounded text-[11px] font-mono tabular-nums ${getCourseBadgeColor(course.color)}`}>
                   {t('activeCount', lang, { count: activeCount })}
                 </span>
               ) : null}
@@ -522,20 +523,20 @@ export default function Courses() {
           </div>
 
           <div className="space-y-1.5">
-            <h3 className="font-semibold text-[15px] sm:text-base text-[#FFFFFF] group-hover:text-[#3794FF] transition-colors leading-snug truncate" title={course.name}>
+            <h3 className="font-medium text-[15px] text-[var(--text-heading)] group-hover:text-[var(--primary-bright)] transition-colors leading-snug truncate" title={course.name}>
               {course.name}
             </h3>
-            <div className="flex items-center gap-2 text-xs text-[#9D9D9D]">
-              <span className="flex items-center gap-1"><BookOpen size={12} /> {t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1"><FileText size={12} /> {t('postsMaterialsCount', lang, { count: totalResources })}</span>
+            <div className="flex items-center gap-2.5 text-xs text-[var(--text-secondary)] font-mono tabular-nums">
+              <span className="flex items-center gap-1"><BookOpen size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
+              <span className="text-[var(--text-muted)]">•</span>
+              <span className="flex items-center gap-1"><FileText size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {t('postsMaterialsCount', lang, { count: totalResources })}</span>
             </div>
           </div>
         </div>
 
-        <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-[#3C3C3C] bg-[#1E1E1E]/60 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-xs text-[#9D9D9D] min-w-0">
-            <User size={13} className="shrink-0" />
+        <div className="px-4 sm:px-5 py-3 border-t border-[var(--border)] bg-[var(--app-bg)] flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] min-w-0">
+            <User size={13} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
             <span className="truncate">{course.instructor}</span>
           </div>
 
@@ -545,10 +546,10 @@ export default function Courses() {
               e.stopPropagation();
               handleToggleCourseVisibility(course.id);
             }}
-            className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer shrink-0"
+            className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer shrink-0"
             title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
           >
-            {isHidden ? <EyeOff size={15} className="text-rose-400 sm:w-[13px] sm:h-[13px]" /> : <Eye size={15} className="sm:w-[13px] sm:h-[13px]" />}
+            {isHidden ? <EyeOff size={15} strokeWidth={1.5} className="text-rose-400" /> : <Eye size={15} strokeWidth={1.5} />}
           </button>
         </div>
       </div>
@@ -638,29 +639,27 @@ export default function Courses() {
           }
         />
 
-        <div className={`h-1 w-full rounded-full ${getCourseBorderTopColor(selectedCourseObj.color)}`} />
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
-            <div className="flex bg-[#252526] border border-[#3C3C3C] p-1 rounded-xl w-full sm:w-fit max-w-full overflow-x-auto gap-1 select-none">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex bg-[var(--surface)] border border-[var(--border)] p-1 rounded-xl w-full sm:w-fit max-w-full overflow-x-auto gap-1 select-none">
               <button
                 type="button"
                 onClick={() => updateParams({ tab: 'resources' })}
-                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs flex items-center gap-1.5 sm:gap-2 transition-colors cursor-pointer border whitespace-nowrap shrink-0 ${getTabStyles(themeColor, activeTab === 'resources')}`}
+                className={`px-3 sm:px-4 h-8 rounded-lg text-xs flex items-center gap-2 transition-colors cursor-pointer border whitespace-nowrap shrink-0 ${getTabStyles(themeColor, activeTab === 'resources')}`}
               >
-                <Megaphone size={13} />
+                <Megaphone size={14} strokeWidth={1.5} />
                 <span>{t('announcementsMaterialsTab', lang)}</span>
-                <span className={`text-[11px] px-1.5 py-0.25 rounded-md border font-medium ${getTabBadgeStyles(themeColor, activeTab === 'resources')}`}>
+                <span className={`text-[11px] font-mono tabular-nums px-1.5 py-0.5 rounded border font-medium ${getTabBadgeStyles(themeColor, activeTab === 'resources')}`}>
                   {courseResources.length}
                 </span>
               </button>
               <button
                 type="button"
                 onClick={() => updateParams({ tab: 'assignments' })}
-                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs flex items-center gap-1.5 sm:gap-2 transition-colors cursor-pointer border whitespace-nowrap shrink-0 ${getTabStyles(themeColor, activeTab === 'assignments')}`}
+                className={`px-3 sm:px-4 h-8 rounded-lg text-xs flex items-center gap-2 transition-colors cursor-pointer border whitespace-nowrap shrink-0 ${getTabStyles(themeColor, activeTab === 'assignments')}`}
               >
-                <BookOpen size={13} />
+                <BookOpen size={14} strokeWidth={1.5} />
                 <span>{t('assignmentsTab', lang)}</span>
-                <span className={`text-[11px] px-1.5 py-0.25 rounded-md border font-medium ${getTabBadgeStyles(themeColor, activeTab === 'assignments')}`}>
+                <span className={`text-[11px] font-mono tabular-nums px-1.5 py-0.5 rounded border font-medium ${getTabBadgeStyles(themeColor, activeTab === 'assignments')}`}>
                   {courseAssignments.length}
                 </span>
               </button>
@@ -668,41 +667,41 @@ export default function Courses() {
 
             <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
               <div className="relative flex-1 sm:flex-none">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#858585]" />
+                <Search size={14} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type="text"
                   aria-label={t('searchInCoursePlaceholder', lang)}
                   value={courseSearch}
                   onChange={(e) => setCourseSearch(e.target.value)}
                   placeholder={t('searchInCoursePlaceholder', lang)}
-                  className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl pl-8 pr-3 py-1.5 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] w-full sm:w-56"
+                  className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg pl-9 pr-3 h-9 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] w-full sm:w-56"
                 />
               </div>
 
-              <div className="flex items-center bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-0.5 shrink-0">
+              <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-lg p-1 shrink-0">
                 <button
                   type="button"
                   onClick={() => updateParams({ view: 'grid' })}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                  className={`p-1.5 rounded transition-colors cursor-pointer flex items-center justify-center ${
                     viewMode === 'grid'
-                      ? 'bg-[#094771]/70 text-[#3794FF]'
-                      : 'text-[#858585] hover:text-[#D4D4D4]'
+                      ? 'bg-[var(--surface-elevated)] text-[var(--primary-bright)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                   }`}
                   title={lang === 'en' ? 'Grid view' : 'แบบตาราง'}
                 >
-                  <LayoutGrid size={16} />
+                  <LayoutGrid size={15} strokeWidth={1.5} />
                 </button>
                 <button
                   type="button"
                   onClick={() => updateParams({ view: 'list' })}
-                  className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                  className={`p-1.5 rounded transition-colors cursor-pointer flex items-center justify-center ${
                     viewMode === 'list'
-                      ? 'bg-[#094771]/70 text-[#3794FF]'
-                      : 'text-[#858585] hover:text-[#D4D4D4]'
+                      ? 'bg-[var(--surface-elevated)] text-[var(--primary-bright)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                   }`}
                   title={lang === 'en' ? 'List view' : 'แบบรายการ'}
                 >
-                  <List size={16} />
+                  <List size={15} strokeWidth={1.5} />
                 </button>
               </div>
             </div>
@@ -711,33 +710,33 @@ export default function Courses() {
           <div className="space-y-6">
             {courseTopics.length > 0 && (
               <div className="space-y-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#9D9D9D] px-1">
-                  <Filter size={13} className="text-[#3794FF]" />
+                <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] px-1">
+                  <Filter size={14} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                   <span>{lang === 'en' ? 'Topics' : 'หัวข้อ'}</span>
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-1">
                   <button
                     type="button"
                     onClick={() => updateParams({ topic: 'all' })}
-                    className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 border cursor-pointer ${
+                    className={`shrink-0 px-3 h-8 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 border cursor-pointer ${
                       selectedTopicId === 'all'
-                        ? 'bg-[#007ACC] text-white border-[#007ACC]'
-                        : 'bg-[#252526] text-[#9D9D9D] border-[#3C3C3C] hover:text-[#FFFFFF]'
+                        ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                        : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--text-heading)]'
                     }`}
                   >
-                    <FolderOpen size={13} />
+                    <FolderOpen size={14} strokeWidth={1.5} />
                     <span>{lang === 'en' ? 'All' : 'ทั้งหมด'}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => updateParams({ topic: 'none' })}
-                    className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 border cursor-pointer ${
+                    className={`shrink-0 px-3 h-8 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 border cursor-pointer ${
                       selectedTopicId === 'none'
-                        ? 'bg-[#007ACC] text-white border-[#007ACC]'
-                        : 'bg-[#252526] text-[#9D9D9D] border-[#3C3C3C] hover:text-[#FFFFFF]'
+                        ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                        : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--text-heading)]'
                     }`}
                   >
-                    <Hash size={13} />
+                    <Hash size={14} strokeWidth={1.5} />
                     <span>{lang === 'en' ? 'No Topic' : 'ไม่มีหัวข้อ'}</span>
                   </button>
                   {courseTopics.map(topic => (
@@ -745,13 +744,13 @@ export default function Courses() {
                       type="button"
                       key={topic.id}
                       onClick={() => updateParams({ topic: topic.id })}
-                      className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 border cursor-pointer ${
+                      className={`shrink-0 px-3 h-8 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 border cursor-pointer ${
                         selectedTopicId === topic.id
-                          ? 'bg-[#007ACC] text-white border-[#007ACC]'
-                          : 'bg-[#252526] text-[#9D9D9D] border-[#3C3C3C] hover:text-[#FFFFFF]'
+                          ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                          : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--text-heading)]'
                       }`}
                     >
-                      <Hash size={13} />
+                      <Hash size={14} strokeWidth={1.5} />
                       <span>{topic.name}</span>
                     </button>
                   ))}
@@ -770,9 +769,9 @@ export default function Courses() {
                   {courseAssignments.length > 0 && hasAnyFiltered ? (
                     <>
                       {pinnedAssignments.length > 0 && (
-                        <div className="space-y-3 bg-amber-500/5 border border-amber-500/25 rounded-2xl p-4">
-                          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
-                            <Pin size={14} className="text-amber-400 fill-amber-400/30" />
+                        <div className="space-y-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-xl p-4">
+                          <div className="flex items-center gap-2 text-xs font-medium text-amber-300">
+                            <Pin size={14} strokeWidth={1.5} className="text-amber-400 fill-amber-400/25" />
                             <span>
                               {lang === 'en'
                                 ? `Pinned Assignments (${pinnedAssignments.length})`
@@ -801,10 +800,10 @@ export default function Courses() {
                         return (
                           <div key={topicId} className="space-y-3">
                             {(topicId !== 'none' || courseTopics.length > 0) && (
-                              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
-                                <Hash size={15} className="text-[#3794FF]" />
-                                <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
-                                <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
+                              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                                <Hash size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
+                                <h4 className="text-sm font-medium text-[var(--text-heading)]">{topicName}</h4>
+                                <span className="text-xs font-mono tabular-nums text-[var(--text-secondary)] bg-[var(--app-bg)] px-2 py-0.5 rounded ml-auto border border-[var(--border)]">
                                   {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
                                 </span>
                               </div>
@@ -825,8 +824,8 @@ export default function Courses() {
                       })}
                     </>
                   ) : (
-                    <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#9D9D9D] text-xs gap-3">
-                      <BookOpen size={28} className="text-[#858585] opacity-60" />
+                    <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-center text-[var(--text-secondary)] text-xs gap-3">
+                      <BookOpen size={24} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                       <span>
                         {courseAssignments.length > 0
                           ? (lang === 'en' ? 'No assignments match the selected topic or search.' : 'ไม่พบงานในหัวข้อหรือคำค้นหานี้')
@@ -839,7 +838,7 @@ export default function Courses() {
                             setCourseSearch('');
                             updateParams({ topic: 'all' });
                           }}
-                          className="text-xs font-medium text-[#3794FF] hover:underline cursor-pointer"
+                          className="text-xs font-medium text-[var(--primary-bright)] hover:underline cursor-pointer"
                         >
                           {t('clearFilters', lang)}
                         </button>
@@ -859,9 +858,9 @@ export default function Courses() {
                   {courseResources.length > 0 && hasAnyFiltered ? (
                     <>
                       {pinnedResources.length > 0 && (
-                        <div className="space-y-3 bg-amber-500/5 border border-amber-500/25 rounded-2xl p-4">
-                          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
-                            <Pin size={14} className="text-amber-400 fill-amber-400/30" />
+                        <div className="space-y-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-xl p-4">
+                          <div className="flex items-center gap-2 text-xs font-medium text-amber-300">
+                            <Pin size={14} strokeWidth={1.5} className="text-amber-400 fill-amber-400/25" />
                             <span>
                               {lang === 'en'
                                 ? `Pinned Posts & Materials (${pinnedResources.length})`
@@ -896,10 +895,10 @@ export default function Courses() {
                         return (
                           <div key={topicId} className="space-y-3">
                             {(topicId !== 'none' || courseTopics.length > 0) && (
-                              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#252526] border border-[#3C3C3C]">
-                                <Hash size={15} className="text-[#3794FF]" />
-                                <h4 className="text-sm font-semibold text-[#FFFFFF]">{topicName}</h4>
-                                <span className="text-xs font-medium text-[#9D9D9D] bg-[#1E1E1E] px-2 py-0.5 rounded-md ml-auto border border-[#3C3C3C]">
+                              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                                <Hash size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
+                                <h4 className="text-sm font-medium text-[var(--text-heading)]">{topicName}</h4>
+                                <span className="text-xs font-mono tabular-nums text-[var(--text-secondary)] bg-[var(--app-bg)] px-2 py-0.5 rounded ml-auto border border-[var(--border)]">
                                   {items.length} {lang === 'en' ? 'Items' : 'รายการ'}
                                 </span>
                               </div>
@@ -926,8 +925,8 @@ export default function Courses() {
                       })}
                     </>
                   ) : (
-                    <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[#9D9D9D] text-xs gap-3">
-                      <Megaphone size={28} className="text-[#858585] opacity-60" />
+                    <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-center text-[var(--text-secondary)] text-xs gap-3">
+                      <Megaphone size={24} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                       <span>
                         {courseResources.length > 0
                           ? (lang === 'en' ? 'No posts match the selected topic or search.' : 'ไม่พบประกาศหรือเอกสารในหัวข้อหรือคำค้นหานี้')
@@ -940,7 +939,7 @@ export default function Courses() {
                             setCourseSearch('');
                             updateParams({ topic: 'all' });
                           }}
-                          className="text-xs font-medium text-[#3794FF] hover:underline cursor-pointer"
+                          className="text-xs font-medium text-[var(--primary-bright)] hover:underline cursor-pointer"
                         >
                           {t('clearFilters', lang)}
                         </button>
@@ -963,15 +962,15 @@ export default function Courses() {
         icon={BookOpen}
       />
 
-      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-2.5 sm:p-3">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3">
         <div className="relative flex-1 w-full sm:max-w-md">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <Search size={15} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => updateParams({ q: e.target.value })}
-            placeholder={lang === 'en' ? 'Search courses by name, code, or instructor...' : 'ค้นหาวิชาจากชื่อ, รหัส หรือ อาจารย์...'}
-            className="w-full pl-9 pr-4 py-2 bg-[var(--app-bg)] border border-[var(--border)] rounded-xl text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
+            placeholder={lang === 'en' ? 'Search courses by name, code, or instructor' : 'ค้นหาวิชาจากชื่อ รหัส หรืออาจารย์'}
+            className="w-full pl-9 pr-4 h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
           />
         </div>
 
@@ -1038,8 +1037,8 @@ export default function Courses() {
         {renderCourseCollection(
           filteredVisible,
           false,
-          <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center text-[var(--text-secondary)] text-xs">
-            <Search size={28} className="text-[var(--text-muted)] mb-2.5 opacity-60" />
+          <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-center text-[var(--text-secondary)] text-xs">
+            <Search size={22} strokeWidth={1.5} className="text-[var(--text-muted)] mb-2" />
             {searchQuery
               ? (lang === 'en' ? 'No courses match your search.' : 'ไม่พบวิชาที่ตรงกับคำค้นหา')
               : (lang === 'en' ? 'No active courses.' : 'ไม่มีวิชาที่แสดง')}

@@ -17,14 +17,14 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-full w-full p-8 text-center bg-[#1E1E1E] text-[#D4D4D4]">
-          <div className="bg-[#252526] p-6 rounded-2xl border border-[#3C3C3C] shadow-lg max-w-md w-full space-y-3">
-            <h2 className="text-lg font-semibold text-[#FFFFFF]">Something went wrong</h2>
-            <p className="text-xs text-[#9D9D9D]">{this.state.error?.message}</p>
+        <div className="flex flex-col items-center justify-center h-full w-full p-8 text-center bg-[var(--app-bg)] text-[var(--text-primary)]">
+          <div className="bg-[var(--surface)] p-6 rounded-xl border border-[var(--border-strong)] max-w-md w-full space-y-3">
+            <h2 className="text-lg font-medium text-[var(--text-heading)]">Something went wrong</h2>
+            <p className="text-xs text-[var(--text-secondary)]">{this.state.error?.message}</p>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-[#007ACC] text-white text-xs rounded-xl font-medium hover:bg-[#1177BB] transition-colors cursor-pointer"
+              className="px-4 py-2 bg-[var(--primary)] text-white text-xs rounded-lg font-medium hover:bg-[var(--primary-hover)] transition-colors cursor-pointer"
             >
               Reload Page
             </button>

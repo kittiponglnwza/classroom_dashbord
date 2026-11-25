@@ -9,13 +9,13 @@ export default function ExamUnlistedAlert({ unlistedInfo, lang }) {
   const safeFormLink = sanitizeExternalUrl(unlistedInfo.formLink);
 
   return (
-    <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 space-y-5">
-      <div className="flex items-start gap-3.5">
-        <div className="p-2.5 bg-[#1E1E1E] border border-rose-500/30 rounded-xl text-rose-400 shrink-0">
-          <AlertCircle size={20} />
+    <div className="bg-rose-500/8 border border-rose-500/25 rounded-xl p-5 sm:p-6 space-y-5">
+      <div className="flex items-start gap-3">
+        <div className="p-2.5 bg-[var(--app-bg)] border border-rose-500/25 rounded-lg text-rose-400 shrink-0">
+          <AlertCircle size={18} strokeWidth={1.5} />
         </div>
         <div className="space-y-1 min-w-0">
-          <h3 className="font-semibold text-[#FFFFFF] text-sm leading-snug">
+          <h3 className="font-medium text-[var(--text-heading)] text-sm leading-snug">
             {t('noSeatingAlert', lang)}
           </h3>
           <p className="text-xs text-rose-300 leading-relaxed">
@@ -27,17 +27,17 @@ export default function ExamUnlistedAlert({ unlistedInfo, lang }) {
       </div>
 
       {(safePdfLink || safeFormLink) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-rose-500/25 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-rose-500/20 pt-4">
           {safePdfLink && (
             <a
               href={safePdfLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] text-[#D4D4D4] font-medium text-xs py-2.5 px-4 rounded-xl transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)] font-medium text-xs h-10 px-4 rounded-lg transition-colors cursor-pointer"
             >
-              <FileText size={14} className="text-rose-400" />
+              <FileText size={15} strokeWidth={1.5} className="text-rose-400" />
               <span>{t('noSeatingAction1', lang)}</span>
-              <ExternalLink size={11} className="text-[#858585]" />
+              <ExternalLink size={12} strokeWidth={1.5} className="text-[var(--text-muted)]" />
             </a>
           )}
           {safeFormLink && (
@@ -45,11 +45,11 @@ export default function ExamUnlistedAlert({ unlistedInfo, lang }) {
               href={safeFormLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs py-2.5 px-4 rounded-xl transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs h-10 px-4 rounded-lg transition-colors cursor-pointer"
             >
-              <ClipboardCheck size={14} />
+              <ClipboardCheck size={15} strokeWidth={1.5} />
               <span>{t('noSeatingAction2', lang)}</span>
-              <ExternalLink size={11} />
+              <ExternalLink size={12} strokeWidth={1.5} />
             </a>
           )}
         </div>

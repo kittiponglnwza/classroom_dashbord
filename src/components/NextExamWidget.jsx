@@ -44,43 +44,48 @@ export default function NextExamWidget({ allExams, unlistedInfo, hasCheckedExams
   if (!hasCheckedExams) {
     if (isFetchingExams) {
       return (
-        <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 space-y-4 animate-pulse">
-          <div className="h-3.5 w-28 bg-[#2D2D2D] rounded" />
+        <div
+          role="status"
+          aria-busy="true"
+          aria-label={lang === 'en' ? 'Loading exam schedule' : 'กำลังโหลดตารางสอบ'}
+          className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4"
+        >
+          <div className="h-3.5 w-28 bg-[var(--surface-elevated)] rounded" />
           <div className="space-y-2">
-            <div className="h-4 w-40 bg-[#2D2D2D] rounded" />
-            <div className="h-3 w-32 bg-[#2D2D2D] rounded" />
+            <div className="h-4 w-40 bg-[var(--surface-elevated)] rounded" />
+            <div className="h-3 w-32 bg-[var(--surface-elevated)] rounded" />
           </div>
         </div>
       );
     }
 
     return (
-      <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 space-y-3">
-        <div className="flex items-center justify-between border-b border-[#3C3C3C] pb-3">
-          <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
-            <ClipboardCheck size={15} className="text-[#3794FF]" />
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-3">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+          <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+            <ClipboardCheck size={16} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
             <span>{t('upcomingExamHeader', lang)}</span>
           </h3>
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-[#D4D4D4]">
+          <p className="text-xs font-medium text-[var(--text-primary)]">
             {lang === 'en' ? 'Check your Exam Seating & Rooms' : 'ตรวจสอบตารางและที่นั่งสอบ'}
           </p>
-          <p className="text-xs text-[#9D9D9D] leading-relaxed">
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
             {seatingLookupEnabled
               ? (lang === 'en'
-                  ? 'Connect to KMUTNB database to check your exam schedule, locations, and seat numbers.'
+                  ? 'Connect to KMUTNB database to check your exam schedule, locations, and seat numbers'
                   : 'เชื่อมต่อฐานข้อมูล มจพ. เพื่อตรวจสอบวิชาสอบ ห้องสอบ และเลขที่นั่งสอบของคุณ')
               : t('examLookupUnavailable', lang)}
           </p>
           <Link
             to="/exam-room"
-            className="inline-flex items-center gap-1 text-xs text-[#3794FF] hover:underline font-medium pt-1"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--primary-bright)] hover:underline font-medium pt-1"
           >
             <span>{seatingLookupEnabled
               ? (lang === 'en' ? 'Check Seating now' : 'ตรวจสอบที่นี่')
               : (lang === 'en' ? 'Add exams manually' : 'เพิ่มตารางสอบเอง')}</span>
-            <ArrowRight size={12} />
+            <ArrowRight size={14} strokeWidth={1.5} />
           </Link>
         </div>
       </div>
@@ -89,44 +94,44 @@ export default function NextExamWidget({ allExams, unlistedInfo, hasCheckedExams
 
   if (nextExam) {
     return (
-      <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-[#3C3C3C] pb-3">
-          <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
-            <ClipboardCheck size={15} className="text-[#3794FF]" />
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+          <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+            <ClipboardCheck size={16} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
             <span>{t('upcomingExamHeader', lang)}</span>
           </h3>
-          <Link to="/exam-room" className="text-xs text-[#3794FF] hover:underline font-medium">
+          <Link to="/exam-room" className="text-xs text-[var(--primary-bright)] hover:underline font-medium">
             {lang === 'en' ? 'View All' : 'ดูทั้งหมด'}
           </Link>
         </div>
         <div className="space-y-3">
-          <div className="space-y-1">
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-[#007ACC]/20 text-[#3794FF] border border-[#007ACC]/40">
+          <div className="space-y-1.5">
+            <span className="inline-block text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-[var(--app-bg)] text-[var(--primary-bright)] border border-[var(--border)]">
               {nextExam.courseCode}
             </span>
-            <h4 className="font-semibold text-[#FFFFFF] text-sm leading-snug truncate pt-1" title={nextExam.courseName}>
+            <h4 className="font-medium text-[var(--text-heading)] text-sm leading-snug truncate" title={nextExam.courseName}>
               {nextExam.courseName}
             </h4>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-xs border-t border-[#3C3C3C] pt-3">
+          <div className="grid grid-cols-2 gap-3 text-xs border-t border-[var(--border)] pt-3">
             <div>
-              <span className="text-[11px] text-[#858585] block">{t('dateCol', lang)}</span>
-              <span className="font-medium text-[#D4D4D4] truncate block">{nextExam.date}</span>
+              <span className="text-[11px] text-[var(--text-muted)] block">{t('dateCol', lang)}</span>
+              <span className="font-mono font-medium text-[var(--text-primary)] truncate block tabular-nums">{nextExam.date}</span>
             </div>
             <div>
-              <span className="text-[11px] text-[#858585] block">{t('timeCol', lang)}</span>
-              <span className="font-medium text-[#D4D4D4] truncate block">{nextExam.time}</span>
+              <span className="text-[11px] text-[var(--text-muted)] block">{t('timeCol', lang)}</span>
+              <span className="font-mono font-medium text-[var(--text-primary)] truncate block tabular-nums">{nextExam.time}</span>
             </div>
           </div>
-          <div className="border-t border-[#3C3C3C] pt-3 flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs">
-              <MapPin size={13} className="text-[#3794FF] shrink-0" />
-              <span className="font-medium text-[#D4D4D4] truncate max-w-[120px]">{nextExam.room}</span>
+          <div className="border-t border-[var(--border)] pt-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 text-xs min-w-0">
+              <MapPin size={14} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
+              <span className="font-mono font-medium text-[var(--text-primary)] truncate">{nextExam.room}</span>
             </div>
             {nextExam.seat && (
-              <div className="bg-[#1E1E1E] border border-[#3C3C3C] px-2.5 py-1 rounded-lg text-right shrink-0">
-                <span className="text-[10px] text-[#858585] block leading-none">{t('seatCol', lang)}</span>
-                <span className="text-xs font-semibold text-[#FFFFFF]">{nextExam.seat}</span>
+              <div className="bg-[var(--app-bg)] border border-[var(--border-strong)] px-3 py-1 rounded-lg text-right shrink-0">
+                <span className="text-[11px] text-[var(--text-muted)] block leading-none">{t('seatCol', lang)}</span>
+                <span className="text-sm font-mono font-medium text-[var(--text-heading)] tabular-nums">{nextExam.seat}</span>
               </div>
             )}
           </div>
@@ -137,15 +142,15 @@ export default function NextExamWidget({ allExams, unlistedInfo, hasCheckedExams
 
   if (unlistedInfo) {
     return (
-      <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 space-y-3">
-        <div className="flex items-center justify-between border-b border-rose-500/25 pb-3">
-          <h3 className="text-xs font-semibold text-rose-400 flex items-center gap-2">
-            <AlertCircle size={15} className="text-rose-400" />
+      <div className="bg-rose-500/8 border border-rose-500/25 rounded-xl p-5 space-y-3">
+        <div className="flex items-center justify-between border-b border-rose-500/20 pb-3">
+          <h3 className="text-xs font-medium text-rose-400 flex items-center gap-2">
+            <AlertCircle size={16} strokeWidth={1.5} className="text-rose-400" />
             <span>{t('upcomingExamHeader', lang)}</span>
           </h3>
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-[#FFFFFF] leading-snug">
+          <p className="text-xs font-medium text-[var(--text-heading)] leading-snug">
             {t('noSeatingAlert', lang)}
           </p>
           <p className="text-xs text-rose-300 leading-relaxed">
@@ -155,10 +160,10 @@ export default function NextExamWidget({ allExams, unlistedInfo, hasCheckedExams
           </p>
           <Link
             to="/exam-room"
-            className="inline-flex items-center gap-1 text-xs text-rose-400 hover:underline font-semibold pt-1"
+            className="inline-flex items-center gap-1.5 text-xs text-rose-400 hover:underline font-medium pt-1"
           >
             <span>{lang === 'en' ? 'View Petition Links' : 'ดูข้อมูลวิธียื่นคำร้อง'}</span>
-            <ArrowRight size={12} />
+            <ArrowRight size={14} strokeWidth={1.5} />
           </Link>
         </div>
       </div>
@@ -166,15 +171,15 @@ export default function NextExamWidget({ allExams, unlistedInfo, hasCheckedExams
   }
 
   return (
-    <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 space-y-3">
-      <div className="flex items-center justify-between border-b border-[#3C3C3C] pb-3">
-        <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
-          <ClipboardCheck size={15} className="text-[#858585]" />
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-3">
+      <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+        <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+          <ClipboardCheck size={16} strokeWidth={1.5} className="text-[var(--text-muted)]" />
           <span>{t('upcomingExamHeader', lang)}</span>
         </h3>
       </div>
       <div className="py-2 text-center">
-        <p className="text-xs text-[#9D9D9D]">{t('noUpcomingExams', lang)}</p>
+        <p className="text-xs text-[var(--text-secondary)]">{t('noUpcomingExams', lang)}</p>
       </div>
     </div>
   );

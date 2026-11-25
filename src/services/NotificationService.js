@@ -46,9 +46,9 @@ export class NotificationService {
           body {
             margin: 0;
             padding: 0;
-            background-color: #1E1E1E;
+            background-color: #11141C;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #D4D4D4;
+            color: #E2E5EE;
             -webkit-font-smoothing: antialiased;
           }
           .container {
@@ -63,42 +63,40 @@ export class NotificationService {
           .logo-badge {
             display: inline-block;
             padding: 6px 14px;
-            background-color: #252526;
-            border: 1px solid #3C3C3C;
+            background-color: #171B24;
+            border: 1px solid #2A3140;
             border-radius: 8px;
             margin-bottom: 10px;
           }
           .logo-text {
             font-size: 12px;
-            font-weight: 700;
-            color: #3794FF;
-            letter-spacing: 0.5px;
+            font-weight: 600;
+            color: #60A5FA;
             margin: 0;
           }
           .tagline {
-            font-size: 10px;
-            color: #858585;
-            letter-spacing: 1.2px;
+            font-size: 11px;
+            color: #7C8598;
             margin-top: 4px;
           }
           .card {
-            background-color: #252526;
-            border: 1px solid #3C3C3C;
-            border-radius: 14px;
+            background-color: #171B24;
+            border: 1px solid #2A3140;
+            border-radius: 12px;
             padding: 28px;
             margin-top: 12px;
           }
           .title {
             font-size: 19px;
-            font-weight: 700;
-            color: #FFFFFF;
+            font-weight: 600;
+            color: #EEF0F5;
             margin-top: 0;
             margin-bottom: 10px;
-            letter-spacing: -0.3px;
+            letter-spacing: -0.02em;
           }
           .desc {
             font-size: 13px;
-            color: #9D9D9D;
+            color: #A1AAB9;
             line-height: 1.6;
             margin-bottom: 20px;
           }
@@ -106,14 +104,14 @@ export class NotificationService {
             text-align: center;
             padding-top: 28px;
             font-size: 11px;
-            color: #858585;
+            color: #7C8598;
             line-height: 1.6;
           }
           .button {
             display: inline-block;
-            background-color: #007ACC;
+            background-color: #2563EB;
             color: #FFFFFF !important;
-            font-weight: 600;
+            font-weight: 500;
             font-size: 13px;
             padding: 10px 20px;
             border-radius: 8px;
@@ -279,10 +277,10 @@ export class NotificationService {
       const nextExamRemaining = getRemainingLabel(nextExamDate);
 
       let highlightHtml = `
-        <div style="margin-top: 25px; border: 1px dashed #CCA700; background-color: #1E1E1E; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
-          <span style="font-size: 10px; color: #CCA700; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Next Exam</span>
-          <h4 style="color: #FFFFFF; margin: 6px 0 2px 0; font-size: 14px;">${escapeHtml(nextExam.courseCode)} • ${escapeHtml(nextExam.courseName)}</h4>
-          <div style="font-size: 12px; color: #9D9D9D; margin-top: 4px; line-height: 1.5;">
+        <div style="margin-top: 25px; border: 1px dashed #FBBF24; background-color: #11141C; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+          <span style="font-size: 11px; color: #FBBF24; font-weight: 600;">Next Exam</span>
+          <h4 style="color: #EEF0F5; margin: 6px 0 2px 0; font-size: 14px;">${escapeHtml(nextExam.courseCode)} • ${escapeHtml(nextExam.courseName)}</h4>
+          <div style="font-size: 12px; color: #A1AAB9; margin-top: 4px; line-height: 1.5;">
             <strong>Date:</strong> ${escapeHtml(nextExam.date)} (${nextExamRemaining})<br/>
             <strong>Time:</strong> ${escapeHtml(nextExam.time || '-')}<br/>
             <strong>Room:</strong> ${escapeHtml(nextExam.room || '-')} ${nextExam.seat ? `• <strong>Seat:</strong> ${escapeHtml(nextExam.seat)}` : ''}
@@ -298,26 +296,26 @@ export class NotificationService {
       displayExams.forEach(exam => {
         const examDate = parseExamDate(exam.rawIsoDate || exam.date);
         const remainingLabel = getRemainingLabel(examDate);
-        const isManualLabel = exam.isManual ? ' <span style="font-size: 9px; color: #C586C0; background-color: #2D2D2D; padding: 1px 4px; border-radius: 4px;">Manual</span>' : '';
+        const isManualLabel = exam.isManual ? ' <span style="font-size: 11px; color: #A78BFA; background-color: #1F2532; padding: 1px 5px; border-radius: 4px;">Manual</span>' : '';
         const seatText = exam.seat || '-';
 
         tableRows += `
-        <tr style="border-bottom: 1px solid #3C3C3C;">
-          <td style="padding: 12px 8px; font-size: 12px; color: #FFFFFF;">
+        <tr style="border-bottom: 1px solid #2A3140;">
+          <td style="padding: 12px 8px; font-size: 12px; color: #EEF0F5;">
             <strong>${escapeHtml(exam.courseCode || '')}</strong><br/>
-            <span style="font-size: 11px; color: #9D9D9D;">${escapeHtml(exam.courseName || '')}</span>${isManualLabel ? '<br/>' + isManualLabel : ''}
+            <span style="font-size: 11px; color: #A1AAB9;">${escapeHtml(exam.courseName || '')}</span>${isManualLabel ? '<br/>' + isManualLabel : ''}
           </td>
-          <td style="padding: 12px 8px; font-size: 12px; color: #D4D4D4; white-space: nowrap;">
+          <td style="padding: 12px 8px; font-size: 12px; color: #E2E5EE; white-space: nowrap;">
             ${escapeHtml(exam.date || '-')}<br/>
-            <span style="font-size: 10px; color: #9D9D9D;">${escapeHtml(exam.time || '')}</span>
+            <span style="font-size: 11px; color: #A1AAB9;">${escapeHtml(exam.time || '')}</span>
           </td>
-          <td style="padding: 12px 8px; font-size: 11px; color: #CCA700; white-space: nowrap; font-weight: 600;">
+          <td style="padding: 12px 8px; font-size: 11px; color: #FBBF24; white-space: nowrap; font-weight: 600;">
             ${remainingLabel}
           </td>
-          <td style="padding: 12px 8px; font-size: 12px; color: #D4D4D4; text-align: center;">
+          <td style="padding: 12px 8px; font-size: 12px; color: #E2E5EE; text-align: center;">
             ${escapeHtml(exam.room || '-')}
           </td>
-          <td style="padding: 12px 8px; font-size: 12px; color: #4EC9B0; font-weight: bold; text-align: center;">
+          <td style="padding: 12px 8px; font-size: 12px; color: #34D399; font-weight: 600; text-align: center;">
             ${escapeHtml(seatText)}
           </td>
         </tr>
@@ -327,29 +325,29 @@ export class NotificationService {
       let extraFooterHtml = '';
       if (hiddenCount > 0) {
         extraFooterHtml = `
-          <div style="text-align: center; font-size: 12px; color: #C586C0; padding: 10px; font-weight: 600;">
+          <div style="text-align: center; font-size: 12px; color: #A78BFA; padding: 10px; font-weight: 600;">
             + And ${hiddenCount} more upcoming exam${hiddenCount > 1 ? 's' : ''}...
           </div>
         `;
       }
 
       return `
-        <div style="margin-top: 25px; border-top: 1px solid #3C3C3C; padding-top: 20px;">
-          <h3 style="color: #FFFFFF; margin: 0 0 15px 0; font-size: 15px; font-weight: 700;">
+        <div style="margin-top: 25px; border-top: 1px solid #2A3140; padding-top: 20px;">
+          <h3 style="color: #EEF0F5; margin: 0 0 15px 0; font-size: 15px; font-weight: 600;">
             Upcoming Exam Schedule (${upcomingExams.length})
           </h3>
           
           ${highlightHtml}
 
           <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left; background-color: #1E1E1E;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; background-color: #11141C;">
               <thead>
-                <tr style="border-bottom: 2px solid #3C3C3C; background-color: #2D2D2D;">
-                  <th style="padding: 10px 8px; font-size: 11px; color: #9D9D9D; text-transform: uppercase; font-weight: 700;">Subject</th>
-                  <th style="padding: 10px 8px; font-size: 11px; color: #9D9D9D; text-transform: uppercase; font-weight: 700;">Date & Time</th>
-                  <th style="padding: 10px 8px; font-size: 11px; color: #9D9D9D; text-transform: uppercase; font-weight: 700;">Remaining</th>
-                  <th style="padding: 10px 8px; font-size: 11px; color: #9D9D9D; text-transform: uppercase; font-weight: 700; text-align: center;">Room</th>
-                  <th style="padding: 10px 8px; font-size: 11px; color: #9D9D9D; text-transform: uppercase; font-weight: 700; text-align: center;">Seat</th>
+                <tr style="border-bottom: 2px solid #2A3140; background-color: #1F2532;">
+                  <th style="padding: 10px 8px; font-size: 11px; color: #A1AAB9; font-weight: 500;">Subject</th>
+                  <th style="padding: 10px 8px; font-size: 11px; color: #A1AAB9; font-weight: 500;">Date & Time</th>
+                  <th style="padding: 10px 8px; font-size: 11px; color: #A1AAB9; font-weight: 500;">Remaining</th>
+                  <th style="padding: 10px 8px; font-size: 11px; color: #A1AAB9; font-weight: 500; text-align: center;">Room</th>
+                  <th style="padding: 10px 8px; font-size: 11px; color: #A1AAB9; font-weight: 500; text-align: center;">Seat</th>
                 </tr>
               </thead>
               <tbody>
@@ -379,13 +377,13 @@ export class NotificationService {
       const time = getSundayDigestTime(toEmail);
 
       const body = `
-        <h2 class="title" style="color: #4EC9B0;">Gmail Integration Success</h2>
+        <h2 class="title" style="color: #34D399;">Gmail Integration Connected</h2>
         <p class="desc">
-          The connection between Classroom Hub and your Gmail account has been successfully established! Going forward, you will receive notifications based on your settings.
+          Classroom Hub is connected to your Gmail account and will send alerts based on your trigger preferences below.
         </p>
-        <div style="border-top: 1px solid #3C3C3C; padding-top: 15px; margin-top: 15px;">
-          <h3 style="font-size: 13px; color: #FFFFFF; margin-top: 0;">Active Trigger Summary:</h3>
-          <ul style="font-size: 12px; color: #9D9D9D; padding-left: 20px; line-height: 1.8;">
+        <div style="border-top: 1px solid #2A3140; padding-top: 15px; margin-top: 15px;">
+          <h3 style="font-size: 13px; color: #EEF0F5; margin-top: 0;">Active Trigger Summary:</h3>
+          <ul style="font-size: 12px; color: #A1AAB9; padding-left: 20px; line-height: 1.8;">
             <li>3 Days Before Due: <strong>${alertSettings.due3Days ? 'Enabled' : 'Disabled'}</strong></li>
             <li>1 Day Before Due: <strong>${alertSettings.due1Day ? 'Enabled' : 'Disabled'}</strong></li>
             <li>Due Today: <strong>${alertSettings.dueToday ? 'Enabled' : 'Disabled'}</strong></li>
@@ -451,7 +449,7 @@ export class NotificationService {
       }
 
       const payload = DiscordService.buildDigestPayload({
-        title: '📋 Pending Assignments Digest',
+        title: 'Pending Assignments Digest',
         description: 'Here is a summary of all your currently unfinished coursework in Classroom Hub.',
         tasks: todoTasks,
         toEmail,
@@ -510,18 +508,18 @@ export class NotificationService {
           const borderHex = getHexColor(list[0].courseColor);
           
           tasksHtml += `
-            <div style="margin-top: 16px; border: 1px solid #3C3C3C; border-left: 4px solid ${borderHex}; background-color: #1E1E1E; border-radius: 10px; padding: 16px;">
-              <h4 style="color: #FFFFFF; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">${escapeHtml(courseName)}</h4>
-              <div style="font-size: 13px; color: #D4D4D4; line-height: 1.6; margin-top: 8px;">
+            <div style="margin-top: 16px; border: 1px solid #2A3140; border-left: 4px solid ${borderHex}; background-color: #11141C; border-radius: 10px; padding: 16px;">
+              <h4 style="color: #EEF0F5; margin: 0 0 12px 0; font-size: 14px; font-weight: 600;">${escapeHtml(courseName)}</h4>
+              <div style="font-size: 13px; color: #E2E5EE; line-height: 1.6; margin-top: 8px;">
           `;
           
           list.forEach(t => {
             const parsedDue = parseLocalDateInput(t.dueDate);
             const dueLabel = parsedDue ? parsedDue.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'No Due Date';
             tasksHtml += `
-              <div style="padding: 10px 0; border-bottom: 1px solid #3C3C3C;">
-                <div style="font-weight: 600; color: #FFFFFF; display: inline-block; max-width: 70%; vertical-align: middle;">${escapeHtml(t.title)}</div>
-                <div style="display: inline-block; font-size: 10px; background-color: #094771; color: #3794FF; padding: 2px 8px; border-radius: 99px; font-weight: 700; float: right; vertical-align: middle; margin-top: 2px;">${escapeHtml(dueLabel)}</div>
+              <div style="padding: 10px 0; border-bottom: 1px solid #2A3140;">
+                <div style="font-weight: 500; color: #EEF0F5; display: inline-block; max-width: 70%; vertical-align: middle;">${escapeHtml(t.title)}</div>
+                <div style="display: inline-block; font-size: 11px; background-color: #1B2942; color: #60A5FA; padding: 2px 8px; border-radius: 6px; font-weight: 500; float: right; vertical-align: middle; margin-top: 2px;">${escapeHtml(dueLabel)}</div>
                 <div style="clear: both;"></div>
               </div>
             `;
@@ -530,7 +528,7 @@ export class NotificationService {
           tasksHtml += `</div></div>`;
         });
       } else {
-        tasksHtml = `<p style="font-size: 12px; color: #9D9D9D; font-style: italic; margin-top: 15px;">No pending assignments.</p>`;
+        tasksHtml = `<p style="font-size: 12px; color: #A1AAB9; margin-top: 15px;">No pending assignments.</p>`;
       }
 
       const examsHtml = alertSettings.includeExams ? this.buildExamsHtml(toEmail, false) : '';
@@ -615,11 +613,11 @@ export class NotificationService {
       } else if (diffDays === 0 && alertSettings.dueToday) {
         triggerType = 'due_today';
         subject = `[Classroom Hub] Due Today: ${task.title}`;
-        warningLabel = 'Due today!';
+        warningLabel = 'Due today';
       } else if (diffDays === -1 && alertSettings.overdue1Day) {
         triggerType = 'overdue_1_day';
         subject = `[Classroom Hub] Overdue: ${task.title}`;
-        warningLabel = 'Overdue by 1 day! Action required';
+        warningLabel = 'Overdue by 1 day';
       }
 
       if (!triggerType) continue;
@@ -632,13 +630,13 @@ export class NotificationService {
         } else {
           const safeLink = sanitizeExternalUrl(task.googleLink);
           const body = `
-            <h2 class="title" style="color: ${triggerType.includes('overdue') ? '#F14C4C' : '#CCA700'};">
+            <h2 class="title" style="color: ${triggerType.includes('overdue') ? '#F87171' : '#FBBF24'};">
               ${escapeHtml(warningLabel)}
             </h2>
-            <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #1E1E1E; border: 1px solid #3C3C3C; border-left-width: 4px; border-radius: 8px; padding: 15px; margin-top: 15px;">
-              <span style="font-size: 10px; color: #9D9D9D; text-transform: uppercase; font-weight: 700;">${escapeHtml(task.courseCode)} • ${escapeHtml(task.course)}</span>
-              <h3 style="color: #FFFFFF; margin: 4px 0 10px 0; font-size: 15px;">${escapeHtml(task.title)}</h3>
-              <p style="font-size: 12px; color: #D4D4D4; line-height: 1.6; margin: 0;">${escapeHtml(task.description || 'No description provided.')}</p>
+            <div style="border-left: 4px solid ${getHexColor(task.courseColor)}; background-color: #11141C; border: 1px solid #2A3140; border-left-width: 4px; border-radius: 8px; padding: 15px; margin-top: 15px;">
+              <span style="font-size: 11px; color: #A1AAB9; font-weight: 500;">${escapeHtml(task.courseCode)} • ${escapeHtml(task.course)}</span>
+              <h3 style="color: #EEF0F5; margin: 4px 0 10px 0; font-size: 15px;">${escapeHtml(task.title)}</h3>
+              <p style="font-size: 12px; color: #E2E5EE; line-height: 1.6; margin: 0;">${escapeHtml(task.description || 'No description provided.')}</p>
             </div>
             ${safeLink ? `<a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener noreferrer" class="button">View on Google Classroom</a>` : ''}
           `;
@@ -731,13 +729,13 @@ export class NotificationService {
                 const borderHex = getHexColor(list[0].courseColor);
                 
                 itemsHtml += `
-                  <div style="margin-top: 16px; border: 1px solid #3C3C3C; border-left: 4px solid ${borderHex}; background-color: #1E1E1E; border-radius: 10px; padding: 16px;">
-                    <h4 style="color: #FFFFFF; margin: 0 0 12px 0; font-size: 14px; font-weight: 700;">${escapeHtml(courseName)}</h4>
-                    <div style="font-size: 13px; color: #D4D4D4; line-height: 1.6; margin-top: 8px;">
+                  <div style="margin-top: 16px; border: 1px solid #2A3140; border-left: 4px solid ${borderHex}; background-color: #11141C; border-radius: 10px; padding: 16px;">
+                    <h4 style="color: #EEF0F5; margin: 0 0 12px 0; font-size: 14px; font-weight: 600;">${escapeHtml(courseName)}</h4>
+                    <div style="font-size: 13px; color: #E2E5EE; line-height: 1.6; margin-top: 8px;">
                 `;
                 list.forEach(t => {
                   itemsHtml += `
-                    <div style="padding: 8px 0; border-bottom: 1px solid #3C3C3C; color: #FFFFFF; font-weight: 500;">
+                    <div style="padding: 8px 0; border-bottom: 1px solid #2A3140; color: #EEF0F5; font-weight: 500;">
                       • ${escapeHtml(t.title)}
                     </div>
                   `;
@@ -745,13 +743,13 @@ export class NotificationService {
                 itemsHtml += `</div></div>`;
               });
             } else {
-              itemsHtml = `<p style="font-size: 12px; color: #9D9D9D; font-style: italic; margin-top: 15px;">No pending assignments with no due date.</p>`;
+              itemsHtml = `<p style="font-size: 12px; color: #A1AAB9; margin-top: 15px;">No pending assignments with no due date.</p>`;
             }
 
             const examsHtml = alertSettings.includeExams ? this.buildExamsHtml(toEmail, true) : '';
 
             const body = `
-              <h2 class="title" style="color: #3794FF;">Sunday Digest: Weekly Summary</h2>
+              <h2 class="title" style="color: #60A5FA;">Sunday Digest: Weekly Summary</h2>
               <p class="desc">
                 Here is your weekly summary of pending tasks and upcoming exams.
               </p>
@@ -871,14 +869,14 @@ export class NotificationService {
             const borderHex = getHexColor(group.color);
             
             groupHtml += `
-              <div style="margin-top: 15px; border: 1px solid #3C3C3C; border-left: 4px solid ${borderHex}; background-color: #1E1E1E; border-radius: 8px; padding: 12px 15px;">
-                <h4 style="color: #FFFFFF; margin: 0 0 8px 0; font-size: 13px;">${escapeHtml(courseName)}</h4>
+              <div style="margin-top: 15px; border: 1px solid #2A3140; border-left: 4px solid ${borderHex}; background-color: #11141C; border-radius: 8px; padding: 12px 15px;">
+                <h4 style="color: #EEF0F5; margin: 0 0 8px 0; font-size: 13px;">${escapeHtml(courseName)}</h4>
             `;
             
             if (group.assigns.length > 0) {
-              groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #C586C0; margin: 8px 0 4px 0;">New Assignments (${group.assigns.length})</p>`;
+              groupHtml += `<p style="font-size: 11px; font-weight: 600; color: #A78BFA; margin: 8px 0 4px 0;">New Assignments (${group.assigns.length})</p>`;
               group.assigns.forEach(t => {
-                groupHtml += `<div style="font-size: 12px; color: #FFFFFF; padding: 4px 0; border-bottom: 1px solid #3C3C3C;">• <strong>${escapeHtml(t.title)}</strong></div>`;
+                groupHtml += `<div style="font-size: 12px; color: #EEF0F5; padding: 4px 0; border-bottom: 1px solid #2A3140;">• <strong>${escapeHtml(t.title)}</strong></div>`;
               });
             }
             
@@ -887,16 +885,16 @@ export class NotificationService {
               const mats = group.resources.filter(r => r.type === 'material');
               
               if (anns.length > 0) {
-                groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #CCA700; margin: 10px 0 4px 0;">New Announcements (${anns.length})</p>`;
+                groupHtml += `<p style="font-size: 11px; font-weight: 600; color: #FBBF24; margin: 10px 0 4px 0;">New Announcements (${anns.length})</p>`;
                 anns.forEach(r => {
-                  groupHtml += `<div style="font-size: 12px; color: #FFFFFF; padding: 4px 0; border-bottom: 1px solid #3C3C3C;">• <strong>${escapeHtml(r.title)}</strong></div>`;
+                  groupHtml += `<div style="font-size: 12px; color: #EEF0F5; padding: 4px 0; border-bottom: 1px solid #2A3140;">• <strong>${escapeHtml(r.title)}</strong></div>`;
                 });
               }
               
               if (mats.length > 0) {
-                groupHtml += `<p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #3794FF; margin: 10px 0 4px 0;">New Course Materials (${mats.length})</p>`;
+                groupHtml += `<p style="font-size: 11px; font-weight: 600; color: #60A5FA; margin: 10px 0 4px 0;">New Course Materials (${mats.length})</p>`;
                 mats.forEach(r => {
-                  groupHtml += `<div style="font-size: 12px; color: #FFFFFF; padding: 4px 0; border-bottom: 1px solid #3C3C3C;">• <strong>${escapeHtml(r.title)}</strong></div>`;
+                  groupHtml += `<div style="font-size: 12px; color: #EEF0F5; padding: 4px 0; border-bottom: 1px solid #2A3140;">• <strong>${escapeHtml(r.title)}</strong></div>`;
                 });
               }
             }
@@ -905,7 +903,7 @@ export class NotificationService {
 
           const subject = `[Classroom Hub] Detected ${totalNew} new items in classroom`;
           const body = `
-            <h2 class="title" style="color: #3794FF;">New Classroom Activity Detected</h2>
+            <h2 class="title" style="color: #60A5FA;">New Classroom Activity Detected</h2>
             <p class="desc">
               Detected ${totalNew} new assignment(s), announcement(s), or material(s) uploaded by your instructors.
             </p>

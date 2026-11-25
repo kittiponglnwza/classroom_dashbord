@@ -15,74 +15,74 @@ export const getStableColor = (str) => {
 
 export const getCourseBadgeColor = (color) => {
   switch (color) {
-    case 'emerald': return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
-    case 'blue': return 'bg-[#007ACC]/20 text-[#3794FF] border border-[#007ACC]/40';
-    case 'amber': return 'bg-amber-500/15 text-amber-400 border border-amber-500/30';
-    case 'rose': return 'bg-rose-500/15 text-rose-400 border border-rose-500/30';
-    case 'purple': return 'bg-purple-500/15 text-purple-400 border border-purple-500/30';
-    default: return 'bg-[#2D2D2D] text-[#9D9D9D] border border-[#3C3C3C]';
+    case 'emerald': return 'bg-emerald-500/12 text-emerald-400 border border-emerald-500/25';
+    case 'blue': return 'bg-[var(--primary)]/15 text-[var(--primary-bright)] border border-[var(--primary)]/30';
+    case 'amber': return 'bg-amber-500/12 text-amber-400 border border-amber-500/25';
+    case 'rose': return 'bg-rose-500/12 text-rose-400 border border-rose-500/25';
+    case 'purple': return 'bg-violet-500/12 text-violet-300 border border-violet-500/25';
+    default: return 'bg-[var(--surface-elevated)] text-[var(--text-secondary)] border border-[var(--border)]';
   }
 };
 
 export const getCourseBorderTopColor = (color) => {
   switch (color) {
-    case 'emerald': return 'bg-emerald-500';
-    case 'blue': return 'bg-[#007ACC]';
-    case 'amber': return 'bg-amber-500';
-    case 'rose': return 'bg-rose-500';
-    case 'purple': return 'bg-purple-500';
-    default: return 'bg-[#858585]';
+    case 'emerald': return 'bg-emerald-500/80';
+    case 'blue': return 'bg-[var(--primary)]';
+    case 'amber': return 'bg-amber-500/80';
+    case 'rose': return 'bg-rose-500/80';
+    case 'purple': return 'bg-violet-500/80';
+    default: return 'bg-[var(--text-muted)]';
   }
 };
 
 export const getCourseTextColor = (color) => {
   switch (color) {
     case 'emerald': return 'text-emerald-400';
-    case 'blue': return 'text-[#3794FF]';
+    case 'blue': return 'text-[var(--primary-bright)]';
     case 'amber': return 'text-amber-400';
     case 'rose': return 'text-rose-400';
-    case 'purple': return 'text-purple-400';
-    default: return 'text-[#9D9D9D]';
+    case 'purple': return 'text-violet-300';
+    default: return 'text-[var(--text-secondary)]';
   }
 };
 
 export const getCourseDotClass = (color) => {
   switch (color) {
     case 'emerald': return 'bg-emerald-400';
-    case 'blue': return 'bg-[#3794FF]';
+    case 'blue': return 'bg-[var(--primary-bright)]';
     case 'amber': return 'bg-amber-400';
     case 'rose': return 'bg-rose-400';
-    case 'purple': return 'bg-purple-400';
-    default: return 'bg-[#858585]';
+    case 'purple': return 'bg-violet-400';
+    default: return 'bg-[var(--text-muted)]';
   }
 };
 
 export const getTabStyles = (_color, isActive) => {
-  if (!isActive) return 'text-[#9D9D9D] hover:text-[#D4D4D4] hover:bg-[#2A2D2E] border-transparent';
-  return 'text-[#FFFFFF] bg-[#1E1E1E] border-[#3C3C3C] font-semibold';
+  if (!isActive) return 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] border-transparent';
+  return 'text-[var(--text-heading)] bg-[var(--surface-elevated)] border-[var(--border-strong)] font-medium';
 };
 
 export const getTabBadgeStyles = (_color, isActive) => {
-  if (!isActive) return 'bg-[#2D2D2D] text-[#9D9D9D] border-[#3C3C3C]';
-  return 'bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40';
+  if (!isActive) return 'bg-[var(--app-bg)] text-[var(--text-muted)] border-[var(--border)]';
+  return 'bg-[var(--primary)]/15 text-[var(--primary-bright)] border-[var(--primary)]/30';
 };
 
 export const getTrackButtonStyles = (_color, isTracked) => {
-  if (!isTracked) return 'text-[#D4D4D4] bg-[#2D2D2D] hover:bg-[#37373D] border border-[#3C3C3C]';
-  return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+  if (!isTracked) return 'text-[var(--text-primary)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border)]';
+  return 'bg-emerald-500/12 text-emerald-400 border border-emerald-500/25';
 };
 
 export const getCourseCardBorder = () => {
-  return 'border-[#3C3C3C]';
+  return 'border-[var(--border)]';
 };
 
 export const getHexColor = (colorString) => {
   switch (colorString) {
-    case 'emerald': return '#4EC9B0';
-    case 'blue': return '#007ACC';
-    case 'amber': return '#CCA700';
-    case 'rose': return '#F14C4C';
-    case 'purple': return '#C586C0';
-    default: return '#007ACC';
+    case 'emerald': return '#4CC38A';
+    case 'blue': return '#2563EB';
+    case 'amber': return '#E5A93B';
+    case 'rose': return '#E5484D';
+    case 'purple': return '#A78BFA';
+    default: return '#2563EB';
   }
 };

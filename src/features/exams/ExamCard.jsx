@@ -18,7 +18,7 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
     const isSciBase = exam.source === 'scibase' || (!exam.isManual && !isReg);
     if (isSciBase) {
       return (
-        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-emerald-500/12 text-emerald-400 border border-emerald-500/25">
           {lang === 'en' ? 'Official Seat' : 'ที่นั่งสอบทางการ'}
         </span>
       );
@@ -26,14 +26,14 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
     if (isReg) {
       const hasRoom = Boolean(exam.room && String(exam.room).trim() && String(exam.room).trim() !== '-');
       return (
-        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[#007ACC]/15 text-[#3794FF] border border-[#007ACC]/30">
+        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[var(--primary)]/12 text-[var(--primary-bright)] border border-[var(--primary)]/25">
           {hasRoom ? 'Reg' : (lang === 'en' ? 'Reg · Room TBA' : 'Reg · รอห้องสอบ')}
         </span>
       );
     }
     if (exam.isManual) {
       return (
-        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[#1E1E1E] text-[#9D9D9D] border border-[#3C3C3C]">
+        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[var(--app-bg)] text-[var(--text-secondary)] border border-[var(--border)]">
           {t('manualTag', lang)}
         </span>
       );
@@ -41,18 +41,18 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
     return null;
   };
 
-  const renderActions = (iconSize) => (
+  const renderActions = () => (
     <div className="flex items-center gap-1.5 shrink-0">
       {calendarUrl && (
         <a
           href={calendarUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#3794FF] hover:bg-[#094771]/40 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] text-[var(--primary-bright)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
           title={t('addToCalendarBtn', lang) || 'Add to Google Calendar'}
           aria-label={t('addToCalendarBtn', lang) || 'Add to Google Calendar'}
         >
-          <CalendarPlus size={iconSize} />
+          <CalendarPlus size={14} strokeWidth={1.5} />
         </a>
       )}
       {exam.isManual && (
@@ -65,16 +65,16 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
               title={t('confirmBtn', lang)}
               aria-label={t('confirmBtn', lang)}
             >
-              <Check size={iconSize} />
+              <Check size={14} strokeWidth={1.5} />
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
-              className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer"
               title={t('cancelBtn', lang)}
               aria-label={t('cancelBtn', lang)}
             >
-              <X size={iconSize} />
+              <X size={14} strokeWidth={1.5} />
             </button>
           </div>
         ) : (
@@ -82,20 +82,20 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
             <button
               type="button"
               onClick={() => onEdit(exam)}
-              className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D] hover:text-[#FFFFFF] transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer"
               title={t('editExamBtn', lang)}
               aria-label={t('editExamBtn', lang)}
             >
-              <Edit size={iconSize} />
+              <Edit size={14} strokeWidth={1.5} />
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="p-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-rose-400 hover:bg-rose-500/15 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] text-rose-400 hover:bg-rose-500/12 transition-colors cursor-pointer"
               title={t('deleteExamBtn', lang)}
               aria-label={t('deleteExamBtn', lang)}
             >
-              <Trash2 size={iconSize} />
+              <Trash2 size={14} strokeWidth={1.5} />
             </button>
           </>
         )
@@ -105,45 +105,45 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
 
   if (layout === 'list') {
     return (
-      <div className="bg-[#252526] border border-[#3C3C3C] hover:border-[#007ACC]/70 rounded-2xl p-4 sm:p-5 transition-colors relative overflow-hidden">
-        <div className={`absolute top-0 left-0 bottom-0 w-1 ${cardStyle.strip}`} />
+      <div className="bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-xl p-4 sm:p-5 transition-colors relative overflow-hidden">
+        <div className={`absolute top-0 left-0 bottom-0 w-0.5 ${cardStyle.strip}`} />
 
-        <div className="pl-2.5 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1.25fr)_auto_minmax(11.5rem,0.75fr)] items-center gap-x-4 gap-y-3">
+        <div className="pl-2 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1.25fr)_auto_minmax(11.5rem,0.75fr)] items-center gap-x-4 gap-y-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${cardStyle.badge}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded border ${cardStyle.badge}`}>
                 {exam.courseCode}
               </span>
               {renderSourceBadge()}
             </div>
-            <h4 className="font-semibold text-[#FFFFFF] text-sm leading-snug truncate" title={exam.courseName}>
+            <h4 className="font-medium text-[var(--text-heading)] text-sm leading-snug truncate" title={exam.courseName}>
               {exam.courseName}
             </h4>
           </div>
 
-          <div className="sm:col-span-2 lg:col-span-1 sm:order-3 lg:order-2 flex flex-wrap sm:grid sm:grid-cols-[7.5rem_6.25rem_minmax(6.5rem,1fr)] lg:grid-cols-[7.5rem_6.25rem_6.5rem] items-center gap-x-4 gap-y-1.5 text-xs text-[#9D9D9D] tabular-nums">
+          <div className="sm:col-span-2 lg:col-span-1 sm:order-3 lg:order-2 flex flex-wrap sm:grid sm:grid-cols-[7.5rem_6.25rem_minmax(6.5rem,1fr)] lg:grid-cols-[7.5rem_6.25rem_6.5rem] items-center gap-x-4 gap-y-1.5 text-xs text-[var(--text-secondary)] font-mono tabular-nums">
             <div className="flex items-center gap-1.5 min-w-0">
-              <Calendar size={13} className={`shrink-0 ${cardStyle.accentText}`} />
-              <span className="text-[#D4D4D4] font-medium whitespace-nowrap truncate">{exam.date}</span>
+              <Calendar size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+              <span className="text-[var(--text-primary)] whitespace-nowrap truncate">{exam.date}</span>
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
-              <Clock size={13} className={`shrink-0 ${cardStyle.accentText}`} />
-              <span className="text-[#D4D4D4] font-medium whitespace-nowrap truncate">{exam.time}</span>
+              <Clock size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+              <span className="text-[var(--text-primary)] whitespace-nowrap truncate">{exam.time}</span>
             </div>
             <div className="flex items-center gap-1.5 min-w-0">
-              <MapPin size={13} className={`shrink-0 ${cardStyle.accentText}`} />
-              <span className="truncate text-[#D4D4D4] font-medium" title={exam.room || '-'}>{exam.room || '-'}</span>
+              <MapPin size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+              <span className="truncate text-[var(--text-primary)]" title={exam.room || '-'}>{exam.room || '-'}</span>
             </div>
           </div>
 
-          <div className="sm:order-2 lg:order-3 flex items-center justify-between sm:justify-end gap-3 shrink-0 border-t sm:border-t-0 border-[#3C3C3C] pt-3 sm:pt-0">
+          <div className="sm:order-2 lg:order-3 flex items-center justify-between sm:justify-end gap-3 shrink-0 border-t sm:border-t-0 border-[var(--border)] pt-3 sm:pt-0">
             {exam.seat && (
-              <div className="flex flex-col items-start sm:items-end bg-[#1E1E1E] px-3 py-1 rounded-xl border border-[#3C3C3C]">
-                <span className="text-[10px] text-[#858585] font-medium">{t('seatCol', lang)}</span>
-                <span className="text-xs font-semibold text-[#FFFFFF]">{exam.seat}</span>
+              <div className="flex flex-col items-start sm:items-end bg-[var(--app-bg)] px-3 py-1 rounded-lg border border-[var(--border-strong)]">
+                <span className="text-[11px] text-[var(--text-muted)]">{t('seatCol', lang)}</span>
+                <span className="text-sm font-mono font-medium text-[var(--text-heading)] tabular-nums">{exam.seat}</span>
               </div>
             )}
-            {renderActions(14)}
+            {renderActions()}
           </div>
         </div>
       </div>
@@ -151,55 +151,55 @@ export default function ExamCard({ exam, index, lang, onEdit, onDelete, layout =
   }
 
   return (
-    <div className="bg-[#252526] border border-[#3C3C3C] hover:border-[#007ACC]/70 rounded-2xl p-5 flex flex-col justify-between transition-colors relative overflow-hidden h-full">
-      <div className={`absolute top-0 left-0 right-0 h-1 ${cardStyle.strip}`} />
+    <div className="bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-xl p-5 flex flex-col justify-between transition-colors relative overflow-hidden h-full">
+      <div className={`absolute top-0 left-0 right-0 h-0.5 ${cardStyle.strip}`} />
 
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${cardStyle.badge}`}>
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded border ${cardStyle.badge}`}>
                 {exam.courseCode}
               </span>
               {renderSourceBadge()}
             </div>
-            <h4 className="font-semibold text-[#FFFFFF] text-sm leading-snug truncate pt-1" title={exam.courseName}>
+            <h4 className="font-medium text-[var(--text-heading)] text-sm leading-snug truncate" title={exam.courseName}>
               {exam.courseName}
             </h4>
           </div>
 
-          {renderActions(13)}
+          {renderActions()}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-xs border-t border-[#3C3C3C] pt-3.5">
+        <div className="grid grid-cols-2 gap-3 text-xs border-t border-[var(--border)] pt-3.5">
           <div className="flex items-start gap-2">
-            <Calendar size={13} className={`shrink-0 mt-0.5 ${cardStyle.accentText}`} />
+            <Calendar size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0 mt-0.5" />
             <div>
-              <span className="text-[11px] text-[#858585] block">{t('dateCol', lang)}</span>
-              <span className="font-medium text-[#D4D4D4]">{exam.date}</span>
+              <span className="text-[11px] text-[var(--text-muted)] block">{t('dateCol', lang)}</span>
+              <span className="font-mono font-medium text-[var(--text-primary)] tabular-nums">{exam.date}</span>
             </div>
           </div>
 
           <div className="flex items-start gap-2">
-            <Clock size={13} className={`shrink-0 mt-0.5 ${cardStyle.accentText}`} />
+            <Clock size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0 mt-0.5" />
             <div>
-              <span className="text-[11px] text-[#858585] block">{t('timeCol', lang)}</span>
-              <span className="font-medium text-[#D4D4D4]">{exam.time}</span>
+              <span className="text-[11px] text-[var(--text-muted)] block">{t('timeCol', lang)}</span>
+              <span className="font-mono font-medium text-[var(--text-primary)] tabular-nums">{exam.time}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-[#3C3C3C] mt-4 pt-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs">
-          <MapPin size={13} className={cardStyle.accentText} />
-          <span className="font-medium text-[#D4D4D4]">{exam.room || '-'}</span>
+      <div className="border-t border-[var(--border)] mt-4 pt-3.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs min-w-0">
+          <MapPin size={14} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
+          <span className="font-mono font-medium text-[var(--text-primary)] truncate">{exam.room || '-'}</span>
         </div>
 
         {exam.seat && (
-          <div className="bg-[#1E1E1E] border border-[#3C3C3C] px-3 py-1 rounded-xl text-right">
-            <span className="text-[10px] text-[#858585] block leading-none mb-0.5">{t('seatCol', lang)}</span>
-            <span className="text-xs font-semibold text-[#FFFFFF]">{exam.seat}</span>
+          <div className="bg-[var(--app-bg)] border border-[var(--border-strong)] px-3 py-1 rounded-lg text-right shrink-0">
+            <span className="text-[11px] text-[var(--text-muted)] block leading-none mb-0.5">{t('seatCol', lang)}</span>
+            <span className="text-sm font-mono font-medium text-[var(--text-heading)] tabular-nums">{exam.seat}</span>
           </div>
         )}
       </div>

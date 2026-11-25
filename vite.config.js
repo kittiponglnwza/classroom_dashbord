@@ -64,8 +64,8 @@ export default defineConfig({
         short_name: 'Classroom Hub',
         description:
           'Manage Google Classroom coursework, class timetables, exam seating, GPA progress, and deadline alerts in one workspace.',
-        theme_color: '#1E1E1E',
-        background_color: '#1E1E1E',
+        theme_color: '#11141C',
+        background_color: '#11141C',
         display: 'standalone',
         start_url: '/',
         scope: '/',

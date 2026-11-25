@@ -41,9 +41,9 @@ export default function Layout({ children }) {
             type="button"
             onClick={() => setMobileMenuOpen(false)}
             aria-label="Close Mobile Menu"
-            className="p-2.5 text-[var(--text-primary)] hover:bg-[var(--surface-hover)] absolute top-3 right-3 bg-[var(--surface)] rounded-full border border-[var(--border)] cursor-pointer transition-colors"
+            className="w-9 h-9 flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--surface-hover)] absolute top-3 right-3 bg-[var(--surface)] rounded-lg border border-[var(--border)] cursor-pointer transition-colors"
           >
-            <X size={18} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
       )}
@@ -51,7 +51,7 @@ export default function Layout({ children }) {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <HeaderBar setMobileMenuOpen={setMobileMenuOpen} />
 
-        <main className="main-scroll-container flex-1 overflow-y-auto overflow-x-hidden bg-[var(--app-bg)] px-3.5 pt-4 pb-24 sm:px-6 sm:py-6 lg:px-8 lg:py-7 md:pb-7">
+        <main className="main-scroll-container flex-1 overflow-y-auto overflow-x-hidden bg-[var(--app-bg)] px-4 pt-4 pb-24 sm:px-6 sm:py-6 lg:px-8 lg:py-8 md:pb-8">
           <div className="max-w-[var(--page-max-width)] mx-auto w-full">
             {children}
           </div>

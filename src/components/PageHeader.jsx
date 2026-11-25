@@ -16,7 +16,7 @@ export default function PageHeader({
 }) {
   return (
     <header
-      className={`border-b border-[var(--border)] pb-3.5 sm:pb-5 ${className}`}
+      className={`border-b border-[var(--border)] pb-4 sm:pb-5 ${className}`}
       data-testid="page-header"
     >
       {Array.isArray(breadcrumbs) && breadcrumbs.length > 0 && (
@@ -28,7 +28,7 @@ export default function PageHeader({
             const isLast = index === breadcrumbs.length - 1;
             return (
               <span key={`${crumb.label}-${index}`} className="inline-flex items-center gap-1.5 min-w-0">
-                {index > 0 && <ChevronRight size={12} className="text-[var(--text-muted)] shrink-0" aria-hidden="true" />}
+                {index > 0 && <ChevronRight size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" aria-hidden="true" />}
                 {crumb.to ? (
                   <Link
                     to={crumb.to}
@@ -63,15 +63,16 @@ export default function PageHeader({
 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
         <div className="min-w-0 space-y-1">
-          <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
+          <div className="flex items-center flex-wrap gap-2.5">
             {Icon && (
               <Icon
                 size={20}
-                className="text-[var(--primary-bright)] shrink-0 sm:w-[22px] sm:h-[22px]"
+                strokeWidth={1.5}
+                className="text-[var(--primary-bright)] shrink-0"
                 aria-hidden="true"
               />
             )}
-            <h1 className="text-xl sm:text-[26px] font-[650] text-[var(--text-heading)] tracking-tight leading-tight min-w-0 break-words">
+            <h1 className="text-2xl sm:text-[28px] font-medium text-[var(--text-heading)] tracking-[-0.02em] leading-[1.15] min-w-0 break-words">
               {title}
             </h1>
             {meta}

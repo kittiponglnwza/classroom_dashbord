@@ -38,15 +38,15 @@ export default function HeaderBar({ setMobileMenuOpen }) {
   const bellButtonRef = useRef(null);
 
   return (
-    <header className="h-14 sm:h-16 border-b border-[var(--border)] bg-[var(--topbar-bg)] px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 flex items-center justify-between gap-2 sm:gap-3 shrink-0 z-30">
+    <header className="h-14 sm:h-16 border-b border-[var(--border)] bg-[var(--topbar-bg)] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-3 shrink-0 z-30">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
           type="button"
           onClick={() => setMobileMenuOpen(true)}
           aria-label="Open Mobile Menu"
-          className="md:hidden w-9 h-9 flex items-center justify-center text-[var(--text-primary)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] rounded-xl transition-colors border border-[var(--border)] cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          className="md:hidden w-9 h-9 flex items-center justify-center text-[var(--text-primary)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors border border-[var(--border)] cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
         >
-          <Menu size={17} />
+          <Menu size={16} strokeWidth={1.5} />
         </button>
         <SafeLink to="/" className="md:hidden flex items-center shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded-lg">
           <img
@@ -57,12 +57,12 @@ export default function HeaderBar({ setMobileMenuOpen }) {
         </SafeLink>
         <div className="hidden sm:flex items-center gap-2 min-w-0">
           {isLoggedIn ? (
-            <span className="inline-flex items-center gap-2 text-xs font-medium bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] px-3 py-1 rounded-full whitespace-nowrap truncate max-w-[190px] md:max-w-none">
+            <span className="inline-flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--surface)] border border-[var(--border)] px-2.5 py-1 rounded-lg whitespace-nowrap truncate max-w-[200px] md:max-w-none">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] shrink-0" />
               <span>{t('googleConnected', lang)}</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-2 text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/25 px-3 py-1 rounded-full whitespace-nowrap truncate max-w-[190px] md:max-w-none">
+            <span className="inline-flex items-center gap-2 text-xs bg-amber-500/10 text-amber-300 border border-amber-500/25 px-2.5 py-1 rounded-lg whitespace-nowrap truncate max-w-[200px] md:max-w-none">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
               <span>{t('mockActive', lang)}</span>
             </span>
@@ -70,17 +70,17 @@ export default function HeaderBar({ setMobileMenuOpen }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         {isLoggedIn && (
           <button
             type="button"
             onClick={() => syncClassroom()}
             disabled={isSyncing}
             aria-label="Sync Google Classroom data"
-            className="flex items-center justify-center gap-1.5 bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] text-xs font-medium px-2.5 sm:px-3 h-9 sm:min-w-[96px] rounded-xl border border-[var(--border)] transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+            className="flex items-center justify-center gap-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] text-xs font-medium px-3 h-9 sm:min-w-[96px] rounded-lg border border-[var(--border)] transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             title={`${t('lastSync', lang)} ${formatRelativeTime(lastSyncTime, lang)}`}
           >
-            <RefreshCw size={13} className={isSyncing ? 'animate-spin text-[var(--primary-bright)]' : 'text-[var(--text-muted)]'} />
+            <RefreshCw size={15} strokeWidth={1.5} className={isSyncing ? 'animate-spin text-[var(--primary-bright)]' : 'text-[var(--text-muted)]'} />
             <span>{isSyncing ? t('syncing', lang) : t('sync', lang)}</span>
           </button>
         )}
@@ -90,10 +90,10 @@ export default function HeaderBar({ setMobileMenuOpen }) {
             type="button"
             onClick={promptInstall}
             aria-label={lang === 'en' ? 'Install App' : 'ติดตั้งแอป'}
-            className="flex items-center justify-center gap-1.5 h-9 w-8 sm:w-auto sm:px-2.5 lg:px-3 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium rounded-xl text-[var(--text-primary)] transition-colors cursor-pointer select-none shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+            className="flex items-center justify-center gap-2 h-9 w-9 sm:w-auto sm:px-3 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium rounded-lg text-[var(--text-primary)] transition-colors cursor-pointer select-none shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             title={lang === 'en' ? 'Install App' : 'ติดตั้งแอป'}
           >
-            <Download size={13} className="text-[var(--primary-bright)]" />
+            <Download size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
             <span className="hidden lg:inline">{lang === 'en' ? 'Install App' : 'ติดตั้งแอป'}</span>
           </button>
         )}
@@ -102,10 +102,10 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           type="button"
           onClick={toggleLang}
           aria-label={lang === 'en' ? 'Switch to Thai' : 'เปลี่ยนเป็นภาษาอังกฤษ'}
-          className="flex items-center justify-center gap-1 sm:gap-1.5 h-9 px-2 sm:px-2.5 lg:px-3 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium rounded-xl text-[var(--text-primary)] transition-colors cursor-pointer select-none shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          className="flex items-center justify-center gap-1.5 h-9 px-2.5 lg:px-3 bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium rounded-lg text-[var(--text-primary)] transition-colors cursor-pointer select-none shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           title={lang === 'en' ? 'Switch to Thai' : 'เปลี่ยนเป็นภาษาอังกฤษ'}
         >
-          <Globe size={13} className="text-[var(--text-muted)]" />
+          <Globe size={15} strokeWidth={1.5} className="text-[var(--text-muted)]" />
           <span>{lang === 'en' ? 'EN' : 'TH'}</span>
         </button>
 
@@ -114,9 +114,9 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           onClick={() => setIsGuideOpen(true)}
           aria-label={lang === 'en' ? 'Student Quick Guide' : 'คู่มือใช้งาน'}
           title={lang === 'en' ? 'Quick Guide' : 'คู่มือใช้งาน'}
-          className="w-8 sm:w-9 h-9 flex items-center justify-center rounded-xl transition-colors border bg-[var(--surface)] hover:bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors border bg-[var(--surface)] hover:bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
         >
-          <HelpCircle size={15} />
+          <HelpCircle size={16} strokeWidth={1.5} />
         </button>
 
         <div className="relative shrink-0">
@@ -125,17 +125,17 @@ export default function HeaderBar({ setMobileMenuOpen }) {
             ref={bellButtonRef}
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             aria-label="Notifications"
-            className={`w-8 sm:w-9 h-9 flex items-center justify-center rounded-xl transition-colors border relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors border relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
               isNotificationsOpen
-                ? 'text-[var(--primary-bright)] bg-[var(--primary-active)]/60 border-[var(--primary)]/50'
+                ? 'text-[var(--primary-bright)] bg-[var(--surface-elevated)] border-[var(--border-strong)]'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-heading)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] border-[var(--border)]'
             }`}
           >
-            <Bell size={15} />
+            <Bell size={16} strokeWidth={1.5} />
             {unreadCount > 0 && (
               <span
                 data-testid="notification-unread-badge"
-                className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-rose-500 text-white text-[10px] font-semibold rounded-full flex items-center justify-center leading-none tabular-nums"
+                className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[var(--danger)] text-white text-[11px] font-mono font-medium rounded-full flex items-center justify-center leading-none tabular-nums"
               >
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
@@ -149,7 +149,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           />
         </div>
 
-        <SafeLink to="/settings" className="flex items-center gap-2.5 pl-1.5 sm:pl-2 ml-0.5 border-l border-[var(--border)] hover:opacity-85 transition-opacity shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded-xl">
+        <SafeLink to="/settings" className="flex items-center gap-2.5 pl-2 ml-0.5 border-l border-[var(--border)] hover:opacity-85 transition-opacity shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded-lg">
           <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center shrink-0">
             {profile.avatarUrl && failedAvatarUrl !== profile.avatarUrl ? (
               <img
@@ -159,7 +159,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-xs font-semibold text-[var(--text-primary)]">
+              <span className="text-xs font-medium text-[var(--text-primary)]">
                 {(profile.name || 'S').charAt(0).toUpperCase()}
               </span>
             )}

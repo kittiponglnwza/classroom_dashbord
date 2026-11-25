@@ -37,7 +37,7 @@ const InputField = ({ label, value, onChange, type = 'text', required = true, re
   const fieldId = useId();
   return (
     <div className="space-y-1">
-      <label htmlFor={fieldId} className="block text-[11px] font-medium text-[#9D9D9D]">
+      <label htmlFor={fieldId} className="block text-[11px] font-medium text-[var(--text-secondary)]">
         {label}
       </label>
       <input
@@ -50,8 +50,8 @@ const InputField = ({ label, value, onChange, type = 'text', required = true, re
         inputMode={inputMode}
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
-        className={`w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors ${
-          readOnly ? 'text-[#858585] cursor-not-allowed opacity-80' : 'text-[#D4D4D4]'
+        className={`w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors ${
+          readOnly ? 'text-[var(--text-muted)] cursor-not-allowed opacity-80' : 'text-[var(--text-primary)]'
         }`}
       />
     </div>
@@ -165,7 +165,7 @@ export default function Settings() {
     setResetMessage('');
     try {
       await calendarSyncManager.resetAndSync(accessToken, profile.email);
-      setResetMessage(lang === 'en' ? 'Calendar reset & sync initiated!' : 'ล้างข้อมูลและเริ่มซิงค์ปฏิทินใหม่แล้ว!');
+      setResetMessage(lang === 'en' ? 'Calendar reset & sync initiated' : 'ล้างข้อมูลและเริ่มซิงค์ปฏิทินใหม่แล้ว');
     } catch (e) {
       console.error(e);
       setResetMessage(lang === 'en' ? 'Error resetting calendar.' : 'เกิดข้อผิดพลาดในการล้างข้อมูลปฏิทิน');
@@ -181,7 +181,7 @@ export default function Settings() {
     setResetMessage('');
     try {
       await calendarSyncManager.runSync(accessToken, profile.email);
-      setResetMessage(lang === 'en' ? 'Calendar synced & duplicates cleaned!' : 'ซิงก์ปฏิทินและลบรายการซ้ำเรียบร้อยแล้ว!');
+      setResetMessage(lang === 'en' ? 'Calendar synced & duplicates cleaned' : 'ซิงก์ปฏิทินและลบรายการซ้ำเรียบร้อยแล้ว');
     } catch (e) {
       console.error(e);
       setResetMessage(lang === 'en' ? 'Error syncing calendar.' : 'เกิดข้อผิดพลาดในการซิงก์ปฏิทิน');
@@ -226,8 +226,8 @@ export default function Settings() {
       }
       setDiscordFeedback({
         text: lang === 'en'
-          ? 'Test message delivered to Discord successfully!'
-          : 'ส่งข้อความทดสอบเข้า Discord สำเร็จแล้ว!',
+          ? 'Test message delivered to Discord successfully'
+          : 'ส่งข้อความทดสอบเข้า Discord สำเร็จแล้ว',
         type: 'success'
       });
     } catch (err) {
@@ -260,8 +260,8 @@ export default function Settings() {
       }
       setDiscordFeedback({
         text: lang === 'en'
-          ? 'Pending assignments & exam digest sent to Discord!'
-          : 'ส่งสรุปงานค้างและตารางสอบเข้า Discord เรียบร้อยแล้ว!',
+          ? 'Pending assignments & exam digest sent to Discord'
+          : 'ส่งสรุปงานค้างและตารางสอบเข้า Discord เรียบร้อยแล้ว',
         type: 'success'
       });
     } catch (err) {
@@ -313,7 +313,7 @@ export default function Settings() {
       )}
 
       {/* 1. Profile & Account Card */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5">
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
             <div className="flex items-center gap-3.5 min-w-0">
@@ -326,7 +326,7 @@ export default function Settings() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-base font-semibold text-[var(--text-primary)]">
+                  <span className="text-base font-medium text-[var(--text-primary)]">
                     {(name || profile.name || 'S').charAt(0).toUpperCase()}
                   </span>
                 )}
@@ -334,8 +334,8 @@ export default function Settings() {
 
               <div className="min-w-0 space-y-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-sm font-semibold text-[var(--text-heading)] truncate">{name || 'Student'}</h2>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)]">
+                  <h2 className="text-sm font-medium text-[var(--text-heading)] truncate">{name || 'Student'}</h2>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)]">
                     <span className={`w-1.5 h-1.5 rounded-full ${isLoggedIn ? 'bg-[var(--success)]' : 'bg-[var(--text-muted)]'}`} />
                     {isLoggedIn
                       ? (lang === 'en' ? 'Connected' : 'เชื่อมต่อแล้ว')
@@ -353,7 +353,7 @@ export default function Settings() {
                     className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[11px] text-[var(--text-secondary)]"
                   >
                     <span className="inline-flex items-center gap-1 text-[var(--text-primary)] font-medium">
-                      <GraduationCap size={12} className="text-[var(--primary-bright)] shrink-0" />
+                      <GraduationCap size={12} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
                       <span>{decodedKmutnb.campusLabel[langKey]}</span>
                     </span>
                     <span className="text-[var(--text-muted)]">•</span>
@@ -388,7 +388,7 @@ export default function Settings() {
                     <button
                       type="button"
                       onClick={() => setConfirmLogout(false)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-medium bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] transition-colors cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] transition-colors cursor-pointer"
                     >
                       {t('cancelBtn', lang)}
                     </button>
@@ -398,7 +398,7 @@ export default function Settings() {
                         setConfirmLogout(false);
                         logout();
                       }}
-                      className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors cursor-pointer"
                     >
                       {t('disconnectBtn', lang)}
                     </button>
@@ -407,9 +407,9 @@ export default function Settings() {
                   <button
                     type="button"
                     onClick={() => setConfirmLogout(true)}
-                    className="inline-flex items-center gap-1.5 bg-[var(--app-bg)] hover:bg-rose-500/15 text-[var(--text-secondary)] hover:text-rose-300 border border-[var(--border)] hover:border-rose-500/30 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 bg-[var(--app-bg)] hover:bg-rose-500/15 text-[var(--text-secondary)] hover:text-rose-300 border border-[var(--border)] hover:border-rose-500/30 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                   >
-                    <LogOut size={13} />
+                    <LogOut size={13} strokeWidth={1.5} />
                     <span>{t('disconnectBtn', lang)}</span>
                   </button>
                 )
@@ -417,9 +417,9 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={() => login()}
-                  className="inline-flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                 >
-                  <LogIn size={13} />
+                  <LogIn size={13} strokeWidth={1.5} />
                   <span>{t('connectBtn', lang)}</span>
                 </button>
               )}
@@ -427,7 +427,7 @@ export default function Settings() {
           </div>
 
           {profileError && (
-            <div role="alert" className="bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs px-3.5 py-2 rounded-xl">
+            <div role="alert" className="bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs px-3.5 py-2 rounded-lg">
               {profileError}
             </div>
           )}
@@ -452,7 +452,7 @@ export default function Settings() {
             )}
             <button
               type="submit"
-              className="h-[38px] w-full sm:w-auto bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 rounded-xl font-medium text-xs transition-colors cursor-pointer whitespace-nowrap"
+              className="h-9 w-full sm:w-auto bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-4 rounded-lg font-medium text-xs transition-colors cursor-pointer whitespace-nowrap"
             >
               {lang === 'en' ? 'Save Preferences' : 'บันทึกการตั้งค่า'}
             </button>
@@ -463,15 +463,15 @@ export default function Settings() {
       {/* 2. Balanced Two-Column Grid: Discord Integration (Left) + Calendar & Developer (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left: Compact Discord Webhook & 24/7 Cloud Script */}
-        <div className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 flex flex-col justify-between space-y-4">
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
-                  <MessageSquare className="text-[var(--primary-bright)]" size={14} />
+                  <MessageSquare className="text-[var(--primary-bright)]" size={14} strokeWidth={1.5} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-[var(--text-heading)] truncate">
+                  <h3 className="text-sm font-medium text-[var(--text-heading)] truncate">
                     {lang === 'en' ? 'Discord Notifications' : 'แจ้งเตือน Discord'}
                   </h3>
                   <p className="text-[11px] text-[var(--text-muted)] truncate">
@@ -483,7 +483,7 @@ export default function Settings() {
               <div className="flex items-center gap-2.5 shrink-0">
                 <span
                   data-testid="discord-webhook-status"
-                  className={`text-[10.5px] px-2.5 py-0.5 rounded-full font-medium ${
+                  className={`text-[11px] px-2.5 py-0.5 rounded-lg font-medium ${
                     webhookValidation.valid
                       ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/25'
                       : (alertSettings.discordWebhookUrl || '').trim()
@@ -506,7 +506,7 @@ export default function Settings() {
                     aria-label={lang === 'en' ? 'Auto-send alerts to Discord when syncing on web' : 'ส่งแจ้งเตือนเข้า Discord อัตโนมัติ'}
                     className="sr-only peer"
                   />
-                  <div className="w-8 h-4.5 bg-[var(--border)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--text-heading)] after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-[var(--primary)]" />
+                  <div className="w-9 h-5 bg-[var(--border)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--text-heading)] after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:bg-[var(--primary)]" />
                 </label>
               </div>
             </div>
@@ -514,7 +514,7 @@ export default function Settings() {
             {discordFeedback.text && (
               <div
                 role={discordFeedback.type === 'error' ? 'alert' : 'status'}
-                className={`px-3 py-2 rounded-xl border text-xs flex items-center justify-between ${
+                className={`px-3 py-2 rounded-lg border text-xs flex items-center justify-between ${
                   discordFeedback.type === 'error'
                     ? 'bg-rose-500/10 border-rose-500/25 text-rose-300'
                     : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
@@ -524,7 +524,7 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={() => setDiscordFeedback({ text: '', type: '' })}
-                  className="text-sm font-semibold ml-2 hover:opacity-75 cursor-pointer"
+                  className="text-sm font-medium ml-2 hover:opacity-75 cursor-pointer"
                   aria-label="Dismiss"
                 >
                   ×
@@ -549,9 +549,9 @@ export default function Settings() {
                 type="button"
                 disabled={discordTestSending || discordDigestSending || !webhookValidation.valid}
                 onClick={handleTestDiscordWebhook}
-                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
-                {discordTestSending ? <RefreshCw size={13} className="animate-spin" /> : <MessageSquare size={13} className="text-[var(--primary-bright)]" />}
+                {discordTestSending ? <RefreshCw size={13} strokeWidth={1.5} className="animate-spin" /> : <MessageSquare size={13} strokeWidth={1.5} className="text-[var(--primary-bright)]" />}
                 <span>
                   {discordTestSending
                     ? (lang === 'en' ? 'Testing...' : 'กำลังทดสอบ...')
@@ -563,9 +563,9 @@ export default function Settings() {
                 type="button"
                 disabled={discordDigestSending || discordTestSending || !webhookValidation.valid}
                 onClick={handleSendDiscordDigest}
-                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
-                {discordDigestSending ? <RefreshCw size={13} className="animate-spin" /> : <Send size={13} className="text-[var(--text-secondary)]" />}
+                {discordDigestSending ? <RefreshCw size={13} strokeWidth={1.5} className="animate-spin" /> : <Send size={13} strokeWidth={1.5} className="text-[var(--text-secondary)]" />}
                 <span>
                   {discordDigestSending
                     ? (lang === 'en' ? 'Sending...' : 'กำลังส่ง...')
@@ -579,7 +579,7 @@ export default function Settings() {
           <div className="pt-3 border-t border-[var(--border)] space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-                <Terminal size={13} className="text-[var(--text-muted)] shrink-0" />
+                <Terminal size={13} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
                 <span>
                   {lang === 'en'
                     ? `24/7 Cloud Script (${hiddenCourseIds.length} hidden excluded)`
@@ -593,10 +593,10 @@ export default function Settings() {
                   onClick={handleCopyAppsScript}
                   className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5"
                 >
-                  {copiedScript ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className="text-[var(--text-muted)]" />}
+                  {copiedScript ? <Check size={12} strokeWidth={1.5} className="text-emerald-400" /> : <Copy size={12} strokeWidth={1.5} className="text-[var(--text-muted)]" />}
                   <span>
                     {copiedScript
-                      ? (lang === 'en' ? 'Copied!' : 'คัดลอกแล้ว!')
+                      ? (lang === 'en' ? 'Copied' : 'คัดลอกแล้ว')
                       : (lang === 'en' ? 'Copy Script' : 'คัดลอกโค้ด')}
                   </span>
                 </button>
@@ -618,14 +618,14 @@ export default function Settings() {
                   title="Open script.google.com"
                   className="p-1.5 rounded-lg bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors"
                 >
-                  <ExternalLink size={12} />
+                  <ExternalLink size={12} strokeWidth={1.5} />
                 </a>
               </div>
             </div>
 
             {showScriptPreview && (
               <div className="space-y-2 pt-1">
-                <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-2.5 text-[11px] text-[var(--text-muted)] space-y-1">
+                <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-2.5 text-[11px] text-[var(--text-muted)] space-y-1">
                   <div><code className="text-[var(--text-primary)]">testDiscordWebhook()</code> — {lang === 'en' ? 'Send test message from Google Cloud' : 'ทดสอบยิงเข้า Discord'}</div>
                   <div><code className="text-[var(--text-primary)]">debugDryRun()</code> — {lang === 'en' ? 'Preview tasks in log without sending' : 'เช็กงานใน Log โดยไม่ส่งจริง'}</div>
                   <div><code className="text-[var(--text-primary)]">sendClassroomDigest()</code> — {lang === 'en' ? 'Attach to hourly Time-driven Trigger' : 'ใช้ตั้งทริกเกอร์รายชั่วโมง'}</div>
@@ -635,7 +635,7 @@ export default function Settings() {
                   aria-label={lang === 'en' ? 'Generated Google Apps Script Code' : 'โค้ด Google Apps Script'}
                   value={generatedAppsScript}
                   rows={6}
-                  className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-2.5 text-[11px] font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-2.5 text-[11px] font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 />
               </div>
             )}
@@ -645,13 +645,13 @@ export default function Settings() {
         {/* Right: Calendar Sync & Compact Developer Card */}
         <div className="lg:col-span-5 flex flex-col justify-between gap-5">
           {/* Google Calendar Sync Maintenance Card */}
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 space-y-3">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
-                <RefreshCw className="text-[var(--primary-bright)]" size={14} />
+                <RefreshCw className="text-[var(--primary-bright)]" size={14} strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-[var(--text-heading)]">
+                <h3 className="text-sm font-medium text-[var(--text-heading)]">
                   {lang === 'en' ? 'Google Calendar Sync' : 'ซิงก์ปฏิทิน Google Calendar'}
                 </h3>
                 <p className="text-[11px] text-[var(--text-muted)]">
@@ -677,9 +677,9 @@ export default function Settings() {
                 type="button"
                 onClick={handleSyncCalendarNow}
                 disabled={!isLoggedIn || calendarSyncState === 'syncing' || isResettingCalendar}
-                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
-                {calendarSyncState === 'syncing' && !isResettingCalendar && <RefreshCw size={12} className="animate-spin" />}
+                {calendarSyncState === 'syncing' && !isResettingCalendar && <RefreshCw size={12} strokeWidth={1.5} className="animate-spin" />}
                 <span className="truncate">
                   {calendarSyncState === 'syncing' && !isResettingCalendar
                     ? t('syncingCalendarBtn', lang)
@@ -690,23 +690,23 @@ export default function Settings() {
                 type="button"
                 onClick={handleResetCalendar}
                 disabled={!isLoggedIn || isResettingCalendar || calendarSyncState === 'syncing'}
-                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
-                {isResettingCalendar && <RefreshCw size={12} className="animate-spin" />}
+                {isResettingCalendar && <RefreshCw size={12} strokeWidth={1.5} className="animate-spin" />}
                 <span className="truncate">{lang === 'en' ? 'Reset Calendar' : 'ล้างแล้วลงใหม่'}</span>
               </button>
             </div>
           </div>
 
           {/* Compact Developer Card */}
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 space-y-3">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
-                  <Code size={15} className="text-[var(--primary-bright)]" />
+                  <Code size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-semibold text-[var(--text-heading)] text-xs truncate">{devInfo.name}</h4>
+                  <h4 className="font-medium text-[var(--text-heading)] text-xs truncate">{devInfo.name}</h4>
                   <p className="text-[11px] text-[var(--text-muted)] truncate">
                     @{devInfo.nickname} • {devInfo.university} • <a href={`mailto:${devInfo.email}`} className="hover:text-[var(--text-primary)] transition-colors">{devInfo.email}</a>
                   </p>
@@ -719,7 +719,7 @@ export default function Settings() {
                 href={devInfo.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-xl transition-colors text-xs font-medium text-[var(--text-primary)]"
+                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-lg transition-colors text-xs font-medium text-[var(--text-primary)]"
               >
                 <GithubIcon size={13} />
                 <span>GitHub</span>
@@ -729,7 +729,7 @@ export default function Settings() {
                 href={devInfo.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-xl transition-colors text-xs font-medium text-[var(--text-primary)]"
+                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-lg transition-colors text-xs font-medium text-[var(--text-primary)]"
               >
                 <InstagramIcon size={13} />
                 <span>Instagram</span>
@@ -761,7 +761,7 @@ export default function Settings() {
           title={lang === 'th' ? 'เช็กและดึงอัปเดตเวอร์ชันล่าสุด' : 'Check and reload latest update'}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer"
         >
-          <RefreshCw size={11} />
+          <RefreshCw size={12} strokeWidth={1.5} />
           <span>{lang === 'th' ? 'เช็กอัปเดต' : 'Check for updates'}</span>
         </button>
       </div>

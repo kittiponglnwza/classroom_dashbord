@@ -504,27 +504,27 @@ function sendClassroomDigest() {
 
     // 2. Deliver via Gmail (if enabled and user email is available)
     if (CONFIG.ENABLE_EMAIL && email && pendingAssignments.length > 0) {
-      var htmlBody = '<html><head><meta charset="utf-8"></head><body style="background-color: #1E1E1E; color: #D4D4D4; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; margin: 0; padding: 20px;">' +
-        '<div style="max-width: 600px; margin: 0 auto; background-color: #252526; border: 1px solid #3C3C3C; border-radius: 12px; padding: 28px;">' +
-        '<div style="text-align: center; border-bottom: 1px solid #3C3C3C; padding-bottom: 18px; margin-bottom: 20px;">' +
-        '<div style="font-size: 14px; font-weight: bold; color: #3794FF; text-transform: uppercase; letter-spacing: 2px;">Classroom Hub</div>' +
-        '<div style="font-size: 19px; font-weight: bold; color: #FFFFFF; margin-top: 8px;">สรุปงานค้างส่งใกล้วันกำหนดส่ง (เหลือเวลาไม่ถึง 3 วัน)</div>' +
+      var htmlBody = '<html><head><meta charset="utf-8"></head><body style="background-color: #11141C; color: #E2E5EE; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; margin: 0; padding: 20px;">' +
+        '<div style="max-width: 600px; margin: 0 auto; background-color: #171B24; border: 1px solid #2A3140; border-radius: 12px; padding: 28px;">' +
+        '<div style="text-align: center; border-bottom: 1px solid #2A3140; padding-bottom: 18px; margin-bottom: 20px;">' +
+        '<div style="font-size: 13px; font-weight: 600; color: #60A5FA;">Classroom Hub</div>' +
+        '<div style="font-size: 18px; font-weight: 600; color: #EEF0F5; margin-top: 8px;">สรุปงานค้างส่งใกล้วันกำหนดส่ง (เหลือเวลาไม่ถึง 3 วัน)</div>' +
         '</div><div>';
 
       for (var k = 0; k < pendingAssignments.length; k++) {
         var mailItem = pendingAssignments[k];
-        htmlBody += '<div style="background-color: #1E1E1E; border: 1px solid #3C3C3C; border-radius: 8px; padding: 15px; margin-bottom: 14px;">' +
-          '<div style="display: inline-block; background-color: #094771; color: #3794FF; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 6px; margin-bottom: 8px;">' + escapeHtmlScript(mailItem.courseName) + '</div>' +
-          '<div style="font-size: 14px; font-weight: bold; color: #FFFFFF; margin-bottom: 8px;">' + escapeHtmlScript(mailItem.title) + '</div>' +
-          '<div style="font-size: 12px; color: #9D9D9D; margin-bottom: 12px;">' +
-          'กำหนดส่ง: <strong style="color: #CCA700;">' + escapeHtmlScript(mailItem.dueDate) + '</strong> (' + escapeHtmlScript(mailItem.daysLeftLabel) + ') &nbsp;|&nbsp; ' + escapeHtmlScript(mailItem.points) +
+        htmlBody += '<div style="background-color: #11141C; border: 1px solid #2A3140; border-radius: 8px; padding: 15px; margin-bottom: 14px;">' +
+          '<div style="display: inline-block; background-color: #1B2942; color: #60A5FA; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; margin-bottom: 8px;">' + escapeHtmlScript(mailItem.courseName) + '</div>' +
+          '<div style="font-size: 14px; font-weight: 600; color: #EEF0F5; margin-bottom: 8px;">' + escapeHtmlScript(mailItem.title) + '</div>' +
+          '<div style="font-size: 12px; color: #A1AAB9; margin-bottom: 12px;">' +
+          'กำหนดส่ง: <strong style="color: #FBBF24;">' + escapeHtmlScript(mailItem.dueDate) + '</strong> (' + escapeHtmlScript(mailItem.daysLeftLabel) + ') &nbsp;|&nbsp; ' + escapeHtmlScript(mailItem.points) +
           '</div>' +
-          (mailItem.link ? '<a href="' + escapeHtmlScript(mailItem.link) + '" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #007ACC; color: #FFFFFF !important; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: bold;">เปิดทำการบ้านใน Classroom</a>' : '') +
+          (mailItem.link ? '<a href="' + escapeHtmlScript(mailItem.link) + '" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #2563EB; color: #FFFFFF !important; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;">เปิดทำการบ้านใน Classroom</a>' : '') +
           '</div>';
       }
 
       htmlBody += '</div>' +
-        '<div style="text-align: center; font-size: 11px; color: #858585; margin-top: 26px; border-top: 1px solid #3C3C3C; padding-top: 15px;">' +
+        '<div style="text-align: center; font-size: 11px; color: #7C8598; margin-top: 26px; border-top: 1px solid #2A3140; padding-top: 15px;">' +
         'ส่งโดยระบบออโต้คลาวด์ Classroom Hub (Personal Apps Script)<br>' +
         'คุณได้รับอีเมลนี้เนื่องจากตั้งค่าแจ้งเตือนงานค้างส่งล่วงหน้าไว้' +
         '</div></div></body></html>';

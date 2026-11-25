@@ -72,65 +72,75 @@ const TaskStats = React.memo(function TaskStats({ assignments = [], lang = 'en',
       label: t('allAssignments', lang),
       value: total,
       icon: ClipboardList,
-      color: 'text-[#3794FF] bg-[#007ACC]/20 border-[#007ACC]/40'
+      accent: false,
     },
     {
       label: t('todo', lang),
       value: todo,
       icon: ListTodo,
-      color: 'text-[#9D9D9D] bg-[#1E1E1E] border-[#3C3C3C]'
+      accent: false,
     },
     {
       label: lang === 'en' ? 'Exam Countdown' : 'นับถอยหลังสอบ',
       value: examCountdownStr,
       subValue: closestExamName ? (lang === 'en' ? `for ${closestExamName}` : `วิชา ${closestExamName}`) : '',
       icon: Timer,
-      color: 'text-amber-400 bg-amber-500/15 border-amber-500/30'
+      accent: Boolean(closestExamName),
     },
     {
       label: t('completed', lang),
       value: done,
       icon: CheckCircle2,
-      color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30'
+      accent: false,
     }
   ];
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5"
-          >
-            <div className="flex items-center justify-between gap-2 sm:gap-3">
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div
+              key={stat.label}
+              className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 sm:p-5 flex flex-col justify-between gap-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-[var(--text-secondary)] font-normal truncate">{stat.label}</p>
+                <Icon
+                  size={16}
+                  strokeWidth={1.5}
+                  className={stat.accent ? 'text-[var(--primary-bright)] shrink-0' : 'text-[var(--text-muted)] shrink-0'}
+                />
+              </div>
               <div className="min-w-0">
-                <p className="text-[11px] sm:text-xs text-[#9D9D9D] font-medium mb-1 truncate">{stat.label}</p>
-                <h4 className="text-lg sm:text-xl font-semibold text-[#FFFFFF] truncate" title={String(stat.value)}>
+                <h4
+                  className="text-2xl sm:text-[28px] font-medium text-[var(--text-heading)] leading-none tabular-nums truncate"
+                  title={String(stat.value)}
+                >
                   {stat.value}
                 </h4>
                 {stat.subValue && (
-                  <p className="text-[11px] text-[#858585] truncate mt-0.5" title={stat.subValue}>
+                  <p className="text-[11px] text-[var(--text-muted)] truncate mt-2" title={stat.subValue}>
                     {stat.subValue}
                   </p>
                 )}
               </div>
-              <div className={`p-2 sm:p-2.5 rounded-xl border ${stat.color} shrink-0`}>
-                <stat.icon size={16} className="sm:w-[18px] sm:h-[18px]" />
-              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5">
-        <div className="flex items-center justify-between text-xs mb-2">
-          <span className="font-medium text-[#D4D4D4]">{t('completionProgress', lang)}</span>
-          <span className="font-semibold text-[#3794FF]">{percent}% ({done}/{total} {t('doneStatus', lang)})</span>
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 sm:p-5">
+        <div className="flex items-center justify-between text-xs mb-2.5">
+          <span className="font-medium text-[var(--text-primary)]">{t('completionProgress', lang)}</span>
+          <span className="font-mono font-medium text-[var(--primary-bright)] tabular-nums">
+            {percent}% ({done}/{total} {t('doneStatus', lang)})
+          </span>
         </div>
-        <div className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-full h-2.5 overflow-hidden">
+        <div className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-full h-2 overflow-hidden">
           <div
-            className="bg-[#007ACC] h-full rounded-full transition-all duration-300"
+            className="bg-[var(--primary)] h-full rounded-full transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{ width: `${percent}%` }}
           />
         </div>

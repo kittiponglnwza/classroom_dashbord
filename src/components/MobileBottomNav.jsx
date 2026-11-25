@@ -41,7 +41,7 @@ function MobileBottomNavInner({ lang, totalActive, onOpenMenu }) {
   return (
     <nav
       aria-label="Mobile Bottom Navigation"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[var(--topbar-bg)]/95 backdrop-blur-md border-t border-[var(--border)] px-1.5 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))]"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[var(--topbar-bg)] border-t border-[var(--border)] px-2 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))]"
     >
       <div className="grid grid-cols-5 gap-1">
         {tabs.map((tab) => {
@@ -53,22 +53,29 @@ function MobileBottomNavInner({ lang, totalActive, onOpenMenu }) {
               end={tab.end}
               className={({ isActive }) => {
                 const active = tab.to === '/courses' ? (isActive && !selectedCourseParam) : isActive;
-                return `relative flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 rounded-xl text-[10.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+                return `relative flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 rounded-lg text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
                   active
-                    ? 'text-[var(--primary-bright)] bg-[var(--primary-active)]/40 font-semibold'
+                    ? 'text-[var(--text-heading)] bg-[var(--surface-elevated)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`;
               }}
             >
-              <div className="relative">
-                <Icon size={18} />
-                {tab.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[var(--primary)] text-white text-[9px] font-bold flex items-center justify-center leading-none tabular-nums">
-                    {tab.badge > 99 ? '99+' : tab.badge}
-                  </span>
-                )}
-              </div>
-              <span className="truncate max-w-full leading-tight">{tab.label}</span>
+              {({ isActive }) => {
+                const active = tab.to === '/courses' ? (isActive && !selectedCourseParam) : isActive;
+                return (
+                  <>
+                    <div className="relative">
+                      <Icon size={18} strokeWidth={1.5} className={active ? 'text-[var(--primary-bright)]' : undefined} />
+                      {tab.badge > 0 && (
+                        <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-[var(--primary)] text-white text-[11px] font-mono font-medium flex items-center justify-center leading-none tabular-nums">
+                          {tab.badge > 99 ? '99+' : tab.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className="truncate max-w-full leading-tight">{tab.label}</span>
+                  </>
+                );
+              }}
             </NavLink>
           );
         })}
@@ -77,9 +84,9 @@ function MobileBottomNavInner({ lang, totalActive, onOpenMenu }) {
           type="button"
           onClick={onOpenMenu}
           aria-label={lang === 'th' ? 'เมนูทั้งหมด' : 'More navigation'}
-          className="flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 rounded-xl text-[10.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          className="flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 rounded-lg text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
         >
-          <Menu size={18} />
+          <Menu size={18} strokeWidth={1.5} />
           <span className="truncate max-w-full leading-tight">{lang === 'th' ? 'เมนู' : 'More'}</span>
         </button>
       </div>

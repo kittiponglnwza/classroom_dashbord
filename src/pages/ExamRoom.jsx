@@ -169,7 +169,7 @@ export default function ExamRoom() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-6">
       <PageHeader
         title={t('examRoom', lang)}
         description={t('examDesc', lang)}
@@ -181,10 +181,10 @@ export default function ExamRoom() {
                 type="button"
                 onClick={() => handleSearch()}
                 disabled={loading}
-                className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 rounded-xl text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] px-3 h-9 rounded-lg text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer disabled:opacity-50"
                 title={isTh ? 'เช็กที่นั่งสอบล่าสุดจากเว็บ มจพ.' : 'Re-check official seating by Student ID'}
               >
-                <RefreshCw size={13} className={`text-[var(--primary-bright)] ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw size={15} strokeWidth={1.5} className={`text-[var(--primary-bright)] ${loading ? 'animate-spin' : ''}`} />
                 <span>{isTh ? 'เช็กที่นั่งสอบ' : 'Check Seating'}</span>
               </button>
             )}
@@ -192,26 +192,26 @@ export default function ExamRoom() {
               <button
                 type="button"
                 onClick={() => setIsSearchVisible(true)}
-                className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 rounded-xl text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer"
+                className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] px-3 h-9 rounded-lg text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer"
               >
-                <Search size={13} className="text-[var(--primary-bright)]" />
+                <Search size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                 <span>{isTh ? 'ค้นหารหัสอื่น' : 'Other ID'}</span>
               </button>
             )}
             <button
               type="button"
               onClick={() => setIsRegImportOpen(true)}
-              className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 rounded-xl text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] px-3 h-9 rounded-lg text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer"
             >
-              <Upload size={13} className="text-[var(--primary-bright)]" />
+              <Upload size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
               <span>{t('importReg', lang)}</span>
             </button>
             <button
               type="button"
               onClick={openNewModal}
-              className="flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
+              className="flex items-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-4 h-9 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] transition-colors cursor-pointer"
             >
-              <Plus size={14} />
+              <Plus size={15} strokeWidth={1.5} />
               <span>{t('addExamBtn', lang)}</span>
             </button>
           </>
@@ -220,14 +220,14 @@ export default function ExamRoom() {
 
       {EXAM_CONFIG.seatingLookupEnabled ? (
         EXAM_CONFIG.seatingLookupUsesHttp && (
-          <div role="status" className="bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
-            <AlertCircle size={15} className="shrink-0 mt-0.5 text-amber-300" />
+          <div role="status" className="bg-amber-500/8 border border-amber-500/25 text-amber-200 text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
+            <AlertCircle size={16} strokeWidth={1.5} className="shrink-0 mt-0.5 text-amber-300" />
             <p className="leading-relaxed">{t('examLookupWarning', lang)}</p>
           </div>
         )
       ) : (
-        <div role="status" className="bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D] text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
-          <AlertCircle size={15} className="shrink-0 mt-0.5 text-[#3794FF]" />
+        <div role="status" className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
+          <AlertCircle size={16} strokeWidth={1.5} className="shrink-0 mt-0.5 text-[var(--primary-bright)]" />
           <p className="leading-relaxed">{t('examLookupUnavailable', lang)}</p>
         </div>
       )}
@@ -247,8 +247,8 @@ export default function ExamRoom() {
 
       {/* Error Message (non-blocking if Reg fallback exams exist) */}
       {error && !loading && (
-        <div className="bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
-          <AlertCircle size={15} className="shrink-0 mt-0.5" />
+        <div className="bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs px-4 py-3 rounded-xl flex items-start gap-2.5">
+          <AlertCircle size={16} strokeWidth={1.5} className="shrink-0 mt-0.5" />
           <span className="leading-relaxed">
             {sortedExams.length > 0
               ? (isTh
@@ -261,9 +261,9 @@ export default function ExamRoom() {
 
       {/* SciBase-First Loading State (checks official seating site BEFORE displaying Reg fallback) */}
       {loading && (
-        <div className="py-14 text-center space-y-3 max-w-2xl mx-auto">
-          <div className="w-6 h-6 rounded-full border-2 border-[#3C3C3C] border-t-[#007ACC] animate-spin mx-auto" />
-          <p className="text-xs text-[#D4D4D4] font-medium">
+        <div className="py-12 text-center space-y-3 max-w-2xl mx-auto">
+          <div className="w-6 h-6 rounded-full border-2 border-[var(--border)] border-t-[var(--primary)] animate-spin mx-auto" />
+          <p className="text-xs text-[var(--text-primary)] font-medium">
             {isTh
               ? 'กำลังตรวจสอบตารางที่นั่งสอบทางการจากรหัสนักศึกษาก่อน...'
               : 'Checking official exam seating database by Student ID first...'}
@@ -275,8 +275,8 @@ export default function ExamRoom() {
       {((studentId.trim() !== '' && searchTriggered) || sortedExams.length > 0 || unlistedInfo) && !loading && (
         <div className="space-y-4">
           {isOutdatedData && (
-            <div className="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium px-4 py-3 rounded-xl flex items-start gap-2.5">
-              <AlertCircle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-medium px-4 py-3 rounded-xl flex items-start gap-2.5">
+              <AlertCircle size={16} strokeWidth={1.5} className="text-amber-400 shrink-0 mt-0.5" />
               <p className="leading-relaxed">
                 {lang === 'en'
                   ? 'The system currently shows exam schedules from the previous semester. It seems the university has not updated the exam database for the new semester yet.'
@@ -287,7 +287,7 @@ export default function ExamRoom() {
 
           {/* Viewing another Student ID banner */}
           {isViewingOtherStudentId && (
-            <div className="bg-[#007ACC]/15 border border-[#007ACC]/40 text-[#D4D4D4] text-xs px-4 py-3 rounded-xl flex flex-wrap items-center justify-between gap-3">
+            <div className="bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text-primary)] text-xs px-4 py-3 rounded-xl flex flex-wrap items-center justify-between gap-3">
               <span className="leading-relaxed">
                 {isTh
                   ? `กำลังดูที่นั่งสอบจาก SciBase ของรหัส ${searchedStudentId} (ไม่บันทึกทับตารางของคุณ)`
@@ -299,7 +299,7 @@ export default function ExamRoom() {
                   setShowRawSciBase(false);
                   resetToOwnStudentId();
                 }}
-                className="text-[#58A6FF] hover:bg-[#007ACC]/15 px-2.5 py-1 rounded-lg font-medium cursor-pointer shrink-0 whitespace-nowrap transition-colors"
+                className="text-[var(--primary-bright)] hover:bg-[var(--surface-hover)] px-2.5 py-1 rounded-lg font-medium cursor-pointer shrink-0 whitespace-nowrap transition-colors"
               >
                 {isTh ? 'กลับไปดูของฉัน' : 'Back to my ID'}
               </button>
@@ -308,8 +308,8 @@ export default function ExamRoom() {
 
           {/* Source Status Banner */}
           {!isViewingOtherStudentId && sortedExams.length > 0 && isActiveTabSciBasePrimary && (
-            <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs px-4 py-3 rounded-xl flex items-center gap-2.5">
-              <CheckCircle2 size={15} className="shrink-0" />
+            <div className="bg-emerald-500/8 border border-emerald-500/25 text-emerald-300 text-xs px-4 py-3 rounded-xl flex items-center gap-2.5">
+              <CheckCircle2 size={16} strokeWidth={1.5} className="shrink-0" />
               <span className="leading-relaxed">
                 {isTh
                   ? `ใช้ตารางที่นั่งสอบทางการจากเว็บ มจพ. เป็นหลัก (${displayedExams.length} รายการ)`
@@ -319,9 +319,9 @@ export default function ExamRoom() {
           )}
 
           {!isViewingOtherStudentId && sortedExams.length > 0 && !isActiveTabSciBasePrimary && isActiveTabRegFallback && (
-            <div className="bg-[#007ACC]/10 border border-[#007ACC]/30 text-[#D4D4D4] text-xs px-4 py-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] text-xs px-4 py-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-start gap-2.5">
-                <CheckCircle2 size={15} className="text-[#3794FF] shrink-0 mt-0.5" />
+                <CheckCircle2 size={16} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
                   {isSciBaseOutdatedFallback
                     ? (isTh
@@ -336,7 +336,7 @@ export default function ExamRoom() {
                 <button
                   type="button"
                   onClick={() => setShowRawSciBase((prev) => !prev)}
-                  className="text-[11px] font-medium text-[#58A6FF] bg-[#007ACC]/15 hover:bg-[#007ACC]/25 px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 self-end sm:self-center cursor-pointer"
+                  className="text-[11px] font-medium text-[var(--primary-bright)] bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap shrink-0 self-end sm:self-center cursor-pointer"
                 >
                   {viewingRawSciBase
                     ? (isTh ? 'กลับไปดูตารางเทอมปัจจุบัน' : 'Back to current term')
@@ -354,7 +354,7 @@ export default function ExamRoom() {
                   <div
                     role="tablist"
                     aria-label={isTh ? 'เลือกรอบสอบ' : 'Exam round'}
-                    className="inline-flex items-center bg-[#252526] border border-[#3C3C3C] rounded-xl p-1 gap-1 self-start"
+                    className="inline-flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-xl p-1 gap-1 self-start"
                   >
                     {midtermExams.length > 0 && (
                       <button
@@ -362,15 +362,15 @@ export default function ExamRoom() {
                         role="tab"
                         aria-selected={activeRoundTab === 'midterm'}
                         onClick={() => setUserRoundTab('midterm')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+                        className={`px-3 h-8 rounded-lg text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
                           activeRoundTab === 'midterm'
-                            ? 'bg-[#007ACC] text-white'
-                            : 'text-[#9D9D9D] hover:text-[#FFFFFF]'
+                            ? 'bg-[var(--primary)] text-white'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-heading)]'
                         }`}
                       >
                         <span>{isTh ? 'กลางภาค' : 'Midterm'}</span>
-                        <span className={`text-[10.5px] font-mono px-1.5 py-0.25 rounded-md ${
-                          activeRoundTab === 'midterm' ? 'bg-white/20 text-white' : 'bg-[#1E1E1E] text-[#858585]'
+                        <span className={`text-[11px] font-mono tabular-nums px-1.5 py-0.5 rounded ${
+                          activeRoundTab === 'midterm' ? 'bg-white/15 text-white' : 'bg-[var(--app-bg)] text-[var(--text-muted)]'
                         }`}>
                           {midtermExams.length}
                         </span>
@@ -382,15 +382,15 @@ export default function ExamRoom() {
                         role="tab"
                         aria-selected={activeRoundTab === 'final'}
                         onClick={() => setUserRoundTab('final')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+                        className={`px-3 h-8 rounded-lg text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
                           activeRoundTab === 'final'
-                            ? 'bg-[#007ACC] text-white'
-                            : 'text-[#9D9D9D] hover:text-[#FFFFFF]'
+                            ? 'bg-[var(--primary)] text-white'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-heading)]'
                         }`}
                       >
                         <span>{isTh ? 'ปลายภาค' : 'Final'}</span>
-                        <span className={`text-[10.5px] font-mono px-1.5 py-0.25 rounded-md ${
-                          activeRoundTab === 'final' ? 'bg-white/20 text-white' : 'bg-[#1E1E1E] text-[#858585]'
+                        <span className={`text-[11px] font-mono tabular-nums px-1.5 py-0.5 rounded ${
+                          activeRoundTab === 'final' ? 'bg-white/15 text-white' : 'bg-[var(--app-bg)] text-[var(--text-muted)]'
                         }`}>
                           {finalExams.length}
                         </span>
@@ -401,48 +401,48 @@ export default function ExamRoom() {
                       role="tab"
                       aria-selected={activeRoundTab === 'all'}
                       onClick={() => setUserRoundTab('all')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+                      className={`px-3 h-8 rounded-lg text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
                         activeRoundTab === 'all'
-                          ? 'bg-[#007ACC] text-white'
-                          : 'text-[#9D9D9D] hover:text-[#FFFFFF]'
+                          ? 'bg-[var(--primary)] text-white'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-heading)]'
                       }`}
                     >
                       <span>{isTh ? 'ทั้งหมด' : 'All'}</span>
-                      <span className={`text-[10.5px] font-mono px-1.5 py-0.25 rounded-md ${
-                        activeRoundTab === 'all' ? 'bg-white/20 text-white' : 'bg-[#1E1E1E] text-[#858585]'
+                      <span className={`text-[11px] font-mono tabular-nums px-1.5 py-0.5 rounded ${
+                        activeRoundTab === 'all' ? 'bg-white/15 text-white' : 'bg-[var(--app-bg)] text-[var(--text-muted)]'
                       }`}>
                         {sortedExams.length}
                       </span>
                     </button>
                   </div>
                 ) : (
-                  <h3 className="font-semibold text-xs text-[#FFFFFF] flex items-center gap-2">
-                    <CheckCircle2 size={14} className="text-emerald-400" />
+                  <h3 className="font-medium text-xs text-[var(--text-heading)] flex items-center gap-2">
+                    <CheckCircle2 size={15} strokeWidth={1.5} className="text-emerald-400" />
                     <span>{lang === 'en' ? 'Your Exam Seating Schedule' : 'ตารางและที่นั่งสอบของคุณ'}</span>
                   </h3>
                 )}
 
                 <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <div className="flex items-center bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-0.5">
+                  <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-lg p-1">
                     <button
                       type="button"
                       onClick={() => toggleLayout('grid')}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        layoutView === 'grid' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
+                      className={`p-1.5 rounded transition-colors cursor-pointer ${
+                        layoutView === 'grid' ? 'bg-[var(--surface-elevated)] text-[var(--primary-bright)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                       }`}
                       title={lang === 'en' ? 'Grid View' : 'มุมมองแบบกริด'}
                     >
-                      <LayoutGrid size={14} />
+                      <LayoutGrid size={15} strokeWidth={1.5} />
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleLayout('list')}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        layoutView === 'list' ? 'bg-[#094771]/70 text-[#3794FF]' : 'text-[#858585] hover:text-[#D4D4D4]'
+                      className={`p-1.5 rounded transition-colors cursor-pointer ${
+                        layoutView === 'list' ? 'bg-[var(--surface-elevated)] text-[var(--primary-bright)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                       }`}
                       title={lang === 'en' ? 'List View' : 'มุมมองแบบรายการ'}
                     >
-                      <List size={14} />
+                      <List size={15} strokeWidth={1.5} />
                     </button>
                   </div>
                 </div>
@@ -465,10 +465,10 @@ export default function ExamRoom() {
           )}
 
           {sortedExams.length === 0 && !unlistedInfo && !error && (
-            <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-10 text-center max-w-2xl mx-auto">
-              <ClipboardCheck size={32} className="text-[#858585] mx-auto mb-3 opacity-60" />
-              <h3 className="font-semibold text-[#FFFFFF] text-base mb-1.5">{t('noUpcomingExams', lang)}</h3>
-              <p className="text-xs text-[#9D9D9D] leading-relaxed">
+            <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-xl p-10 text-center max-w-2xl mx-auto">
+              <ClipboardCheck size={24} strokeWidth={1.5} className="text-[var(--text-muted)] mx-auto mb-3" />
+              <h3 className="font-medium text-[var(--text-heading)] text-base mb-1.5">{t('noUpcomingExams', lang)}</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 {lang === 'en'
                   ? 'There are no upcoming exams found in the database. If you have custom exam schedules, you can add them manually.'
                   : 'ไม่พบรายชื่อการสอบที่กำลังจะมาถึงในระบบ คุณสามารถเพิ่มวิชาสอบของคุณเองได้โดยใช้ปุ่มเพิ่มวิชาสอบด้านบน'}

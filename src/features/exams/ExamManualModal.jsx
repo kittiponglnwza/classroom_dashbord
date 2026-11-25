@@ -103,38 +103,38 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
         role="dialog"
         aria-modal="true"
         aria-labelledby="exam-manual-title"
-        className="bg-[#252526] border border-[#3C3C3C] rounded-2xl w-full max-h-[90vh] max-w-md overflow-y-auto relative shadow-xl flex flex-col"
+        className="bg-[var(--surface)] border border-[var(--border-strong)] rounded-2xl w-full max-h-[90vh] max-w-md overflow-y-auto relative flex flex-col"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#3C3C3C]">
-          <h3 id="exam-manual-title" className="font-semibold text-sm text-[#FFFFFF] flex items-center gap-2">
-            <ClipboardCheck size={16} className="text-[#3794FF]" />
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+          <h3 id="exam-manual-title" className="font-medium text-sm text-[var(--text-heading)] flex items-center gap-2">
+            <ClipboardCheck size={16} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
             <span>{initialData ? t('examFormEditTitle', lang) : t('examFormTitle', lang)}</span>
           </h3>
           <button
             type="button"
             onClick={onCancel}
             aria-label="Close modal"
-            className="p-1 text-[#9D9D9D] hover:text-[#FFFFFF] rounded-lg hover:bg-[#2A2D2E] transition-colors cursor-pointer"
+            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-heading)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
           >
-            <X size={16} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-1">
-              <label htmlFor={codeId} className="block text-xs font-medium text-[#D4D4D4] mb-1">{t('courseCodeLabel', lang)}</label>
+              <label htmlFor={codeId} className="block text-xs font-medium text-[var(--text-primary)] mb-1">{t('courseCodeLabel', lang)}</label>
               <input
                 id={codeId}
                 type="text"
                 placeholder="e.g. 40613502"
                 value={formCode}
                 onChange={(e) => setFormCode(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div className="col-span-2">
-              <label htmlFor={nameId} className="block text-xs font-medium text-[#D4D4D4] mb-1">{t('courseNameLabel', lang)} *</label>
+              <label htmlFor={nameId} className="block text-xs font-medium text-[var(--text-primary)] mb-1">{t('courseNameLabel', lang)} *</label>
               <input
                 id={nameId}
                 type="text"
@@ -143,25 +143,25 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="e.g. COMPUTER NETWORK"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label htmlFor={dateId} className="block text-xs font-medium text-[#D4D4D4] mb-1">{t('examDateLabel', lang)} *</label>
+              <label htmlFor={dateId} className="block text-xs font-medium text-[var(--text-primary)] mb-1">{t('examDateLabel', lang)} *</label>
               <input
                 id={dateId}
                 type="date"
                 required
                 value={formDate}
                 onChange={(e) => setFormDate(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] cursor-pointer"
+                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer"
               />
             </div>
             <div>
-              <span className="block text-xs font-medium text-[#D4D4D4] mb-1">{t('examTimeLabel', lang)} *</span>
+              <span className="block text-xs font-medium text-[var(--text-primary)] mb-1">{t('examTimeLabel', lang)} *</span>
               <div className="flex items-center gap-1.5">
                 <input
                   type="time"
@@ -169,16 +169,16 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                   required
                   value={startTime}
                   onChange={(e) => { setStartTime(e.target.value); setTimeError(''); }}
-                  className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-2.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                  className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-2.5 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 />
-                <span className="text-[#858585]">-</span>
+                <span className="text-[var(--text-muted)]">-</span>
                 <input
                   type="time"
                   aria-label={t('endTime', lang)}
                   required
                   value={endTime}
                   onChange={(e) => { setEndTime(e.target.value); setTimeError(''); }}
-                  className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-2.5 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                  className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-2.5 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 />
               </div>
               {timeError && <p role="alert" className="text-[11px] text-rose-400 mt-1">{timeError}</p>}
@@ -187,40 +187,40 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor={roomId} className="block text-xs font-medium text-[#D4D4D4] mb-1">{t('roomLabel', lang)}</label>
+              <label htmlFor={roomId} className="block text-xs font-medium text-[var(--text-primary)] mb-1">{t('roomLabel', lang)}</label>
               <input
                 id={roomId}
                 type="text"
                 placeholder="e.g. 81-506"
                 value={formRoom}
                 onChange={(e) => setFormRoom(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div>
-              <label htmlFor={seatId} className="block text-xs font-medium text-[#D4D4D4] mb-1">{t('seatNoLabel', lang)}</label>
+              <label htmlFor={seatId} className="block text-xs font-medium text-[var(--text-primary)] mb-1">{t('seatNoLabel', lang)}</label>
               <input
                 id={seatId}
                 type="text"
                 placeholder="e.g. Row 5, Seat 20"
                 value={formSeat}
                 onChange={(e) => setFormSeat(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2.5 pt-3 border-t border-[#3C3C3C]">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] transition-colors cursor-pointer"
+              className="px-4 h-9 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
             >
               {t('cancelBtn', lang)}
             </button>
             <button
               type="submit"
-              className="bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-5 py-2 rounded-xl transition-colors cursor-pointer"
+              className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-5 h-9 rounded-lg transition-colors cursor-pointer"
             >
               {t('saveExamBtn', lang)}
             </button>

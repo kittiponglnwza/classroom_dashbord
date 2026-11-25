@@ -59,9 +59,14 @@ export default function Sidebar({ onLinkClick = null }) {
     { name: 'Academic', key: 'academic', path: '/academic', icon: GraduationCap, count: null },
   ];
 
+  const activeNavClass =
+    'bg-[var(--surface-elevated)] text-[var(--text-heading)] border-[var(--border-strong)] shadow-[inset_0_1px_0_rgba(238,240,245,0.06)] font-medium';
+  const inactiveNavClass =
+    'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] border-transparent';
+
   return (
     <aside
-      className={`bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col transition-all duration-200 relative h-full min-h-0 select-none ${
+      className={`bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] relative h-full min-h-0 select-none ${
         isCollapsed ? 'w-18' : 'w-60 lg:w-64'
       }`}
     >
@@ -74,11 +79,11 @@ export default function Sidebar({ onLinkClick = null }) {
               className="w-8 h-8 rounded-lg shrink-0 select-none"
             />
             <div className="flex flex-col items-start min-w-0">
-              <span className="font-semibold text-sm text-[var(--text-heading)] tracking-tight truncate max-w-full">
+              <span className="font-medium text-sm text-[var(--text-heading)] tracking-[-0.01em] truncate max-w-full">
                 Classroom Hub
               </span>
               <span className="text-[11px] text-[var(--text-muted)] truncate max-w-full">
-                {lang === 'en' ? 'Student Workspace' : 'พื้นที่จัดการการเรียน'}
+                {lang === 'en' ? 'KMUTNB Workspace' : 'ระบบจัดการการเรียน มจพ.'}
               </span>
             </div>
           </Link>
@@ -87,13 +92,13 @@ export default function Sidebar({ onLinkClick = null }) {
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden md:flex w-7 h-7 bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors items-center justify-center cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          className="hidden md:flex w-7 h-7 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors items-center justify-center cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
         >
-          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          {isCollapsed ? <ChevronRight size={14} strokeWidth={1.5} /> : <ChevronLeft size={14} strokeWidth={1.5} />}
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-6">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4">
         <nav aria-label="Main Navigation" className="space-y-1">
           {navItems.map((item) => (
             <NavLink
@@ -104,29 +109,40 @@ export default function Sidebar({ onLinkClick = null }) {
               onClick={onLinkClick}
               className={({ isActive }) => {
                 const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
-                return `flex items-center ${isCollapsed ? 'justify-center px-2.5 py-2.5' : 'justify-between px-3 py-2.5'} rounded-xl text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
-                  active
-                    ? 'bg-[var(--primary-active)]/75 text-[var(--text-heading)] border-[var(--primary)]/50 font-semibold'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] border-transparent'
+                return `flex items-center h-9 ${isCollapsed ? 'justify-center px-2' : 'justify-between px-3'} rounded-lg text-sm font-normal transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+                  active ? activeNavClass : inactiveNavClass
                 }`;
               }}
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <item.icon size={18} className="shrink-0" />
-                {!isCollapsed && <span className="truncate">{t(item.key, lang)}</span>}
-              </div>
-              {!isCollapsed && item.count !== null && item.count > 0 && (
-                <span className="bg-[var(--app-bg)] text-[var(--text-primary)] text-xs px-2 py-0.5 rounded-full font-medium border border-[var(--border)] tabular-nums">
-                  {item.count}
-                </span>
-              )}
+              {({ isActive }) => {
+                const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
+                return (
+                  <>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="w-4 flex items-center justify-center shrink-0">
+                        <item.icon
+                          size={16}
+                          strokeWidth={1.5}
+                          className={active ? 'text-[var(--primary-bright)]' : 'text-[var(--text-muted)]'}
+                        />
+                      </span>
+                      {!isCollapsed && <span className="truncate">{t(item.key, lang)}</span>}
+                    </div>
+                    {!isCollapsed && item.count !== null && item.count > 0 && (
+                      <span className="text-xs font-mono text-[var(--text-muted)] tabular-nums shrink-0">
+                        {item.count}
+                      </span>
+                    )}
+                  </>
+                );
+              }}
             </NavLink>
           ))}
         </nav>
 
         {!isCollapsed && visibleCourses.length > 0 && (
-          <div className="space-y-1.5">
-            <h3 className="px-3 text-xs font-medium text-[var(--text-muted)] flex items-center justify-between">
+          <div className="mt-6">
+            <h3 className="px-3 mb-2 text-xs font-medium text-[var(--text-muted)]">
               <span>{t('myCourses', lang)}</span>
             </h3>
             <nav aria-label="Courses Navigation" className="space-y-0.5">
@@ -138,18 +154,18 @@ export default function Sidebar({ onLinkClick = null }) {
                     key={course.id}
                     to={`/courses?selected=${encodeURIComponent(course.name)}`}
                     onClick={onLinkClick}
-                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
-                      isCourseActive
-                        ? 'bg-[var(--primary-active)]/75 text-[var(--text-heading)] border-[var(--primary)]/50 font-semibold'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] border-transparent font-medium'
+                    className={`flex items-center justify-between h-8 px-3 rounded-lg text-[13px] transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+                      isCourseActive ? activeNavClass : inactiveNavClass
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${getCourseDotClass(course.color)}`} />
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <span className="w-4 flex items-center justify-center shrink-0">
+                        <span className={`w-2 h-2 rounded-full ${getCourseDotClass(course.color)}`} />
+                      </span>
                       <span className="truncate">{course.name}</span>
                     </div>
                     {count > 0 && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--app-bg)] text-[var(--text-secondary)] border border-[var(--border)] font-medium shrink-0 tabular-nums">
+                      <span className="text-xs font-mono text-[var(--text-muted)] shrink-0 tabular-nums">
                         {count}
                       </span>
                     )}
@@ -167,15 +183,23 @@ export default function Sidebar({ onLinkClick = null }) {
           title={isCollapsed ? t('examRoom', lang) : undefined}
           onClick={onLinkClick}
           className={({ isActive }) =>
-            `flex items-center ${isCollapsed ? 'justify-center px-2.5 py-2.5' : 'gap-3 px-3 py-2.5'} rounded-xl text-sm font-medium transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
-              isActive
-                ? 'bg-[var(--primary-active)]/75 text-[var(--text-heading)] border-[var(--primary)]/50 font-semibold'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] border-transparent'
+            `flex items-center h-9 ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} rounded-lg text-sm font-normal transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+              isActive ? activeNavClass : inactiveNavClass
             }`
           }
         >
-          <ClipboardCheck size={18} className="shrink-0" />
-          {!isCollapsed && <span>{t('examRoom', lang)}</span>}
+          {({ isActive }) => (
+            <>
+              <span className="w-4 flex items-center justify-center shrink-0">
+                <ClipboardCheck
+                  size={16}
+                  strokeWidth={1.5}
+                  className={isActive ? 'text-[var(--primary-bright)]' : 'text-[var(--text-muted)]'}
+                />
+              </span>
+              {!isCollapsed && <span className="truncate">{t('examRoom', lang)}</span>}
+            </>
+          )}
         </NavLink>
       </div>
 
@@ -183,13 +207,13 @@ export default function Sidebar({ onLinkClick = null }) {
         to="/settings"
         onClick={onLinkClick}
         className={({ isActive }) =>
-          `py-3.5 border-t border-[var(--border)] shrink-0 overflow-hidden flex items-center hover:bg-[var(--surface-hover)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+          `py-3 border-t border-[var(--border)] shrink-0 overflow-hidden flex items-center hover:bg-[var(--surface)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
             isCollapsed ? 'px-2 justify-center' : 'px-4 justify-between'
-          } ${isActive ? 'bg-[var(--primary-active)]/50' : ''}`
+          } ${isActive ? 'bg-[var(--surface-elevated)]' : ''}`
         }
       >
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-[var(--border)] bg-[var(--app-bg)] flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center shrink-0">
             {profile.avatarUrl && failedAvatarUrl !== profile.avatarUrl ? (
               <img
                 src={profile.avatarUrl}
@@ -198,24 +222,24 @@ export default function Sidebar({ onLinkClick = null }) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-[var(--text-primary)] text-xs font-semibold">
+              <span className="text-[var(--text-primary)] text-xs font-medium">
                 {profile.name ? profile.name.charAt(0).toUpperCase() : 'S'}
               </span>
             )}
           </div>
           {!isCollapsed && (
             <div className="text-left overflow-hidden">
-              <p className="text-xs font-semibold text-[var(--text-primary)] truncate">
+              <p className="text-[13px] font-medium text-[var(--text-primary)] truncate">
                 {profile.name || 'Student'}
               </p>
-              <p className="text-[11px] text-[var(--text-muted)] truncate">
+              <p className="text-[11px] font-mono text-[var(--text-muted)] truncate">
                 {profile.email || t('notConnected', lang)}
               </p>
             </div>
           )}
         </div>
         {!isCollapsed && (
-          <Settings size={15} className="text-[var(--text-muted)] shrink-0 ml-1" />
+          <Settings size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0 ml-2" />
         )}
       </NavLink>
     </aside>

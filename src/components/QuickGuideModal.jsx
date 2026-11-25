@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useInRouterContext } from 'react-router-dom';
 import {
   X, HelpCircle, BookOpen, CalendarDays, GraduationCap,
-  Bell, Puzzle, Download, ShieldCheck, ArrowRight, Sparkles
+  Bell, Puzzle, Download, ShieldCheck, ArrowRight, PlayCircle
 } from 'lucide-react';
 
 function SafeGuideLink({ to, onNavigate, className, children }) {
@@ -41,13 +41,13 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'start', icon: Sparkles, labelTh: 'เริ่มใช้งาน 1 นาที', labelEn: 'Quick Start' },
+    { id: 'start', icon: PlayCircle, labelTh: 'เริ่มใช้งาน 1 นาที', labelEn: 'Quick Start' },
     { id: 'reg', icon: GraduationCap, labelTh: 'ดึงตาราง & เกรด', labelEn: 'Reg & Exams' },
     { id: 'alerts', icon: Bell, labelTh: 'แจ้งเตือน Gmail/Discord', labelEn: 'Notifications' },
     { id: 'app', icon: Download, labelTh: 'ติดตั้งแอป & ความปลอดภัย', labelEn: 'App & Privacy' },
   ];
 
-  const cardClass = 'bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-4 space-y-2.5';
+  const cardClass = 'bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-4 space-y-2.5';
   const navBtnClass =
     'inline-flex items-center gap-1.5 text-xs font-medium text-[var(--primary-bright)] hover:underline';
 
@@ -60,14 +60,14 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 animate-fade-in"
     >
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+      <div className="bg-[var(--surface)] border border-[var(--border-strong)] rounded-xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between gap-3 shrink-0">
           <div className="min-w-0">
-            <h2 id="quick-guide-title" className="text-base font-semibold text-[var(--text-heading)] flex items-center gap-2">
-              <HelpCircle size={18} className="text-[var(--primary-bright)] shrink-0" />
+            <h2 id="quick-guide-title" className="text-base font-medium text-[var(--text-heading)] flex items-center gap-2">
+              <HelpCircle size={18} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
               <span className="truncate">
                 {isTh ? 'คู่มือใช้งานฉบับย่อ (สำหรับนักศึกษา)' : 'Student Quick Guide'}
               </span>
@@ -90,19 +90,19 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
 
         {/* Navigation Tabs */}
         <div className="px-5 pt-4 shrink-0">
-          <div className="grid grid-cols-2 sm:grid-cols-4 bg-[var(--app-bg)] border border-[var(--border)] p-1 rounded-xl gap-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 bg-[var(--app-bg)] border border-[var(--border)] p-1 rounded-lg gap-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                   activeTab === tab.id
                     ? 'bg-[var(--primary-active)] text-white border border-[var(--primary)]/50'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                <tab.icon size={13} className="shrink-0" />
+                <tab.icon size={13} strokeWidth={1.5} className="shrink-0" />
                 <span className="truncate">{isTh ? tab.labelTh : tab.labelEn}</span>
               </button>
             ))}
@@ -114,8 +114,8 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
           {activeTab === 'start' && (
             <>
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)] flex items-center gap-2">
-                  <BookOpen size={14} className="text-[var(--primary-bright)]" />
+                <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+                  <BookOpen size={14} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                   <span>{isTh ? '1. ติดตามการบ้านและประกาศเรียน' : '1. Track Assignments & Courses'}</span>
                 </h3>
                 <p className="text-[var(--text-secondary)] leading-relaxed">
@@ -125,13 +125,13 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
                 </p>
                 <SafeGuideLink to="/dashboard" onNavigate={onClose} className={navBtnClass}>
                   <span>{isTh ? 'ไปหน้ารายการงาน' : 'Open Assignments'}</span>
-                  <ArrowRight size={12} />
+                  <ArrowRight size={12} strokeWidth={1.5} />
                 </SafeGuideLink>
               </div>
 
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)] flex items-center gap-2">
-                  <CalendarDays size={14} className="text-[var(--primary-bright)]" />
+                <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+                  <CalendarDays size={14} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                   <span>{isTh ? '2. นำเข้าตารางเรียน วันสอบ และเกรด (แนะนำ)' : '2. Import Timetable, Exams & Grades'}</span>
                 </h3>
                 <p className="text-[var(--text-secondary)] leading-relaxed">
@@ -145,13 +145,13 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
                   className={`${navBtnClass} cursor-pointer`}
                 >
                   <span>{isTh ? 'ดูขั้นตอนแบบละเอียด' : 'See step-by-step Reg guide'}</span>
-                  <ArrowRight size={12} />
+                  <ArrowRight size={12} strokeWidth={1.5} />
                 </button>
               </div>
 
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)] flex items-center gap-2">
-                  <Bell size={14} className="text-[var(--primary-bright)]" />
+                <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+                  <Bell size={14} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                   <span>{isTh ? '3. ตั้งแจ้งเตือนกันลืมส่งงาน' : '3. Turn On Deadline Reminders'}</span>
                 </h3>
                 <p className="text-[var(--text-secondary)] leading-relaxed">
@@ -165,7 +165,7 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
                   className={`${navBtnClass} cursor-pointer`}
                 >
                   <span>{isTh ? 'ดูวิธีตั้งค่าแจ้งเตือน' : 'How to enable alerts'}</span>
-                  <ArrowRight size={12} />
+                  <ArrowRight size={12} strokeWidth={1.5} />
                 </button>
               </div>
             </>
@@ -175,10 +175,10 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
             <>
               <div className={cardClass}>
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-xs font-semibold text-[var(--text-heading)]">
+                  <h3 className="text-xs font-medium text-[var(--text-heading)]">
                     {isTh ? 'วิธีที่ 1 (ง่ายที่สุด — 10 วินาที): ก๊อปวางจากเว็บ Reg' : 'Method 1 (Easiest — 10 Seconds): Copy & Paste'}
                   </h3>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
                     {isTh ? 'แนะนำ' : 'Recommended'}
                   </span>
                 </div>
@@ -190,18 +190,18 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
                 <div className="flex flex-wrap items-center gap-4 pt-1">
                   <SafeGuideLink to="/schedule" onNavigate={onClose} className={navBtnClass}>
                     <span>{isTh ? 'เปิดหน้าตารางเรียน' : 'Open Schedule'}</span>
-                    <ArrowRight size={12} />
+                    <ArrowRight size={12} strokeWidth={1.5} />
                   </SafeGuideLink>
                   <SafeGuideLink to="/academic" onNavigate={onClose} className={navBtnClass}>
                     <span>{isTh ? 'เปิดหน้าผลการเรียน' : 'Open Academic & GPA'}</span>
-                    <ArrowRight size={12} />
+                    <ArrowRight size={12} strokeWidth={1.5} />
                   </SafeGuideLink>
                 </div>
               </div>
 
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)] flex items-center gap-2">
-                  <Puzzle size={14} className="text-[var(--primary-bright)]" />
+                <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+                  <Puzzle size={14} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                   <span>{isTh ? 'วิธีที่ 2: ใช้ Chrome/Edge Extension ซิงค์อัตโนมัติ' : 'Method 2: Browser Extension (Auto-Sync)'}</span>
                 </h3>
                 <ol className="list-decimal list-inside space-y-1.5 text-[var(--text-secondary)] leading-relaxed">
@@ -213,26 +213,26 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
                   <a
                     href="/classrooms-reg-extension.zip"
                     download="classrooms-reg-extension.zip"
-                    className="inline-flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-3.5 py-2 rounded-xl transition-colors"
+                    className="inline-flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-3.5 py-2 rounded-lg transition-colors"
                   >
-                    <Download size={13} />
+                    <Download size={13} strokeWidth={1.5} />
                     <span>{isTh ? 'ดาวน์โหลด Extension (.zip)' : 'Download Extension (.zip)'}</span>
                   </a>
                 </div>
               </div>
 
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)]">
+                <h3 className="text-xs font-medium text-[var(--text-heading)]">
                   {isTh ? 'เช็กที่นั่งสอบ (สำหรับคนที่ใช้ Gmail ส่วนตัว)' : 'Exam Seating Tip (Personal Gmail Accounts)'}
                 </h3>
                 <p className="text-[var(--text-secondary)] leading-relaxed">
                   {isTh
-                    ? 'ถ้าไม่ได้ล็อกอินด้วยเมลสถาบัน (s6xxxxxxx@email.kmutnb.ac.th) สามารถกรอกรหัสนักศึกษา 13 หลักไว้ในหน้า "โปรไฟล์ & ตั้งค่า" หรือค้นหาโดยตรงในหน้า "ที่นั่งสอบ" ได้ครับ'
+                    ? 'ถ้าไม่ได้ล็อกอินด้วยเมลสถาบัน (s6xxxxxxx@email.kmutnb.ac.th) สามารถกรอกรหัสนักศึกษา 13 หลักไว้ในหน้า "โปรไฟล์ & ตั้งค่า" หรือค้นหาโดยตรงในหน้า "ที่นั่งสอบ" ได้'
                     : 'If you sign in with a personal Gmail account, enter your 13-digit Student ID in Settings or search directly inside Exam Seating.'}
                 </p>
                 <SafeGuideLink to="/exam-room" onNavigate={onClose} className={navBtnClass}>
                   <span>{isTh ? 'เปิดหน้าตรวจสอบที่นั่งสอบ' : 'Open Exam Seating'}</span>
-                  <ArrowRight size={12} />
+                  <ArrowRight size={12} strokeWidth={1.5} />
                 </SafeGuideLink>
               </div>
             </>
@@ -241,17 +241,17 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
           {activeTab === 'alerts' && (
             <>
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)]">
+                <h3 className="text-xs font-medium text-[var(--text-heading)]">
                   {isTh ? '1. แจ้งเตือนทาง Gmail (เปิดใช้ได้เลยในแอป)' : '1. Gmail Alerts (One-Click Inside App)'}
                 </h3>
                 <ol className="list-decimal list-inside space-y-1.5 text-[var(--text-secondary)] leading-relaxed">
-                  <li>{isTh ? 'กดไอคอนรูปกระดิ่ง 🔔 ที่แถบด้านบน → เลือกแท็บ "ตั้งค่าแจ้งเตือน"' : 'Click the Bell icon in the top bar → switch to "Settings".'}</li>
+                  <li>{isTh ? 'กดไอคอนรูปกระดิ่งที่แถบด้านบน → เลือกแท็บ "ตั้งค่าแจ้งเตือน"' : 'Click the Bell icon in the top bar → switch to "Settings".'}</li>
                   <li>{isTh ? 'เปิดสวิตช์เมลและเลือกช่วงเวลาที่ต้องการ (ส่งสูงสุด 10 ฉบับ/วันเมื่อเปิดเว็บหรือซิงก์)' : 'Turn on the Gmail toggle and pick reminder triggers (runs on open/sync, up to 10 emails/day).'}</li>
                 </ol>
               </div>
 
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)]">
+                <h3 className="text-xs font-medium text-[var(--text-heading)]">
                   {isTh ? '2. แจ้งเตือนเข้า Discord Webhook' : '2. Discord Channel Webhook Alerts'}
                 </h3>
                 <ol className="list-decimal list-inside space-y-1.5 text-[var(--text-secondary)] leading-relaxed">
@@ -262,7 +262,7 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
               </div>
 
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)]">
+                <h3 className="text-xs font-medium text-[var(--text-heading)]">
                   {isTh ? '3. เปิดแจ้งเตือน 24 ชม. แม้ปิดหน้าเว็บ (Google Apps Script)' : '3. Optional 24/7 Cloud Script (Even When Browser Closed)'}
                 </h3>
                 <ol className="list-decimal list-inside space-y-1.5 text-[var(--text-secondary)] leading-relaxed">
@@ -272,7 +272,7 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
                 </ol>
                 <SafeGuideLink to="/settings" onNavigate={onClose} className={navBtnClass}>
                   <span>{isTh ? 'ไปหน้าโปรไฟล์ & ตั้งค่า' : 'Open Profile & Settings'}</span>
-                  <ArrowRight size={12} />
+                  <ArrowRight size={12} strokeWidth={1.5} />
                 </SafeGuideLink>
               </div>
             </>
@@ -281,7 +281,7 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
           {activeTab === 'app' && (
             <>
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)]">
+                <h3 className="text-xs font-medium text-[var(--text-heading)]">
                   {isTh ? 'ติดตั้งเป็นแอปบนมือถือและคอม (PWA)' : 'Install as an App (Mobile & Desktop)'}
                 </h3>
                 <ul className="list-disc list-inside space-y-1.5 text-[var(--text-secondary)] leading-relaxed">
@@ -291,8 +291,8 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
               </div>
 
               <div className={cardClass}>
-                <h3 className="text-xs font-semibold text-[var(--text-heading)] flex items-center gap-2">
-                  <ShieldCheck size={14} className="text-[var(--success)]" />
+                <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+                  <ShieldCheck size={14} strokeWidth={1.5} className="text-[var(--success)]" />
                   <span>{isTh ? 'ความปลอดภัย & การใช้บนคอมส่วนรวม' : 'Privacy, Cloud Sync & Shared Computers'}</span>
                 </h3>
                 <ul className="list-disc list-inside space-y-1.5 text-[var(--text-secondary)] leading-relaxed">
@@ -315,7 +315,7 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
           <button
             type="button"
             onClick={onClose}
-            className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+            className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
           >
             {isTh ? 'เข้าใจแล้ว' : 'Got it'}
           </button>

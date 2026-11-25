@@ -142,15 +142,15 @@ export default function AssignmentDetail() {
 
   if (!assignment) {
     return (
-      <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-10 text-center max-w-lg mx-auto mt-10 space-y-4">
-        <h3 className="text-lg font-semibold text-[#FFFFFF]">{t('detailNotFound', lang)}</h3>
-        <p className="text-[#9D9D9D] text-xs">{t('detailNotFoundDesc', lang)}</p>
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-8 text-center max-w-lg mx-auto mt-10 space-y-4">
+        <h3 className="text-lg font-medium text-[var(--text-heading)]">{t('detailNotFound', lang)}</h3>
+        <p className="text-[var(--text-secondary)] text-xs">{t('detailNotFoundDesc', lang)}</p>
         <button
           type="button"
           onClick={handleBack}
-          className="inline-flex items-center gap-2 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-4 h-9 rounded-lg transition-colors cursor-pointer"
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft size={15} strokeWidth={1.5} />
           <span>{getBackLabel()}</span>
         </button>
       </div>
@@ -329,23 +329,23 @@ export default function AssignmentDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 md:p-8 space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#3C3C3C] pb-5">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 md:p-8 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-5">
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-medium px-3 py-1 rounded-lg ${getCourseBadgeColor(courseColor)}`}>
+                <span className={`text-xs font-mono font-medium px-3 py-1 rounded-lg ${getCourseBadgeColor(courseColor)}`}>
                   {courseCode ? `${courseCode} • ${course}` : course}
                 </span>
               </div>
               <div className="flex items-center gap-2.5">
-                <label htmlFor={statusId} className="text-xs text-[#9D9D9D] font-medium">{t('statusLabel', lang)}</label>
+                <label htmlFor={statusId} className="text-xs text-[var(--text-secondary)] font-medium">{t('statusLabel', lang)}</label>
                 <select
                   id={statusId}
                   aria-label={t('statusLabel', lang)}
                   value={status}
                   onChange={(e) => handleStatusChange(id, e.target.value)}
-                  className={`text-xs px-3.5 py-2 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] font-semibold transition-colors ${
+                  className={`text-xs px-3 h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] font-medium transition-colors ${
                     status === 'todo'
-                      ? 'text-[#D4D4D4]'
+                      ? 'text-[var(--text-primary)]'
                       : status === 'doing'
                         ? 'text-amber-400'
                         : status === 'read'
@@ -353,35 +353,35 @@ export default function AssignmentDetail() {
                           : 'text-emerald-400'
                   }`}
                 >
-                  <option value="todo" className="bg-[#252526] text-[#D4D4D4]">{t('todo', lang)}</option>
-                  <option value="doing" className="bg-[#252526] text-[#D4D4D4]">{t('doing', lang)}</option>
-                  <option value="done" className="bg-[#252526] text-[#D4D4D4]">{t('done', lang)}</option>
-                  <option value="read" className="bg-[#252526] text-[#D4D4D4]">{t('read', lang)}</option>
+                  <option value="todo">{t('todo', lang)}</option>
+                  <option value="doing">{t('doing', lang)}</option>
+                  <option value="done">{t('done', lang)}</option>
+                  <option value="read">{t('read', lang)}</option>
                 </select>
               </div>
             </div>
 
             {isEditingTask ? (
-              <form onSubmit={saveTaskEdit} className="space-y-4 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4">
+              <form onSubmit={saveTaskEdit} className="space-y-4 bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-4">
                 <div className="space-y-1.5">
-                  <label htmlFor={editTitleId} className="block text-xs font-medium text-[#D4D4D4]">{lang === 'en' ? 'Title *' : 'ชื่องาน *'}</label>
+                  <label htmlFor={editTitleId} className="block text-xs font-medium text-[var(--text-primary)]">{lang === 'en' ? 'Title *' : 'ชื่องาน *'}</label>
                   <input
                     id={editTitleId}
                     type="text"
                     required
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full bg-[#252526] border border-[#3C3C3C] rounded-xl px-3 py-2 text-sm text-[#FFFFFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                    className="w-full h-9 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 text-sm text-[var(--text-heading)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label htmlFor={editCourseId} className="block text-xs font-medium text-[#D4D4D4]">{lang === 'en' ? 'Subject' : 'วิชา'}</label>
+                    <label htmlFor={editCourseId} className="block text-xs font-medium text-[var(--text-primary)]">{lang === 'en' ? 'Subject' : 'วิชา'}</label>
                     <select
                       id={editCourseId}
                       value={editCourse}
                       onChange={(e) => setEditCourse(e.target.value)}
-                      className="w-full bg-[#252526] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                      className="w-full h-9 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 text-xs text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                     >
                       {!visibleCourses.some(c => c.name === editCourse) && editCourse && (
                         <option value={editCourse}>{editCourse}</option>
@@ -392,7 +392,7 @@ export default function AssignmentDetail() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor={editPointsId} className="block text-xs font-medium text-[#D4D4D4]">{lang === 'en' ? 'Points' : 'คะแนนเต็ม'}</label>
+                    <label htmlFor={editPointsId} className="block text-xs font-medium text-[var(--text-primary)]">{lang === 'en' ? 'Points' : 'คะแนนเต็ม'}</label>
                     <input
                       id={editPointsId}
                       type="number"
@@ -400,31 +400,31 @@ export default function AssignmentDetail() {
                       max="1000"
                       value={editPoints}
                       onChange={(e) => setEditPoints(e.target.value)}
-                      className="w-full bg-[#252526] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                      className="w-full h-9 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                     />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor={editDescId} className="block text-xs font-medium text-[#D4D4D4]">{t('descriptionHeader', lang)}</label>
+                  <label htmlFor={editDescId} className="block text-xs font-medium text-[var(--text-primary)]">{t('descriptionHeader', lang)}</label>
                   <textarea
                     id={editDescId}
                     rows="4"
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
-                    className="w-full bg-[#252526] border border-[#3C3C3C] rounded-xl p-3 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] resize-none"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-xs text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] resize-none"
                   />
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsEditingTask(false)}
-                    className="px-3.5 py-2 rounded-xl text-xs font-medium text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] cursor-pointer"
+                    className="px-4 h-9 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer"
                   >
                     {t('cancelBtn', lang)}
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl text-xs font-medium bg-[#007ACC] hover:bg-[#1177BB] text-white cursor-pointer"
+                    className="px-4 h-9 rounded-lg text-xs font-medium bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white cursor-pointer"
                   >
                     {t('saveBtn', lang)}
                   </button>
@@ -434,18 +434,16 @@ export default function AssignmentDetail() {
               <>
                 <div className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
-                      <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-[#3794FF] shrink-0">
-                        <Calendar size={17} />
-                      </div>
+                    <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3">
+                      <Calendar size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <span className="text-[11px] text-[#858585] block font-medium">{t('dueDateLabel', lang)}</span>
+                        <span className="text-[11px] text-[var(--text-muted)] block">{t('dueDateLabel', lang)}</span>
                         {isEditingDueDate ? (
                           <div className="flex items-center gap-1 mt-0.5">
                             <input
                               type="datetime-local"
                               aria-label={t('dueDateLabel', lang)}
-                              className="w-full bg-[#252526] border border-[#3C3C3C] rounded-lg px-2 py-1 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                              className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                               value={tempDueDate}
                               onChange={(e) => setTempDueDate(e.target.value)}
                               onBlur={() => {
@@ -474,16 +472,16 @@ export default function AssignmentDetail() {
                                   setIsEditingDueDate(false);
                                 }}
                                 title={t('noDueDate', lang)}
-                                className="p-1 text-[#858585] hover:text-rose-400 cursor-pointer shrink-0"
+                                className="p-1 text-[var(--text-muted)] hover:text-rose-400 cursor-pointer shrink-0"
                               >
-                                <X size={13} />
+                                <X size={14} strokeWidth={1.5} />
                               </button>
                             )}
                           </div>
                         ) : (
                           <button
                             type="button"
-                            className="text-xs font-semibold text-[#FFFFFF] hover:text-[#3794FF] border-b border-dashed border-[#858585] text-left truncate max-w-full cursor-pointer"
+                            className="text-xs font-mono font-medium text-[var(--text-heading)] hover:text-[var(--primary-bright)] border-b border-dashed border-[var(--border-strong)] text-left truncate max-w-full cursor-pointer tabular-nums"
                             onClick={() => {
                               setTempDueDate(toDatetimeLocalValue(dueDate));
                               setIsEditingDueDate(true);
@@ -495,13 +493,11 @@ export default function AssignmentDetail() {
                       </div>
                     </div>
 
-                    <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
-                      <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-amber-400 shrink-0">
-                        <Award size={17} />
-                      </div>
+                    <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3">
+                      <Award size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
                       <div>
-                        <span className="text-[11px] text-[#858585] block font-medium">{t('gradeWeightLabel', lang)}</span>
-                        <span className="text-xs font-semibold text-[#FFFFFF]">
+                        <span className="text-[11px] text-[var(--text-muted)] block">{t('gradeWeightLabel', lang)}</span>
+                        <span className="text-xs font-mono font-medium text-[var(--text-heading)] tabular-nums">
                           {typeof points === 'number'
                             ? `${points} ${lang === 'en' ? 'Points' : 'คะแนน'}`
                             : t('ungraded', lang)}
@@ -509,21 +505,19 @@ export default function AssignmentDetail() {
                       </div>
                     </div>
 
-                    <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-4 flex items-center gap-3.5">
-                      <div className="p-2.5 bg-[#252526] border border-[#3C3C3C] rounded-xl text-[#3794FF] shrink-0">
-                        <Clock size={17} />
-                      </div>
+                    <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-3">
+                      <Clock size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
                       <div>
-                        <span className="text-[11px] text-[#858585] block font-medium">{t('countdownLabel', lang)}</span>
-                        <span className={`text-xs font-semibold ${daysInfo.color}`}>{daysInfo.text}</span>
+                        <span className="text-[11px] text-[var(--text-muted)] block">{t('countdownLabel', lang)}</span>
+                        <span className={`text-xs font-mono font-medium tabular-nums ${daysInfo.color}`}>{daysInfo.text}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2.5 pt-2">
-                  <h3 className="text-xs font-semibold text-[#FFFFFF]">{t('descriptionHeader', lang)}</h3>
-                  <p className="text-sm text-[#D4D4D4] leading-relaxed whitespace-pre-line bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-5">
+                <div className="space-y-2 pt-2">
+                  <h3 className="text-xs font-medium text-[var(--text-heading)]">{t('descriptionHeader', lang)}</h3>
+                  <p className="text-sm text-[var(--text-primary)] leading-relaxed whitespace-pre-line bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-5">
                     {description || t('noDescription', lang)}
                   </p>
                 </div>
@@ -532,8 +526,8 @@ export default function AssignmentDetail() {
 
             {attachments && attachments.length > 0 && (
               <div className="space-y-3 pt-2">
-                <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
-                  <Paperclip size={15} className="text-[#3794FF]" />
+                <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+                  <Paperclip size={15} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                   <span>{t('attachmentsHeader', lang)}</span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -546,18 +540,18 @@ export default function AssignmentDetail() {
                           href={safeAttachmentLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] rounded-xl p-3.5 flex items-center justify-between gap-3 transition-colors group"
+                          className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] rounded-xl p-3.5 flex items-center justify-between gap-3 transition-colors group"
                         >
                           <div className="flex items-center gap-3 overflow-hidden">
-                            <FileCode size={18} className="text-[#3794FF] shrink-0" />
+                            <FileCode size={16} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
                             <div className="text-left overflow-hidden">
-                              <p className="text-xs font-semibold text-[#D4D4D4] truncate group-hover:text-[#3794FF] transition-colors">
+                              <p className="text-xs font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--primary-bright)] transition-colors">
                                 {file.name}
                               </p>
-                              <p className="text-[11px] text-[#858585] mt-0.5">{file.size}</p>
+                              <p className="text-[11px] font-mono text-[var(--text-muted)] mt-0.5">{file.size}</p>
                             </div>
                           </div>
-                          <span className="text-[11px] font-medium text-[#3794FF] border border-[#007ACC]/40 bg-[#007ACC]/20 px-2.5 py-1 rounded-lg shrink-0">
+                          <span className="text-[11px] font-medium text-[var(--primary-bright)] border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 py-1 rounded-lg shrink-0">
                             {t('downloadBtn', lang)}
                           </span>
                         </a>
@@ -566,13 +560,13 @@ export default function AssignmentDetail() {
                     return (
                       <div
                         key={i}
-                        className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3.5 flex items-center justify-between gap-3"
+                        className="bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-3.5 flex items-center justify-between gap-3"
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
-                          <FileCode size={18} className="text-[#858585] shrink-0" />
+                          <FileCode size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
                           <div className="text-left overflow-hidden">
-                            <p className="text-xs font-medium text-[#D4D4D4] truncate">{file.name}</p>
-                            <p className="text-[11px] text-[#858585] mt-0.5">{file.size}</p>
+                            <p className="text-xs font-medium text-[var(--text-primary)] truncate">{file.name}</p>
+                            <p className="text-[11px] font-mono text-[var(--text-muted)] mt-0.5">{file.size}</p>
                           </div>
                         </div>
                       </div>
@@ -585,21 +579,21 @@ export default function AssignmentDetail() {
         </div>
 
         <div>
-          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-6 h-full flex flex-col justify-between">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 h-full flex flex-col justify-between">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
-                  <FileText size={15} className="text-[#3794FF]" />
+                <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+                  <FileText size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                   <span>{t('workspaceHeader', lang)}</span>
                 </h3>
                 {noteSaved && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400">
-                    <Check size={12} />
+                    <Check size={13} strokeWidth={1.5} />
                     {lang === 'en' ? 'Saved' : 'บันทึกแล้ว'}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#9D9D9D] leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 {t('workspaceDesc', lang)}
               </p>
 
@@ -614,14 +608,14 @@ export default function AssignmentDetail() {
                   onBlur={handleNotesBlur}
                   rows="16"
                   placeholder={t('workspacePlaceholder', lang)}
-                  className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-4 py-3 text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC] transition-colors font-mono resize-none leading-relaxed"
+                  className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-xl px-4 py-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors font-mono resize-none leading-relaxed"
                 />
               </div>
             </div>
 
-            <div className="border-t border-[#3C3C3C] pt-4 mt-6 text-center">
-              <p className="text-[11px] text-[#858585] flex items-center justify-center gap-1.5">
-                <BookOpen size={12} />
+            <div className="border-t border-[var(--border)] pt-4 mt-6 text-center">
+              <p className="text-[11px] text-[var(--text-muted)] flex items-center justify-center gap-1.5">
+                <BookOpen size={13} strokeWidth={1.5} />
                 <span>{t('savedLocally', lang)}</span>
               </p>
             </div>

@@ -16,7 +16,7 @@ describe('NextExamWidget', () => {
   });
 
   it('renders loading skeleton while fetching exams', () => {
-    const { container } = renderWidget({
+    renderWidget({
       allExams: [],
       unlistedInfo: null,
       hasCheckedExams: false,
@@ -25,7 +25,7 @@ describe('NextExamWidget', () => {
       lang: 'en',
     });
 
-    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
   });
 
   it('renders seating check prompt when lookup is enabled and not checked yet', () => {

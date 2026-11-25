@@ -24,17 +24,17 @@ import {
 } from '../utils/academicUtils';
 
 const CATEGORY_COLORS = [
-  '#3794FF', '#4EC9B0', '#C586C0', '#CCA700', '#CE9178', '#F14C4C', '#2D9D78', '#569CD6'
+  '#3B82F6', '#34D399', '#A78BFA', '#FBBF24', '#F97316', '#F87171', '#2DD4BF', '#60A5FA'
 ];
 
 function getGradeBadgeClass(grade) {
   const g = String(grade || '').toUpperCase();
   if (g === 'A' || g === 'S') return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
-  if (g === 'B+' || g === 'B') return 'bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40';
+  if (g === 'B+' || g === 'B') return 'bg-[var(--primary)]/15 text-[var(--primary-bright)] border-[var(--primary)]/35';
   if (g === 'C+' || g === 'C') return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
   if (g === 'D+' || g === 'D') return 'bg-orange-500/15 text-orange-400 border-orange-500/30';
   if (g === 'F' || g === 'U' || g === 'FA' || g === 'FE') return 'bg-rose-500/15 text-rose-400 border-rose-500/30';
-  return 'bg-[#1E1E1E] text-[#9D9D9D] border-[#3C3C3C]';
+  return 'bg-[var(--app-bg)] text-[var(--text-secondary)] border-[var(--border)]';
 }
 
 function getStandingBadge(standing, isTh) {
@@ -47,7 +47,7 @@ function getStandingBadge(standing, isTh) {
     case 'second_honors':
       return {
         label: isTh ? 'เกณฑ์เกียรตินิยมอันดับ 2' : '2nd Class Honors Track',
-        cls: 'bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40'
+        cls: 'bg-[var(--primary)]/15 text-[var(--primary-bright)] border-[var(--primary)]/35'
       };
     case 'probation':
       return {
@@ -69,16 +69,34 @@ function getStandingBadge(standing, isTh) {
   }
 }
 
-// ─── INLINE SVG GPA TREND CHART ─────────────────────────────────────
+// ─── INLINE SVG GPA TREND CHART (ACADEMIC MOMENT) ──────────────────
+function buildSmoothPath(points) {
+  if (!points || points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] || p2;
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
 function GpaTrendChart({ gradedSemesters, blur, isTh }) {
   if (!gradedSemesters || gradedSemesters.length === 0) return null;
 
-  const width = 620;
-  const height = 210;
-  const padLeft = 38;
+  const width = 680;
+  const height = 240;
+  const padLeft = 42;
   const padRight = 24;
-  const padTop = 22;
-  const padBottom = 34;
+  const padTop = 28;
+  const padBottom = 36;
   const plotW = width - padLeft - padRight;
   const plotH = height - padTop - padBottom;
 
@@ -104,35 +122,45 @@ function GpaTrendChart({ gradedSemesters, blur, isTh }) {
     label: s.semesterId,
   }));
 
-  const gpaPath = gpaPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const gpaxPath = gpaxPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const gpaPath = buildSmoothPath(gpaPoints);
+  const gpaxPath = buildSmoothPath(gpaxPoints);
+  const areaPath = gpaPoints.length > 1
+    ? `${gpaPath} L ${gpaPoints[gpaPoints.length - 1].x.toFixed(1)} ${yAt(0).toFixed(1)} L ${gpaPoints[0].x.toFixed(1)} ${yAt(0).toFixed(1)} Z`
+    : '';
 
   return (
-    <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-3">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-[#FFFFFF] flex items-center gap-2">
-          <TrendingUp size={15} className="text-[#3794FF]" />
+        <h3 className="text-sm font-medium text-[var(--text-heading)] flex items-center gap-2">
+          <TrendingUp size={16} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
           <span>{isTh ? 'แนวโน้มเกรดรายเทอม (GPA & GPAX)' : 'Semester GPA & GPAX Trend'}</span>
         </h3>
-        <div className="flex items-center gap-4 text-[11px] text-[#9D9D9D]">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-3 h-0.5 bg-[#3794FF] inline-block" />
+        <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
+          <span className="inline-flex items-center gap-2">
+            <span className="w-3 h-0.5 bg-[var(--primary-bright)] inline-block rounded" />
             <span>GPA {isTh ? 'รายเทอม' : 'Term'}</span>
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-3 h-0.5 border-t-2 border-dashed border-[#4EC9B0] inline-block" />
+          <span className="inline-flex items-center gap-2">
+            <span className="w-3 h-0.5 border-t border-dashed border-[var(--text-secondary)] inline-block" />
             <span>GPAX {isTh ? 'สะสม' : 'Cumulative'}</span>
           </span>
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-2">
             <span className="w-3 h-0.5 border-t border-dotted border-amber-400/70 inline-block" />
-            <span>{isTh ? 'เกณฑ์จบ 2.00' : 'Min 2.00'}</span>
+            <span className="font-mono">{isTh ? 'เกณฑ์ 2.00' : 'Min 2.00'}</span>
           </span>
         </div>
       </div>
 
-      <div className={`w-full overflow-x-auto transition-all ${blur ? 'blur-sm select-none pointer-events-none' : ''}`}>
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[420px] h-auto" role="img" aria-label="GPA Trend Chart">
-          {/* Horizontal grid lines */}
+      <div className={`w-full overflow-x-auto transition-[filter,opacity] duration-200 ${blur ? 'blur-sm select-none pointer-events-none' : ''}`}>
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[440px] h-auto" role="img" aria-label="GPA Trend Chart">
+          <defs>
+            <linearGradient id="gpaAreaFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.16" />
+              <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {/* Horizontal hairline grid */}
           {[0, 1, 2, 3, 4].map((tick) => {
             const y = yAt(tick);
             const isMinLine = tick === 2;
@@ -143,37 +171,61 @@ function GpaTrendChart({ gradedSemesters, blur, isTh }) {
                   y1={y}
                   x2={width - padRight}
                   y2={y}
-                  stroke={isMinLine ? '#F59E0B' : '#3C3C3C'}
-                  strokeOpacity={isMinLine ? 0.55 : 0.6}
+                  stroke={isMinLine ? 'rgba(229, 169, 59, 0.45)' : 'rgba(238, 240, 245, 0.08)'}
                   strokeDasharray={isMinLine ? '4 4' : undefined}
                   strokeWidth={1}
                 />
-                <text x={padLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill={isMinLine ? '#FBBF24' : '#858585'}>
+                <text
+                  x={padLeft - 10}
+                  y={y + 4}
+                  textAnchor="end"
+                  fontSize="11"
+                  fontFamily="'IBM Plex Mono', monospace"
+                  fill={isMinLine ? '#E5A93B' : '#7F899B'}
+                >
                   {tick.toFixed(1)}
                 </text>
               </g>
             );
           })}
 
-          {/* GPAX cumulative line */}
+          {/* Subtle area wash under Term GPA curve */}
+          {areaPath && <path d={areaPath} fill="url(#gpaAreaFill)" />}
+
+          {/* Cumulative GPAX quiet comparison curve */}
           {gpaxPoints.length > 1 && (
-            <path d={gpaxPath} fill="none" stroke="#4EC9B0" strokeWidth={2} strokeDasharray="5 4" />
+            <path d={gpaxPath} fill="none" stroke="#A1AAB9" strokeWidth={1.5} strokeDasharray="4 4" />
           )}
 
-          {/* Term GPA line */}
+          {/* Term GPA primary accent curve */}
           {gpaPoints.length > 1 && (
-            <path d={gpaPath} fill="none" stroke="#3794FF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+            <path d={gpaPath} fill="none" stroke="#60A5FA" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
           )}
 
-          {/* Dots & labels */}
+          {/* Data points & mono labels */}
           {gpaPoints.map((p, idx) => (
             <g key={p.label}>
-              <circle cx={gpaxPoints[idx].x} cy={gpaxPoints[idx].y} r={3.5} fill="#4EC9B0" stroke="#1E1E1E" strokeWidth={1.5} />
-              <circle cx={p.x} cy={p.y} r={4.5} fill="#3794FF" stroke="#1E1E1E" strokeWidth={1.5} />
-              <text x={p.x} y={Math.max(12, p.y - 9)} textAnchor="middle" fontSize="10" fontWeight="600" fill="#FFFFFF">
+              <circle cx={gpaxPoints[idx].x} cy={gpaxPoints[idx].y} r={3} fill="#A1AAB9" stroke="#171B24" strokeWidth={1.5} />
+              <circle cx={p.x} cy={p.y} r={4} fill="#60A5FA" stroke="#171B24" strokeWidth={1.5} />
+              <text
+                x={p.x}
+                y={Math.max(14, p.y - 10)}
+                textAnchor="middle"
+                fontSize="11"
+                fontWeight="500"
+                fontFamily="'IBM Plex Mono', monospace"
+                fill="#F3F5F8"
+              >
                 {formatGpa(p.val)}
               </text>
-              <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#9D9D9D">
+              <text
+                x={p.x}
+                y={height - 10}
+                textAnchor="middle"
+                fontSize="11"
+                fontFamily="'IBM Plex Mono', monospace"
+                fill="#7F899B"
+              >
                 {p.label}
               </text>
             </g>
@@ -261,31 +313,31 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
     >
       <form
         onSubmit={handleSubmit}
-        className="bg-[#252526] border border-[#3C3C3C] rounded-2xl w-full max-w-xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl"
+        className="bg-[var(--surface)] border border-[var(--border-strong)] rounded-2xl w-full max-w-xl max-h-[88vh] flex flex-col overflow-hidden"
       >
-        <div className="px-5 py-4 border-b border-[#3C3C3C] flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-[#FFFFFF] flex items-center gap-2">
-              <SlidersHorizontal size={16} className="text-[#3794FF]" />
+            <h2 className="text-base font-medium text-[var(--text-heading)] flex items-center gap-2">
+              <SlidersHorizontal size={16} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
               <span>{isTh ? 'ตั้งค่าเกณฑ์จบหลักสูตรของสาขา' : 'Customize Graduation Criteria'}</span>
             </h2>
-            <p className="text-[11px] text-[#9D9D9D] mt-0.5">
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5 font-mono tabular-nums">
               {isTh ? `หน่วยกิตรวมตามเกณฑ์ปัจจุบัน: ${totalCredits} หน่วยกิต` : `Total required credits: ${totalCredits} cr`}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] cursor-pointer"
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer"
           >
-            <X size={17} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
         <div className="p-5 overflow-y-auto space-y-4 flex-1">
           {/* Quick Presets */}
           <div className="space-y-1.5">
-            <span className="text-[11px] font-medium text-[#9D9D9D]">
+            <span className="text-[11px] font-medium text-[var(--text-secondary)]">
               {isTh ? 'เลือกแม่แบบหลักสูตร มจพ.:' : 'KMUTNB Presets:'}
             </span>
             <div className="flex flex-wrap gap-2">
@@ -294,7 +346,7 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
                   key={preset.id}
                   type="button"
                   onClick={() => handleApplyPreset(preset)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] hover:border-[#007ACC] text-[#D4D4D4] transition-colors cursor-pointer"
+                  className="text-xs px-3 py-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] hover:border-[var(--primary)] text-[var(--text-primary)] transition-colors cursor-pointer"
                 >
                   {isTh ? preset.labelTh : preset.labelEn}
                 </button>
@@ -303,8 +355,8 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
           </div>
 
           {/* Min GPAX */}
-          <div className="flex items-center justify-between gap-3 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3.5 py-2.5">
-            <label htmlFor="min-gpax-input" className="text-xs font-medium text-[#D4D4D4]">
+          <div className="flex items-center justify-between gap-3 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3.5 py-2.5">
+            <label htmlFor="min-gpax-input" className="text-xs font-medium text-[var(--text-primary)]">
               {isTh ? 'เกณฑ์ GPAX ขั้นต่ำจบการศึกษา' : 'Minimum Graduation GPAX'}
             </label>
             <input
@@ -315,22 +367,22 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
               max="4.00"
               value={targetMinGpax}
               onChange={(e) => setTargetMinGpax(e.target.value)}
-              className="w-24 bg-[#252526] border border-[#3C3C3C] rounded-lg px-2.5 py-1 text-xs text-right text-[#FFFFFF] font-mono"
+              className="w-24 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1 text-xs text-right text-[var(--text-heading)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             />
           </div>
 
           {/* Category rows */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#D4D4D4]">
+              <span className="text-xs font-medium text-[var(--text-primary)]">
                 {isTh ? 'หมวดรายวิชา & หน่วยกิตที่ต้องผ่าน' : 'Curriculum Categories & Credits'}
               </span>
               <button
                 type="button"
                 onClick={handleAddCat}
-                className="text-xs text-[#3794FF] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                className="text-xs text-[var(--primary-bright)] hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
-                <Plus size={13} />
+                <Plus size={13} strokeWidth={1.5} />
                 <span>{isTh ? 'เพิ่มหมวด' : 'Add Category'}</span>
               </button>
             </div>
@@ -338,14 +390,14 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
             {categories.map((cat, idx) => (
               <div
                 key={cat.id}
-                className="flex items-center gap-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-2.5"
+                className="flex items-center gap-2 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-2.5"
               >
-                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color || '#3794FF' }} />
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color || '#3B82F6' }} />
                 <input
                   type="text"
                   value={isTh ? cat.nameTh : cat.nameEn}
                   onChange={(e) => handleUpdateCat(idx, isTh ? 'nameTh' : 'nameEn', e.target.value)}
-                  className="flex-1 min-w-0 bg-[#252526] border border-[#3C3C3C] rounded-lg px-2.5 py-1.5 text-xs text-[#FFFFFF]"
+                  className="flex-1 min-w-0 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-heading)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                   placeholder={isTh ? 'ชื่อหมวดวิชา' : 'Category name'}
                 />
                 <div className="flex items-center gap-1 shrink-0">
@@ -356,35 +408,35 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
                     value={cat.requiredCredits}
                     onChange={(e) => handleUpdateCat(idx, 'requiredCredits', e.target.value)}
                     aria-label="Required credits"
-                    className="w-16 bg-[#252526] border border-[#3C3C3C] rounded-lg px-2 py-1.5 text-xs text-right text-[#FFFFFF] font-mono"
+                    className="w-16 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-xs text-right text-[var(--text-heading)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                   />
-                  <span className="text-[11px] text-[#858585]">{isTh ? 'นก.' : 'cr'}</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">{isTh ? 'นก.' : 'cr'}</span>
                 </div>
                 <button
                   type="button"
                   disabled={categories.length <= 1}
                   onClick={() => handleRemoveCat(idx)}
                   aria-label="Delete category"
-                  className="p-1.5 rounded-lg text-[#858585] hover:text-rose-400 disabled:opacity-30 cursor-pointer"
+                  className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-rose-400 disabled:opacity-30 cursor-pointer transition-colors"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={14} strokeWidth={1.5} />
                 </button>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="px-5 py-3.5 border-t border-[#3C3C3C] bg-[#1E1E1E] flex items-center justify-end gap-2">
+        <div className="px-5 py-3.5 border-t border-[var(--border)] bg-[var(--app-bg)] flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-medium bg-[#252526] border border-[#3C3C3C] text-[#D4D4D4] hover:bg-[#2A2D2E] cursor-pointer"
+            className="px-4 py-2 rounded-lg text-xs font-medium bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
           >
             {isTh ? 'ยกเลิก' : 'Cancel'}
           </button>
           <button
             type="submit"
-            className="px-4 py-2 rounded-xl text-xs font-medium bg-[#007ACC] hover:bg-[#1177BB] text-white cursor-pointer"
+            className="px-4 py-2 rounded-lg text-xs font-medium bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white cursor-pointer transition-colors"
           >
             {isTh ? 'บันทึกเกณฑ์หลักสูตร' : 'Save Criteria'}
           </button>
@@ -664,15 +716,15 @@ export default function Academic() {
 
       {/* Empty State */}
       {!hasAnyData ? (
-        <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-8 md:p-10 text-center max-w-2xl mx-auto space-y-5">
-          <div className="w-14 h-14 rounded-2xl bg-[#007ACC]/20 border border-[#007ACC]/30 text-[#3794FF] flex items-center justify-center mx-auto">
-            <GraduationCap size={28} />
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-8 md:p-10 text-center max-w-2xl mx-auto space-y-5">
+          <div className="w-12 h-12 rounded-xl bg-[var(--primary)]/12 border border-[var(--primary)]/25 text-[var(--primary-bright)] flex items-center justify-center mx-auto">
+            <GraduationCap size={24} strokeWidth={1.5} />
           </div>
           <div className="space-y-1.5">
-            <h2 className="text-lg font-semibold text-[#FFFFFF]">
+            <h2 className="text-lg font-medium text-[var(--text-heading)] tracking-[-0.015em]">
               {isTh ? 'เริ่มต้นเชื่อมข้อมูลจาก reg.kmutnb.ac.th' : 'Import Your KMUTNB Academic Records'}
             </h2>
-            <p className="text-xs text-[#9D9D9D] max-w-md mx-auto leading-relaxed">
+            <p className="text-[13px] text-[var(--text-secondary)] max-w-md mx-auto leading-relaxed">
               {isTh
                 ? 'ก๊อปวางหน้า "ผลการศึกษา" และหน้า "ตารางเรียน/สอบ" ในคลิกเดียว เพื่อดูเกรดรายเทอม นับรายวิชาที่ผ่านแล้วเทียบเกณฑ์จบ และดึงตารางเรียน+วันสอบลงปฏิทินอัตโนมัติ'
                 : 'Copy-paste your Grade Report and Timetable from reg.kmutnb.ac.th to automatically track GPA, graduation requirements, class schedule, and exam dates.'}
@@ -680,21 +732,21 @@ export default function Academic() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left text-xs">
-            <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3.5 space-y-1">
-              <span className="text-[#3794FF] font-semibold">1. {isTh ? 'เปิดเว็บ Reg มจพ.' : 'Open KMUTNB Reg'}</span>
-              <p className="text-[11px] text-[#9D9D9D]">
+            <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3.5 space-y-1">
+              <span className="text-[var(--primary-bright)] font-medium">1. {isTh ? 'เปิดเว็บ Reg มจพ.' : 'Open KMUTNB Reg'}</span>
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 {isTh ? 'ล็อกอินบัญชี ICIT ของคุณเองที่ reg.kmutnb.ac.th' : 'Sign in directly on reg.kmutnb.ac.th'}
               </p>
             </div>
-            <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3.5 space-y-1">
-              <span className="text-emerald-400 font-semibold">2. {isTh ? 'กด Ctrl+A แล้ว Ctrl+C' : 'Press Ctrl+A → Ctrl+C'}</span>
-              <p className="text-[11px] text-[#9D9D9D]">
+            <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3.5 space-y-1">
+              <span className="text-[var(--text-heading)] font-medium">2. {isTh ? 'กด Ctrl+A แล้ว Ctrl+C' : 'Press Ctrl+A → Ctrl+C'}</span>
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 {isTh ? 'คัดลอกหน้า ตารางเรียน/สอบ และ ผลการศึกษา' : 'Copy Timetable and/or Grade Report pages'}
               </p>
             </div>
-            <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3.5 space-y-1">
-              <span className="text-purple-400 font-semibold">3. {isTh ? 'วางและกดยืนยัน' : 'Paste & Confirm'}</span>
-              <p className="text-[11px] text-[#9D9D9D]">
+            <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3.5 space-y-1">
+              <span className="text-[var(--text-heading)] font-medium">3. {isTh ? 'วางและกดยืนยัน' : 'Paste & Confirm'}</span>
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 {isTh ? 'แกะข้อมูลฝั่งเครื่อง 100% ปลอดภัย ไม่เก็บชื่อ/รหัส นศ.' : '100% client-side parsing with automatic PII stripping'}
               </p>
             </div>
@@ -703,14 +755,14 @@ export default function Academic() {
           <button
             type="button"
             onClick={() => setIsImportOpen(true)}
-            className="inline-flex items-center gap-2 bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium text-xs px-5 py-3 rounded-xl transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-5 py-2.5 rounded-lg transition-colors cursor-pointer"
           >
-            <Upload size={15} />
+            <Upload size={14} strokeWidth={1.5} />
             <span>{isTh ? 'นำเข้าจาก KMUTNB Reg ตอนนี้' : 'Import from KMUTNB Reg Now'}</span>
           </button>
 
-          <p className="text-[11px] text-[#858585] flex items-center justify-center gap-1.5 pt-2">
-            <ShieldCheck size={13} className="text-emerald-400" />
+          <p className="text-[11px] text-[var(--text-muted)] flex items-center justify-center gap-1.5 pt-2">
+            <ShieldCheck size={13} strokeWidth={1.5} className="text-emerald-400" />
             <span>
               {isTh
                 ? 'เก็บข้อมูลเฉพาะใน Google Drive ส่วนตัว (appDataFolder) และล้างออกจากเครื่องทันทีเมื่อกดออกจากระบบ'
@@ -721,47 +773,47 @@ export default function Academic() {
       ) : (
         <>
           {/* 4 KPI Summary Cards */}
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             {/* KPI 1: GPAX */}
-            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5 space-y-1.5 sm:space-y-2">
-              <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-[#9D9D9D]">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 sm:p-5 space-y-2">
+              <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
                 <span className="truncate">{isTh ? 'เกรดเฉลี่ยสะสม (GPAX)' : 'Cumulative GPAX'}</span>
-                <Award size={14} className="text-[#3794FF] shrink-0 sm:w-[15px] sm:h-[15px]" />
+                <Award size={16} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
               </div>
-              <div className={`text-2xl sm:text-3xl font-bold text-[#FFFFFF] tracking-tight font-mono ${blurCls}`}>
+              <div className={`text-2xl sm:text-[28px] font-medium text-[var(--text-heading)] leading-none font-mono tabular-nums ${blurCls}`}>
                 {formatGpa(summary.gpax)}
               </div>
-              <div className="flex items-center justify-between gap-1.5 flex-wrap">
+              <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
                 {standingBadge && (
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md border ${standingBadge.cls}`}>
+                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded border ${standingBadge.cls}`}>
                     {standingBadge.label}
                   </span>
                 )}
-                <span className={`text-[10.5px] sm:text-[11px] text-[#858585] font-mono ${blurCls}`}>
+                <span className={`text-[11px] text-[var(--text-muted)] font-mono tabular-nums ${blurCls}`}>
                   GP {summary.totalGP} / CG {summary.totalCG}
                 </span>
               </div>
             </div>
 
             {/* KPI 2: Passed Credits vs Graduation Requirement */}
-            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5 space-y-1.5 sm:space-y-2">
-              <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-[#9D9D9D]">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 sm:p-5 space-y-2">
+              <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
                 <span className="truncate">{isTh ? 'หน่วยกิตผ่านสะสม' : 'Passed Credits'}</span>
-                <CheckCircle2 size={14} className="text-emerald-400 shrink-0 sm:w-[15px] sm:h-[15px]" />
+                <CheckCircle2 size={16} strokeWidth={1.5} className="text-emerald-400 shrink-0" />
               </div>
-              <div className="flex items-baseline gap-1 sm:gap-1.5">
-                <span className="text-2xl sm:text-3xl font-bold text-[#FFFFFF] font-mono">{gradProgress.totalPassed}</span>
-                <span className="text-xs sm:text-sm text-[#858585] font-mono">/ {gradProgress.totalRequired}</span>
-                <span className="text-[11px] sm:text-xs text-emerald-400 font-semibold ml-auto">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-[28px] font-medium text-[var(--text-heading)] leading-none font-mono tabular-nums">{gradProgress.totalPassed}</span>
+                <span className="text-xs sm:text-sm text-[var(--text-muted)] font-mono tabular-nums">/ {gradProgress.totalRequired}</span>
+                <span className="text-xs text-emerald-400 font-mono font-medium ml-auto tabular-nums">
                   {gradProgress.overallPassedPct}%
                 </span>
               </div>
-              <div className="text-[10.5px] sm:text-[11px] text-[#9D9D9D] flex items-center gap-1.5 flex-wrap">
-                <span>
+              <div className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5 flex-wrap pt-1">
+                <span className="tabular-nums">
                   {summary.passedCourses.length} {isTh ? 'วิชาที่ผ่านแล้ว' : 'passed courses'}
                 </span>
                 {gradProgress.totalInProgress > 0 && (
-                  <span className="text-[#3794FF] font-medium">
+                  <span className="text-[var(--primary-bright)] font-mono font-medium tabular-nums">
                     +{gradProgress.totalInProgress} {isTh ? 'กำลังเรียน' : 'in progress'}
                   </span>
                 )}
@@ -769,29 +821,30 @@ export default function Academic() {
             </div>
 
             {/* KPI 3: Retake / Failed Courses */}
-            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5 space-y-1.5 sm:space-y-2">
-              <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-[#9D9D9D]">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 sm:p-5 space-y-2">
+              <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
                 <span className="truncate">{isTh ? 'วิชาไม่ผ่าน / รีเกรด' : 'Failed / Retakes'}</span>
                 <AlertTriangle
-                  size={14}
-                  className={`shrink-0 sm:w-[15px] sm:h-[15px] ${summary.failedCourses.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}
+                  size={16}
+                  strokeWidth={1.5}
+                  className={`shrink-0 ${summary.failedCourses.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}
                 />
               </div>
-              <div className="flex items-baseline gap-1.5 sm:gap-2">
+              <div className="flex items-baseline gap-2">
                 <span
-                  className={`text-2xl sm:text-3xl font-bold font-mono ${
+                  className={`text-2xl sm:text-[28px] font-medium leading-none font-mono tabular-nums ${
                     summary.failedCourses.length > 0 ? 'text-rose-400' : 'text-emerald-400'
                   }`}
                 >
                   {summary.failedCourses.length}
                 </span>
-                <span className="text-[11px] sm:text-xs text-[#9D9D9D]">
+                <span className="text-xs text-[var(--text-secondary)]">
                   {isTh ? 'วิชาที่ยังติด F' : 'unresolved F'}
                 </span>
               </div>
-              <div className="text-[10.5px] sm:text-[11px] text-[#9D9D9D]">
+              <div className="text-[11px] text-[var(--text-secondary)] pt-1">
                 {summary.retakingCourses.length > 0 ? (
-                  <span className="text-[#3794FF] font-medium">
+                  <span className="text-[var(--primary-bright)] font-medium">
                     {isTh
                       ? `กำลังลงรีเกรดเทอมนี้ ${summary.retakingCourses.length} วิชา`
                       : `Retaking ${summary.retakingCourses.length} this term`}
@@ -807,29 +860,31 @@ export default function Academic() {
             </div>
 
             {/* KPI 4: Latest Term GPA */}
-            <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3.5 sm:p-5 space-y-1.5 sm:space-y-2">
-              <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-[#9D9D9D]">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 sm:p-5 space-y-2">
+              <div className="flex items-center justify-between gap-2 text-xs text-[var(--text-secondary)]">
                 <span className="truncate">
                   {isTh ? 'GPA เทอมล่าสุด' : 'Latest Term GPA'}
                   {summary.latestSemesterId ? ` (${summary.latestSemesterId})` : ''}
                 </span>
                 {summary.gpaDelta !== null && summary.gpaDelta < 0 ? (
-                  <TrendingDown size={14} className="text-rose-400 shrink-0 sm:w-[15px] sm:h-[15px]" />
+                  <TrendingDown size={16} strokeWidth={1.5} className="text-rose-400 shrink-0" />
                 ) : (
-                  <TrendingUp size={14} className="text-emerald-400 shrink-0 sm:w-[15px] sm:h-[15px]" />
+                  <TrendingUp size={16} strokeWidth={1.5} className="text-emerald-400 shrink-0" />
                 )}
               </div>
-              <div className={`text-2xl sm:text-3xl font-bold text-[#FFFFFF] font-mono ${blurCls}`}>
+              <div className={`text-2xl sm:text-[28px] font-medium text-[var(--text-heading)] leading-none font-mono tabular-nums ${blurCls}`}>
                 {formatGpa(summary.latestGpa)}
               </div>
-              <div className={`text-[10.5px] sm:text-[11px] ${blurCls}`}>
+              <div className={`text-[11px] pt-1 ${blurCls}`}>
                 {summary.gpaDelta !== null ? (
-                  <span className={summary.gpaDelta >= 0 ? 'text-emerald-400 font-medium' : 'text-rose-400 font-medium'}>
+                  <span className={`font-mono tabular-nums ${summary.gpaDelta >= 0 ? 'text-emerald-400 font-medium' : 'text-rose-400 font-medium'}`}>
                     {summary.gpaDelta >= 0 ? `+${summary.gpaDelta.toFixed(2)}` : summary.gpaDelta.toFixed(2)}{' '}
-                    {isTh ? 'เทียบกับเทอมก่อน' : 'vs previous term'}
+                    <span className="font-sans text-[var(--text-secondary)]">
+                      {isTh ? 'เทียบกับเทอมก่อน' : 'vs previous term'}
+                    </span>
                   </span>
                 ) : (
-                  <span className="text-[#858585]">
+                  <span className="text-[var(--text-muted)]">
                     {summary.gradedSemesters.length} {isTh ? 'เทอมที่มีเกรด' : 'graded terms'}
                   </span>
                 )}
@@ -839,7 +894,7 @@ export default function Academic() {
 
           {/* Navigation Tabs */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex bg-[#252526] border border-[#3C3C3C] p-1 rounded-xl gap-1 overflow-x-auto max-w-full scrollbar-none">
+            <div className="flex bg-[var(--surface)] border border-[var(--border)] p-1 rounded-xl gap-1 overflow-x-auto max-w-full scrollbar-none">
               {[
                 { id: 'overview', icon: GraduationCap, labelTh: 'เกณฑ์จบ & ภาพรวม', labelEn: 'Graduation & Overview' },
                 { id: 'grades', icon: BookOpen, labelTh: `เกรดรายเทอม (${summary.semesters.length})`, labelEn: `Semesters (${summary.semesters.length})` },
@@ -850,13 +905,13 @@ export default function Academic() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3 py-2 sm:px-3.5 sm:py-2 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer ${
+                  className={`px-3 h-8 rounded-lg text-xs font-medium inline-flex items-center gap-2 transition-colors shrink-0 cursor-pointer ${
                     activeTab === tab.id
-                      ? 'bg-[#094771]/70 text-[#FFFFFF] border border-[#007ACC]/50'
-                      : 'text-[#9D9D9D] hover:text-[#D4D4D4]'
+                      ? 'bg-[var(--surface-elevated)] text-[var(--text-heading)] border border-[var(--border-strong)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'
                   }`}
                 >
-                  <tab.icon size={14} />
+                  <tab.icon size={15} strokeWidth={1.5} className={activeTab === tab.id ? 'text-[var(--primary-bright)]' : 'text-[var(--text-muted)]'} />
                   <span>{isTh ? tab.labelTh : tab.labelEn}</span>
                 </button>
               ))}
@@ -866,28 +921,28 @@ export default function Academic() {
               <button
                 type="button"
                 onClick={() => setIsCurriculumModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-[#252526] border border-[#3C3C3C] text-[#D4D4D4] hover:bg-[#2A2D2E] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-2 px-3 h-9 rounded-lg text-xs font-medium bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
-                <SlidersHorizontal size={13} className="text-[#3794FF]" />
+                <SlidersHorizontal size={14} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                 <span>{isTh ? 'แก้ไขเกณฑ์จบ' : 'Edit Criteria'}</span>
               </button>
               <button
                 type="button"
                 onClick={handleClearAcademic}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`inline-flex items-center gap-2 px-3 h-9 rounded-lg text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   confirmClear
                     ? 'bg-rose-600 border-rose-600 text-white'
-                    : 'bg-[#252526] border-[#3C3C3C] text-[#9D9D9D] hover:text-rose-400'
+                    : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-secondary)] hover:text-rose-400'
                 }`}
               >
-                <Trash2 size={13} />
+                <Trash2 size={14} strokeWidth={1.5} />
                 <span>{confirmClear ? (isTh ? 'กดอีกครั้งเพื่อยืนยันลบ' : 'Confirm Clear') : (isTh ? 'ล้างข้อมูล' : 'Clear')}</span>
               </button>
               {confirmClear && (
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
-                  className="px-2.5 py-2 rounded-xl text-xs bg-[#252526] border border-[#3C3C3C] text-[#D4D4D4] cursor-pointer whitespace-nowrap shrink-0"
+                  className="px-3 h-9 rounded-lg text-xs bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] cursor-pointer whitespace-nowrap shrink-0"
                 >
                   {isTh ? 'ยกเลิก' : 'Cancel'}
                 </button>
@@ -899,13 +954,13 @@ export default function Academic() {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               {/* Overall Graduation Progress Card */}
-              <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 md:p-6 space-y-4">
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 md:p-6 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h2 className="text-base font-semibold text-[#FFFFFF]">
+                    <h2 className="text-base font-medium text-[var(--text-heading)]">
                       {isTh ? 'ความคืบหน้าเกณฑ์จบหลักสูตร' : 'Graduation Requirements Progress'}
                     </h2>
-                    <p className="text-xs text-[#9D9D9D] mt-0.5">
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                       {isTh
                         ? `ผ่านแล้ว ${gradProgress.totalPassed} นก. จาก ${gradProgress.totalRequired} นก. (ขาดอีก ${gradProgress.remainingCredits} นก.${
                             gradProgress.totalInProgress > 0
@@ -919,7 +974,7 @@ export default function Academic() {
                           })`}
                     </p>
                   </div>
-                  <span className="text-xs font-mono font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full self-start sm:self-auto">
+                  <span className="text-xs font-mono font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1 rounded-lg self-start sm:self-auto tabular-nums">
                     {gradProgress.overallPassedPct}% {isTh ? 'สำเร็จแล้ว' : 'Completed'}
                     {gradProgress.totalInProgress > 0 && ` → ${gradProgress.overallProjectedPct}%`}
                   </span>
@@ -927,26 +982,26 @@ export default function Academic() {
 
                 {/* Dual-segment progress bar */}
                 <div className="space-y-2">
-                  <div className="h-3.5 w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-full overflow-hidden relative">
+                  <div className="h-3 w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-full overflow-hidden relative">
                     <div
-                      className="h-full bg-[#007ACC]/55 transition-all duration-500 absolute left-0 top-0"
+                      className="h-full bg-[var(--primary)]/50 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] absolute left-0 top-0"
                       style={{ width: `${gradProgress.overallProjectedPct}%` }}
                     />
                     <div
-                      className="h-full bg-emerald-500 transition-all duration-500 absolute left-0 top-0"
+                      className="h-full bg-emerald-500 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] absolute left-0 top-0"
                       style={{ width: `${gradProgress.overallPassedPct}%` }}
                     />
                   </div>
-                  <div className="flex flex-wrap items-center gap-4 text-[11px] text-[#9D9D9D]">
+                  <div className="flex flex-wrap items-center gap-4 text-[11px] text-[var(--text-secondary)] font-mono tabular-nums">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       <span>
                         {isTh ? `ผ่านแล้ว: ${gradProgress.totalPassed} นก.` : `Passed: ${gradProgress.totalPassed} cr`}
                       </span>
                     </span>
                     {gradProgress.totalInProgress > 0 && (
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#007ACC]" />
+                        <span className="w-2 h-2 rounded-full bg-[var(--primary)]" />
                         <span>
                           {isTh
                             ? `กำลังลงเทอมนี้: +${gradProgress.totalInProgress} นก.`
@@ -955,7 +1010,7 @@ export default function Academic() {
                       </span>
                     )}
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#3C3C3C]" />
+                      <span className="w-2 h-2 rounded-full bg-[var(--surface-hover)]" />
                       <span>
                         {isTh
                           ? `เหลืออีก: ${gradProgress.remainingWithEnrolled} นก.`
@@ -966,7 +1021,7 @@ export default function Academic() {
                 </div>
 
                 {/* Graduation Conditions Checklist */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 pt-2 border-t border-[#3C3C3C]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 pt-3 border-t border-[var(--border)]">
                   {[
                     {
                       ok: gradProgress.checklist.creditsMet,
@@ -991,16 +1046,16 @@ export default function Academic() {
                   ].map((item, i) => (
                     <div
                       key={i}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium ${
                         item.ok
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                          : 'bg-[#1E1E1E] border-[#3C3C3C] text-[#9D9D9D]'
+                          ? 'bg-emerald-500/8 border-emerald-500/25 text-emerald-300'
+                          : 'bg-[var(--app-bg)] border-[var(--border)] text-[var(--text-secondary)]'
                       }`}
                     >
                       {item.ok ? (
-                        <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                        <CheckCircle2 size={14} strokeWidth={1.5} className="text-emerald-400 shrink-0" />
                       ) : (
-                        <AlertTriangle size={14} className="text-amber-400 shrink-0" />
+                        <AlertTriangle size={14} strokeWidth={1.5} className="text-amber-400 shrink-0" />
                       )}
                       <span className="truncate">{isTh ? item.labelTh : item.labelEn}</span>
                     </div>
@@ -1010,71 +1065,71 @@ export default function Academic() {
 
               {/* Failed & Retaking Alert Card */}
               {(summary.failedCourses.length > 0 || summary.retakingCourses.length > 0 || summary.withdrawnCourses.length > 0) && (
-                <div className="bg-[#252526] border border-rose-500/30 rounded-2xl p-5 space-y-3">
-                  <h3 className="text-sm font-semibold text-[#FFFFFF] flex items-center gap-2">
-                    <AlertTriangle size={15} className="text-rose-400" />
+                <div className="bg-[var(--surface)] border border-rose-500/25 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-medium text-[var(--text-heading)] flex items-center gap-2">
+                    <AlertTriangle size={15} strokeWidth={1.5} className="text-rose-400" />
                     <span>{isTh ? 'ติดตามรายวิชาที่ไม่ผ่าน / รีเกรด / ถอน (W)' : 'Failed, Retaking & Withdrawn Courses'}</span>
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {summary.failedCourses.map((c) => (
                       <div
                         key={c.courseCode}
-                        className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3.5 flex items-center justify-between gap-3"
+                        className="bg-rose-500/8 border border-rose-500/25 rounded-lg p-3.5 flex items-center justify-between gap-3"
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-mono text-rose-300 font-semibold">{c.courseCode}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-medium">
+                            <span className="text-[11px] font-mono text-rose-300 font-medium">{c.courseCode}</span>
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 font-medium">
                               {isTh ? 'ต้องลงแก้' : 'Needs Retake'}
                             </span>
                           </div>
-                          <p className="text-xs font-semibold text-[#FFFFFF] truncate mt-0.5">{c.courseName}</p>
-                          <p className="text-[11px] text-[#9D9D9D] mt-0.5">
+                          <p className="text-xs font-medium text-[var(--text-heading)] truncate mt-0.5">{c.courseName}</p>
+                          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 font-mono">
                             {c.attempts.map((a) => `${a.semesterId}: ${a.grade}`).join(' → ')}
                           </p>
                         </div>
-                        <span className="text-xs font-mono text-[#D4D4D4] shrink-0">{c.credits} {isTh ? 'นก.' : 'cr'}</span>
+                        <span className="text-xs font-mono text-[var(--text-primary)] shrink-0 tabular-nums">{c.credits} {isTh ? 'นก.' : 'cr'}</span>
                       </div>
                     ))}
 
                     {summary.retakingCourses.map((c) => (
                       <div
                         key={c.courseCode}
-                        className="bg-[#007ACC]/15 border border-[#007ACC]/40 rounded-xl p-3.5 flex items-center justify-between gap-3"
+                        className="bg-[var(--app-bg)] border border-[var(--primary)]/30 rounded-lg p-3.5 flex items-center justify-between gap-3"
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-mono text-[#3794FF] font-semibold">{c.courseCode}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#007ACC]/30 text-[#3794FF] font-medium">
+                            <span className="text-[11px] font-mono text-[var(--primary-bright)] font-medium">{c.courseCode}</span>
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--primary)]/20 text-[var(--primary-bright)] font-medium">
                               {isTh ? 'กำลังลงรีเกรดเทอมนี้' : 'Retaking Now'}
                             </span>
                           </div>
-                          <p className="text-xs font-semibold text-[#FFFFFF] truncate mt-0.5">
+                          <p className="text-xs font-medium text-[var(--text-heading)] truncate mt-0.5">
                             {c.engName || c.courseName}
                           </p>
-                          <p className="text-[11px] text-[#9D9D9D] mt-0.5">
+                          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 font-mono">
                             {c.attempts.map((a) => `${a.semesterId}: ${a.grade}`).join(' → ')} → {isTh ? 'กำลังเรียน' : 'Enrolled'}
                           </p>
                         </div>
-                        <span className="text-xs font-mono text-[#D4D4D4] shrink-0">{c.credits} {isTh ? 'นก.' : 'cr'}</span>
+                        <span className="text-xs font-mono text-[var(--text-primary)] shrink-0 tabular-nums">{c.credits} {isTh ? 'นก.' : 'cr'}</span>
                       </div>
                     ))}
 
                     {summary.withdrawnCourses.map((c) => (
                       <div
                         key={c.courseCode}
-                        className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3.5 flex items-center justify-between gap-3"
+                        className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3.5 flex items-center justify-between gap-3"
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-mono text-[#9D9D9D] font-semibold">{c.courseCode}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#252526] border border-[#3C3C3C] text-[#9D9D9D]">
+                            <span className="text-[11px] font-mono text-[var(--text-secondary)] font-medium">{c.courseCode}</span>
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)]">
                               {isTh ? 'ถอน (W)' : 'Withdrawn'}
                             </span>
                           </div>
-                          <p className="text-xs font-semibold text-[#FFFFFF] truncate mt-0.5">{c.courseName}</p>
+                          <p className="text-xs font-medium text-[var(--text-heading)] truncate mt-0.5">{c.courseName}</p>
                         </div>
-                        <span className="text-xs font-mono text-[#9D9D9D] shrink-0">{c.credits} {isTh ? 'นก.' : 'cr'}</span>
+                        <span className="text-xs font-mono text-[var(--text-secondary)] shrink-0 tabular-nums">{c.credits} {isTh ? 'นก.' : 'cr'}</span>
                       </div>
                     ))}
                   </div>
@@ -1084,7 +1139,7 @@ export default function Academic() {
               {/* Category Breakdown Cards */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-[#FFFFFF]">
+                  <h3 className="text-sm font-medium text-[var(--text-heading)]">
                     {isTh ? 'หน่วยกิตแยกตามหมวดหลักสูตร (คลิกเพื่อดู/ย้ายหมวดวิชา)' : 'Credits by Curriculum Category (Click to inspect/reassign)'}
                   </h3>
                 </div>
@@ -1096,65 +1151,65 @@ export default function Academic() {
                     return (
                       <div
                         key={cat.id}
-                        className="bg-[#252526] border border-[#3C3C3C] rounded-2xl overflow-hidden flex flex-col"
+                        className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden flex flex-col"
                       >
                         <button
                           type="button"
                           onClick={() =>
                             setExpandedCategories((prev) => ({ ...prev, [cat.id]: !prev[cat.id] }))
                           }
-                          className="p-4 text-left hover:bg-[#2A2D2E] transition-colors cursor-pointer space-y-2.5"
+                          className="p-4 text-left hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer space-y-2.5"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                               <span
-                                className="w-2.5 h-2.5 rounded-full shrink-0"
-                                style={{ backgroundColor: cat.color || '#3794FF' }}
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: cat.color || '#60A5FA' }}
                               />
-                              <span className="text-xs font-semibold text-[#FFFFFF] truncate">
+                              <span className="text-xs font-medium text-[var(--text-heading)] truncate">
                                 {isTh ? cat.nameTh : cat.nameEn}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-xs font-mono font-semibold text-[#D4D4D4]">
+                              <span className="text-xs font-mono font-medium text-[var(--text-primary)] tabular-nums">
                                 {cat.passedCredits}
                                 {cat.inProgressCredits > 0 && (
-                                  <span className="text-[#3794FF]">+{cat.inProgressCredits}</span>
+                                  <span className="text-[var(--primary-bright)]">+{cat.inProgressCredits}</span>
                                 )}
-                                <span className="text-[#858585]"> / {cat.requiredCredits}</span>
+                                <span className="text-[var(--text-muted)]"> / {cat.requiredCredits}</span>
                               </span>
                               {isExpanded ? (
-                                <ChevronUp size={15} className="text-[#858585]" />
+                                <ChevronUp size={15} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                               ) : (
-                                <ChevronDown size={15} className="text-[#858585]" />
+                                <ChevronDown size={15} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                               )}
                             </div>
                           </div>
 
-                          <div className="h-2 w-full bg-[#1E1E1E] rounded-full overflow-hidden relative">
+                          <div className="h-2 w-full bg-[var(--app-bg)] rounded-full overflow-hidden relative">
                             <div
-                              className="h-full opacity-40 absolute left-0 top-0 transition-all"
-                              style={{ width: `${cat.projectedPct}%`, backgroundColor: cat.color || '#3794FF' }}
+                              className="h-full opacity-40 absolute left-0 top-0 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                              style={{ width: `${cat.projectedPct}%`, backgroundColor: cat.color || '#60A5FA' }}
                             />
                             <div
-                              className="h-full absolute left-0 top-0 transition-all"
-                              style={{ width: `${cat.passedPct}%`, backgroundColor: cat.color || '#3794FF' }}
+                              className="h-full absolute left-0 top-0 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                              style={{ width: `${cat.passedPct}%`, backgroundColor: cat.color || '#60A5FA' }}
                             />
                           </div>
 
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-[#858585]">
+                            <span className="text-[var(--text-muted)] font-mono tabular-nums">
                               {cat.passedCourses.length} {isTh ? 'วิชาผ่านแล้ว' : 'passed'}
                               {cat.inProgressCourses.length > 0 &&
                                 ` • ${cat.inProgressCourses.length} ${isTh ? 'กำลังเรียน' : 'enrolled'}`}
                             </span>
                             {cat.isComplete ? (
                               <span className="text-emerald-400 font-medium flex items-center gap-1">
-                                <CheckCircle2 size={12} />
+                                <CheckCircle2 size={13} strokeWidth={1.5} />
                                 {isTh ? 'ครบเกณฑ์แล้ว' : 'Completed'}
                               </span>
                             ) : (
-                              <span className="text-[#9D9D9D]">
+                              <span className="text-[var(--text-secondary)] font-mono tabular-nums">
                                 {isTh ? `ขาดอีก ${cat.remainingCredits} นก.` : `${cat.remainingCredits} cr left`}
                               </span>
                             )}
@@ -1162,32 +1217,32 @@ export default function Academic() {
                         </button>
 
                         {isExpanded && (
-                          <div className="border-t border-[#3C3C3C] bg-[#1E1E1E]/70 p-3 space-y-1.5">
+                          <div className="border-t border-[var(--border)] bg-[var(--app-bg)] p-3 space-y-2">
                             {catCourses.length === 0 ? (
-                              <p className="text-[11px] text-[#858585] text-center py-3">
+                              <p className="text-[11px] text-[var(--text-muted)] text-center py-3">
                                 {isTh ? 'ยังไม่มีรายวิชาในหมวดนี้' : 'No courses assigned to this category yet'}
                               </p>
                             ) : (
                               catCourses.map((course) => (
                                 <div
                                   key={course.courseCode}
-                                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#252526] border border-[#3C3C3C] rounded-lg px-2.5 py-2 sm:py-1.5 text-[11px]"
+                                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 text-[11px]"
                                 >
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="font-mono text-[#9D9D9D]">{course.courseCode}</span>
+                                      <span className="font-mono text-[var(--text-secondary)]">{course.courseCode}</span>
                                       {course.isPassed ? (
-                                        <span className={`px-1.5 py-0.25 rounded border font-semibold ${getGradeBadgeClass(course.bestPassedGrade)} ${blurCls}`}>
+                                        <span className={`px-1.5 py-0.5 rounded border font-medium font-mono ${getGradeBadgeClass(course.bestPassedGrade)} ${blurCls}`}>
                                           {course.bestPassedGrade}
                                         </span>
                                       ) : (
-                                        <span className="px-1.5 py-0.25 rounded bg-[#007ACC]/20 text-[#3794FF] border border-[#007ACC]/40">
+                                        <span className="px-1.5 py-0.5 rounded bg-[var(--primary)]/15 text-[var(--primary-bright)] border border-[var(--primary)]/30">
                                           {isTh ? 'กำลังเรียน' : 'Enrolled'}
                                         </span>
                                       )}
-                                      <span className="text-[#858585] font-mono">{course.credits} {isTh ? 'นก.' : 'cr'}</span>
+                                      <span className="text-[var(--text-muted)] font-mono tabular-nums">{course.credits} {isTh ? 'นก.' : 'cr'}</span>
                                     </div>
-                                    <p className="text-[#D4D4D4] truncate mt-0.5">
+                                    <p className="text-[var(--text-primary)] truncate mt-0.5">
                                       {course.engName || course.courseName}
                                     </p>
                                   </div>
@@ -1195,7 +1250,7 @@ export default function Academic() {
                                     aria-label={`Category for ${course.courseCode}`}
                                     value={gradProgress.resolvedCategoryByCode[course.courseCode] || cat.id}
                                     onChange={(e) => handleChangeCourseCategory(course.courseCode, e.target.value)}
-                                    className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-md px-2 py-1 text-[10.5px] sm:text-[10px] text-[#D4D4D4] w-full sm:w-auto sm:max-w-[140px] cursor-pointer"
+                                    className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-2 py-1 text-[11px] text-[var(--text-primary)] w-full sm:w-auto sm:max-w-[140px] cursor-pointer"
                                   >
                                     {gradProgress.categoryProgress.map((opt) => (
                                       <option key={opt.id} value={opt.id}>
@@ -1222,37 +1277,37 @@ export default function Academic() {
           {/* ══ TAB 2: SEMESTER GRADES ════════════════════════════════ */}
           {activeTab === 'grades' && (
             <div className="space-y-4">
-              {/* Minimal Filter bar (matches TaskFilters dropdown style) */}
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3">
+              {/* Filter bar */}
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3">
                 <div className="relative flex-1 max-w-sm">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#858585]" />
+                  <Search size={14} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
                     type="text"
                     value={gradeSearch}
                     onChange={(e) => setGradeSearch(e.target.value)}
                     placeholder={isTh ? 'ค้นหารหัสวิชา หรือชื่อวิชา...' : 'Search by course code or name...'}
-                    className="w-full pl-9 pr-8 py-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                    className="w-full pl-9 pr-8 py-2 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                   />
                   {gradeSearch && (
                     <button
                       type="button"
                       onClick={() => setGradeSearch('')}
                       aria-label={isTh ? 'ล้างคำค้นหา' : 'Clear search'}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#858585] hover:text-[#FFFFFF] cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-heading)] cursor-pointer"
                     >
-                      <X size={13} />
+                      <X size={13} strokeWidth={1.5} />
                     </button>
                   )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
-                    <Filter size={13} className="text-[#858585]" />
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)]">
+                    <Filter size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                     <select
                       aria-label={isTh ? 'เลือกภาคการศึกษา' : 'Select semester'}
                       value={selectedSemester}
                       onChange={(e) => setSelectedSemester(e.target.value)}
-                      className="bg-[#1E1E1E] text-xs font-medium text-[#D4D4D4] focus:outline-none cursor-pointer pr-1"
+                      className="bg-[var(--app-bg)] text-xs font-medium text-[var(--text-primary)] focus:outline-none cursor-pointer pr-1"
                     >
                       <option value="all">{isTh ? 'ทุกภาคการศึกษา' : 'All Semesters'}</option>
                       {[...summary.semesters].reverse().map((sem) => (
@@ -1263,13 +1318,13 @@ export default function Academic() {
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
-                    <ArrowUpDown size={13} className="text-[#858585]" />
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)]">
+                    <ArrowUpDown size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                     <select
                       aria-label={isTh ? 'เรียงลำดับภาคการศึกษา' : 'Sort semesters'}
                       value={newestFirst ? 'newest' : 'oldest'}
                       onChange={(e) => setNewestFirst(e.target.value === 'newest')}
-                      className="bg-[#1E1E1E] text-xs font-medium text-[#D4D4D4] focus:outline-none cursor-pointer pr-1"
+                      className="bg-[var(--app-bg)] text-xs font-medium text-[var(--text-primary)] focus:outline-none cursor-pointer pr-1"
                     >
                       <option value="newest">{isTh ? 'ใหม่ → เก่า' : 'Newest First'}</option>
                       <option value="oldest">{isTh ? 'เก่า → ใหม่' : 'Oldest First'}</option>
@@ -1283,7 +1338,7 @@ export default function Academic() {
                         setGradeSearch('');
                         setSelectedSemester('all');
                       }}
-                      className="text-xs font-medium text-[#3794FF] hover:text-[#FFFFFF] bg-[#007ACC]/15 hover:bg-[#007ACC]/30 border border-[#007ACC]/40 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+                      className="text-xs font-medium text-[var(--primary-bright)] hover:text-[var(--text-heading)] bg-[var(--primary)]/12 hover:bg-[var(--primary)]/20 border border-[var(--primary)]/30 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                     >
                       {isTh ? 'ล้างตัวกรอง' : 'Clear'}
                     </button>
@@ -1292,7 +1347,7 @@ export default function Academic() {
               </div>
 
               {displaySemesters.length === 0 ? (
-                <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-10 text-center text-xs text-[#9D9D9D]">
+                <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-xl p-10 text-center text-xs text-[var(--text-secondary)]">
                   {isTh ? 'ไม่พบรายวิชาที่ตรงกับเงื่อนไขการค้นหา' : 'No matching semester courses found.'}
                 </div>
               ) : (
@@ -1302,26 +1357,26 @@ export default function Academic() {
                   return (
                     <div
                       key={sem.semesterId}
-                      className="bg-[#252526] border border-[#3C3C3C] rounded-2xl overflow-hidden"
+                      className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden"
                     >
-                      <div className="px-5 py-3.5 border-b border-[#3C3C3C] bg-[#2D2D2D] flex flex-wrap items-center justify-between gap-2">
+                      <div className="px-5 py-3.5 border-b border-[var(--border)] bg-[var(--surface-elevated)]/60 flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2.5">
-                          <h3 className="text-sm font-semibold text-[#FFFFFF]">
+                          <h3 className="text-sm font-medium text-[var(--text-heading)]">
                             {isTh ? `ภาคการศึกษา ${sem.semesterId}` : `Semester ${sem.semesterId}`}
                           </h3>
                           {sem.status && (
-                            <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#1E1E1E] border border-[#3C3C3C] text-[#9D9D9D]">
+                            <span className="text-[11px] px-2 py-0.5 rounded-md bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)]">
                               {sem.status}
                             </span>
                           )}
                         </div>
-                        <div className={`flex items-center gap-3 text-xs font-mono ${blurCls}`}>
+                        <div className={`flex items-center gap-3 text-xs font-mono tabular-nums ${blurCls}`}>
                           {sem.computedStats.cg > 0 && (
-                            <span className="text-[#3794FF] font-semibold">
+                            <span className="text-[var(--primary-bright)] font-medium">
                               GPA {formatGpa(sem.computedStats.gpa)}
                             </span>
                           )}
-                          <span className="text-emerald-400 font-semibold">
+                          <span className="text-emerald-400 font-medium">
                             GPAX {formatGpa(sem.computedCumulative.gpax)}
                           </span>
                         </div>
@@ -1330,7 +1385,7 @@ export default function Academic() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
                           <thead>
-                            <tr className="border-b border-[#3C3C3C] text-[11px] text-[#858585] bg-[#1E1E1E]/60">
+                            <tr className="border-b border-[var(--border)] text-[11px] text-[var(--text-muted)] bg-[var(--app-bg)]/55">
                               <th className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-medium whitespace-nowrap">{isTh ? 'รหัสวิชา' : 'Code'}</th>
                               <th className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-medium min-w-[140px]">{isTh ? 'ชื่อรายวิชา' : 'Course Name'}</th>
                               <th className="px-2 sm:px-3 py-2 sm:py-2.5 font-medium text-center whitespace-nowrap">{isTh ? 'ตอน' : 'Sec'}</th>
@@ -1338,16 +1393,16 @@ export default function Academic() {
                               <th className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-medium text-right whitespace-nowrap">{isTh ? 'เกรด' : 'Grade'}</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-[#3C3C3C]/60">
+                          <tbody className="divide-y divide-[var(--border)]">
                             {sem.filteredCourses.map((c, idx) => (
-                              <tr key={`${c.courseCode}-${idx}`} className="hover:bg-[#2A2D2E]/60">
-                                <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-mono text-[#9D9D9D] whitespace-nowrap">{c.courseCode}</td>
-                                <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-[#FFFFFF] font-medium">{c.courseName}</td>
-                                <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[#9D9D9D] whitespace-nowrap">{c.section || '-'}</td>
-                                <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center font-mono text-[#D4D4D4] whitespace-nowrap">{c.credits}</td>
+                              <tr key={`${c.courseCode}-${idx}`} className="hover:bg-[var(--surface-hover)]/45 transition-colors">
+                                <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-mono tabular-nums text-[var(--text-secondary)] whitespace-nowrap">{c.courseCode}</td>
+                                <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-[var(--text-heading)] font-medium">{c.courseName}</td>
+                                <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[var(--text-secondary)] font-mono tabular-nums whitespace-nowrap">{c.section || '-'}</td>
+                                <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center font-mono tabular-nums text-[var(--text-primary)] whitespace-nowrap">{c.credits}</td>
                                 <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-right whitespace-nowrap">
                                   <span
-                                    className={`inline-block min-w-[2.2rem] text-center px-2 py-0.5 rounded-md border font-semibold font-mono ${getGradeBadgeClass(
+                                    className={`inline-block min-w-[2.2rem] text-center px-2 py-0.5 rounded-md border font-medium font-mono tabular-nums ${getGradeBadgeClass(
                                       c.grade
                                     )} ${blurCls}`}
                                   >
@@ -1359,20 +1414,20 @@ export default function Academic() {
 
                             {isInProgressEmpty &&
                               academicData.enrolledCourses.map((ec) => (
-                                <tr key={`enrolled-${ec.courseCode}`} className="hover:bg-[#2A2D2E]/60">
-                                  <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-mono text-[#9D9D9D] whitespace-nowrap">{ec.courseCode}</td>
-                                  <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-[#FFFFFF] font-medium">
+                                <tr key={`enrolled-${ec.courseCode}`} className="hover:bg-[var(--surface-hover)]/45 transition-colors">
+                                  <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 font-mono tabular-nums text-[var(--text-secondary)] whitespace-nowrap">{ec.courseCode}</td>
+                                  <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-[var(--text-heading)] font-medium">
                                     {ec.engName || ec.thaiName}
                                     {ec.thaiName && ec.engName && (
-                                      <span className="block text-[11px] text-[#858585] font-normal">{ec.thaiName}</span>
+                                      <span className="block text-[11px] text-[var(--text-muted)] font-normal">{ec.thaiName}</span>
                                     )}
                                   </td>
-                                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[#9D9D9D] whitespace-nowrap">
+                                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[var(--text-secondary)] font-mono tabular-nums whitespace-nowrap">
                                     {(ec.sections || []).join(', ') || '-'}
                                   </td>
-                                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center font-mono text-[#D4D4D4] whitespace-nowrap">{ec.credits}</td>
+                                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 text-center font-mono tabular-nums text-[var(--text-primary)] whitespace-nowrap">{ec.credits}</td>
                                   <td className="px-2.5 sm:px-4 py-2 sm:py-2.5 text-right whitespace-nowrap">
-                                    <span className="inline-block px-2 py-0.5 rounded-md border bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40 text-[11px] font-medium">
+                                    <span className="inline-block px-2 py-0.5 rounded-md border bg-[var(--primary)]/15 text-[var(--primary-bright)] border-[var(--primary)]/35 text-[11px] font-medium">
                                       {isTh ? 'กำลังเรียน' : 'In Progress'}
                                     </span>
                                   </td>
@@ -1382,7 +1437,7 @@ export default function Academic() {
                         </table>
                       </div>
 
-                      <div className="px-5 py-2.5 border-t border-[#3C3C3C] bg-[#1E1E1E] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#858585] font-mono">
+                      <div className="px-5 py-2.5 border-t border-[var(--border)] bg-[var(--app-bg)] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)] font-mono tabular-nums">
                         <span>
                           {isTh ? 'ภาคนี้:' : 'Term:'} CA {sem.computedStats.ca} • CS {sem.computedStats.cs} • CG{' '}
                           {sem.computedStats.cg} •{' '}
@@ -1403,35 +1458,35 @@ export default function Academic() {
           {/* ══ TAB 3: PASSED COURSES AUDIT ═══════════════════════════ */}
           {activeTab === 'passed' && (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[#252526] border border-[#3C3C3C] rounded-2xl p-3">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3">
                 <div className="relative flex-1 max-w-sm">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#858585]" />
+                  <Search size={14} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
                     type="text"
                     value={gradeSearch}
                     onChange={(e) => setGradeSearch(e.target.value)}
                     placeholder={isTh ? 'ค้นหารายวิชา...' : 'Search courses...'}
-                    className="w-full pl-9 pr-8 py-2 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl text-xs text-[#D4D4D4] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                    className="w-full pl-9 pr-8 py-2 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                   />
                   {gradeSearch && (
                     <button
                       type="button"
                       onClick={() => setGradeSearch('')}
                       aria-label={isTh ? 'ล้างคำค้นหา' : 'Clear search'}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#858585] hover:text-[#FFFFFF] cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-heading)] cursor-pointer"
                     >
-                      <X size={13} />
+                      <X size={13} strokeWidth={1.5} />
                     </button>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1E1E1E] border border-[#3C3C3C]">
-                    <Filter size={13} className="text-[#858585]" />
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)]">
+                    <Filter size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                     <select
                       aria-label={isTh ? 'กรองสถานะรายวิชา' : 'Filter course status'}
                       value={auditFilter}
                       onChange={(e) => setAuditFilter(e.target.value)}
-                      className="bg-[#1E1E1E] text-xs font-medium text-[#D4D4D4] focus:outline-none cursor-pointer pr-1"
+                      className="bg-[var(--app-bg)] text-xs font-medium text-[var(--text-primary)] focus:outline-none cursor-pointer pr-1"
                     >
                       <option value="all">{isTh ? `ทั้งหมด (${summary.allCourseAudits.length})` : `All (${summary.allCourseAudits.length})`}</option>
                       <option value="passed">{isTh ? `ผ่านแล้ว (${summary.passedCourses.length})` : `Passed (${summary.passedCourses.length})`}</option>
@@ -1442,11 +1497,11 @@ export default function Academic() {
                 </div>
               </div>
 
-              <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl overflow-hidden">
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-[#3C3C3C] text-[11px] text-[#858585] bg-[#2D2D2D]">
+                      <tr className="border-b border-[var(--border)] text-[11px] text-[var(--text-muted)] bg-[var(--surface-elevated)]/60">
                         <th className="px-4 py-3 font-medium">{isTh ? 'รหัสวิชา' : 'Code'}</th>
                         <th className="px-4 py-3 font-medium">{isTh ? 'รายวิชา & ประวัติการลง' : 'Course & Attempts'}</th>
                         <th className="px-3 py-3 font-medium text-center">{isTh ? 'นก.' : 'Cr'}</th>
@@ -1454,46 +1509,46 @@ export default function Academic() {
                         <th className="px-4 py-3 font-medium text-right">{isTh ? 'หมวดเกณฑ์จบ' : 'Category'}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#3C3C3C]/60">
+                    <tbody className="divide-y divide-[var(--border)]">
                       {filteredAuditCourses.map((c) => (
-                        <tr key={c.courseCode} className="hover:bg-[#2A2D2E]/50">
-                          <td className="px-4 py-3 font-mono text-[#9D9D9D] align-top">{c.courseCode}</td>
+                        <tr key={c.courseCode} className="hover:bg-[var(--surface-hover)]/45 transition-colors">
+                          <td className="px-4 py-3 font-mono tabular-nums text-[var(--text-secondary)] align-top">{c.courseCode}</td>
                           <td className="px-4 py-3">
-                            <p className="font-semibold text-[#FFFFFF]">{c.engName || c.courseName}</p>
+                            <p className="font-medium text-[var(--text-heading)]">{c.engName || c.courseName}</p>
                             {c.thaiName && c.engName && (
-                              <p className="text-[11px] text-[#858585]">{c.thaiName}</p>
+                              <p className="text-[11px] text-[var(--text-muted)]">{c.thaiName}</p>
                             )}
                             {c.attempts.length > 0 && (
-                              <p className={`text-[11px] text-[#9D9D9D] mt-0.5 ${blurCls}`}>
+                              <p className={`text-[11px] text-[var(--text-secondary)] mt-0.5 font-mono tabular-nums ${blurCls}`}>
                                 {c.attempts.map((a) => `${a.semesterId}: ${a.grade || '-'}`).join(' → ')}
                                 {c.isCurrentlyEnrolled && !c.isPassed ? (isTh ? ' → กำลังเรียน' : ' → Enrolled') : ''}
                               </p>
                             )}
                           </td>
-                          <td className="px-3 py-3 text-center font-mono text-[#D4D4D4]">{c.credits}</td>
+                          <td className="px-3 py-3 text-center font-mono tabular-nums text-[var(--text-primary)]">{c.credits}</td>
                           <td className="px-3 py-3 text-center">
                             {c.status === 'passed' && (
-                              <span className={`inline-block px-2 py-0.5 rounded-md border font-semibold font-mono ${getGradeBadgeClass(c.bestPassedGrade)} ${blurCls}`}>
+                              <span className={`inline-block px-2 py-0.5 rounded-md border font-medium font-mono tabular-nums ${getGradeBadgeClass(c.bestPassedGrade)} ${blurCls}`}>
                                 {c.bestPassedGrade}
                               </span>
                             )}
                             {c.status === 'retaking' && (
-                              <span className="inline-block px-2 py-0.5 rounded-md border bg-[#007ACC]/20 text-[#3794FF] border-[#007ACC]/40 text-[11px]">
+                              <span className="inline-block px-2 py-0.5 rounded-md border bg-[var(--primary)]/15 text-[var(--primary-bright)] border-[var(--primary)]/35 text-[11px]">
                                 {isTh ? 'รีเกรด' : 'Retaking'}
                               </span>
                             )}
                             {c.status === 'in_progress' && (
-                              <span className="inline-block px-2 py-0.5 rounded-md border bg-[#007ACC]/15 text-[#3794FF] border-[#007ACC]/30 text-[11px]">
+                              <span className="inline-block px-2 py-0.5 rounded-md border bg-[var(--primary)]/12 text-[var(--primary-bright)] border-[var(--primary)]/30 text-[11px]">
                                 {isTh ? 'กำลังเรียน' : 'Enrolled'}
                               </span>
                             )}
                             {c.status === 'failed' && (
-                              <span className="inline-block px-2 py-0.5 rounded-md border bg-rose-500/15 text-rose-400 border-rose-500/30 font-semibold font-mono">
+                              <span className="inline-block px-2 py-0.5 rounded-md border bg-rose-500/15 text-rose-400 border-rose-500/30 font-medium font-mono tabular-nums">
                                 F
                               </span>
                             )}
                             {c.status === 'withdrawn' && (
-                              <span className="inline-block px-2 py-0.5 rounded-md border bg-[#1E1E1E] text-[#9D9D9D] border-[#3C3C3C] font-mono">
+                              <span className="inline-block px-2 py-0.5 rounded-md border bg-[var(--app-bg)] text-[var(--text-secondary)] border-[var(--border)] font-mono tabular-nums">
                                 W
                               </span>
                             )}
@@ -1503,7 +1558,7 @@ export default function Academic() {
                               aria-label={`Audit category for ${c.courseCode}`}
                               value={gradProgress.resolvedCategoryByCode[c.courseCode] || ''}
                               onChange={(e) => handleChangeCourseCategory(c.courseCode, e.target.value)}
-                              className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-lg px-2 py-1 text-[11px] text-[#D4D4D4] max-w-[170px] cursor-pointer"
+                              className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-2 py-1 text-[11px] text-[var(--text-primary)] max-w-[170px] cursor-pointer"
                             >
                               {gradProgress.categoryProgress.map((opt) => (
                                 <option key={opt.id} value={opt.id}>
@@ -1525,13 +1580,13 @@ export default function Academic() {
           {activeTab === 'simulator' && (
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 lg:gap-6">
               {/* Left: Course Grade Picker */}
-              <div className="lg:col-span-2 bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-4">
+              <div className="xl:col-span-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-semibold text-[#FFFFFF]">
+                    <h3 className="text-sm font-medium text-[var(--text-heading)]">
                       {isTh ? 'จำลองเกรดเทอมนี้ (What-if Simulator)' : 'What-if Term Grade Simulator'}
                     </h3>
-                    <p className="text-[11px] text-[#9D9D9D]">
+                    <p className="text-[11px] text-[var(--text-secondary)]">
                       {isTh
                         ? 'ลองปรับเกรดของแต่ละวิชาเพื่อดูว่า GPA เทอมนี้และ GPAX สะสมจะขยับไปเท่าไหร่'
                         : 'Adjust expected grades for each course to preview your next Term GPA and GPAX.'}
@@ -1542,33 +1597,33 @@ export default function Academic() {
                       <button
                         type="button"
                         onClick={handleReloadEnrolledIntoSim}
-                        className="text-xs px-2.5 py-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#D4D4D4] hover:border-[#007ACC] inline-flex items-center gap-1 cursor-pointer"
+                        className="text-xs px-2.5 py-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary)] inline-flex items-center gap-1 cursor-pointer transition-colors"
                       >
-                        <RefreshCw size={12} />
+                        <RefreshCw size={12} strokeWidth={1.5} />
                         <span>{isTh ? 'ดึงวิชาเทอมนี้' : 'Load Term'}</span>
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={() => setSimCourses((prev) => prev.map((c) => ({ ...c, grade: 'B' })))}
-                      className="text-xs px-2.5 py-1.5 rounded-lg bg-[#1E1E1E] border border-[#3C3C3C] text-[#D4D4D4] hover:border-[#007ACC] inline-flex items-center gap-1 cursor-pointer"
+                      className="text-xs px-2.5 py-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary)] inline-flex items-center gap-1 cursor-pointer transition-colors"
                     >
-                      <RotateCcw size={12} />
+                      <RotateCcw size={12} strokeWidth={1.5} />
                       <span>{isTh ? 'ตั้งเป็น B' : 'Set all B'}</span>
                     </button>
                     <button
                       type="button"
                       onClick={handleAddSimCourse}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-[#007ACC] hover:bg-[#1177BB] text-white font-medium inline-flex items-center gap-1 cursor-pointer"
+                      className="text-xs px-3 py-1.5 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
                     >
-                      <Plus size={12} />
+                      <Plus size={12} strokeWidth={1.5} />
                       <span>{isTh ? 'เพิ่มวิชา' : 'Add Course'}</span>
                     </button>
                   </div>
                 </div>
 
                 {simCourses.length === 0 ? (
-                  <div className="py-10 text-center border border-dashed border-[#3C3C3C] rounded-xl text-xs text-[#9D9D9D] space-y-2">
+                  <div className="py-10 text-center border border-dashed border-[var(--border)] rounded-lg text-xs text-[var(--text-secondary)] space-y-2">
                     <p>
                       {isTh
                         ? 'ยังไม่มีรายวิชาจำลอง — นำเข้าหน้าตารางเรียน/สอบ หรือกด "+ เพิ่มวิชา" ด้านบนได้เลย'
@@ -1580,15 +1635,15 @@ export default function Academic() {
                     {simCourses.map((sc, idx) => (
                       <div
                         key={sc.id}
-                        className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3"
+                        className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3"
                       >
                         <div className="flex-1 min-w-[160px]">
                           <div className="flex items-center gap-1.5">
                             {sc.courseCode && (
-                              <span className="text-[11px] font-mono text-[#858585]">{sc.courseCode}</span>
+                              <span className="text-[11px] font-mono tabular-nums text-[var(--text-muted)]">{sc.courseCode}</span>
                             )}
                             {sc.isRetake && (
-                              <span className="text-[10px] px-1.5 py-0.25 rounded bg-[#007ACC]/20 text-[#3794FF]">
+                              <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--primary)]/15 text-[var(--primary-bright)]">
                                 {isTh ? 'รีเกรด' : 'Retake'}
                               </span>
                             )}
@@ -1602,7 +1657,7 @@ export default function Academic() {
                               )
                             }
                             aria-label="Simulated course name"
-                            className="w-full bg-transparent text-xs font-medium text-[#FFFFFF] focus:outline-none border-b border-transparent focus:border-[#007ACC] mt-0.5"
+                            className="w-full bg-transparent text-xs font-medium text-[var(--text-heading)] focus:outline-none border-b border-transparent focus:border-[var(--primary)] mt-0.5"
                           />
                         </div>
 
@@ -1620,9 +1675,9 @@ export default function Academic() {
                               )
                             }
                             aria-label="Simulated course credits"
-                            className="w-12 bg-[#252526] border border-[#3C3C3C] rounded-lg px-2 py-1.5 text-xs text-center text-[#FFFFFF] font-mono"
+                            className="w-12 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-xs text-center text-[var(--text-heading)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                           />
-                          <span className="text-[11px] text-[#858585]">{isTh ? 'นก.' : 'cr'}</span>
+                          <span className="text-[11px] text-[var(--text-muted)]">{isTh ? 'นก.' : 'cr'}</span>
 
                           <select
                             value={sc.grade}
@@ -1632,7 +1687,7 @@ export default function Academic() {
                               )
                             }
                             aria-label={`Expected grade for ${sc.courseName}`}
-                            className="bg-[#252526] border border-[#3C3C3C] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#FFFFFF] font-mono cursor-pointer"
+                            className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--text-heading)] font-mono tabular-nums cursor-pointer"
                           >
                             {SIMULATOR_GRADE_OPTIONS.map((g) => (
                               <option key={g} value={g}>
@@ -1645,9 +1700,9 @@ export default function Academic() {
                             type="button"
                             onClick={() => setSimCourses((prev) => prev.filter((_, i) => i !== idx))}
                             aria-label="Remove simulated course"
-                            className="p-1.5 rounded-lg text-[#858585] hover:text-rose-400 cursor-pointer"
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-rose-400 cursor-pointer transition-colors"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={14} strokeWidth={1.5} />
                           </button>
                         </div>
                       </div>
@@ -1658,27 +1713,27 @@ export default function Academic() {
 
               {/* Right: Projected Output & Target GPAX Solver */}
               <div className="space-y-4">
-                <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-4">
-                  <h3 className="text-sm font-semibold text-[#FFFFFF]">
+                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
+                  <h3 className="text-sm font-medium text-[var(--text-heading)]">
                     {isTh ? 'ผลลัพธ์จำลอง' : 'Projected Result'}
                   </h3>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3">
-                      <span className="text-[11px] text-[#9D9D9D] block">{isTh ? 'GPA เทอมนี้' : 'Term GPA'}</span>
-                      <span className={`text-2xl font-bold font-mono text-[#3794FF] mt-1 block ${blurCls}`}>
+                    <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3">
+                      <span className="text-[11px] text-[var(--text-secondary)] block">{isTh ? 'GPA เทอมนี้' : 'Term GPA'}</span>
+                      <span className={`text-2xl font-medium font-mono tabular-nums text-[var(--primary-bright)] mt-1 block ${blurCls}`}>
                         {formatGpa(simResult.termGpa)}
                       </span>
-                      <span className="text-[10px] text-[#858585] font-mono">CG {simResult.termCG}</span>
+                      <span className="text-[11px] text-[var(--text-muted)] font-mono tabular-nums">CG {simResult.termCG}</span>
                     </div>
 
-                    <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3">
-                      <span className="text-[11px] text-[#9D9D9D] block">{isTh ? 'GPAX ใหม่' : 'New GPAX'}</span>
-                      <span className={`text-2xl font-bold font-mono text-emerald-400 mt-1 block ${blurCls}`}>
+                    <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3">
+                      <span className="text-[11px] text-[var(--text-secondary)] block">{isTh ? 'GPAX ใหม่' : 'New GPAX'}</span>
+                      <span className={`text-2xl font-medium font-mono tabular-nums text-emerald-400 mt-1 block ${blurCls}`}>
                         {formatGpa(simResult.projectedGpax)}
                       </span>
                       <span
-                        className={`text-[10px] font-mono font-semibold ${
+                        className={`text-[11px] font-mono font-medium tabular-nums ${
                           simResult.gpaxDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'
                         } ${blurCls}`}
                       >
@@ -1687,22 +1742,22 @@ export default function Academic() {
                     </div>
                   </div>
 
-                  <div className="bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl p-3 text-xs flex items-center justify-between">
-                    <span className="text-[#9D9D9D]">{isTh ? 'หน่วยกิตผ่านสะสมใหม่' : 'New Passed Credits'}</span>
-                    <span className="font-mono font-semibold text-[#FFFFFF]">
+                  <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3 text-xs flex items-center justify-between">
+                    <span className="text-[var(--text-secondary)]">{isTh ? 'หน่วยกิตผ่านสะสมใหม่' : 'New Passed Credits'}</span>
+                    <span className="font-mono font-medium tabular-nums text-[var(--text-heading)]">
                       {simResult.projectedPassedCredits} / {gradProgress.totalRequired} {isTh ? 'นก.' : 'cr'}
                     </span>
                   </div>
                 </div>
 
                 {/* Target GPAX Solver */}
-                <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-5 space-y-3.5">
-                  <h3 className="text-sm font-semibold text-[#FFFFFF]">
+                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-3.5">
+                  <h3 className="text-sm font-medium text-[var(--text-heading)]">
                     {isTh ? 'คำนวณเกรดที่ต้องทำเพื่อให้ถึงเป้า' : 'Target GPAX Calculator'}
                   </h3>
 
                   <div className="flex items-center gap-2">
-                    <label htmlFor="target-gpax-input" className="text-xs text-[#9D9D9D] shrink-0">
+                    <label htmlFor="target-gpax-input" className="text-xs text-[var(--text-secondary)] shrink-0">
                       {isTh ? 'เป้าหมาย GPAX:' : 'Target GPAX:'}
                     </label>
                     <input
@@ -1713,7 +1768,7 @@ export default function Academic() {
                       max="4.00"
                       value={targetGpax}
                       onChange={(e) => setTargetGpax(e.target.value)}
-                      className="w-24 bg-[#1E1E1E] border border-[#3C3C3C] rounded-lg px-2.5 py-1.5 text-xs text-right font-mono text-[#FFFFFF]"
+                      className="w-24 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs text-right font-mono tabular-nums text-[var(--text-heading)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                     />
                   </div>
 
@@ -1723,10 +1778,10 @@ export default function Academic() {
                         key={presetVal}
                         type="button"
                         onClick={() => setTargetGpax(presetVal)}
-                        className={`text-[11px] font-mono px-2.5 py-1 rounded-md border cursor-pointer ${
+                        className={`text-[11px] font-mono tabular-nums px-2.5 py-1 rounded-md border cursor-pointer transition-colors ${
                           targetGpax === presetVal
-                            ? 'bg-[#007ACC] text-white border-[#007ACC]'
-                            : 'bg-[#1E1E1E] text-[#9D9D9D] border-[#3C3C3C] hover:text-[#FFFFFF]'
+                            ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
+                            : 'bg-[var(--app-bg)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--text-heading)]'
                         }`}
                       >
                         {presetVal}
@@ -1736,24 +1791,24 @@ export default function Academic() {
 
                   {targetSolver.valid && (
                     <div
-                      className={`p-3.5 rounded-xl border text-xs leading-relaxed ${
+                      className={`p-3.5 rounded-lg border text-xs leading-relaxed ${
                         targetSolver.alreadyMet
                           ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                           : targetSolver.achievable
-                            ? 'bg-[#007ACC]/15 border-[#007ACC]/40 text-[#D4D4D4]'
+                            ? 'bg-[var(--primary)]/12 border-[var(--primary)]/30 text-[var(--text-primary)]'
                             : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
                       }`}
                     >
                       {targetSolver.alreadyMet ? (
                         <span>
-                          {isTh ? `คุณมี GPAX ถึงเป้า ${targetGpax} แล้ว!` : `You already meet target GPAX ${targetGpax}!`}
+                          {isTh ? `คุณมี GPAX ถึงเป้า ${targetGpax} แล้ว` : `You already meet target GPAX ${targetGpax}.`}
                         </span>
                       ) : targetSolver.achievable ? (
                         <span>
                           {isTh
                             ? `จาก ${plannedSimCredits || 18} หน่วยกิตเทอมนี้ ต้องทำเกรดเฉลี่ยอย่างน้อย `
                             : `Across ${plannedSimCredits || 18} credits this term, you need at least `}
-                          <strong className={`text-[#FFFFFF] font-mono text-sm ${blurCls}`}>
+                          <strong className={`text-[var(--text-heading)] font-medium font-mono tabular-nums text-sm ${blurCls}`}>
                             {targetSolver.requiredGpa.toFixed(2)}
                           </strong>
                           {isTh ? ` เพื่อให้ GPAX ถึง ${targetGpax}` : ` to reach ${targetGpax}`}
@@ -1761,7 +1816,7 @@ export default function Academic() {
                       ) : (
                         <span>
                           {isTh
-                            ? `ต้องได้ GPA สูงกว่า 4.00 (${targetSolver.requiredGpa.toFixed(2)}) — ต้องค่อยๆ ดึงขึ้นมากกว่า 1 เทอมครับ`
+                            ? `ต้องได้ GPA สูงกว่า 4.00 (${targetSolver.requiredGpa.toFixed(2)}) — ต้องค่อยๆ ดึงขึ้นมากกว่า 1 เทอม`
                             : `Requires > 4.00 (${targetSolver.requiredGpa.toFixed(2)}) — will take more than one semester.`}
                         </span>
                       )}

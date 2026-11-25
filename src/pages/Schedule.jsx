@@ -39,27 +39,27 @@ const DAY_SHORT_KEYS = {
   fri: 'dayFriShort', sat: 'daySatShort', sun: 'daySunShort',
 };
 const PRESET_COLORS = [
-  '#3794FF', '#4EC9B0', '#CCA700', '#F14C4C', '#C586C0',
-  '#007ACC', '#CE9178', '#569CD6', '#2D9D78', '#858585',
+  '#3B82F6', '#34D399', '#FBBF24', '#F87171', '#A78BFA',
+  '#2563EB', '#F97316', '#60A5FA', '#2DD4BF', '#6B7280',
 ];
 
 const COLOR_MAP = {
-  emerald: '#4EC9B0',
-  blue: '#3794FF',
-  amber: '#CCA700',
-  rose: '#F14C4C',
-  purple: '#C586C0',
-  zinc: '#858585',
-  gray: '#858585',
-  red: '#F14C4C',
-  green: '#4EC9B0',
-  orange: '#CE9178',
+  emerald: '#34D399',
+  blue: '#3B82F6',
+  amber: '#FBBF24',
+  rose: '#F87171',
+  purple: '#A78BFA',
+  zinc: '#6B7280',
+  gray: '#6B7280',
+  red: '#F87171',
+  green: '#34D399',
+  orange: '#F97316',
 };
 
 function resolveHexColor(colorStr) {
-  if (!colorStr) return '#3794FF';
+  if (!colorStr) return '#3B82F6';
   if (colorStr.startsWith('#')) return colorStr;
-  return COLOR_MAP[colorStr.toLowerCase()] || '#3794FF';
+  return COLOR_MAP[colorStr.toLowerCase()] || '#3B82F6';
 }
 
 function addHoursToTime(timeStr, hours) {
@@ -232,9 +232,9 @@ function MiniCalendarPopover({ schedule, lang, weekOffset, setWeekOffset, weekDa
   };
 
   return (
-    <div className="absolute left-0 top-full mt-2 z-40 w-72 bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4 shadow-2xl">
+    <div className="absolute left-0 top-full mt-2 z-40 w-72 bg-[var(--surface)] border border-[var(--border-strong)] rounded-xl p-4">
       <div className="flex justify-between items-center mb-3">
-        <span className="text-xs font-semibold text-[#FFFFFF]">
+        <span className="text-xs font-medium text-[var(--text-heading)]">
           {monthNames[month]} {lang === 'th' ? year + 543 : year}
         </span>
         <div className="flex gap-1">
@@ -242,24 +242,24 @@ function MiniCalendarPopover({ schedule, lang, weekOffset, setWeekOffset, weekDa
             type="button"
             onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
             aria-label="Previous month"
-            className="p-1 rounded-lg hover:bg-[#2A2D2E] text-[#9D9D9D] hover:text-[#FFFFFF] cursor-pointer"
+            className="p-1 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] cursor-pointer"
           >
-            <ChevronLeft size={14} />
+            <ChevronLeft size={14} strokeWidth={1.5} />
           </button>
           <button
             type="button"
             onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
             aria-label="Next month"
-            className="p-1 rounded-lg hover:bg-[#2A2D2E] text-[#9D9D9D] hover:text-[#FFFFFF] cursor-pointer"
+            className="p-1 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] cursor-pointer"
           >
-            <ChevronRight size={14} />
+            <ChevronRight size={14} strokeWidth={1.5} />
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-7 gap-1 mb-1">
         {dayNames.map((d) => (
-          <div key={d} className="text-center text-[10px] font-medium text-[#858585] py-0.5">{d}</div>
+          <div key={d} className="text-center text-[11px] font-medium text-[var(--text-muted)] py-0.5">{d}</div>
         ))}
       </div>
 
@@ -277,17 +277,17 @@ function MiniCalendarPopover({ schedule, lang, weekOffset, setWeekOffset, weekDa
               key={dayNum}
               type="button"
               onClick={() => handleDayClick(dayNum)}
-              className={`relative h-8 rounded-lg flex items-center justify-center text-xs transition-colors cursor-pointer ${
+              className={`relative h-8 rounded-lg flex items-center justify-center text-xs font-mono tabular-nums transition-colors cursor-pointer ${
                 isToday
-                  ? 'bg-[#007ACC] text-white font-semibold'
+                  ? 'bg-[var(--primary)] text-white font-medium'
                   : isSelectedWeek
-                    ? 'bg-[#2D2D2D] text-[#FFFFFF] font-medium'
-                    : 'text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E]'
+                    ? 'bg-[var(--surface-elevated)] text-[var(--text-heading)] font-medium'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)]'
               }`}
             >
               <span>{dayNum}</span>
               {hasDot && !isToday && (
-                <span className="w-1 h-1 rounded-full bg-[#3794FF] absolute bottom-1" />
+                <span className="w-1 h-1 rounded-full bg-[var(--primary-bright)] absolute bottom-1" />
               )}
             </button>
           );
@@ -301,7 +301,7 @@ function MiniCalendarPopover({ schedule, lang, weekOffset, setWeekOffset, weekDa
             setWeekOffset(0);
             onClose?.();
           }}
-          className="mt-3 w-full py-1.5 rounded-lg text-[11px] font-medium bg-[#1E1E1E] border border-[#3C3C3C] text-[#3794FF] hover:bg-[#2A2D2E] cursor-pointer"
+          className="mt-3 w-full h-8 rounded-lg text-[11px] font-medium bg-[var(--app-bg)] border border-[var(--border)] text-[var(--primary-bright)] hover:bg-[var(--surface-hover)] cursor-pointer"
         >
           {lang === 'th' ? 'กลับไปสัปดาห์นี้' : 'Jump to Today'}
         </button>
@@ -377,19 +377,19 @@ function WeeklyGrid({
   const showNowLine = nowPct !== null && nowPct >= 0 && nowPct <= 100;
 
   return (
-    <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl overflow-hidden">
+    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
         <div className="min-w-[740px] w-full">
-          {/* Clean Time Header */}
-          <div className="grid grid-cols-[96px_1fr] border-b border-[#3C3C3C] bg-[#1E1E1E]/60">
-            <div className="px-3 py-2.5 text-[11px] font-medium text-[#858585] flex items-center justify-center border-r border-[#3C3C3C] select-none">
+          {/* Time Header */}
+          <div className="grid grid-cols-[96px_1fr] border-b border-[var(--border)] bg-[var(--app-bg)]">
+            <div className="px-3 py-2.5 text-[11px] font-medium text-[var(--text-muted)] flex items-center justify-center border-r border-[var(--border)] select-none">
               {lang === 'en' ? 'Day' : 'วัน'}
             </div>
             <div className="grid" style={{ gridTemplateColumns: `repeat(${totalHours}, minmax(0, 1fr))` }}>
               {timeLabels.map((label) => (
                 <div
                   key={label}
-                  className="py-2.5 px-1 text-left pl-2 border-l border-[#3C3C3C]/50 text-[10px] font-mono text-[#858585] select-none"
+                  className="py-2.5 px-2 text-left border-l border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-muted)] tabular-nums select-none"
                 >
                   {label}
                 </div>
@@ -398,11 +398,11 @@ function WeeklyGrid({
           </div>
 
           {/* Day Rows */}
-          <div className="divide-y divide-[#3C3C3C]/70">
+          <div className="divide-y divide-[var(--border)]">
             {visibleDays.map((day) => {
               const isToday = day === todayKey && weekOffset === 0;
               const { items: laneEntries, laneCount } = assignVerticalLanes(entriesByDay[day] || []);
-              const rowMinHeight = Math.max(82, laneCount * 58);
+              const rowMinHeight = Math.max(84, laneCount * 60);
 
               return (
                 <div
@@ -412,16 +412,16 @@ function WeeklyGrid({
                 >
                   {/* Day Label Cell */}
                   <div
-                    className={`px-3 py-3 border-r border-[#3C3C3C] flex flex-col items-center justify-center select-none ${
-                      isToday ? 'bg-[#007ACC]/10' : 'bg-[#252526]'
+                    className={`px-3 py-3 border-r border-[var(--border)] flex flex-col items-center justify-center select-none ${
+                      isToday ? 'bg-[var(--primary-active)]/50' : 'bg-[var(--surface)]'
                     }`}
                   >
-                    <span className={`text-xs font-semibold ${isToday ? 'text-[#3794FF]' : 'text-[#D4D4D4]'}`}>
+                    <span className={`text-xs font-medium ${isToday ? 'text-[var(--primary-bright)]' : 'text-[var(--text-primary)]'}`}>
                       {t(DAY_SHORT_KEYS[day], lang)}
                     </span>
                     <span
-                      className={`mt-1 text-[11px] font-mono px-2 py-0.5 rounded-full ${
-                        isToday ? 'bg-[#007ACC] text-white font-semibold' : 'text-[#858585]'
+                      className={`mt-1 text-[11px] font-mono tabular-nums px-2 py-0.5 rounded-md ${
+                        isToday ? 'bg-[var(--primary)] text-white font-medium' : 'text-[var(--text-muted)]'
                       }`}
                     >
                       {weekDates[day].dayNum}
@@ -431,7 +431,7 @@ function WeeklyGrid({
                   {/* Interactive Timeline Track */}
                   <div
                     className={`relative cursor-pointer transition-colors ${
-                      isToday ? 'bg-[#007ACC]/[0.04] hover:bg-[#007ACC]/[0.07]' : 'bg-[#1E1E1E] hover:bg-[#232325]'
+                      isToday ? 'bg-[var(--primary)]/[0.04] hover:bg-[var(--primary)]/[0.07]' : 'bg-[var(--app-bg)] hover:bg-[var(--surface)]'
                     }`}
                     onClick={(e) => handleRowClick(day, e)}
                     role="button"
@@ -444,13 +444,13 @@ function WeeklyGrid({
                       }
                     }}
                   >
-                    {/* Subtle hourly vertical gridlines */}
+                    {/* Hourly vertical gridlines */}
                     <div
                       className="absolute inset-0 grid pointer-events-none"
                       style={{ gridTemplateColumns: `repeat(${totalHours}, minmax(0, 1fr))` }}
                     >
                       {Array.from({ length: totalHours }).map((_, idx) => (
-                        <div key={idx} className="border-l border-[#3C3C3C]/35 h-full" />
+                        <div key={idx} className="border-l border-[var(--border-subtle)] h-full" />
                       ))}
                     </div>
 
@@ -504,41 +504,41 @@ function WeeklyGrid({
                               onClickBlock(entry, weekDates[day].dateStr);
                             }
                           }}
-                          className="absolute rounded-xl overflow-hidden cursor-pointer transition-all hover:brightness-115 flex flex-col justify-center px-2.5 py-1.5"
+                          className="absolute rounded-lg overflow-hidden cursor-pointer transition-opacity hover:opacity-90 flex flex-col justify-center px-2.5 py-1.5"
                           style={{
                             left: `calc(${left}% + 2px)`,
                             width: `calc(${width}% - 4px)`,
                             top: `${topPct}%`,
                             height: `${heightPct}%`,
-                            backgroundColor: `${accentHex}1A`,
-                            border: `1px solid ${accentHex}45`,
+                            backgroundColor: `${accentHex}16`,
+                            border: `1px solid ${accentHex}40`,
                             borderLeft: `3px solid ${accentHex}`,
                             zIndex: isAssign ? 20 : isExam ? 15 : 10,
                           }}
                         >
                           <div className="flex items-center gap-1.5 min-w-0">
                             {isExam && (
-                              <span className="text-[9px] font-semibold uppercase px-1.5 py-0.25 rounded bg-rose-500/25 text-rose-300 shrink-0">
+                              <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 shrink-0 leading-none">
                                 {lang === 'th' ? 'สอบ' : 'Exam'}
                               </span>
                             )}
                             {isAssign && (
-                              <span className="text-[9px] font-semibold uppercase px-1.5 py-0.25 rounded bg-purple-500/25 text-purple-300 shrink-0">
+                              <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 shrink-0 leading-none">
                                 {lang === 'th' ? 'งาน' : 'Due'}
                               </span>
                             )}
-                            <span className="text-xs font-semibold text-[#FFFFFF] truncate leading-tight">
+                            <span className="text-xs font-medium text-[var(--text-heading)] truncate leading-tight">
                               {entry.title || entry.courseCode}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10.5px] text-[#B5B5B5] mt-0.5 truncate font-mono">
+                          <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] mt-0.5 truncate font-mono tabular-nums">
                             <span className="shrink-0">
                               {isAssign ? `${entry.endTime}` : `${entry.startTime}–${entry.endTime}`}
                             </span>
                             {entry.room && !isAssign && (
                               <>
-                                <span className="text-[#666]">•</span>
-                                <span className="truncate font-sans text-[#CCCCCC]">{entry.room}</span>
+                                <span className="text-[var(--text-muted)]">•</span>
+                                <span className="truncate font-sans text-[var(--text-primary)]">{entry.room}</span>
                               </>
                             )}
                           </div>
@@ -599,9 +599,9 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
   }, [schedule, weekDates]);
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      {/* Clean 7-Day Selector Pill Strip */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+    <div className="space-y-4">
+      {/* 7-Day Selector Strip */}
+      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
         {DAYS.map((day) => {
           const isSelected = selectedDay === day;
           const isToday = day === todayKey;
@@ -611,19 +611,19 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
               key={day}
               type="button"
               onClick={() => setSelectedDay(day)}
-              className={`py-2 px-1 sm:py-2.5 sm:px-2 rounded-xl flex flex-col items-center justify-center transition-colors border cursor-pointer ${
+              className={`py-2 px-1 sm:py-2.5 sm:px-2 rounded-lg flex flex-col items-center justify-center transition-colors border cursor-pointer ${
                 isSelected
-                  ? 'bg-[#007ACC] text-white border-[#007ACC]'
+                  ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
                   : isToday
-                    ? 'bg-[#007ACC]/15 text-[#3794FF] border-[#007ACC]/40'
-                    : 'bg-[#252526] text-[#9D9D9D] border-[#3C3C3C] hover:text-[#FFFFFF] hover:bg-[#2A2D2E]'
+                    ? 'bg-[var(--surface-elevated)] text-[var(--primary-bright)] border-[var(--border-strong)]'
+                    : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)]'
               }`}
             >
-              <span className="text-[10.5px] sm:text-[11px] font-medium">{t(DAY_SHORT_KEYS[day], lang)}</span>
-              <span className="text-xs sm:text-sm font-semibold font-mono mt-0.5">{weekDates[day].dayNum}</span>
+              <span className="text-[11px] font-medium">{t(DAY_SHORT_KEYS[day], lang)}</span>
+              <span className="text-xs sm:text-sm font-medium font-mono tabular-nums mt-0.5">{weekDates[day].dayNum}</span>
               <span
                 className={`w-1.5 h-1.5 rounded-full mt-1 ${
-                  count > 0 ? (isSelected ? 'bg-white' : 'bg-[#3794FF]') : 'bg-transparent'
+                  count > 0 ? (isSelected ? 'bg-white' : 'bg-[var(--primary-bright)]') : 'bg-transparent'
                 }`}
               />
             </button>
@@ -634,20 +634,20 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
       {/* Day Header */}
       <div className="flex items-center justify-between gap-2 px-1">
         <div className="flex items-center gap-2 min-w-0">
-          <h2 className="text-sm font-semibold text-[#FFFFFF] truncate">{weekDates[selectedDay].dayName}</h2>
-          <span className="text-xs text-[#858585] shrink-0">{weekDates[selectedDay].formatted}</span>
+          <h2 className="text-sm font-medium text-[var(--text-heading)] truncate">{weekDates[selectedDay].dayName}</h2>
+          <span className="text-xs text-[var(--text-muted)] font-mono shrink-0">{weekDates[selectedDay].formatted}</span>
         </div>
         <button
           type="button"
           onClick={() => onClickAdd(selectedDay, '09:00', '10:00', weekDates[selectedDay].dateStr)}
-          className="text-xs text-[#3794FF] hover:underline font-medium inline-flex items-center gap-1 cursor-pointer shrink-0"
+          className="text-xs text-[var(--primary-bright)] hover:underline font-medium inline-flex items-center gap-1 cursor-pointer shrink-0"
         >
-          <Plus size={13} />
+          <Plus size={14} strokeWidth={1.5} />
           <span>{lang === 'th' ? 'เพิ่มคาบวันนี้' : 'Add to this day'}</span>
         </button>
       </div>
 
-      {/* Vertical Minimalist Timeline */}
+      {/* Vertical Ledger Timeline */}
       {dayEntries.length > 0 ? (
         <div className="space-y-2.5">
           {dayEntries.map((entry) => {
@@ -657,68 +657,68 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
                 key={entry.id}
                 type="button"
                 onClick={() => onClickCard(entry, weekDates[selectedDay].dateStr)}
-                className="w-full text-left bg-[#252526] hover:bg-[#2A2D2E] border border-[#3C3C3C] hover:border-[#007ACC]/60 rounded-2xl p-3 sm:p-4 transition-colors flex items-center gap-2.5 sm:gap-4 group cursor-pointer"
+                className="w-full text-left bg-[var(--surface)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-xl p-3.5 sm:p-4 transition-colors flex items-center gap-3 sm:gap-4 group cursor-pointer"
               >
                 {/* Time Column */}
-                <div className="w-13 sm:w-16 shrink-0 text-right font-mono">
-                  <div className="text-xs font-semibold text-[#FFFFFF]">{entry.startTime}</div>
-                  <div className="text-[11px] text-[#858585] mt-0.5">{entry.endTime}</div>
+                <div className="w-14 sm:w-16 shrink-0 text-right font-mono tabular-nums">
+                  <div className="text-xs font-medium text-[var(--text-heading)]">{entry.startTime}</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{entry.endTime}</div>
                 </div>
 
-                {/* Vertical Color Pill */}
-                <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: accentHex }} />
+                {/* Vertical Color Marker */}
+                <div className="w-0.5 self-stretch rounded-full shrink-0" style={{ backgroundColor: accentHex }} />
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-[#FFFFFF] group-hover:text-[#3794FF] transition-colors truncate">
+                    <span className="text-sm font-medium text-[var(--text-heading)] group-hover:text-[var(--primary-bright)] transition-colors truncate">
                       {entry.title}
                     </span>
                     {entry.courseCode && (
-                      <span className="text-[10.5px] font-mono text-[#9D9D9D] bg-[#1E1E1E] border border-[#3C3C3C] px-2 py-0.5 rounded-md">
+                      <span className="text-[11px] font-mono text-[var(--text-secondary)] bg-[var(--app-bg)] border border-[var(--border)] px-2 py-0.5 rounded">
                         {entry.courseCode}
                       </span>
                     )}
                     {entry.isExam && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-rose-500/12 text-rose-400 border border-rose-500/25">
                         {lang === 'th' ? 'สอบ' : 'Exam'}
                       </span>
                     )}
                     {entry.isAssignment && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-violet-500/12 text-violet-300 border border-violet-500/25">
                         {lang === 'th' ? 'กำหนดส่ง' : 'Due'}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-[#9D9D9D] flex-wrap">
+                  <div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-secondary)] flex-wrap">
                     {entry.room && (
-                      <span className="inline-flex items-center gap-1 text-[#CCCCCC]">
-                        <MapPin size={12} className="text-[#858585]" />
+                      <span className="inline-flex items-center gap-1.5 text-[var(--text-primary)] font-mono">
+                        <MapPin size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                         <span>{entry.room}</span>
                       </span>
                     )}
                     {!entry.isExam && !entry.isAssignment && !entry.date && (entry._effectiveEndDate || entry.endDate) && (
-                      <span className="text-[11px] text-[#858585]">
+                      <span className="text-[11px] text-[var(--text-muted)]">
                         {lang === 'th'
                           ? `ปิดคอร์ส ${formatCourseEndDateLabel(entry._effectiveEndDate || entry.endDate, 'th')}`
                           : `Ends ${formatCourseEndDateLabel(entry._effectiveEndDate || entry.endDate, 'en')}`}
                       </span>
                     )}
                     {entry.notes && (
-                      <span className="text-[11px] text-[#858585] truncate max-w-md">{entry.notes}</span>
+                      <span className="text-[11px] text-[var(--text-muted)] truncate max-w-md">{entry.notes}</span>
                     )}
                   </div>
                 </div>
 
-                <ChevronRight size={15} className="text-[#858585] group-hover:text-[#3794FF] shrink-0" />
+                <ChevronRight size={15} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--primary-bright)] shrink-0" />
               </button>
             );
           })}
         </div>
       ) : (
-        <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl py-12 px-6 text-center space-y-2">
-          <CalendarX2 size={28} className="text-[#858585] mx-auto opacity-60" />
-          <p className="text-xs text-[#9D9D9D] font-medium">{t('noClasses', lang)}</p>
+        <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-xl py-10 px-6 text-center space-y-2">
+          <CalendarX2 size={24} strokeWidth={1.5} className="text-[var(--text-muted)] mx-auto" />
+          <p className="text-xs text-[var(--text-secondary)] font-medium">{t('noClasses', lang)}</p>
         </div>
       )}
     </div>
@@ -888,31 +888,31 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto shadow-2xl">
-        <div className="px-5 py-4 border-b border-[#3C3C3C] flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-[#FFFFFF]">
+      <div className="bg-[var(--surface)] border border-[var(--border-strong)] rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
+        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
+          <h2 className="text-sm font-medium text-[var(--text-heading)]">
             {isEdit ? t('editSchedule', lang) : t('addSchedule', lang)}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label={t('cancelBtn', lang)}
-            className="p-1.5 rounded-lg text-[#9D9D9D] hover:text-[#FFFFFF] hover:bg-[#2A2D2E] cursor-pointer"
+            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer"
           >
-            <X size={16} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {visibleCourses.length > 0 && (
             <div>
-              <label className="block text-[11px] font-medium text-[#9D9D9D] mb-1">
+              <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
                 {t('selectCourse', lang)}
               </label>
               <select
                 value={formData.courseId || '__custom__'}
                 onChange={handleCourseSelect}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               >
                 <option value="__custom__">{t('customEntry', lang)}</option>
                 {visibleCourses.map((c) => (
@@ -924,7 +924,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
 
           <div className="grid grid-cols-3 gap-2.5">
             <div className="col-span-2">
-              <label htmlFor={titleId} className="block text-[11px] font-medium text-[#9D9D9D] mb-1">
+              <label htmlFor={titleId} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
                 {t('courseName', lang)} *
               </label>
               <input
@@ -934,11 +934,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 value={formData.title}
                 onChange={(e) => update('title', e.target.value)}
                 placeholder={lang === 'th' ? 'เช่น Data Structure' : 'e.g. Data Structure'}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#FFFFFF] placeholder-[#858585] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div>
-              <label htmlFor={codeId} className="block text-[11px] font-medium text-[#9D9D9D] mb-1">
+              <label htmlFor={codeId} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
                 {t('courseCodeLabel', lang)}
               </label>
               <input
@@ -947,20 +947,20 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 value={formData.courseCode}
                 onChange={(e) => update('courseCode', e.target.value)}
                 placeholder="040613..."
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#FFFFFF] placeholder-[#858585] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] placeholder-[var(--text-muted)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <span className="block text-[11px] font-medium text-[#9D9D9D] mb-1">{t('classType', lang)}</span>
-              <div className="grid grid-cols-2 bg-[#1E1E1E] border border-[#3C3C3C] p-0.5 rounded-xl">
+              <span className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">{t('classType', lang)}</span>
+              <div className="grid grid-cols-2 bg-[var(--app-bg)] border border-[var(--border)] p-0.5 rounded-lg">
                 <button
                   type="button"
                   onClick={() => handleTypeChange('recurring')}
-                  className={`py-1.5 rounded-lg text-[11px] font-medium cursor-pointer ${
-                    classType === 'recurring' ? 'bg-[#007ACC] text-white' : 'text-[#9D9D9D]'
+                  className={`py-1.5 rounded-md text-[11px] font-medium cursor-pointer transition-colors ${
+                    classType === 'recurring' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'
                   }`}
                 >
                   {lang === 'th' ? 'ทุกสัปดาห์' : 'Weekly'}
@@ -968,8 +968,8 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 <button
                   type="button"
                   onClick={() => handleTypeChange('one-off')}
-                  className={`py-1.5 rounded-lg text-[11px] font-medium cursor-pointer ${
-                    classType === 'one-off' ? 'bg-[#007ACC] text-white' : 'text-[#9D9D9D]'
+                  className={`py-1.5 rounded-md text-[11px] font-medium cursor-pointer transition-colors ${
+                    classType === 'one-off' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'
                   }`}
                 >
                   {lang === 'th' ? 'ระบุวัน' : 'Once'}
@@ -979,14 +979,14 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
 
             {classType === 'recurring' ? (
               <div>
-                <label htmlFor={dayId} className="block text-[11px] font-medium text-[#9D9D9D] mb-1">
+                <label htmlFor={dayId} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
                   {lang === 'th' ? 'วันเรียน' : 'Day'}
                 </label>
                 <select
                   id={dayId}
                   value={formData.day}
                   onChange={(e) => update('day', e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#FFFFFF]"
+                  className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 >
                   {DAYS.map((d) => (
                     <option key={d} value={d}>{t(DAY_KEYS[d], lang)}</option>
@@ -995,7 +995,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
               </div>
             ) : (
               <div>
-                <label htmlFor={dateId} className="block text-[11px] font-medium text-[#9D9D9D] mb-1">
+                <label htmlFor={dateId} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
                   {t('selectDate', lang)}
                 </label>
                 <input
@@ -1003,7 +1003,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   type="date"
                   value={formData.date}
                   onChange={(e) => handleDateChange(e.target.value)}
-                  className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#FFFFFF]"
+                  className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 />
               </div>
             )}
@@ -1011,7 +1011,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label htmlFor={startTimeId} className="block text-[11px] font-medium text-[#9D9D9D] mb-1">
+              <label htmlFor={startTimeId} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
                 {t('startTime', lang)}
               </label>
               <input
@@ -1023,11 +1023,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   setTimeError('');
                   update('startTime', e.target.value);
                 }}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#FFFFFF] font-mono"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div>
-              <label htmlFor={endTimeId} className="block text-[11px] font-medium text-[#9D9D9D] mb-1">
+              <label htmlFor={endTimeId} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
                 {t('endTime', lang)}
               </label>
               <input
@@ -1039,14 +1039,14 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   setTimeError('');
                   update('endTime', e.target.value);
                 }}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#FFFFFF] font-mono"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
           </div>
 
           {/* Quick Duration Chips */}
           <div className="flex items-center gap-1.5 text-[11px]">
-            <span className="text-[#858585]">{lang === 'th' ? 'ระยะเวลา:' : 'Duration:'}</span>
+            <span className="text-[var(--text-muted)]">{lang === 'th' ? 'ระยะเวลา:' : 'Duration:'}</span>
             {[1, 2, 3].map((hrs) => (
               <button
                 key={hrs}
@@ -1055,7 +1055,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   setTimeError('');
                   update('endTime', addHoursToTime(formData.startTime, hrs));
                 }}
-                className="px-2 py-0.5 rounded-md bg-[#1E1E1E] border border-[#3C3C3C] text-[#D4D4D4] hover:border-[#007ACC] cursor-pointer"
+                className="px-2 py-0.5 rounded-md bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary)] font-mono tabular-nums cursor-pointer transition-colors"
               >
                 +{hrs}h
               </button>
@@ -1065,15 +1065,15 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
           {classType === 'recurring' && (
             <div>
               <div className="flex items-center justify-between gap-2 mb-1">
-                <label htmlFor={endDateId} className="block text-[11px] font-medium text-[#9D9D9D]">
+                <label htmlFor={endDateId} className="block text-[11px] font-medium text-[var(--text-secondary)]">
                   {lang === 'th' ? 'วันปิดคอร์ส (ไม่บังคับ)' : 'Course End Date (Optional)'}
                 </label>
-                <div className="flex items-center gap-2 text-[10.5px]">
+                <div className="flex items-center gap-2 text-[11px]">
                   {autoEndInfo.endDate && formData.endDate !== autoEndInfo.endDate && (
                     <button
                       type="button"
                       onClick={() => handleEndDateChange(autoEndInfo.endDate)}
-                      className="text-[#3794FF] hover:underline cursor-pointer"
+                      className="text-[var(--primary-bright)] hover:underline cursor-pointer"
                     >
                       {lang === 'th' ? 'ก่อนสอบ 1 สัปดาห์' : '1w before exam'}
                     </button>
@@ -1082,7 +1082,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                     <button
                       type="button"
                       onClick={() => handleEndDateChange('')}
-                      className="text-[#858585] hover:text-rose-400 cursor-pointer"
+                      className="text-[var(--text-muted)] hover:text-rose-400 cursor-pointer"
                     >
                       {lang === 'th' ? 'ล้าง' : 'Clear'}
                     </button>
@@ -1094,9 +1094,9 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => handleEndDateChange(e.target.value)}
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#FFFFFF] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007ACC]"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
-              <p className="text-[10.5px] text-[#858585] mt-1">
+              <p className="text-[11px] text-[var(--text-muted)] mt-1">
                 {autoEndInfo.source === 'course-exam' && autoEndInfo.examDate
                   ? (lang === 'th'
                       ? `ปิดคอร์สอัตโนมัติก่อนสอบปลายภาค 1 สัปดาห์ (สอบ ${formatCourseEndDateLabel(autoEndInfo.examDate, 'th', { withYear: true })})`
@@ -1110,7 +1110,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                         : 'Stops repeating after this date in both app & Google Calendar')}
               </p>
               {modalPauseRanges.length > 0 && (
-                <p className="text-[10.5px] text-amber-300/80 mt-0.5">
+                <p className="text-[11px] text-amber-300/80 mt-0.5">
                   {lang === 'th'
                     ? `งดเรียนช่วงสอบกลางภาค ${formatCourseEndDateLabel(modalPauseRanges[0].start, 'th')} – ${formatCourseEndDateLabel(modalPauseRanges[0].end, 'th', { withYear: true })} แล้วกลับมาเรียนต่อปกติ`
                     : `Pauses for Midterm week (${formatCourseEndDateLabel(modalPauseRanges[0].start, 'en')} – ${formatCourseEndDateLabel(modalPauseRanges[0].end, 'en', { withYear: true })}), then resumes normally`}
@@ -1120,22 +1120,22 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
           )}
 
           {timeError && (
-            <div role="alert" className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2 flex items-center gap-2">
-              <AlertTriangle size={14} className="shrink-0" />
+            <div role="alert" className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 flex items-center gap-2">
+              <AlertTriangle size={14} strokeWidth={1.5} className="shrink-0" />
               <span>{timeError}</span>
             </div>
           )}
 
           {conflict && !timeError && (
-            <div className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 flex items-center gap-2">
-              <AlertTriangle size={14} className="shrink-0" />
+            <div className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 flex items-center gap-2">
+              <AlertTriangle size={14} strokeWidth={1.5} className="shrink-0" />
               <span>{t('timeConflict', lang)}</span>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label htmlFor={roomId} className="block text-[11px] font-medium text-[#9D9D9D] mb-1">
+              <label htmlFor={roomId} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
                 {t('classRoomLabel', lang)}
               </label>
               <input
@@ -1144,11 +1144,11 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 value={formData.room}
                 onChange={(e) => update('room', e.target.value)}
                 placeholder="78-621"
-                className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#FFFFFF] placeholder-[#858585]"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div>
-              <span className="block text-[11px] font-medium text-[#9D9D9D] mb-1.5">{t('colorLabel', lang)}</span>
+              <span className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1.5">{t('colorLabel', lang)}</span>
               <div className="flex flex-wrap gap-1.5">
                 {PRESET_COLORS.slice(0, 6).map((c) => (
                   <button
@@ -1156,8 +1156,8 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                     type="button"
                     onClick={() => update('color', c)}
                     aria-label={`Select color ${c}`}
-                    className={`w-6 h-6 rounded-full cursor-pointer transition-transform ${
-                      formData.color === c ? 'ring-2 ring-white scale-110' : 'opacity-75 hover:opacity-100'
+                    className={`w-6 h-6 rounded-full cursor-pointer transition-opacity ${
+                      formData.color === c ? 'ring-2 ring-[var(--text-heading)] ring-offset-2 ring-offset-[var(--surface)] opacity-100' : 'opacity-70 hover:opacity-100'
                     }`}
                     style={{ backgroundColor: c }}
                   />
@@ -1167,7 +1167,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
           </div>
 
           <div>
-            <label htmlFor={notesId} className="block text-[11px] font-medium text-[#9D9D9D] mb-1">
+            <label htmlFor={notesId} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
               {t('scheduleNotes', lang)}
             </label>
             <input
@@ -1176,25 +1176,25 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
               value={formData.notes}
               onChange={(e) => update('notes', e.target.value)}
               placeholder={lang === 'th' ? 'ชื่ออาจารย์ / หมายเหตุเพิ่มเติม...' : 'Instructor or notes...'}
-              className="w-full bg-[#1E1E1E] border border-[#3C3C3C] rounded-xl px-3 py-2 text-xs text-[#D4D4D4] placeholder-[#858585]"
+              className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             />
           </div>
 
-          <div className="pt-2 border-t border-[#3C3C3C] flex items-center justify-between gap-2">
+          <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between gap-2">
             {isEdit ? (
               showDeleteConfirm ? (
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => onDelete(entry.id)}
-                    className="px-3 py-2 rounded-xl text-xs font-medium bg-rose-600 text-white cursor-pointer"
+                    className="px-3 py-2 rounded-lg text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white cursor-pointer transition-colors"
                   >
                     {t('confirmBtn', lang)}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="px-2.5 py-2 rounded-xl text-xs bg-[#1E1E1E] border border-[#3C3C3C] text-[#D4D4D4] cursor-pointer"
+                    className="px-2.5 py-2 rounded-lg text-xs bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
                   >
                     {t('cancelBtn', lang)}
                   </button>
@@ -1205,7 +1205,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   onClick={() => setShowDeleteConfirm(true)}
                   className="text-xs text-rose-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
                 >
-                  <Trash2 size={13} />
+                  <Trash2 size={13} strokeWidth={1.5} />
                   <span>{t('deleteSchedule', lang)}</span>
                 </button>
               )
@@ -1217,13 +1217,13 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-2 rounded-xl text-xs font-medium bg-[#1E1E1E] border border-[#3C3C3C] text-[#D4D4D4] hover:bg-[#2A2D2E] cursor-pointer"
+                className="px-3.5 py-2 rounded-lg text-xs font-medium bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
               >
                 {t('cancelBtn', lang)}
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-xl text-xs font-medium bg-[#007ACC] hover:bg-[#1177BB] text-white cursor-pointer"
+                className="px-4 py-2 rounded-lg text-xs font-medium bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white cursor-pointer transition-colors"
               >
                 {t('saveBtn', lang)}
               </button>
@@ -1643,7 +1643,7 @@ export default function Schedule() {
               </button>
 
               {isMoreMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 z-40 w-56 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-1.5 shadow-2xl space-y-0.5 text-xs">
+                <div className="absolute right-0 top-full mt-2 z-40 w-56 bg-[var(--surface)] border border-[var(--border-strong)] rounded-xl p-1.5 space-y-0.5 text-xs">
                   {extensionStatus?.connected && (
                     <button
                       type="button"
@@ -1743,16 +1743,16 @@ export default function Schedule() {
           <button
             type="button"
             onClick={() => setIsMiniCalOpen((prev) => !prev)}
-            className="inline-flex items-center gap-2 text-left group cursor-pointer px-2.5 py-1.5 rounded-xl bg-[var(--app-bg)] border border-[var(--border)] hover:border-[var(--primary)]/60 transition-colors"
+            className="inline-flex items-center gap-2 text-left group cursor-pointer px-2.5 py-1.5 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] hover:border-[var(--primary)]/60 transition-colors"
             title={isTh ? 'เลือกวันที่จากปฏิทิน' : 'Pick date from calendar'}
           >
-            <CalendarIcon size={14} className="text-[var(--primary-bright)] shrink-0" />
-            <span className="text-sm font-semibold text-[var(--text-heading)] group-hover:text-[var(--primary-bright)] transition-colors">
+            <CalendarIcon size={14} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
+            <span className="text-sm font-medium text-[var(--text-heading)] group-hover:text-[var(--primary-bright)] transition-colors">
               {monthHeader || t('scheduleTitle', lang)}
             </span>
           </button>
 
-          <span className="text-xs text-[var(--text-secondary)] font-medium">
+          <span className="text-xs text-[var(--text-secondary)] font-medium font-mono tabular-nums">
             {weekRangeStr}
           </span>
 
@@ -1768,20 +1768,20 @@ export default function Schedule() {
           )}
         </div>
 
-        <div className="flex items-center bg-[var(--app-bg)] border border-[var(--border)] rounded-xl p-0.5">
+        <div className="flex items-center bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-0.5">
           <button
             type="button"
             onClick={() => setWeekOffset((prev) => prev - 1)}
             aria-label={t('prevWeek', lang)}
-            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
+            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
           >
-            <ChevronLeft size={14} />
+            <ChevronLeft size={14} strokeWidth={1.5} />
           </button>
           <button
             type="button"
             onClick={() => setWeekOffset(0)}
-            className={`px-3 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
-              weekOffset === 0 ? 'text-[var(--primary-bright)] font-semibold' : 'text-[var(--text-secondary)] hover:text-[var(--text-heading)]'
+            className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
+              weekOffset === 0 ? 'text-[var(--primary-bright)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-heading)]'
             }`}
           >
             {isTh ? 'วันนี้' : 'Today'}
@@ -1790,34 +1790,34 @@ export default function Schedule() {
             type="button"
             onClick={() => setWeekOffset((prev) => prev + 1)}
             aria-label={t('nextWeek', lang)}
-            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
+            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
           >
-            <ChevronRight size={14} />
+            <ChevronRight size={14} strokeWidth={1.5} />
           </button>
         </div>
       </div>
 
       {/* ── CALM SUMMARY STRIP + LAYER TOGGLES ─────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#252526] border border-[#3C3C3C] rounded-2xl px-3.5 py-3 sm:px-4 text-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl px-3.5 py-3 sm:px-4 text-xs">
         <div className="flex items-start sm:items-center gap-2.5 min-w-0">
-          <Clock size={14} className="text-[#3794FF] shrink-0 mt-0.5 sm:mt-0" />
+          <Clock size={14} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0 mt-0.5 sm:mt-0" />
           {todayClasses.length > 0 ? (
-            <div className="line-clamp-2 sm:line-clamp-none sm:truncate text-[#D4D4D4]">
-              <span className="font-semibold text-[#FFFFFF]">
+            <div className="line-clamp-2 sm:line-clamp-none sm:truncate text-[var(--text-primary)]">
+              <span className="font-medium text-[var(--text-heading)]">
                 {isTh ? `วันนี้ ${todayClasses.length} คาบ` : `Today: ${todayClasses.length} classes`}
               </span>
               {nextTodayClass && (
-                <span className="text-[#9D9D9D]">
+                <span className="text-[var(--text-secondary)]">
                   {' · '}
                   {isTh ? 'ถัดไป' : 'Next'}{' '}
-                  <span className="font-mono text-[#3794FF]">{nextTodayClass.startTime}</span>{' '}
-                  <span className="text-[#FFFFFF]">{nextTodayClass.title}</span>
+                  <span className="font-mono tabular-nums text-[var(--primary-bright)]">{nextTodayClass.startTime}</span>{' '}
+                  <span className="text-[var(--text-heading)]">{nextTodayClass.title}</span>
                   {nextTodayClass.room ? ` (${nextTodayClass.room})` : ''}
                 </span>
               )}
             </div>
           ) : (
-            <span className="text-[#9D9D9D]">
+            <span className="text-[var(--text-secondary)]">
               {schedule.length === 0
                 ? (isTh ? 'ยังไม่มีตารางเรียน — กด "นำเข้า Reg" หรือคลิกช่องว่างบนตารางเพื่อเพิ่ม' : 'No classes yet — click "Import Reg" or any slot to add')
                 : (isTh ? 'วันนี้ไม่มีคาบเรียน' : 'No classes scheduled today')}
@@ -1833,10 +1833,10 @@ export default function Schedule() {
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
               showExamsLayer
                 ? 'bg-rose-500/15 border-rose-500/35 text-rose-300'
-                : 'bg-[#1E1E1E] border-[#3C3C3C] text-[#858585]'
+                : 'bg-[var(--app-bg)] border-[var(--border)] text-[var(--text-muted)]'
             }`}
           >
-            <ClipboardCheck size={11} />
+            <ClipboardCheck size={12} strokeWidth={1.5} />
             <span>{isTh ? 'วันสอบ' : 'Exams'}</span>
           </button>
           <button
@@ -1844,11 +1844,11 @@ export default function Schedule() {
             onClick={() => setShowAssignmentsLayer((p) => !p)}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
               showAssignmentsLayer
-                ? 'bg-purple-500/15 border-purple-500/35 text-purple-300'
-                : 'bg-[#1E1E1E] border-[#3C3C3C] text-[#858585]'
+                ? 'bg-[var(--primary)]/15 border-[var(--primary)]/35 text-[var(--primary-bright)]'
+                : 'bg-[var(--app-bg)] border-[var(--border)] text-[var(--text-muted)]'
             }`}
           >
-            <BookOpen size={11} />
+            <BookOpen size={12} strokeWidth={1.5} />
             <span>{isTh ? 'งานส่ง' : 'Tasks'}</span>
           </button>
         </div>
@@ -1856,8 +1856,8 @@ export default function Schedule() {
 
       {/* Subtle note when courses are paused (Midterm week) or closed (1 week before Finals) */}
       {weekStatusInfo.pausedCount > 0 && (
-        <div className="flex items-center gap-2 text-[11.5px] text-amber-200/90 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3.5 py-2">
-          <CalendarDays size={14} className="text-amber-300 shrink-0" />
+        <div className="flex items-center gap-2 text-xs text-amber-200/90 bg-amber-500/10 border border-amber-500/25 rounded-lg px-3.5 py-2">
+          <CalendarDays size={14} strokeWidth={1.5} className="text-amber-300 shrink-0" />
           <span>
             {weekStatusInfo.pausedCount === weekStatusInfo.totalRecurring
               ? (isTh
@@ -1871,8 +1871,8 @@ export default function Schedule() {
       )}
 
       {weekStatusInfo.endedCount > 0 && (
-        <div className="flex items-center gap-2 text-[11.5px] text-[#9D9D9D] bg-[#252526]/70 border border-[#3C3C3C] rounded-xl px-3.5 py-2">
-          <CalendarX2 size={14} className="text-[#858585] shrink-0" />
+        <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--surface)]/70 border border-[var(--border)] rounded-lg px-3.5 py-2">
+          <CalendarX2 size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
           <span>
             {weekStatusInfo.endedCount === weekStatusInfo.totalRecurring
               ? (isTh
@@ -1914,7 +1914,7 @@ export default function Schedule() {
       )}
 
       {/* Subtle footer hint */}
-      <p className="text-[11px] text-[#858585] px-1">
+      <p className="text-[11px] text-[var(--text-muted)] px-1">
         {isTh
           ? 'คลิกที่ช่องว่างเพื่อเพิ่มคาบเรียน · คลิกวิชาเรียนเพื่อแก้ไขหรือดูวันปิดคอร์ส · งดเรียนช่วงสอบกลางภาคอัตโนมัติ และปิดคอร์สก่อนสอบปลายภาค 1 สัปดาห์'
           : 'Click an empty slot to add · Click any class to edit · Auto-pauses during Midterm week and closes 1 week before Finals'}

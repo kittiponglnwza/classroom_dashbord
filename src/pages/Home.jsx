@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader';
 import SectionHeader from '../components/SectionHeader';
 import { Home as HomeIcon, Calendar, ArrowRight, Megaphone, Clock, Paperclip, MapPin, CalendarDays, X, CheckCircle } from 'lucide-react';
 import { t } from '../utils/i18n';
-import { getCourseBadgeColor } from '../utils/colors';
+import { getCourseDotClass } from '../utils/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
@@ -16,17 +16,6 @@ import { useTodayClasses } from '../hooks/useTodayClasses';
 import { parseLocalDateInput } from '../utils/dateUtils';
 import { getCookieConsent } from '../utils/cookieConsent';
 import NextExamWidget from '../components/NextExamWidget';
-
-const getBorderLeftColor = (color) => {
-  switch (color) {
-    case 'emerald': return 'border-l-emerald-500';
-    case 'blue': return 'border-l-[#007ACC]';
-    case 'amber': return 'border-l-amber-500';
-    case 'rose': return 'border-l-rose-500';
-    case 'purple': return 'border-l-purple-500';
-    default: return 'border-l-[#858585]';
-  }
-};
 
 export default function Home() {
   const { profile } = useAuth();
@@ -84,7 +73,7 @@ export default function Home() {
   const pendingCount = visibleAssignments.filter(a => a.status !== 'done' && a.status !== 'read').length;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-6">
       <PageHeader
         title={t('home', lang)}
         description={t('homeDesc', lang)}
@@ -92,29 +81,19 @@ export default function Home() {
         actions={
           <Link
             to="/dashboard"
-            className="inline-flex items-center justify-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-4 py-2.5 rounded-xl transition-colors"
+            className="inline-flex items-center justify-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-4 h-9 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] transition-colors"
           >
             <span>{t('goDashboard', lang)}</span>
-            <ArrowRight size={14} />
+            <ArrowRight size={15} strokeWidth={1.5} />
           </Link>
         }
       />
 
-      {/* Welcome Notice */}
+      {/* Term Status Notice */}
       {showWelcome && (
-        <div className="relative bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={handleDismissWelcome}
-            className="absolute top-3 right-3 p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors cursor-pointer"
-            title={lang === 'en' ? 'Dismiss' : 'ปิด'}
-            aria-label={lang === 'en' ? 'Dismiss welcome banner' : 'ปิดข้อความต้อนรับ'}
-          >
-            <X size={15} />
-          </button>
-
+        <div className="relative bg-[var(--surface)] border border-[var(--border)] rounded-xl px-4 py-3.5 flex items-center justify-between gap-4">
           <div className="pr-8 space-y-0.5">
-            <h2 className="text-sm font-semibold text-[var(--text-heading)]">
+            <h2 className="text-sm font-medium text-[var(--text-heading)]">
               {t('welcomeBack', lang, { name: profile.name || 'Student' })}
             </h2>
             <p className="text-xs text-[var(--text-secondary)]">
@@ -123,6 +102,16 @@ export default function Home() {
                 : t('welcomeDesc', lang, { count: pendingCount })}
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={handleDismissWelcome}
+            className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors cursor-pointer shrink-0"
+            title={lang === 'en' ? 'Dismiss' : 'ปิด'}
+            aria-label={lang === 'en' ? 'Dismiss welcome banner' : 'ปิดข้อความต้อนรับ'}
+          >
+            <X size={16} strokeWidth={1.5} />
+          </button>
         </div>
       )}
 
@@ -136,7 +125,7 @@ export default function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Upcoming Deadlines & Recent Announcements */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             <SectionHeader
               title={t('latestAssignments', lang)}
               icon={Calendar}
@@ -147,7 +136,7 @@ export default function Home() {
                     className="text-xs text-[var(--primary-bright)] hover:underline font-medium inline-flex items-center gap-1"
                   >
                     <span>{t('viewAll', lang)}</span>
-                    <ArrowRight size={12} />
+                    <ArrowRight size={14} strokeWidth={1.5} />
                   </Link>
                 ) : null
               }
@@ -165,15 +154,15 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center">
-                <CheckCircle size={28} className="text-[#858585] mb-2.5 opacity-60" />
-                <p className="text-[#9D9D9D] text-xs font-medium">{t('noUpcoming', lang)}</p>
+              <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center">
+                <CheckCircle size={20} strokeWidth={1.5} className="text-[var(--text-muted)] mb-2" />
+                <p className="text-[var(--text-secondary)] text-xs font-medium">{t('noUpcoming', lang)}</p>
               </div>
             )}
           </div>
 
           {/* Recent Announcements */}
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             <SectionHeader
               title={t('recentAnnouncements', lang)}
               icon={Megaphone}
@@ -184,7 +173,7 @@ export default function Home() {
                     className="text-xs text-[var(--primary-bright)] hover:underline font-medium inline-flex items-center gap-1"
                   >
                     <span>{t('viewAll', lang)}</span>
-                    <ArrowRight size={12} />
+                    <ArrowRight size={14} strokeWidth={1.5} />
                   </Link>
                 ) : null
               }
@@ -199,39 +188,42 @@ export default function Home() {
                     hour: '2-digit',
                     minute: '2-digit'
                   });
-                  const borderLeft = getBorderLeftColor(ann.courseColor);
-                  const badgeClasses = getCourseBadgeColor(ann.courseColor);
+                  const dotClass = getCourseDotClass(ann.courseColor);
 
                   return (
                     <Link
                       key={ann.id}
                       to={`/courses?selected=${encodeURIComponent(ann.course)}&tab=resources&highlight=${encodeURIComponent(ann.id)}`}
                       state={{ from: '/' }}
-                      className={`p-4 rounded-2xl bg-[#252526] border border-[#3C3C3C] hover:border-[#007ACC]/70 transition-colors group border-l-3 ${borderLeft} flex flex-col justify-between h-full`}
+                      className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)] transition-colors group flex flex-col justify-between h-full"
                     >
                       <div className="space-y-2.5 flex-1 flex flex-col justify-between">
                         <div className="space-y-2">
-                          <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between gap-2">
                             <span
-                              className={`text-[11px] font-medium px-2 py-0.5 rounded-md truncate max-w-full self-start ${badgeClasses}`}
+                              className="inline-flex items-center gap-1.5 text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)] truncate max-w-full"
                               title={ann.course}
                             >
-                              {ann.courseCode && ann.courseCode !== 'CLASSROOM' ? ann.courseCode : ann.course}
-                            </span>
-                            <span className="text-[11px] text-[#858585] flex items-center gap-1 shrink-0">
-                              <Clock size={11} />
-                              {formattedDate}
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
+                              <span className="truncate">
+                                {ann.courseCode && ann.courseCode !== 'CLASSROOM' ? ann.courseCode : ann.course}
+                              </span>
                             </span>
                           </div>
 
-                          <p className="text-xs text-[#D4D4D4] group-hover:text-[#3794FF] font-semibold line-clamp-3 leading-relaxed transition-colors">
+                          <p className="text-[13px] text-[var(--text-primary)] group-hover:text-[var(--primary-bright)] font-medium line-clamp-3 leading-relaxed transition-colors">
                             {ann.title}
                           </p>
+
+                          <span className="text-[11px] font-mono text-[var(--text-muted)] flex items-center gap-1.5 shrink-0 tabular-nums">
+                            <Clock size={12} strokeWidth={1.5} />
+                            {formattedDate}
+                          </span>
                         </div>
 
                         {ann.attachments && ann.attachments.length > 0 && (
-                          <div className="flex items-center gap-1 text-[11px] text-[#858585] pt-2 border-t border-[#3C3C3C] mt-2">
-                            <Paperclip size={11} className="shrink-0" />
+                          <div className="flex items-center gap-1.5 text-[11px] font-mono text-[var(--text-muted)] pt-2 border-t border-[var(--border)] mt-2 tabular-nums">
+                            <Paperclip size={12} strokeWidth={1.5} className="shrink-0" />
                             <span>
                               {t(ann.attachments.length === 1 ? 'attachmentsCount' : 'attachmentsCountPlural', lang, {
                                 count: ann.attachments.length
@@ -245,58 +237,59 @@ export default function Home() {
                 })}
               </div>
             ) : (
-              <div className="bg-[#252526] border border-[#3C3C3C] border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center">
-                <Megaphone size={28} className="text-[#858585] mb-2.5 opacity-60" />
-                <p className="text-xs font-medium text-[#9D9D9D]">{t('noAnnouncements', lang)}</p>
+              <div className="bg-[var(--surface)] border border-[var(--border)] border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center">
+                <Megaphone size={20} strokeWidth={1.5} className="text-[var(--text-muted)] mb-2" />
+                <p className="text-xs font-medium text-[var(--text-secondary)]">{t('noAnnouncements', lang)}</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Right Column: Today's Classes & Next Exam Widget */}
-        <div className="space-y-4 sm:space-y-6">
-          <div className="bg-[#252526] border border-[#3C3C3C] rounded-2xl p-4 sm:p-6 space-y-3.5 sm:space-y-4">
-            <div className="flex items-center justify-between border-b border-[#3C3C3C] pb-3">
-              <h3 className="text-xs font-semibold text-[#FFFFFF] flex items-center gap-2">
-                <CalendarDays size={15} className="text-[#3794FF]" />
+        <div className="space-y-6">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+              <h3 className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-2">
+                <CalendarDays size={16} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
                 <span>{lang === 'en' ? "Today's Classes" : 'ตารางเรียนวันนี้'}</span>
               </h3>
-              <Link to="/schedule" className="text-xs text-[#3794FF] hover:underline font-medium">
+              <Link to="/schedule" className="text-xs text-[var(--primary-bright)] hover:underline font-medium">
                 {lang === 'en' ? 'View Schedule' : 'ดูตารางเรียน'}
               </Link>
             </div>
 
             {todayClasses.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {todayClasses.map((cls, idx) => {
-                  const borderLeft = getBorderLeftColor(cls.color || 'blue');
+                  const dotClass = getCourseDotClass(cls.color || 'blue');
                   return (
                     <Link
                       key={cls.id || idx}
                       to="/schedule"
-                      className={`flex items-start gap-3.5 p-3.5 rounded-xl bg-[#1E1E1E] hover:bg-[#2A2D2E] border border-[#3C3C3C] transition-colors border-l-3 ${borderLeft}`}
+                      className="flex items-center gap-3 p-3 rounded-lg bg-[var(--app-bg)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] transition-colors"
                     >
-                      <div className="flex flex-col items-center justify-center shrink-0 w-13 h-12 rounded-lg bg-[#252526] border border-[#3C3C3C] text-[#3794FF]">
-                        <span className="text-[11px] font-semibold leading-none">{cls.startTime}</span>
-                        <span className="text-[10px] text-[#858585] mt-1 leading-none">{cls.endTime}</span>
+                      <div className="flex flex-col items-end justify-center shrink-0 w-14 pr-3 border-r border-[var(--border)] font-mono tabular-nums">
+                        <span className="text-xs font-medium text-[var(--text-heading)] leading-tight">{cls.startTime}</span>
+                        <span className="text-[11px] text-[var(--text-muted)] leading-tight mt-0.5">{cls.endTime}</span>
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
                           {cls.courseCode && (
                             <span
-                              className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#252526] text-[#9D9D9D] border border-[#3C3C3C] truncate max-w-[80px]"
+                              className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] truncate max-w-[84px]"
                               title={cls.courseCode}
                             >
                               {cls.courseCode}
                             </span>
                           )}
-                          <h4 className="text-xs font-semibold text-[#FFFFFF] truncate flex-1" title={cls.title || cls.courseName}>
+                          <h4 className="text-xs font-medium text-[var(--text-heading)] truncate flex-1" title={cls.title || cls.courseName}>
                             {cls.title || cls.courseName}
                           </h4>
                         </div>
-                        <p className="text-[11px] text-[#9D9D9D] truncate mt-1 flex items-center gap-1">
-                          <MapPin size={11} className="shrink-0" />
-                          {cls.room || (lang === 'en' ? 'TBA' : 'ไม่ระบุห้อง')}
+                        <p className="text-[11px] text-[var(--text-secondary)] truncate mt-1 flex items-center gap-1.5 font-mono">
+                          <MapPin size={12} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                          <span>{cls.room || (lang === 'en' ? 'TBA' : 'ไม่ระบุห้อง')}</span>
                         </p>
                       </div>
                     </Link>
@@ -304,30 +297,30 @@ export default function Home() {
                 })}
               </div>
             ) : (
-              <div className="py-7 px-4 text-center border border-dashed border-[var(--border)] rounded-xl bg-[var(--app-bg)]/60 flex flex-col items-center justify-center space-y-2.5">
-                <CalendarDays size={24} className="text-[var(--text-muted)] opacity-60" />
+              <div className="py-6 px-4 text-center border border-dashed border-[var(--border)] rounded-lg bg-[var(--app-bg)] flex flex-col items-center justify-center space-y-2.5">
+                <CalendarDays size={20} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                 {Array.isArray(schedule) && schedule.length > 0 ? (
                   <p className="text-xs text-[var(--text-secondary)] font-medium">
-                    {lang === 'en' ? 'No classes scheduled today.' : 'วันนี้ไม่มีตารางเรียน'}
+                    {lang === 'en' ? 'No classes scheduled today' : 'วันนี้ไม่มีตารางเรียน'}
                   </p>
                 ) : (
                   <>
-                    <div className="space-y-0.5">
+                    <div className="space-y-1">
                       <p className="text-xs text-[var(--text-primary)] font-medium">
                         {lang === 'en' ? 'No timetable imported yet' : 'ยังไม่มีตารางเรียนในระบบ'}
                       </p>
                       <p className="text-[11px] text-[var(--text-muted)]">
                         {lang === 'en'
-                          ? 'Copy-paste from KMUTNB Reg in 10 seconds or add classes.'
-                          : 'ก๊อปวางจากเว็บ Reg มจพ. ใน 10 วิ หรือเพิ่มคาบเรียนเองได้เลย'}
+                          ? 'Copy-paste from KMUTNB Reg in 10 seconds or add classes'
+                          : 'คัดลอกวางจากเว็บ Reg มจพ. ใน 10 วินาที หรือเพิ่มคาบเรียนเอง'}
                       </p>
                     </div>
                     <Link
                       to="/schedule"
-                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--primary)]/15 hover:bg-[var(--primary)]/25 text-[var(--primary-bright)] border border-[var(--primary)]/35 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 h-8 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--primary-bright)] border border-[var(--border)] transition-colors"
                     >
                       <span>{lang === 'en' ? 'Go to Schedule & Import Reg' : 'ไปตารางเรียน / นำเข้า Reg'}</span>
-                      <ArrowRight size={12} />
+                      <ArrowRight size={13} strokeWidth={1.5} />
                     </Link>
                   </>
                 )}

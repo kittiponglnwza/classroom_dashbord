@@ -9,16 +9,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#094771',
-          100: '#0E639C',
-          200: '#1177BB',
-          300: '#3794FF',
-          400: '#3794FF',
-          500: '#007ACC',
-          600: '#1177BB',
-          700: '#0E639C',
-          800: '#094771',
-          900: '#062F4A',
+          50: '#172540',
+          100: '#1E3A8A',
+          200: '#1D4ED8',
+          300: '#60A5FA',
+          400: '#60A5FA',
+          500: '#2563EB',
+          600: '#1D4ED8',
+          700: '#1E40AF',
+          800: '#1E3A8A',
+          900: '#172554',
         },
         dark: {
           bg: 'var(--bg)',
@@ -31,9 +31,9 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Inter', 'system-ui', 'sans-serif'],
-        heading: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Consolas', 'Courier New', 'monospace'],
+        sans: ['IBM Plex Sans', 'IBM Plex Sans Thai', 'system-ui', '-apple-system', 'sans-serif'],
+        heading: ['IBM Plex Sans', 'IBM Plex Sans Thai', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'Consolas', 'monospace'],
       }
     },
   },
