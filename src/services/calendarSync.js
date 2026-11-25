@@ -9,6 +9,7 @@ import {
 } from '../utils/courseEndDate';
 import { getMergedExams } from '../utils/examMerger';
 import { getAlertSettings, getHiddenCourses, getToken } from '../utils/storage';
+import { StorageRepository } from '../repositories/StorageRepository';
 import { httpClient } from '../utils/httpClient';
 import { AppError } from '../utils/errors';
 
@@ -48,7 +49,7 @@ function eventMapKey(email) {
 
 function loadEventMap(email) {
   try {
-    const raw = localStorage.getItem(eventMapKey(email));
+    const raw = StorageRepository.getScopedStorage().getItem(eventMapKey(email));
     return raw ? JSON.parse(raw) : {};
   } catch (e) {
     logger.warn('[Calendar Sync] Failed to parse local event map, resetting.', e);
@@ -58,7 +59,7 @@ function loadEventMap(email) {
 
 function saveEventMap(email, map) {
   try {
-    localStorage.setItem(eventMapKey(email), JSON.stringify(map));
+    StorageRepository.getScopedStorage().setItem(eventMapKey(email), JSON.stringify(map));
   } catch (e) {
     logger.error('[Calendar Sync] Failed to persist local event map.', e);
   }
@@ -69,6 +70,7 @@ function signatureOf(body) {
     s: body.summary,
     d: body.description || '',
     l: body.location || '',
+    v: body.visibility || 'private',
     st: body.start,
     en: body.end,
     r: body.recurrence || null,
@@ -188,6 +190,7 @@ function buildRecurringClassEvent(entry, allExams = []) {
     summary: entry.title || entry.courseCode || 'Class',
     location: entry.room || '',
     description: [entry.courseCode, entry.notes].filter(Boolean).join('\n'),
+    visibility: 'private',
     start: { dateTime: `${anchorDate}T${startTime}:00`, timeZone: TIMEZONE },
     end: { dateTime: `${anchorDate}T${endTime}:00`, timeZone: TIMEZONE },
     recurrence,
@@ -215,6 +218,7 @@ function buildOneOffTimedEvent(entry, typeLabel) {
     summary: entry.title || entry.courseCode || (typeLabel === 'exam' ? 'Exam' : 'Class'),
     location: entry.room || '',
     description: [entry.courseCode, entry.notes].filter(Boolean).join('\n'),
+    visibility: 'private',
     start: { dateTime: `${entry.date}T${startTime}:00`, timeZone: TIMEZONE },
     end: { dateTime: `${entry.date}T${endTime}:00`, timeZone: TIMEZONE },
     extendedProperties: {
@@ -275,6 +279,7 @@ function buildAssignmentEvent(assignment) {
   return {
     summary: `[Assignment] ${assignment.title}`,
     description: [assignment.course, assignment.description].filter(Boolean).join('\n'),
+    visibility: 'private',
     start,
     end,
     extendedProperties: { private: { chSource: SOURCE_TAG, chType: 'assignment', chId: String(assignment.id) } }

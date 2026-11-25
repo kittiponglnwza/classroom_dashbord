@@ -85,6 +85,7 @@ export const DEFAULT_ALERT_SETTINGS = {
   // 'apps_script' = 24/7 Cloud Script is the exclusive automated sender (prevents Web+Cloud duplicates)
   deliveryAuthority: 'browser',
   embedWebhookInScript: false,
+  syncWebhookToDrive: true,
 
   // Assignment Reminders & Lifecycle
   due7Days: true,
@@ -196,6 +197,7 @@ export function migrateAlertSettings(stored = null, legacySundayTime = '18:00') 
       ? raw.deliveryAuthority
       : DEFAULT_ALERT_SETTINGS.deliveryAuthority,
     embedWebhookInScript: Boolean(raw.embedWebhookInScript ?? false),
+    syncWebhookToDrive: Boolean(raw.syncWebhookToDrive ?? true),
 
     due7Days: Boolean(raw.due7Days ?? DEFAULT_ALERT_SETTINGS.due7Days),
     due3Days: Boolean(raw.due3Days ?? DEFAULT_ALERT_SETTINGS.due3Days),

@@ -68,24 +68,72 @@ const canonicalPayloadString = (payload) => {
 };
 
 /**
- * Collects all user-scoped localStorage raw string data into a payload object.
+ * Strips discordWebhookUrl from a serialized alert_settings SyncRecord when
+ * the user enabled device-only webhook storage (`syncWebhookToDrive === false`).
+ */
+function stripLocalOnlyWebhookForUpload(rawSerialized) {
+  if (typeof rawSerialized !== 'string') return rawSerialized;
+  try {
+    const parsed = JSON.parse(rawSerialized);
+    const settingsObj = parsed && typeof parsed === 'object' && parsed.data ? parsed.data : parsed;
+    if (settingsObj && typeof settingsObj === 'object' && settingsObj.syncWebhookToDrive === false) {
+      if (!settingsObj.discordWebhookUrl) return rawSerialized;
+      const sanitizedData = { ...settingsObj, discordWebhookUrl: '' };
+      return JSON.stringify(parsed?.data ? { ...parsed, data: sanitizedData } : sanitizedData);
+    }
+  } catch {
+    // Ignore malformed JSON
+  }
+  return rawSerialized;
+}
+
+/**
+ * Preserves a device-only local discordWebhookUrl when applying a remote payload.
+ */
+function preserveLocalOnlyWebhookOnApply(existingRaw, incomingRaw) {
+  if (typeof existingRaw !== 'string' || typeof incomingRaw !== 'string') return incomingRaw;
+  try {
+    const localParsed = JSON.parse(existingRaw);
+    const localData = localParsed?.data || localParsed;
+    if (localData && localData.syncWebhookToDrive === false && localData.discordWebhookUrl) {
+      const remoteParsed = JSON.parse(incomingRaw);
+      const remoteData = remoteParsed?.data || remoteParsed;
+      if (remoteData && typeof remoteData === 'object') {
+        const mergedData = {
+          ...remoteData,
+          syncWebhookToDrive: false,
+          discordWebhookUrl: localData.discordWebhookUrl,
+        };
+        return JSON.stringify(remoteParsed?.data ? { ...remoteParsed, data: mergedData } : mergedData);
+      }
+    }
+  } catch {
+    // Ignore malformed JSON
+  }
+  return incomingRaw;
+}
+
+/**
+ * Collects all user-scoped storage raw string data into a payload object.
  */
 export const getLocalSettingsPayload = (email) => {
+  const store = StorageRepository.getScopedStorage();
   const payload = {};
   const lowerEmail = email.toLowerCase().trim();
+  const alertKey = `classroom_hub_alert_settings_${lowerEmail}`;
 
   // 1. Standard scoped keys
   STANDARD_SCOPED_KEYS.forEach(baseKey => {
     const key = `${baseKey}_${lowerEmail}`;
-    const value = localStorage.getItem(key);
+    const value = store.getItem(key);
     if (value !== null) {
-      payload[key] = value;
+      payload[key] = key === alertKey ? stripLocalOnlyWebhookForUpload(value) : value;
     }
   });
 
-  // 2. Special language key
+  // 2. Special language key (falls back to localStorage when in ephemeral mode)
   const langKey = `classroom_hub_${lowerEmail}_language`;
-  const langValue = localStorage.getItem(langKey);
+  const langValue = store.getItem(langKey) ?? localStorage.getItem(langKey);
   if (langValue !== null) {
     payload[langKey] = langValue;
   }
@@ -94,23 +142,31 @@ export const getLocalSettingsPayload = (email) => {
 };
 
 /**
- * Applies a remote settings payload to localStorage with key allowlist validation.
+ * Applies a remote settings payload to scoped storage with key allowlist validation.
  */
 export const applyRemoteSettingsPayload = (payload, expectedEmail = '') => {
   if (!payload || typeof payload !== 'object') return;
+  const store = StorageRepository.getScopedStorage();
+  const lowerExpected = expectedEmail ? expectedEmail.toLowerCase().trim() : '';
+  const alertKey = lowerExpected ? `classroom_hub_alert_settings_${lowerExpected}` : '';
+
   Object.keys(payload).forEach(fullKey => {
     if (!isSafeSyncKey(fullKey, expectedEmail)) {
       logger.warn(`[Drive Sync] Ignoring unexpected key in remote payload: ${fullKey}`);
       return;
     }
     if (typeof payload[fullKey] === 'string') {
-      localStorage.setItem(fullKey, payload[fullKey]);
+      const valueToWrite =
+        fullKey === alertKey
+          ? preserveLocalOnlyWebhookOnApply(store.getItem(fullKey), payload[fullKey])
+          : payload[fullKey];
+      store.setItem(fullKey, valueToWrite);
     }
   });
   StorageRepository.clearMemoryCache();
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
     window.dispatchEvent(new CustomEvent('classroom_hub_remote_applied', {
-      detail: { email: expectedEmail ? expectedEmail.toLowerCase().trim() : '' }
+      detail: { email: lowerExpected }
     }));
   }
 };
@@ -225,7 +281,7 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback, o
       const localPayload = getLocalSettingsPayload(lowerEmail);
       const now = new Date().toISOString();
       const createdFile = await createSyncFileWithContent(accessToken, localPayload, now);
-      localStorage.setItem(timeKey, now);
+      StorageRepository.getScopedStorage().setItem(timeKey, now);
       if (createdFile?.id && createdFile?.modifiedTime) {
         driveSyncStateCache.set(lowerEmail, {
           fileId: createdFile.id,
@@ -286,7 +342,7 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback, o
       logger.info('[Drive Sync] Remote sync file was empty. Uploading current state...');
       const now = new Date().toISOString();
       const uploadedFile = await uploadSyncFileContent(accessToken, file.id, localPayload, now, options);
-      localStorage.setItem(timeKey, now);
+      StorageRepository.getScopedStorage().setItem(timeKey, now);
       const nextModifiedTime = uploadedFile?.modifiedTime;
       if (file.id && nextModifiedTime) {
         driveSyncStateCache.set(lowerEmail, {
@@ -322,8 +378,13 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback, o
     if (remoteIsOutOfSync) {
       logger.info('[Drive Sync] Remote data requires update. Uploading merged state to Google Drive...');
       const now = new Date().toISOString();
-      const uploadedFile = await uploadSyncFileContent(accessToken, file.id, mergedPayload, now, options);
-      localStorage.setItem(timeKey, now);
+      const uploadPayload = { ...mergedPayload };
+      const alertKey = `classroom_hub_alert_settings_${lowerEmail}`;
+      if (uploadPayload[alertKey]) {
+        uploadPayload[alertKey] = stripLocalOnlyWebhookForUpload(uploadPayload[alertKey]);
+      }
+      const uploadedFile = await uploadSyncFileContent(accessToken, file.id, uploadPayload, now, options);
+      StorageRepository.getScopedStorage().setItem(timeKey, now);
       latestModifiedTime = uploadedFile?.modifiedTime || '';
     } else {
       logger.info('[Drive Sync] Local and remote data are fully in sync.');

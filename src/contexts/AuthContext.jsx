@@ -72,7 +72,10 @@ export const AuthProvider = ({ children }) => {
     setRememberMeState(next);
     if (!next) {
       setRememberedAccount(null);
-      if (!isLoggedIn) {
+      if (isLoggedIn) {
+        // Relocate active session records from persistent localStorage to ephemeral sessionStorage
+        StorageRepository.relocateAccountStorage(false);
+      } else {
         if (currentEmail) {
           clearAcademicLocalData(currentEmail);
           resetDatabase(currentEmail);
@@ -86,6 +89,9 @@ export const AuthProvider = ({ children }) => {
         }
       }
     } else {
+      if (isLoggedIn) {
+        StorageRepository.relocateAccountStorage(true);
+      }
       const email = getActiveEmail();
       if (email) {
         setRememberedAccount(buildRememberedAccount(email));
@@ -196,6 +202,20 @@ export const AuthProvider = ({ children }) => {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem('lastExamSearch');
       sessionStorage.removeItem('lastExamSearchOwner');
+    }
+    if (typeof window !== 'undefined' && typeof window.postMessage === 'function') {
+      try {
+        window.postMessage(
+          {
+            channel: 'CH_EXTENSION_BRIDGE',
+            source: 'app',
+            type: 'CLEAR_EXTENSION_CACHE'
+          },
+          window.location.origin
+        );
+      } catch {
+        // Ignore postMessage errors in restricted environments
+      }
     }
   }, [accessToken, clearSessionState]);
 

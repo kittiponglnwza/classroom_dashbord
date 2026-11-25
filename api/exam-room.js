@@ -15,6 +15,44 @@ const TOKEN_CACHE_MAX_TTL_MS = 60 * 1000;
 const TOKENINFO_TIMEOUT_MS = 5000;
 const UPSTREAM_TIMEOUT_MS = 8500;
 const REDIS_TIMEOUT_MS = 1500;
+const MAX_UPSTREAM_BYTES = 2 * 1024 * 1024;
+const STUDENT_ID_PIN_WINDOW_MS = 60 * 60 * 1000;
+
+const extractEmailStudentId = (email) => {
+  const match = String(email || '').toLowerCase().trim().match(/\b(\d{13})\b|s(\d{13})\b/);
+  return match ? (match[1] || match[2] || '') : '';
+};
+
+const createStudentIdPinTracker = (nowFn) => {
+  const pins = new Map();
+
+  const prune = (now) => {
+    if (pins.size <= 1000) return;
+    for (const [key, entry] of pins.entries()) {
+      if (entry.expiresAt <= now) pins.delete(key);
+    }
+    while (pins.size > 2000) {
+      const oldest = pins.keys().next().value;
+      if (oldest === undefined) break;
+      pins.delete(oldest);
+    }
+  };
+
+  return (userKey, requestedStudentId) => {
+    const now = nowFn();
+    prune(now);
+    const existing = pins.get(userKey);
+    if (!existing || existing.expiresAt <= now) {
+      pins.set(userKey, { studentId: requestedStudentId, expiresAt: now + STUDENT_ID_PIN_WINDOW_MS });
+      return true;
+    }
+    if (existing.studentId !== requestedStudentId) {
+      return false;
+    }
+    existing.expiresAt = now + STUDENT_ID_PIN_WINDOW_MS;
+    return true;
+  };
+};
 
 const getHeader = (req, name) => {
   const headers = req?.headers;
@@ -259,16 +297,16 @@ const createTokenVerifier = ({ fetchImpl, env, nowFn }) => {
       tokenCache.delete(tokenHash);
       return null;
     }
-    return cached.userKey;
+    return cached;
   };
 
-  const setCached = (tokenHash, userKey, tokenExpMs, nowMs) => {
+  const setCached = (tokenHash, identity, tokenExpMs, nowMs) => {
     if (tokenCache.size >= TOKEN_CACHE_MAX_ENTRIES) {
       const oldestKey = tokenCache.keys().next().value;
       if (oldestKey !== undefined) tokenCache.delete(oldestKey);
     }
     tokenCache.set(tokenHash, {
-      userKey,
+      ...identity,
       tokenExpMs,
       cachedUntilMs: Math.min(tokenExpMs, nowMs + TOKEN_CACHE_MAX_TTL_MS),
     });
@@ -277,9 +315,14 @@ const createTokenVerifier = ({ fetchImpl, env, nowFn }) => {
   return async (token) => {
     const nowMs = nowFn();
     const tokenHash = hashIdentifier(token);
-    const cachedUserKey = getCached(tokenHash, nowMs);
-    if (cachedUserKey) {
-      return { ok: true, userKey: cachedUserKey };
+    const cachedIdentity = getCached(tokenHash, nowMs);
+    if (cachedIdentity) {
+      return {
+        ok: true,
+        userKey: cachedIdentity.userKey,
+        verifiedEmail: cachedIdentity.verifiedEmail || '',
+        emailStudentId: cachedIdentity.emailStudentId || '',
+      };
     }
 
     const controller = new AbortController();
@@ -323,15 +366,17 @@ const createTokenVerifier = ({ fetchImpl, env, nowFn }) => {
         }
       }
 
-      const userKey = info.email
-        ? `email:${String(info.email).toLowerCase().trim()}`
+      const verifiedEmail = info.email ? String(info.email).toLowerCase().trim() : '';
+      const emailStudentId = extractEmailStudentId(verifiedEmail);
+      const userKey = verifiedEmail
+        ? `email:${verifiedEmail}`
         : info.sub
           ? `sub:${String(info.sub)}`
           : `tok:${tokenHash}`;
       const tokenExpMs = resolveTokenExpiryMs(info, nowMs);
-      setCached(tokenHash, userKey, tokenExpMs, nowMs);
+      setCached(tokenHash, { userKey, verifiedEmail, emailStudentId }, tokenExpMs, nowMs);
 
-      return { ok: true, userKey };
+      return { ok: true, userKey, verifiedEmail, emailStudentId };
     } catch {
       return { ok: false, status: 503, error: 'Unable to verify Google session right now.' };
     } finally {
@@ -354,10 +399,14 @@ export function createExamRoomHandler(deps = {}) {
   const preAuthIpLimit = createInMemoryLimiter(nowFn);
   const checkRateLimit = createHybridRateLimiter({ fetchImpl, env, nowFn });
   const verifyGoogleToken = createTokenVerifier({ fetchImpl, env, nowFn });
+  const checkStudentIdPin = createStudentIdPinTracker(nowFn);
+  const allowCrossStudentLookup = String(env?.ALLOW_CROSS_STUDENT_EXAM_LOOKUP || '').toLowerCase() === 'true';
 
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'private, no-store, max-age=0');
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Vary', 'Authorization, Origin');
 
     if (String(req?.method || '').toUpperCase() !== 'GET') {
@@ -392,6 +441,12 @@ export function createExamRoomHandler(deps = {}) {
       return sendJson(res, authResult.status, { error: authResult.error });
     }
 
+    if (!allowCrossStudentLookup && !checkStudentIdPin(authResult.userKey, idCheck.studentId)) {
+      return sendJson(res, 403, {
+        error: 'Forbidden: Querying multiple different Student IDs from one account is not permitted.',
+      });
+    }
+
     const userLimit = await checkRateLimit(`exam:user:${hashIdentifier(authResult.userKey)}`, USER_RATE_LIMIT);
     if (!userLimit.allowed) {
       res.setHeader('Retry-After', String(userLimit.retryAfterSeconds));
@@ -423,8 +478,23 @@ export function createExamRoomHandler(deps = {}) {
         return sendJson(res, 502, { error: 'Unexpected redirect from university exam server.' });
       }
 
+      const contentLengthHeader = Number(upstreamRes.headers?.get?.('content-length') || 0);
+      if (Number.isFinite(contentLengthHeader) && contentLengthHeader > MAX_UPSTREAM_BYTES) {
+        return sendJson(res, 502, { error: 'Upstream exam server response exceeded size limit.' });
+      }
+
       const contentType = upstreamRes.headers?.get?.('content-type') || 'text/html; charset=utf-8';
+      const normalizedCt = String(contentType).toLowerCase();
+      if (!normalizedCt.startsWith('text/html') && !normalizedCt.startsWith('text/plain')) {
+        return sendJson(res, 502, { error: 'Unexpected content type from university exam server.' });
+      }
+
       const bodyBuffer = Buffer.from(await upstreamRes.arrayBuffer());
+      if (bodyBuffer.byteLength > MAX_UPSTREAM_BYTES) {
+        return sendJson(res, 502, { error: 'Upstream exam server response exceeded size limit.' });
+      }
+
+      res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
       res.setHeader('Content-Type', contentType);
       return res.status(upstreamRes.status).send(bodyBuffer);
     } catch (error) {

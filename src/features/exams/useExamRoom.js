@@ -16,12 +16,17 @@ const notifyExamsUpdated = (email) => {
   }
 };
 
+const extractEmailStudentId = (activeEmail = '') => {
+  const digitsMatch = String(activeEmail || '').match(/\d{13}/);
+  return digitsMatch ? digitsMatch[0] : '';
+};
+
 const resolveOwnStudentId = (activeEmail = '', profileStudentId = '') => {
   // Explicit Student ID saved in Settings takes priority over email digits
   const cleanProfileId = String(profileStudentId || '').replace(/[\s-]/g, '').trim();
   if (/^\d{13}$/.test(cleanProfileId)) return cleanProfileId;
-  const digitsMatch = String(activeEmail || '').match(/\d{13}/);
-  if (digitsMatch) return digitsMatch[0];
+  const emailSid = extractEmailStudentId(activeEmail);
+  if (emailSid) return emailSid;
   return '';
 };
 
@@ -165,7 +170,16 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     }
 
     const cleanId = validResult.data;
-    const isOtherStudent = Boolean(ownStudentId && cleanId !== ownStudentId);
+    if (ownStudentId && cleanId !== ownStudentId) {
+      setError(
+        lang === 'th'
+          ? 'เพื่อความเป็นส่วนตัว ระบบอนุญาตให้ดูที่นั่งสอบเฉพาะรหัสนักศึกษาที่ผูกกับบัญชีของคุณเท่านั้น'
+          : 'For student privacy, seating lookup is restricted to the Student ID configured on your account.'
+      );
+      setStatus('error');
+      return;
+    }
+    const isOtherStudent = false;
     setStatus('loading');
     setError(null);
     setExamList([]);

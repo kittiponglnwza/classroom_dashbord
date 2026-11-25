@@ -8,7 +8,70 @@ import { SyncRecord } from '../types/models';
 const memoryCache = new Map<string, SyncRecord<any>>();
 const rawCache = new Map<string, string>();
 
+const NON_ACCOUNT_STORAGE_KEYS = new Set([
+  'classroom_hub_remember_me',
+  'classroom_hub_cookie_consent',
+  'classroom_hub_language',
+  'classroom_hub_exam_layout',
+  'classroom_hub_schema_version',
+  STORAGE_CONFIG.keys.accessToken,
+  `${STORAGE_CONFIG.keys.accessToken}_expires_at`,
+  `${STORAGE_CONFIG.keys.accessToken}_verified_email`,
+  STORAGE_CONFIG.keys.activeEmail,
+]);
+
 export class StorageRepository {
+  /**
+   * Returns persistent `localStorage` when "Remember me" is enabled (default),
+   * or ephemeral `sessionStorage` when "Remember me" is disabled (Public/Shared PC mode)
+   * so grades, Student IDs, and Discord Webhook URLs never touch disk persistence.
+   */
+  static getScopedStorage(): Storage {
+    try {
+      if (
+        typeof localStorage !== 'undefined' &&
+        typeof sessionStorage !== 'undefined' &&
+        localStorage.getItem('classroom_hub_remember_me') === 'false'
+      ) {
+        return sessionStorage;
+      }
+    } catch {
+      // Fallback to localStorage if sessionStorage access fails
+    }
+    return localStorage;
+  }
+
+  /**
+   * Relocates active user-scoped records between `localStorage` and `sessionStorage`
+   * when the user toggles "Remember me" mid-session.
+   */
+  static relocateAccountStorage(toPersistent: boolean): void {
+    if (typeof localStorage === 'undefined' || typeof sessionStorage === 'undefined') return;
+    const fromStore = toPersistent ? sessionStorage : localStorage;
+    const toStore = toPersistent ? localStorage : sessionStorage;
+    const keysToMove: string[] = [];
+
+    for (let i = 0; i < fromStore.length; i++) {
+      const k = fromStore.key(i);
+      if (k && k.startsWith('classroom_hub_') && !NON_ACCOUNT_STORAGE_KEYS.has(k)) {
+        keysToMove.push(k);
+      }
+    }
+
+    keysToMove.forEach((k) => {
+      const val = fromStore.getItem(k);
+      if (val !== null) {
+        try {
+          toStore.setItem(k, val);
+        } catch (err) {
+          logger.warn(`Failed relocating storage key ${k}:`, err);
+        }
+      }
+      fromStore.removeItem(k);
+    });
+    this.clearMemoryCache();
+  }
+
   static getCacheKey(key: string, email?: string): string {
     const active = email ? email.toLowerCase().trim() : '';
     return active ? `${key}_${active}` : key;
@@ -75,9 +138,10 @@ export class StorageRepository {
    * Migrate storage schema versions if required
    */
   static migrate(email?: string): void {
+    const store = this.getScopedStorage();
     const activeEmail = email ? email.toLowerCase().trim() : '';
     const versionKey = activeEmail ? `classroom_hub_schema_version_${activeEmail}` : 'classroom_hub_schema_version';
-    const storedVersion = parseInt(localStorage.getItem(versionKey) || '1', 10);
+    const storedVersion = parseInt(store.getItem(versionKey) || '1', 10);
 
     if (storedVersion < STORAGE_CONFIG.schemaVersion) {
       logger.info(`Migrating data schema for ${activeEmail || 'default'} from v${storedVersion} to v${STORAGE_CONFIG.schemaVersion}`);
@@ -88,21 +152,22 @@ export class StorageRepository {
         // In this case, we migrate old keys to lowercase email keys (handled dynamically in storage.js)
       }
 
-      localStorage.setItem(versionKey, String(STORAGE_CONFIG.schemaVersion));
+      store.setItem(versionKey, String(STORAGE_CONFIG.schemaVersion));
     }
   }
 
   /**
-   * Evict heavy regenerable caches (resources & stale exam caches) to free localStorage quota
+   * Evict heavy regenerable caches (resources & stale exam caches) to free storage quota
    */
   private static evictExpendableCaches(email = '', includeExams = false): void {
     try {
+      const store = this.getScopedStorage();
       const keysToRemove: string[] = [];
       const resourcesPrefix = STORAGE_CONFIG.keys.resources;
       const examsPrefix = STORAGE_CONFIG.keys.exams;
 
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
         if (!k) continue;
         if (k === resourcesPrefix || k.startsWith(`${resourcesPrefix}_`)) {
           keysToRemove.push(k);
@@ -112,15 +177,15 @@ export class StorageRepository {
         }
       }
       if (keysToRemove.length === 0 && !includeExams) {
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
+        for (let i = 0; i < store.length; i++) {
+          const k = store.key(i);
           if (k && (k === examsPrefix || k.startsWith(`${examsPrefix}_`))) {
             keysToRemove.push(k);
           }
         }
       }
       keysToRemove.forEach((k) => {
-        localStorage.removeItem(k);
+        store.removeItem(k);
         memoryCache.delete(k);
         rawCache.delete(k);
       });
@@ -133,9 +198,10 @@ export class StorageRepository {
   }
 
   /**
-   * Write data to storage (Memory Cache & LocalStorage) with schema validation and updatedAt
+   * Write data to storage (Memory Cache & Scoped Storage) with schema validation and updatedAt
    */
   static set<T>(baseKey: string, value: T, email = ''): void {
+    const store = this.getScopedStorage();
     const cacheKey = this.getCacheKey(baseKey, email);
     
     // Schema validation
@@ -149,7 +215,7 @@ export class StorageRepository {
 
     const serialized = JSON.stringify(payload);
     const writePayload = () => {
-      localStorage.setItem(cacheKey, serialized);
+      store.setItem(cacheKey, serialized);
       memoryCache.set(cacheKey, payload);
       rawCache.set(cacheKey, serialized);
 
@@ -161,7 +227,7 @@ export class StorageRepository {
         baseKey === STORAGE_CONFIG.keys.academic;
       if (email && isSyncableUserKey) {
         const timeKey = `classroom_hub_settings_last_updated_${email.toLowerCase().trim()}`;
-        localStorage.setItem(timeKey, payload.timestamp);
+        store.setItem(timeKey, payload.timestamp);
       }
     };
 
@@ -198,10 +264,11 @@ export class StorageRepository {
    * Get data from storage checking Memory Cache, LocalStorage, and TTL expiration
    */
   static get<T>(baseKey: string, email = '', forceIgnoreTTL = false): T | null {
+    const store = this.getScopedStorage();
     const cacheKey = this.getCacheKey(baseKey, email);
     this.migrate(email);
 
-    const stored = localStorage.getItem(cacheKey);
+    const stored = store.getItem(cacheKey);
     if (!stored) {
       memoryCache.delete(cacheKey);
       rawCache.delete(cacheKey);
@@ -273,6 +340,9 @@ export class StorageRepository {
   static remove(baseKey: string, email = ''): void {
     const cacheKey = this.getCacheKey(baseKey, email);
     localStorage.removeItem(cacheKey);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(cacheKey);
+    }
     memoryCache.delete(cacheKey);
     rawCache.delete(cacheKey);
   }

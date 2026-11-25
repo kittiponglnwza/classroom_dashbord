@@ -4,6 +4,7 @@
   const STORAGE_KEY = 'ch_reg_snapshots_v3';
   const DELIVERED_KEY = 'ch_reg_delivered_v3';
   const EXTENSION_VERSION = '1.2.2';
+  const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000;
   const ALLOWED_ORIGINS = new Set([
     'https://classrooms-hub.vercel.app',
     'http://localhost:5173',
@@ -44,9 +45,29 @@
     );
   }
 
+  function pruneExpiredSnapshots(rawSnapshots = {}) {
+    const now = Date.now();
+    const cleaned = { ...rawSnapshots };
+    let mutated = false;
+    for (const kind of ['timetable', 'grade']) {
+      const entry = cleaned[kind];
+      if (!entry) continue;
+      const ts = new Date(entry.capturedAt || 0).getTime();
+      if (!Number.isFinite(ts) || now - ts > SNAPSHOT_TTL_MS) {
+        delete cleaned[kind];
+        mutated = true;
+      }
+    }
+    return { cleaned, mutated };
+  }
+
   async function readState() {
     const res = await chrome.storage.local.get([STORAGE_KEY, DELIVERED_KEY]);
-    const snapshots = res?.[STORAGE_KEY] || {};
+    const rawSnapshots = res?.[STORAGE_KEY] || {};
+    const { cleaned: snapshots, mutated } = pruneExpiredSnapshots(rawSnapshots);
+    if (mutated) {
+      await chrome.storage.local.set({ [STORAGE_KEY]: snapshots });
+    }
     const deliveredMap = res?.[DELIVERED_KEY] || {};
     const delivered = deliveredMap[PAGE_ORIGIN] || {};
     return { snapshots, deliveredMap, delivered };
@@ -105,6 +126,13 @@
       await pushSnapshotsIfNeeded(false);
     } else if (msg.type === 'REQUEST_SYNC_NOW') {
       await pushSnapshotsIfNeeded(true);
+    } else if (msg.type === 'CLEAR_EXTENSION_CACHE') {
+      try {
+        await chrome.storage.local.remove([STORAGE_KEY, DELIVERED_KEY]);
+        postToPage('EXTENSION_READY', { status: buildStatus({}, {}) });
+      } catch {
+        // Ignore storage errors
+      }
     } else if (msg.type === 'ACK_SYNC_COMPLETE') {
       try {
         const { snapshots, deliveredMap, delivered } = await readState();
@@ -114,13 +142,26 @@
           gradeHash: msg.gradeHash || delivered.gradeHash || null,
           lastSyncedAt: new Date().toISOString(),
         };
+        // Scrub raw academic transcript/timetable text at rest once delivered; retain metadata only
+        const scrubbedSnapshots = { ...snapshots };
+        if (msg.timetableHash && scrubbedSnapshots.timetable?.hash === msg.timetableHash) {
+          const restTimetable = { ...scrubbedSnapshots.timetable };
+          delete restTimetable.text;
+          scrubbedSnapshots.timetable = restTimetable;
+        }
+        if (msg.gradeHash && scrubbedSnapshots.grade?.hash === msg.gradeHash) {
+          const restGrade = { ...scrubbedSnapshots.grade };
+          delete restGrade.text;
+          scrubbedSnapshots.grade = restGrade;
+        }
         await chrome.storage.local.set({
+          [STORAGE_KEY]: scrubbedSnapshots,
           [DELIVERED_KEY]: {
             ...deliveredMap,
             [PAGE_ORIGIN]: nextDelivered,
           },
         });
-        postToPage('EXTENSION_READY', { status: buildStatus(snapshots, nextDelivered) });
+        postToPage('EXTENSION_READY', { status: buildStatus(scrubbedSnapshots, nextDelivered) });
       } catch {
         // Ignore storage errors
       }

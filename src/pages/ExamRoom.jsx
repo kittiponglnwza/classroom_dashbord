@@ -1,6 +1,6 @@
 import { useState, useContext, useMemo } from 'react';
 import {
-  ClipboardCheck, AlertCircle, CheckCircle2, Plus, Search,
+  ClipboardCheck, AlertCircle, CheckCircle2, Plus,
   LayoutGrid, List, Upload, RefreshCw
 } from 'lucide-react';
 import { t } from '../utils/i18n';
@@ -62,9 +62,7 @@ export default function ExamRoom() {
   const [editingExamData, setEditingExamData] = useState(null);
   const [userRoundTab, setUserRoundTab] = useState(null); // null -> smart auto-select
   const [showRawSciBase, setShowRawSciBase] = useState(false);
-  const [isSearchVisible, setIsSearchVisible] = useState(() => {
-    return !(sortedExams && sortedExams.length > 0) && !hasValidStudentId;
-  });
+  const isSearchVisible = !(sortedExams && sortedExams.length > 0) && !hasValidStudentId;
   const [layoutView, setLayoutView] = useState(() => localStorage.getItem('classroom_hub_exam_layout') || 'grid');
 
   // Split exams into Midterm / Final buckets for clean tabs on the Exam Room page only
@@ -186,16 +184,6 @@ export default function ExamRoom() {
               >
                 <RefreshCw size={15} strokeWidth={1.5} className={`text-[var(--primary-bright)] ${loading ? 'animate-spin' : ''}`} />
                 <span>{isTh ? 'เช็กที่นั่งสอบ' : 'Check Seating'}</span>
-              </button>
-            )}
-            {!isSearchVisible && EXAM_CONFIG.seatingLookupEnabled && (
-              <button
-                type="button"
-                onClick={() => setIsSearchVisible(true)}
-                className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] px-3 h-9 rounded-lg text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] font-medium transition-colors cursor-pointer"
-              >
-                <Search size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
-                <span>{isTh ? 'ค้นหารหัสอื่น' : 'Other ID'}</span>
               </button>
             )}
             <button
@@ -499,9 +487,6 @@ export default function ExamRoom() {
           onClose={() => setIsRegImportOpen(false)}
           onImported={(parsed) => {
             refreshFromCache();
-            if (parsed.meta.totalExams > 0) {
-              setIsSearchVisible(false);
-            }
             toast?.addToast?.(
               isTh
                 ? `นำเข้าวันสอบ ${parsed.meta.totalExams} รายการจาก KMUTNB Reg แล้ว`

@@ -72,4 +72,28 @@ describe('driveSync', () => {
       expect(reqSpy).toHaveBeenCalledTimes(5);
     });
   });
+
+  describe('device-only Discord Webhook secret isolation (syncWebhookToDrive=false)', () => {
+    it('strips discordWebhookUrl from Google Drive uploads while preserving local webhook on remote apply', async () => {
+      const email = 'secret@kmutnb.ac.th';
+      const alertKey = `classroom_hub_alert_settings_${email}`;
+      localStorage.setItem(
+        alertKey,
+        JSON.stringify({
+          version: 2,
+          timestamp: '2026-11-25T10:00:00.000Z',
+          data: {
+            discordEnabled: true,
+            syncWebhookToDrive: false,
+            discordWebhookUrl: 'https://discord.com/api/webhooks/123456789012345678/superSecretLocalOnlyToken',
+          },
+        })
+      );
+
+      const outbound = getLocalSettingsPayload(email);
+      const parsedOutbound = JSON.parse(outbound[alertKey]);
+      expect(parsedOutbound.data.discordWebhookUrl).toBe('');
+      expect(parsedOutbound.data.syncWebhookToDrive).toBe(false);
+    });
+  });
 });

@@ -208,6 +208,14 @@ function AppContent() {
                 </button>
               )}
             </div>
+
+            {!rememberMe && (
+              <p data-testid="ephemeral-session-notice" className="text-[11px] text-[var(--text-muted)] text-left leading-snug">
+                {lang === 'en'
+                  ? 'Public PC mode: session data stays in memory and clears when this tab closes.'
+                  : 'โหมดเครื่องสาธารณะ: ข้อมูลจะอยู่ในหน่วยความจำชั่วคราวและถูกล้างทันทีเมื่อปิดแท็บ'}
+              </p>
+            )}
           </div>
         </div>
 

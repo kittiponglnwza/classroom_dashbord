@@ -2,6 +2,7 @@
 const STORAGE_KEY = 'ch_reg_snapshots_v3';
 const DELIVERED_KEY = 'ch_reg_delivered_v3';
 const PROD_ORIGIN = 'https://classrooms-hub.vercel.app';
+const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000;
 
 function formatTime(iso) {
   if (!iso) return '';
@@ -19,7 +20,22 @@ function formatTime(iso) {
 
 async function renderStatus() {
   const res = await chrome.storage.local.get([STORAGE_KEY, DELIVERED_KEY]);
-  const snapshots = res?.[STORAGE_KEY] || {};
+  const rawSnapshots = res?.[STORAGE_KEY] || {};
+  const snapshots = { ...rawSnapshots };
+  const now = Date.now();
+  let expired = false;
+  for (const kind of ['timetable', 'grade']) {
+    const entry = snapshots[kind];
+    if (!entry) continue;
+    const ts = new Date(entry.capturedAt || 0).getTime();
+    if (!Number.isFinite(ts) || now - ts > SNAPSHOT_TTL_MS) {
+      delete snapshots[kind];
+      expired = true;
+    }
+  }
+  if (expired) {
+    await chrome.storage.local.set({ [STORAGE_KEY]: snapshots });
+  }
   const deliveredMap = res?.[DELIVERED_KEY] || {};
   const delivered = deliveredMap[PROD_ORIGIN] || Object.values(deliveredMap)[0] || {};
 

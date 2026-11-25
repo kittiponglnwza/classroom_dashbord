@@ -348,8 +348,118 @@ describe('Vercel Serverless /api/exam-room proxy', () => {
       const validScopeRes = createMockRes();
       await handler(createReq({ headers: { host: 'classrooms-hub.vercel.app', authorization: 'Bearer tok-with-scope' } }), validScopeRes);
       expect(validScopeRes.statusCode).toBe(200);
+      expect(validScopeRes.headers['content-security-policy']).toBe("default-src 'none'; sandbox");
     } finally {
       warnSpy.mockRestore();
     }
+  });
+
+  it('pins each authenticated account to a single Student ID and blocks cross-student IDOR enumeration', async () => {
+    let currentEmail = 's6704062611115@email.kmutnb.ac.th';
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).startsWith('https://oauth2.googleapis.com/tokeninfo')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            aud: CLIENT_ID,
+            exp: String(Math.floor(Date.now() / 1000) + 3600),
+            email: currentEmail,
+          }),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
+        arrayBuffer: async () => new Uint8Array([65]).buffer,
+      };
+    });
+
+    const handler = createExamRoomHandler({ fetchImpl, env: { VITE_GOOGLE_CLIENT_ID: CLIENT_ID } });
+
+    // 1. Account querying its own Student ID succeeds (200)
+    const ownIdRes = createMockRes();
+    await handler(
+      createReq({
+        url: '/api/exam-room?IDcard=6704062611115',
+        query: { IDcard: '6704062611115' },
+        headers: { host: 'classrooms-hub.vercel.app', authorization: 'Bearer tok-kmutnb' },
+      }),
+      ownIdRes
+    );
+    expect(ownIdRes.statusCode).toBe(200);
+
+    // 2. Same KMUTNB account attempting to query another student's ID is rejected with 403
+    const otherIdRes = createMockRes();
+    await handler(
+      createReq({
+        url: '/api/exam-room?IDcard=6704062699999',
+        query: { IDcard: '6704062699999' },
+        headers: { host: 'classrooms-hub.vercel.app', authorization: 'Bearer tok-kmutnb' },
+      }),
+      otherIdRes
+    );
+    expect(otherIdRes.statusCode).toBe(403);
+
+    // 3. Personal Gmail can query its bound ID, and querying a second Student ID is also blocked (403)
+    currentEmail = 'personal.student@gmail.com';
+    const firstPersonalRes = createMockRes();
+    await handler(
+      createReq({
+        url: '/api/exam-room?IDcard=6704062611115',
+        query: { IDcard: '6704062611115' },
+        headers: { host: 'classrooms-hub.vercel.app', authorization: 'Bearer tok-gmail' },
+      }),
+      firstPersonalRes
+    );
+    expect(firstPersonalRes.statusCode).toBe(200);
+
+    const secondPersonalRes = createMockRes();
+    await handler(
+      createReq({
+        url: '/api/exam-room?IDcard=6704062699999',
+        query: { IDcard: '6704062699999' },
+        headers: { host: 'classrooms-hub.vercel.app', authorization: 'Bearer tok-gmail' },
+      }),
+      secondPersonalRes
+    );
+    expect(secondPersonalRes.statusCode).toBe(403);
+  });
+
+  it('rejects oversized or non-HTML upstream responses with 502', async () => {
+    let upstreamContentType = 'application/javascript';
+    let upstreamLength = '100';
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).startsWith('https://oauth2.googleapis.com/tokeninfo')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            aud: CLIENT_ID,
+            exp: String(Math.floor(Date.now() / 1000) + 3600),
+            email: 'student@email.kmutnb.ac.th',
+          }),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': upstreamContentType, 'content-length': upstreamLength }),
+        arrayBuffer: async () => new Uint8Array([65]).buffer,
+      };
+    });
+
+    const handler = createExamRoomHandler({ fetchImpl, env: { VITE_GOOGLE_CLIENT_ID: CLIENT_ID } });
+
+    const badCtRes = createMockRes();
+    await handler(createReq(), badCtRes);
+    expect(badCtRes.statusCode).toBe(502);
+
+    upstreamContentType = 'text/html; charset=utf-8';
+    upstreamLength = String(5 * 1024 * 1024);
+    const oversizedRes = createMockRes();
+    await handler(createReq(), oversizedRes);
+    expect(oversizedRes.statusCode).toBe(502);
   });
 });

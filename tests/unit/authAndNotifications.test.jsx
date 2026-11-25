@@ -364,6 +364,12 @@ describe('Authentication Persistence & Consent Hints', () => {
     expect(localStorage.getItem(`classroom_hub_alert_settings_${email}`)).toBeNull();
     expect(localStorage.getItem(`classroom_hub_profile_${email}`)).toBeNull();
     view.unmount();
+
+    // When Remember Me is false during an active session, writes stay strictly in sessionStorage (zero localStorage PII)
+    setRememberMe(false);
+    saveAcademicData({ semesters: [{ id: '2/2568', courses: [{ code: 'CS102', grade: 'B+' }] }], enrolledCourses: [] }, email);
+    expect(localStorage.getItem(`classroom_hub_academic_${email}`)).toBeNull();
+    expect(sessionStorage.getItem(`classroom_hub_academic_${email}`)).not.toBeNull();
   });
 });
 
