@@ -52,7 +52,9 @@ function RouterOpenAction({ targetPath, onBeforeNavigate, lang }) {
 }
 
 export default function NotificationPopover({ isNotificationsOpen, setIsNotificationsOpen, bellButtonRef }) {
-  const { isLoggedIn, accessToken, profile } = useAuth();
+  const { isLoggedIn, isCachedSession = false, rememberedAccount = null, accessToken, profile, login } = useAuth() || {};
+  const cachedMode = Boolean(!isLoggedIn && (isCachedSession || rememberedAccount?.email));
+  const hasWorkspaceSession = Boolean(isLoggedIn || cachedMode);
   const {
     lang, emailAlerts, handleToggleAlerts, alertSettings, handleToggleSetting, handleUpdateSetting,
     sundayTime, handleTimeChange, historyLogs, unreadCount = 0, dailyLimit, refreshNotificationData,
@@ -288,7 +290,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
           {lang === 'en' ? 'Gmail & Calendar Alerts' : 'การแจ้งเตือน Gmail และ Calendar'}
         </h3>
 
-        {isLoggedIn && (
+        {hasWorkspaceSession && (
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-[var(--text-secondary)] font-medium">
               {lang === 'en' ? 'Gmail:' : 'เมล:'}{' '}
@@ -308,8 +310,24 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
         )}
       </div>
 
-      {isLoggedIn ? (
+      {hasWorkspaceSession ? (
         <div className="space-y-3.5">
+          {cachedMode && (
+            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-200 text-[11px] flex items-center justify-between gap-2">
+              <span>
+                {lang === 'en'
+                  ? 'Offline cache active — reconnect Google for Gmail & Calendar actions.'
+                  : 'โหมดแคชออฟไลน์ — เชื่อมต่อ Google เพื่อส่งเมลหรือซิงก์ปฏิทิน'}
+              </span>
+              <button
+                type="button"
+                onClick={() => login?.()}
+                className="shrink-0 px-2.5 py-1 rounded bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium transition-colors cursor-pointer"
+              >
+                {t('connectSyncBtn', lang)}
+              </button>
+            </div>
+          )}
           {uiFeedback.text && (
             <div
               className={`p-2.5 rounded-lg border text-xs flex items-center justify-between ${

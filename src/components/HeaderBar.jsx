@@ -27,10 +27,12 @@ function SafeLink({ to, className, children }) {
 }
 
 export default function HeaderBar({ setMobileMenuOpen }) {
-  const { isLoggedIn, profile } = useAuth();
+  const { isLoggedIn, isCachedSession = false, rememberedAccount = null, profile = {}, login } = useAuth() || {};
   const { lang, toggleLang, unreadCount = 0 } = useSettings();
   const { isSyncing, lastSyncTime, syncClassroom } = useClassroom();
   const { canInstall, promptInstall } = usePwaInstall();
+
+  const cachedMode = Boolean(!isLoggedIn && (isCachedSession || rememberedAccount?.email));
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
@@ -61,6 +63,11 @@ export default function HeaderBar({ setMobileMenuOpen }) {
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] shrink-0" />
               <span>{t('googleConnected', lang)}</span>
             </span>
+          ) : cachedMode ? (
+            <span className="inline-flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--surface)] border border-[var(--border)] px-2.5 py-1 rounded-lg whitespace-nowrap truncate max-w-[200px] md:max-w-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+              <span>{t('cachedMode', lang)}</span>
+            </span>
           ) : (
             <span className="inline-flex items-center gap-2 text-xs bg-amber-500/10 text-amber-300 border border-amber-500/25 px-2.5 py-1 rounded-lg whitespace-nowrap truncate max-w-[200px] md:max-w-none">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
@@ -71,7 +78,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        {isLoggedIn && (
+        {isLoggedIn ? (
           <button
             type="button"
             onClick={() => syncClassroom()}
@@ -82,6 +89,17 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           >
             <RefreshCw size={15} strokeWidth={1.5} className={isSyncing ? 'animate-spin text-[var(--primary-bright)]' : 'text-[var(--text-muted)]'} />
             <span>{isSyncing ? t('syncing', lang) : t('sync', lang)}</span>
+          </button>
+        ) : cachedMode && (
+          <button
+            type="button"
+            onClick={() => login?.()}
+            aria-label="Reconnect Google Classroom to sync"
+            className="flex items-center justify-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-medium px-3 h-9 rounded-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
+            title={`${t('lastSync', lang)} ${formatRelativeTime(lastSyncTime, lang)}`}
+          >
+            <RefreshCw size={14} strokeWidth={1.5} />
+            <span>{t('connectSyncBtn', lang)}</span>
           </button>
         )}
 

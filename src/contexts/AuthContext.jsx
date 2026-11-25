@@ -16,10 +16,11 @@ const SILENT_REFRESH_TIMEOUT_MS = 30 * 1000;
 
 const hydrateProfileStudentId = (rawProfile, email) => {
   const safe = rawProfile && typeof rawProfile === 'object' ? rawProfile : {};
-  const existingId = safe.studentId === 'Google Sync User' ? '' : String(safe.studentId || '').trim();
-  if (existingId) return safe;
-  const derived = String(email || safe.email || '').match(/\d{13}/)?.[0] || '';
-  return derived ? { ...safe, studentId: derived } : safe;
+  const withEmail = email && !safe.email ? { ...safe, email } : safe;
+  const existingId = withEmail.studentId === 'Google Sync User' ? '' : String(withEmail.studentId || '').trim();
+  if (existingId) return withEmail;
+  const derived = String(email || withEmail.email || '').match(/\d{13}/)?.[0] || '';
+  return derived ? { ...withEmail, studentId: derived } : withEmail;
 };
 
 const buildRememberedAccount = (email) => {
@@ -65,11 +66,15 @@ export const AuthProvider = ({ children }) => {
     setRememberMeState(next);
     if (!next) {
       setRememberedAccount(null);
+      if (!isLoggedIn) setProfile({});
     } else {
       const email = getActiveEmail();
-      if (email) setRememberedAccount(buildRememberedAccount(email));
+      if (email) {
+        setRememberedAccount(buildRememberedAccount(email));
+        setProfile(hydrateProfileStudentId(getProfile(email), email));
+      }
     }
-  }, []);
+  }, [isLoggedIn]);
 
   const settlePendingRequest = useCallback((error, token) => {
     const pending = pendingTokenRequestRef.current;
@@ -121,12 +126,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Session expired / could not be refreshed: drop the token but keep the remembered account
-  // when Remember Me is enabled.
+  // and cached profile so the user stays in Cached Mode when Remember Me is enabled.
   const expireSession = useCallback(() => {
     clearSessionState();
     if (getRememberMe()) {
       const email = getActiveEmail();
-      setRememberedAccount(email ? buildRememberedAccount(email) : null);
+      if (email) {
+        setRememberedAccount(buildRememberedAccount(email));
+        setProfile(hydrateProfileStudentId(getProfile(email), email));
+      } else {
+        setRememberedAccount(null);
+      }
     } else {
       setActiveEmail('');
       setRememberedAccount(null);
@@ -196,7 +206,12 @@ export const AuthProvider = ({ children }) => {
       clearToken();
       setIsLoggedIn(false);
       setAccessToken(null);
-      setRememberedAccount(getRememberMe() && activeEmail ? buildRememberedAccount(activeEmail) : null);
+      if (getRememberMe() && activeEmail) {
+        setRememberedAccount(buildRememberedAccount(activeEmail));
+        setProfile(hydrateProfileStudentId(getProfile(activeEmail), activeEmail));
+      } else {
+        setRememberedAccount(null);
+      }
     }
   }, []);
 
@@ -285,15 +300,17 @@ export const AuthProvider = ({ children }) => {
     return userEmail;
   }, []);
 
+  const isCachedSession = Boolean(!isLoggedIn && rememberedAccount?.email);
+
   const value = React.useMemo(() => ({
-    accessToken, isLoggedIn, profile, rememberedAccount,
+    accessToken, isLoggedIn, isCachedSession, profile, rememberedAccount,
     rememberMe, handleRememberMeChange,
     authError, clearAuthError, isAuthReady: Boolean(tokenClient),
     login, logout, expireSession,
     handleProfileSave, updateProfileFromGoogle, initClient,
     handleSilentRefresh
   }), [
-    accessToken, isLoggedIn, profile, rememberedAccount,
+    accessToken, isLoggedIn, isCachedSession, profile, rememberedAccount,
     rememberMe, handleRememberMeChange,
     authError, clearAuthError, tokenClient,
     login, logout, expireSession,

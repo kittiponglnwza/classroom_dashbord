@@ -44,9 +44,11 @@ function normalizeTodayLimit(limitData) {
 }
 
 export const SettingsProvider = ({ children }) => {
-  const { isLoggedIn, accessToken } = useAuth();
+  const auth = useAuth() || {};
+  const { isLoggedIn = false, isCachedSession = false, rememberedAccount = null, accessToken = null } = auth;
+  const hasWorkspaceSession = Boolean(isLoggedIn || isCachedSession || rememberedAccount?.email);
   const [lang, setLang] = useState(() => localStorage.getItem('classroom_hub_language') || 'en');
-  const userEmail = getActiveEmail();
+  const userEmail = rememberedAccount?.email || getActiveEmail();
 
   const [emailAlerts, setEmailAlerts] = useState(false);
   const [alertSettings, setAlertSettingsState] = useState(() => getAlertSettings(getActiveEmail()));
@@ -95,10 +97,10 @@ export const SettingsProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (userEmail && isLoggedIn) {
+    if (userEmail && hasWorkspaceSession) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       reloadSettings();
-    } else if (!isLoggedIn) {
+    } else if (!hasWorkspaceSession) {
       const fallbackSettings = getAlertSettings(userEmail);
       setEmailAlerts(false);
       setAlertSettingsState(fallbackSettings);
@@ -107,7 +109,7 @@ export const SettingsProvider = ({ children }) => {
       setHistoryLogs([]);
       setDailyLimit({ count: 0 });
     }
-  }, [userEmail, isLoggedIn, reloadSettings]);
+  }, [userEmail, hasWorkspaceSession, reloadSettings]);
 
   const toggleLang = useCallback(() => {
     const email = getActiveEmail() || userEmail;

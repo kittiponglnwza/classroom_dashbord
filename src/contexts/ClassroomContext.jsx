@@ -26,7 +26,8 @@ import { useToast } from '../hooks/useToast';
 export const ClassroomContext = createContext(null);
 
 export const ClassroomProvider = ({ children }) => {
-  const { accessToken, isLoggedIn, updateProfileFromGoogle, expireSession } = useAuth();
+  const { accessToken, isLoggedIn, isCachedSession, rememberedAccount, updateProfileFromGoogle, expireSession } = useAuth();
+  const hasWorkspaceSession = Boolean(isLoggedIn || isCachedSession || rememberedAccount?.email);
   const { lang, setLang, reloadSettings } = useSettings();
   const { addToast } = useToast();
 
@@ -98,7 +99,7 @@ export const ClassroomProvider = ({ children }) => {
     sessionGenerationRef.current += 1;
     activeSyncRef.current?.controller?.abort();
     const activeEmail = getActiveEmail();
-    if (isLoggedIn && activeEmail) {
+    if (hasWorkspaceSession && activeEmail) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadLocalData(activeEmail);
     } else {
@@ -106,7 +107,7 @@ export const ClassroomProvider = ({ children }) => {
       loadLocalData('');
       autoSyncedRef.current = false;
     }
-  }, [isLoggedIn, loadLocalData]);
+  }, [hasWorkspaceSession, loadLocalData]);
 
   useEffect(() => {
     const handleStorageChange = (e) => {
@@ -712,7 +713,7 @@ export const ClassroomProvider = ({ children }) => {
       }
 
       if (msg.type === 'REG_SNAPSHOT_DATA') {
-        if (!isLoggedIn) return;
+        if (!hasWorkspaceSession) return;
         const activeEmail = getActiveEmail();
         const storedProfile = activeEmail ? getProfile(activeEmail) : null;
         const cleanProfileId = String(storedProfile?.studentId || '').replace(/[\s-]/g, '').trim();
@@ -795,7 +796,7 @@ export const ClassroomProvider = ({ children }) => {
     );
 
     return () => window.removeEventListener('message', handleBridgeMessage);
-  }, [isLoggedIn, handleImportRegData, addToast]);
+  }, [hasWorkspaceSession, handleImportRegData, addToast]);
 
   const isSyncing = isClassroomFetching;
 

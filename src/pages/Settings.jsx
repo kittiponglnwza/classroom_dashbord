@@ -66,8 +66,10 @@ const resolveDisplayStudentId = (p) => {
 
 export default function Settings() {
   const { lang, alertSettings = {}, handleToggleSetting, handleUpdateSetting, refreshNotificationData } = useSettings();
-  const { profile, isLoggedIn, handleProfileSave, login, logout, accessToken } = useAuth();
+  const { profile, isLoggedIn, isCachedSession = false, rememberedAccount = null, handleProfileSave, login, logout, accessToken } = useAuth();
   const classroom = useClassroom();
+  const cachedMode = Boolean(!isLoggedIn && (isCachedSession || rememberedAccount?.email));
+  const hasAccountSession = isLoggedIn || cachedMode;
 
   const [name, setName] = useState(profile.name || '');
   const [studentId, setStudentId] = useState(() => resolveDisplayStudentId(profile));
@@ -130,7 +132,7 @@ export default function Settings() {
     }
 
     const prevNormalizedId = resolveDisplayStudentId(profile).replace(/[\s-]/g, '').trim();
-    const targetEmail = isLoggedIn && profile.email ? profile.email : email;
+    const targetEmail = hasAccountSession && profile.email ? profile.email : email;
     const submittedDecoded = decodeKmutnbStudentId(normalizedId);
 
     handleProfileSave({
@@ -336,10 +338,18 @@ export default function Settings() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-sm font-medium text-[var(--text-heading)] truncate">{name || 'Student'}</h2>
                   <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[11px] font-medium bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-secondary)]">
-                    <span className={`w-1.5 h-1.5 rounded-full ${isLoggedIn ? 'bg-[var(--success)]' : 'bg-[var(--text-muted)]'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      isLoggedIn
+                        ? 'bg-[var(--success)]'
+                        : cachedMode
+                          ? 'bg-amber-400'
+                          : 'bg-[var(--text-muted)]'
+                    }`} />
                     {isLoggedIn
                       ? (lang === 'en' ? 'Connected' : 'เชื่อมต่อแล้ว')
-                      : (lang === 'en' ? 'Local Mode' : 'โหมดออฟไลน์')}
+                      : cachedMode
+                        ? t('cachedMode', lang)
+                        : (lang === 'en' ? 'Local Mode' : 'โหมดออฟไลน์')}
                   </span>
                 </div>
 
@@ -381,8 +391,8 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              {isLoggedIn ? (
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              {hasAccountSession ? (
                 confirmLogout ? (
                   <>
                     <button
@@ -404,14 +414,26 @@ export default function Settings() {
                     </button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmLogout(true)}
-                    className="inline-flex items-center gap-1.5 bg-[var(--app-bg)] hover:bg-rose-500/15 text-[var(--text-secondary)] hover:text-rose-300 border border-[var(--border)] hover:border-rose-500/30 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                  >
-                    <LogOut size={13} strokeWidth={1.5} />
-                    <span>{t('disconnectBtn', lang)}</span>
-                  </button>
+                  <>
+                    {cachedMode && (
+                      <button
+                        type="button"
+                        onClick={() => login()}
+                        className="inline-flex items-center gap-1.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                      >
+                        <LogIn size={13} strokeWidth={1.5} />
+                        <span>{t('connectSyncBtn', lang)}</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setConfirmLogout(true)}
+                      className="inline-flex items-center gap-1.5 bg-[var(--app-bg)] hover:bg-rose-500/15 text-[var(--text-secondary)] hover:text-rose-300 border border-[var(--border)] hover:border-rose-500/30 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      <LogOut size={13} strokeWidth={1.5} />
+                      <span>{t('disconnectBtn', lang)}</span>
+                    </button>
+                  </>
                 )
               ) : (
                 <button
@@ -432,7 +454,7 @@ export default function Settings() {
             </div>
           )}
 
-          <div className={`grid grid-cols-1 ${isLoggedIn ? 'sm:grid-cols-[1fr_1fr_auto]' : 'sm:grid-cols-[1fr_1fr_1fr_auto]'} gap-3 items-end`}>
+          <div className={`grid grid-cols-1 ${hasAccountSession ? 'sm:grid-cols-[1fr_1fr_auto]' : 'sm:grid-cols-[1fr_1fr_1fr_auto]'} gap-3 items-end`}>
             <InputField label={t('studentNameLabel', lang)} value={name} onChange={setName} />
             <InputField
               label={t('studentIdLabel', lang)}
@@ -442,7 +464,7 @@ export default function Settings() {
               inputMode="numeric"
               placeholder="6401012345678"
             />
-            {!isLoggedIn && (
+            {!hasAccountSession && (
               <InputField
                 label={t('studentEmailLabel', lang)}
                 value={email}
@@ -659,6 +681,14 @@ export default function Settings() {
                 </p>
               </div>
             </div>
+
+            {cachedMode && !resetMessage && (
+              <p className="text-[11px] text-amber-300/90">
+                {lang === 'en'
+                  ? 'Connect Google above to sync or reset Google Calendar.'
+                  : 'กดเชื่อมต่อ Google ด้านบนก่อนซิงก์หรือล้างปฏิทิน'}
+              </p>
+            )}
 
             {resetMessage && (
               <p

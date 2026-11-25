@@ -3,6 +3,8 @@ export const translations = {
     // Layout & Sidebar
     academicTerm: 'Academic Term: 2026/Semester 2',
     googleConnected: 'Google Classroom Connected',
+    cachedMode: 'Cached · Offline Mode',
+    connectSyncBtn: 'Connect & Sync',
     mockActive: 'Mock Database Active',
     sync: 'Sync',
     syncing: 'Syncing...',
@@ -288,6 +290,8 @@ export const translations = {
     // Layout & Sidebar
     academicTerm: 'ปีการศึกษา: 2026/ภาคเรียนที่ 2',
     googleConnected: 'เชื่อมต่อ Google Classroom แล้ว',
+    cachedMode: 'โหมดแคชออฟไลน์',
+    connectSyncBtn: 'เชื่อมต่อ & ซิงก์',
     mockActive: 'ใช้งานฐานข้อมูลจำลอง (Mock)',
     sync: 'ซิงก์ข้อมูล',
     syncing: 'กำลังซิงก์...',

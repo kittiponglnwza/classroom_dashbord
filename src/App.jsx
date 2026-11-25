@@ -20,6 +20,7 @@ const Academic = lazy(() => import('./pages/Academic'));
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { useToast } from './hooks/useToast';
 import { ClassroomProvider } from './contexts/ClassroomContext';
 import { ClassroomUIProvider } from './contexts/ClassroomUIContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -52,11 +53,13 @@ function NotFoundView({ lang }) {
 
 function AppContent() {
   const {
-    isLoggedIn, login, initClient, rememberedAccount,
-    rememberMe = true, handleRememberMeChange, authError, isAuthReady = true
+    isLoggedIn, isCachedSession, login, initClient, rememberedAccount,
+    rememberMe = true, handleRememberMeChange, authError, clearAuthError, isAuthReady = true
   } = useAuth();
   const { lang, toggleLang } = useSettings();
+  const { addToast } = useToast();
   const [failedLoginAvatar, setFailedLoginAvatar] = useState(null);
+  const hasWorkspaceSession = Boolean(isLoggedIn || isCachedSession || rememberedAccount?.email);
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -68,7 +71,14 @@ function AppContent() {
     return cleanup;
   }, [initClient]);
 
-  if (!isLoggedIn) {
+  useEffect(() => {
+    if (hasWorkspaceSession && authError) {
+      addToast(authError, 'error');
+      clearAuthError?.();
+    }
+  }, [hasWorkspaceSession, authError, addToast, clearAuthError]);
+
+  if (!hasWorkspaceSession) {
     const accountEmail = rememberedAccount?.email || '';
     const accountName = rememberedAccount?.name || (accountEmail ? accountEmail.split('@')[0] : '');
     const accountPicture = rememberedAccount?.picture || '';

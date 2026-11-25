@@ -1,13 +1,16 @@
 import React, { useRef } from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../../src/contexts/AuthContext';
 import { SettingsProvider, useSettings } from '../../src/contexts/SettingsContext';
-import { ClassroomContext } from '../../src/contexts/ClassroomContext';
+import { ToastProvider } from '../../src/contexts/ToastContext';
+import { ClassroomContext, ClassroomProvider, useClassroom } from '../../src/contexts/ClassroomContext';
 import { ClassroomUIContext } from '../../src/contexts/ClassroomUIContext';
 import NotificationPopover from '../../src/components/NotificationPopover';
 import HeaderBar from '../../src/components/HeaderBar';
 import CookieConsentBanner from '../../src/components/CookieConsentBanner';
+import App from '../../src/App';
 import {
   getCookieConsent, clearCookieConsent, buildConsentCookieAttributes, saveCookieConsent
 } from '../../src/utils/cookieConsent';
@@ -16,7 +19,7 @@ import { GoogleRepository } from '../../src/repositories/GoogleRepository';
 import { httpClient } from '../../src/utils/httpClient';
 import { syncManager } from '../../src/services/SyncManager';
 import {
-  setActiveEmail, getActiveEmail, saveToken, saveProfile,
+  setActiveEmail, getActiveEmail, saveToken, saveProfile, saveAssignments,
   getSentNotifications, getNotificationHistory, saveDailyEmailLimit,
   addNotificationHistoryLog, setRememberMe
 } from '../../src/utils/storage';
@@ -54,8 +57,10 @@ describe('Authentication Persistence & Consent Hints', () => {
     );
 
     expect(latestAuth.isLoggedIn).toBe(false);
+    expect(latestAuth.isCachedSession).toBe(true);
     expect(getActiveEmail()).toBe(email);
     expect(latestAuth.rememberedAccount?.email).toBe(email);
+    expect(latestAuth.profile?.email).toBe(email);
 
     saveToken('active-oauth-token', 3600);
     act(() => {
@@ -65,7 +70,82 @@ describe('Authentication Persistence & Consent Hints', () => {
     expect(revokeSpy).toHaveBeenCalledWith('active-oauth-token', expect.any(Function));
     expect(getActiveEmail()).toBe('');
     expect(latestAuth.rememberedAccount).toBeNull();
+    expect(latestAuth.isCachedSession).toBe(false);
     expect(localStorage.getItem(`classroom_hub_profile_${email}`)).toBeNull();
+  });
+
+  it('auto-enters cached workspace with user data when Remember Me is enabled across restarts and lets user reconnect in 1 click', async () => {
+    vi.useFakeTimers();
+    try {
+      const email = 's6704062611115@email.kmutnb.ac.th';
+      setRememberMe(true);
+      setActiveEmail(email);
+      saveProfile({ name: 'TopZ', email }, email);
+      saveAssignments([
+        { id: 'cached-1', title: 'Algorithm Lab 4', course: 'Algorithms', courseColor: 'blue', status: 'todo' }
+      ], email);
+      addNotificationHistoryLog({ title: 'Cached alert log', type: 'due_today' }, email);
+
+      const requestAccessToken = vi.fn();
+      window.google = { accounts: { oauth2: {} } };
+      initGoogleClient.mockImplementation(() => ({ requestAccessToken }));
+      window.history.pushState({}, '', '/');
+
+      let latestClassroom;
+      function ClassroomProbe() {
+        const auth = useAuth();
+        React.useEffect(() => auth.initClient('en'), [auth]);
+        latestClassroom = useClassroom();
+        return null;
+      }
+
+      const view = render(
+        <MemoryRouter>
+          <AuthProvider>
+            <SettingsProvider>
+              <ToastProvider>
+                <ClassroomProvider>
+                  <ClassroomUIContext.Provider value={{ visibleAssignments: [] }}>
+                    <HeaderBar setMobileMenuOpen={vi.fn()} />
+                    <ClassroomProbe />
+                  </ClassroomUIContext.Provider>
+                </ClassroomProvider>
+              </ToastProvider>
+            </SettingsProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText('Cached · Offline Mode')).toBeInTheDocument();
+      expect(screen.getByText('Connect & Sync')).toBeInTheDocument();
+      expect(screen.getByTestId('notification-unread-badge').textContent).toBe('1');
+      expect(latestClassroom.assignments.some((a) => a.id === 'cached-1')).toBe(true);
+
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Reconnect Google Classroom to sync/i }));
+      expect(requestAccessToken).toHaveBeenCalledWith({
+        prompt: '',
+        login_hint: email
+      });
+      view.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    // App opens directly into workspace (not the Sign-In gate)
+    const appView = render(<App />);
+    expect(screen.queryByRole('button', { name: /Continue with Google/i })).not.toBeInTheDocument();
+    expect(await screen.findByText('Cached · Offline Mode')).toBeInTheDocument();
+    appView.unmount();
+
+    // When Remember Me is unchecked across restarts, App falls back to Sign-In screen
+    setRememberMe(false);
+    sessionStorage.clear();
+    render(<App />);
+    expect(screen.getByRole('button', { name: /Connect Google Classroom/i })).toBeInTheDocument();
   });
 
   it('passes login_hint + empty prompt for remembered users and settles silent refresh when error_callback fires', async () => {
