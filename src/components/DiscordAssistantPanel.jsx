@@ -13,7 +13,9 @@ import {
   GraduationCap,
   Sliders,
   AlertCircle,
-  History
+  History,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { DiscordService } from '../services/DiscordService';
 import {
@@ -106,7 +108,9 @@ export default function DiscordAssistantPanel({
   handleToggleSetting,
   handleUpdateSetting,
   handleTimeChange,
-  refreshNotificationData
+  refreshNotificationData,
+  isExpanded = false,
+  onToggleExpand
 }) {
   const isTh = lang === 'th';
   const webhookFieldId = useId();
@@ -247,10 +251,13 @@ export default function DiscordAssistantPanel({
   const isAnySending = Boolean(busyAction);
 
   return (
-    <div className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 flex flex-col justify-between space-y-4">
+    <div
+      id="discord-assistant-panel"
+      className={`${isExpanded ? 'lg:col-span-12' : 'lg:col-span-7'} min-w-0 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 flex flex-col justify-between space-y-4`}
+    >
       <div className="space-y-4">
         {/* Header Bar */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
               <MessageSquare className="text-[var(--text-secondary)]" size={15} strokeWidth={1.5} />
@@ -267,7 +274,7 @@ export default function DiscordAssistantPanel({
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <span
               data-testid="discord-webhook-status"
               className={`text-[11px] px-2.5 py-0.5 rounded-lg font-medium ${
@@ -284,6 +291,26 @@ export default function DiscordAssistantPanel({
                   ? (isTh ? 'ลิงก์ไม่ถูกต้อง' : 'Invalid URL')
                   : (isTh ? 'ยังไม่ตั้งค่า' : 'Not Configured')}
             </span>
+
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              aria-expanded={isExpanded}
+              aria-controls="discord-assistant-panel"
+              title={
+                isTh
+                  ? (isExpanded ? 'กลับไปเลย์เอาต์เดิม' : 'ขยายพื้นที่สำหรับตั้งค่า')
+                  : (isExpanded ? 'Return to the original layout' : 'Expand the settings panel')
+              }
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer text-[11px] font-medium"
+            >
+              {isExpanded ? <Minimize2 size={13} strokeWidth={1.5} /> : <Maximize2 size={13} strokeWidth={1.5} />}
+              <span>
+                {isTh
+                  ? (isExpanded ? 'ย่อกลับ' : 'ขยายตั้งค่า')
+                  : (isExpanded ? 'Return' : 'Expand')}
+              </span>
+            </button>
 
             <label
               className="relative inline-flex items-center cursor-pointer select-none"

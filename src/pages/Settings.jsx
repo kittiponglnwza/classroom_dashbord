@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useId } from 'react';
 import {
-  GraduationCap, Code, CheckCircle2, Settings2,
+  GraduationCap, CheckCircle2, Settings2, ExternalLink,
   RefreshCw, LogOut, LogIn
 } from 'lucide-react';
 import { t } from '../utils/i18n';
@@ -84,6 +84,7 @@ export default function Settings() {
   const [profileError, setProfileError] = useState('');
   const [avatarError, setAvatarError] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [isDiscordExpanded, setIsDiscordExpanded] = useState(false);
   const [isResettingCalendar, setIsResettingCalendar] = useState(false);
   const [calendarSyncState, setCalendarSyncState] = useState(calendarSyncManager.state);
   const [resetMessage, setResetMessage] = useState('');
@@ -385,7 +386,7 @@ export default function Settings() {
       </div>
 
       {/* 2. Notification setup, calendar maintenance, and developer details */}
-      <div className="space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <DiscordAssistantPanel
           lang={lang}
           activeUserEmail={activeUserEmail}
@@ -401,53 +402,53 @@ export default function Settings() {
           handleUpdateSetting={handleUpdateSetting}
           handleTimeChange={handleTimeChange}
           refreshNotificationData={refreshNotificationData}
+          isExpanded={isDiscordExpanded}
+          onToggleExpand={() => setIsDiscordExpanded((expanded) => !expanded)}
         />
 
-        {/* Google Calendar Sync Maintenance Card */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
-                  <RefreshCw className="text-[var(--primary-bright)]" size={14} strokeWidth={1.5} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-[var(--text-heading)]">
-                    {lang === 'en' ? 'Google Calendar Sync' : 'ซิงก์ปฏิทิน Google Calendar'}
-                  </h3>
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    {lang === 'en' ? 'Sync events or clean duplicates' : 'อัปเดตตารางหรือล้างรายการซ้ำ'}
-                  </p>
-                </div>
+        <div className={`flex flex-col gap-5 ${isDiscordExpanded ? 'lg:col-span-12' : 'lg:col-span-5'}`}>
+          {/* Google Calendar Sync Maintenance Card */}
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                <RefreshCw className="text-[var(--primary-bright)]" size={14} strokeWidth={1.5} />
               </div>
-
-              {cachedMode && !resetMessage && (
-                <p className="text-[11px] text-amber-300/90">
-                  {lang === 'en'
-                    ? 'Connect Google above to sync or reset Google Calendar.'
-                    : 'กดเชื่อมต่อ Google ด้านบนก่อนซิงก์หรือล้างปฏิทิน'}
+              <div>
+                <h3 className="text-sm font-medium text-[var(--text-heading)]">
+                  {lang === 'en' ? 'Google Calendar Sync' : 'ซิงก์ปฏิทิน Google Calendar'}
+                </h3>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  {lang === 'en' ? 'Sync events or clean duplicates' : 'อัปเดตตารางหรือล้างรายการซ้ำ'}
                 </p>
-              )}
-
-              {resetMessage && (
-                <p
-                  className={`text-xs font-medium ${
-                    resetMessage.includes('Error') || resetMessage.includes('ข้อผิดพลาด')
-                      ? 'text-rose-300'
-                      : 'text-emerald-300'
-                  }`}
-                >
-                  {resetMessage}
-                </p>
-              )}
+              </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:shrink-0">
+            {cachedMode && !resetMessage && (
+              <p className="text-[11px] text-amber-300/90">
+                {lang === 'en'
+                  ? 'Connect Google above to sync or reset Google Calendar.'
+                  : 'กดเชื่อมต่อ Google ด้านบนก่อนซิงก์หรือล้างปฏิทิน'}
+              </p>
+            )}
+
+            {resetMessage && (
+              <p
+                className={`text-xs font-medium ${
+                  resetMessage.includes('Error') || resetMessage.includes('ข้อผิดพลาด')
+                    ? 'text-rose-300'
+                    : 'text-emerald-300'
+                }`}
+              >
+                {resetMessage}
+              </p>
+            )}
+
+            <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2 sm:max-w-xl">
               <button
                 type="button"
                 onClick={handleSyncCalendarNow}
                 disabled={!isLoggedIn || calendarSyncState === 'syncing' || isResettingCalendar}
-                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5 sm:min-w-36"
+                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
                 {calendarSyncState === 'syncing' && !isResettingCalendar && <RefreshCw size={12} strokeWidth={1.5} className="animate-spin" />}
                 <span className="truncate">
@@ -460,50 +461,54 @@ export default function Settings() {
                 type="button"
                 onClick={handleResetCalendar}
                 disabled={!isLoggedIn || isResettingCalendar || calendarSyncState === 'syncing'}
-                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5 sm:min-w-36"
+                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
               >
                 {isResettingCalendar && <RefreshCw size={12} strokeWidth={1.5} className="animate-spin" />}
                 <span className="truncate">{lang === 'en' ? 'Reset Calendar' : 'ล้างแล้วลงใหม่'}</span>
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Developer Card */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
-                <Code size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
+          {/* Developer Card */}
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0 text-[var(--text-primary)]">
+                  <GithubIcon size={21} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] text-[var(--text-secondary)]">
+                    {isTh ? `ผู้พัฒนา · ${devInfo.university}` : `Developer · ${devInfo.university}`}
+                  </p>
+                  <h4 className="font-medium text-[var(--text-heading)] text-sm truncate">{devInfo.name}</h4>
+                  <p className="text-[11px] text-[var(--text-muted)] truncate">
+                    @{devInfo.nickname} · <a href={`mailto:${devInfo.email}`} className="hover:text-[var(--text-primary)] transition-colors">{devInfo.email}</a>
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h4 className="font-medium text-[var(--text-heading)] text-xs truncate">{devInfo.name}</h4>
-                <p className="text-[11px] text-[var(--text-muted)] truncate">
-                  @{devInfo.nickname} • {devInfo.university} • <a href={`mailto:${devInfo.email}`} className="hover:text-[var(--text-primary)] transition-colors">{devInfo.email}</a>
-                </p>
+
+              <div className="flex gap-2 sm:shrink-0">
+                <a
+                  href={devInfo.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white py-2 px-3 rounded-lg transition-colors text-xs font-medium sm:min-w-28"
+                >
+                  <GithubIcon size={14} />
+                  <span>{isTh ? 'ดูโปรไฟล์' : 'GitHub profile'}</span>
+                  <ExternalLink size={12} />
+                </a>
+
+                <a
+                  href={devInfo.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-lg transition-colors text-xs font-medium text-[var(--text-primary)] sm:min-w-28"
+                >
+                  <InstagramIcon size={13} />
+                  <span>Instagram</span>
+                </a>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:shrink-0">
-              <a
-                href={devInfo.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-lg transition-colors text-xs font-medium text-[var(--text-primary)] sm:min-w-36"
-              >
-                <GithubIcon size={13} />
-                <span>GitHub</span>
-              </a>
-
-              <a
-                href={devInfo.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-lg transition-colors text-xs font-medium text-[var(--text-primary)] sm:min-w-36"
-              >
-                <InstagramIcon size={13} />
-                <span>Instagram</span>
-              </a>
             </div>
           </div>
         </div>
