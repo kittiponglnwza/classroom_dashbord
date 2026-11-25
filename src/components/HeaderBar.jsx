@@ -173,6 +173,7 @@ export default function HeaderBar({ setMobileMenuOpen }) {
               <img
                 src={profile.avatarUrl}
                 alt="Student Avatar"
+                referrerPolicy="no-referrer"
                 onError={() => setFailedAvatarUrl(profile.avatarUrl)}
                 className="w-full h-full object-cover"
               />

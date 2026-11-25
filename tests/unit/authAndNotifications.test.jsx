@@ -1,11 +1,9 @@
 import React, { useRef } from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../../src/contexts/AuthContext';
 import { SettingsProvider, useSettings } from '../../src/contexts/SettingsContext';
-import { ToastProvider } from '../../src/contexts/ToastContext';
-import { ClassroomContext, ClassroomProvider, useClassroom } from '../../src/contexts/ClassroomContext';
+import { ClassroomContext } from '../../src/contexts/ClassroomContext';
 import { ClassroomUIContext } from '../../src/contexts/ClassroomUIContext';
 import NotificationPopover from '../../src/components/NotificationPopover';
 import HeaderBar from '../../src/components/HeaderBar';
@@ -16,12 +14,15 @@ import {
 } from '../../src/utils/cookieConsent';
 import { NotificationService } from '../../src/services/NotificationService';
 import { GoogleRepository } from '../../src/repositories/GoogleRepository';
+import { ClassroomService } from '../../src/services/ClassroomService';
+import { examRepository } from '../../src/repositories/examRepository';
+import { calendarSyncManager } from '../../src/services/CalendarSyncManager';
 import { httpClient } from '../../src/utils/httpClient';
 import { syncManager } from '../../src/services/SyncManager';
 import {
   setActiveEmail, getActiveEmail, saveToken, saveProfile, saveAssignments,
   getSentNotifications, getNotificationHistory, saveDailyEmailLimit,
-  addNotificationHistoryLog, setRememberMe
+  addNotificationHistoryLog, setRememberMe, saveAcademicData, saveAlertSettings
 } from '../../src/utils/storage';
 
 vi.mock('../../src/services/googleClassroomClient', () => ({
@@ -74,78 +75,79 @@ describe('Authentication Persistence & Consent Hints', () => {
     expect(localStorage.getItem(`classroom_hub_profile_${email}`)).toBeNull();
   });
 
-  it('auto-enters cached workspace with user data when Remember Me is enabled across restarts and lets user reconnect in 1 click', async () => {
-    vi.useFakeTimers();
-    try {
-      const email = 's6704062611115@email.kmutnb.ac.th';
-      setRememberMe(true);
-      setActiveEmail(email);
-      saveProfile({ name: 'TopZ', email }, email);
-      saveAssignments([
-        { id: 'cached-1', title: 'Algorithm Lab 4', course: 'Algorithms', courseColor: 'blue', status: 'todo' }
-      ], email);
-      addNotificationHistoryLog({ title: 'Cached alert log', type: 'due_today' }, email);
+  it('shows Login screen with remembered account first before entering workspace, then auto-syncs upon sign-in', async () => {
+    const email = 's6704062611115@email.kmutnb.ac.th';
+    setRememberMe(true);
+    setActiveEmail(email);
+    saveProfile({ name: 'TopZ', email }, email);
+    saveAssignments([
+      { id: 'cached-1', title: 'Algorithm Lab 4', course: 'Algorithms', courseColor: 'blue', status: 'todo' }
+    ], email);
+    addNotificationHistoryLog({ title: 'Cached alert log', type: 'due_today' }, email);
 
-      const requestAccessToken = vi.fn();
-      window.google = { accounts: { oauth2: {} } };
-      initGoogleClient.mockImplementation(() => ({ requestAccessToken }));
-      window.history.pushState({}, '', '/');
+    let capturedOnSuccess;
+    const requestAccessToken = vi.fn(() => {
+      capturedOnSuccess?.({ access_token: 'fresh-oauth-token', expires_in: 3600 });
+    });
+    window.google = { accounts: { oauth2: {} } };
+    initGoogleClient.mockImplementation((onSuccess) => {
+      capturedOnSuccess = onSuccess;
+      return { requestAccessToken };
+    });
 
-      let latestClassroom;
-      function ClassroomProbe() {
-        const auth = useAuth();
-        React.useEffect(() => auth.initClient('en'), [auth]);
-        latestClassroom = useClassroom();
-        return null;
-      }
+    const fetchProfileSpy = vi.spyOn(ClassroomService, 'fetchProfile').mockResolvedValue({
+      name: 'TopZ',
+      studentId: '6704062611115',
+      email,
+      major: '',
+      avatarUrl: ''
+    });
+    const fetchClassroomSpy = vi.spyOn(ClassroomService, 'fetchClassroomData').mockResolvedValue({
+      courses: [{ id: 'c1', name: 'Algorithms', code: 'CS302', color: 'blue' }],
+      assignments: [{ id: 'fresh-1', title: 'New Synced HW', course: 'Algorithms', courseId: 'c1', status: 'todo' }],
+      resources: [],
+      topics: [],
+      failedCourseIds: [],
+      skippedCourseIds: [],
+      failedFeeds: {}
+    });
+    vi.spyOn(syncManager, 'executeSync').mockResolvedValue(false);
+    vi.spyOn(syncManager, 'queueSync').mockImplementation(() => {});
+    vi.spyOn(calendarSyncManager, 'queueSync').mockImplementation(() => {});
+    vi.spyOn(examRepository, 'fetchExams').mockResolvedValue({ success: false, error: new Error('mocked') });
 
-      const view = render(
-        <MemoryRouter>
-          <AuthProvider>
-            <SettingsProvider>
-              <ToastProvider>
-                <ClassroomProvider>
-                  <ClassroomUIContext.Provider value={{ visibleAssignments: [] }}>
-                    <HeaderBar setMobileMenuOpen={vi.fn()} />
-                    <ClassroomProbe />
-                  </ClassroomUIContext.Provider>
-                </ClassroomProvider>
-              </ToastProvider>
-            </SettingsProvider>
-          </AuthProvider>
-        </MemoryRouter>
-      );
+    window.history.pushState({}, '', '/');
 
-      expect(screen.getByText('Cached · Offline Mode')).toBeInTheDocument();
-      expect(screen.getByText('Connect & Sync')).toBeInTheDocument();
-      expect(screen.getByTestId('notification-unread-badge').textContent).toBe('1');
-      expect(latestClassroom.assignments.some((a) => a.id === 'cached-1')).toBe(true);
-
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
-
-      fireEvent.click(screen.getByRole('button', { name: /Reconnect Google Classroom to sync/i }));
-      expect(requestAccessToken).toHaveBeenCalledWith({
-        prompt: '',
-        login_hint: email
-      });
-      view.unmount();
-    } finally {
-      vi.useRealTimers();
-    }
-
-    // App opens directly into workspace (not the Sign-In gate)
+    // 1. Opening app with remembered account but expired/missing sessionStorage token shows Sign-In gate FIRST
     const appView = render(<App />);
-    expect(screen.queryByRole('button', { name: /Continue with Google/i })).not.toBeInTheDocument();
-    expect(await screen.findByText('Cached · Offline Mode')).toBeInTheDocument();
+    expect(screen.getByText('TopZ')).toBeInTheDocument();
+    expect(screen.getByText(email)).toBeInTheDocument();
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    const continueBtn = screen.getByRole('button', { name: /Continue with Google/i });
+    expect(continueBtn).toBeInTheDocument();
+
+    // Clicking signs in with remembered hint and auto-syncs
+    await act(async () => {
+      fireEvent.click(continueBtn);
+      await new Promise((r) => setTimeout(r, 30));
+    });
+
+    expect(requestAccessToken).toHaveBeenCalledWith({
+      prompt: '',
+      login_hint: email
+    });
+    expect(await screen.findByText('Google Classroom Connected')).toBeInTheDocument();
+    expect(fetchProfileSpy).toHaveBeenCalledWith('fresh-oauth-token', expect.any(Object));
+    expect(fetchClassroomSpy).toHaveBeenCalledWith('fresh-oauth-token', expect.any(Object));
     appView.unmount();
 
-    // When Remember Me is unchecked across restarts, App falls back to Sign-In screen
+    // 2. When Remember Me is unchecked across restarts, Sign-In screen forgets the previous account card
     setRememberMe(false);
     sessionStorage.clear();
-    render(<App />);
+    const freshView = render(<App />);
     expect(screen.getByRole('button', { name: /Connect Google Classroom/i })).toBeInTheDocument();
+    expect(screen.queryByText('Saved')).not.toBeInTheDocument();
+    freshView.unmount();
   });
 
   it('passes login_hint + empty prompt for remembered users and settles silent refresh when error_callback fires', async () => {
@@ -230,6 +232,138 @@ describe('Authentication Persistence & Consent Hints', () => {
     expect(latestAuth.isLoggedIn).toBe(false);
     expect(getActiveEmail()).toBe('student@kmutnb.ac.th');
     expect(latestAuth.rememberedAccount?.email).toBe('student@kmutnb.ac.th');
+  });
+
+  it('prevents cross-account Drive and Exam contamination when User B signs in while User A was remembered', async () => {
+    const userA = 's6704062611115@email.kmutnb.ac.th';
+    const userB = 's6704062699999@email.kmutnb.ac.th';
+    setRememberMe(true);
+    setActiveEmail(userA);
+    saveProfile({ name: 'User A', email: userA, studentId: '6704062611115' }, userA);
+    saveAssignments([{ id: 'a-1', title: 'User A Secret Task', course: 'CS', status: 'todo' }], userA);
+
+    let capturedOnSuccess;
+    const requestAccessToken = vi.fn(() => {
+      capturedOnSuccess?.({ access_token: 'token-user-b', expires_in: 3600 });
+    });
+    window.google = { accounts: { oauth2: {} } };
+    initGoogleClient.mockImplementation((onSuccess) => {
+      capturedOnSuccess = onSuccess;
+      return { requestAccessToken };
+    });
+
+    vi.spyOn(ClassroomService, 'fetchProfile').mockResolvedValue({
+      name: 'User B',
+      studentId: '6704062699999',
+      email: userB,
+      major: '',
+      avatarUrl: ''
+    });
+    vi.spyOn(ClassroomService, 'fetchClassroomData').mockResolvedValue({
+      courses: [],
+      assignments: [],
+      resources: [],
+      topics: [],
+      failedCourseIds: [],
+      skippedCourseIds: [],
+      failedFeeds: {}
+    });
+    const executeSyncSpy = vi.spyOn(syncManager, 'executeSync').mockResolvedValue(false);
+    vi.spyOn(syncManager, 'queueSync').mockImplementation(() => {});
+    vi.spyOn(calendarSyncManager, 'queueSync').mockImplementation(() => {});
+    const fetchExamsSpy = vi.spyOn(examRepository, 'fetchExams').mockResolvedValue({
+      success: false,
+      error: new Error('mocked')
+    });
+
+    window.history.pushState({}, '', '/');
+    const view = render(<App />);
+
+    // User B clicks "Continue with Google" (or picks User B inside Google's chooser!)
+    const continueBtn = screen.getByRole('button', { name: /Continue with Google/i });
+    await act(async () => {
+      fireEvent.click(continueBtn);
+      await new Promise((r) => setTimeout(r, 40));
+    });
+
+    // CRITICAL: User B's token must NEVER be used to sync User A's Drive or fetch User A's exams
+    expect(executeSyncSpy).not.toHaveBeenCalledWith('token-user-b', userA);
+    expect(executeSyncSpy).toHaveBeenCalledWith('token-user-b', userB);
+    expect(fetchExamsSpy).not.toHaveBeenCalledWith('6704062611115', expect.anything(), expect.anything());
+    expect(fetchExamsSpy).toHaveBeenCalledWith('6704062699999', expect.anything(), expect.anything());
+    expect(getActiveEmail()).toBe(userB);
+    view.unmount();
+  });
+
+  it('rolls back unverified interactive sign-in to Sign-In gate if fetchProfile fails while another account was cached', async () => {
+    const userA = 's6704062611115@email.kmutnb.ac.th';
+    setRememberMe(true);
+    setActiveEmail(userA);
+    saveProfile({ name: 'User A', email: userA }, userA);
+
+    let capturedOnSuccess;
+    window.google = { accounts: { oauth2: {} } };
+    initGoogleClient.mockImplementation((onSuccess) => {
+      capturedOnSuccess = onSuccess;
+      return {
+        requestAccessToken: vi.fn(() => {
+          capturedOnSuccess?.({ access_token: 'unverified-token', expires_in: 3600 });
+        })
+      };
+    });
+
+    vi.spyOn(ClassroomService, 'fetchProfile').mockRejectedValue(new Error('Network failure'));
+    vi.spyOn(ClassroomService, 'fetchClassroomData').mockResolvedValue({
+      courses: [], assignments: [], resources: [], topics: []
+    });
+    const executeSyncSpy = vi.spyOn(syncManager, 'executeSync').mockResolvedValue(false);
+
+    window.history.pushState({}, '', '/');
+    const view = render(<App />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Continue with Google/i }));
+      await new Promise((r) => setTimeout(r, 40));
+    });
+
+    // Must return to Sign-In gate instead of exposing User A's workspace to an unverified token
+    expect(screen.getByRole('button', { name: /Continue with Google/i })).toBeInTheDocument();
+    expect(executeSyncSpy).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it('scrubs cached grades, profile, and Discord webhook from localStorage when Remember Me is unchecked', () => {
+    const email = 'labpc@email.kmutnb.ac.th';
+    setRememberMe(true);
+    setActiveEmail(email);
+    saveProfile({ name: 'Lab User', email, studentId: '6704062611115' }, email);
+    saveAcademicData({ semesters: [{ id: '1/2568', courses: [{ code: 'CS101', grade: 'A' }] }], enrolledCourses: [] }, email);
+    saveAlertSettings({ discordWebhookUrl: 'https://discord.com/api/webhooks/123456789012345678/secretTokenAbc123' }, email);
+
+    let latestAuth;
+    function Probe() {
+      latestAuth = useAuth();
+      return null;
+    }
+
+    const view = render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    );
+
+    expect(localStorage.getItem(`classroom_hub_academic_${email}`)).not.toBeNull();
+    expect(localStorage.getItem(`classroom_hub_alert_settings_${email}`)).not.toBeNull();
+
+    act(() => {
+      latestAuth.handleRememberMeChange(false);
+    });
+
+    expect(getActiveEmail()).toBe('');
+    expect(localStorage.getItem(`classroom_hub_academic_${email}`)).toBeNull();
+    expect(localStorage.getItem(`classroom_hub_alert_settings_${email}`)).toBeNull();
+    expect(localStorage.getItem(`classroom_hub_profile_${email}`)).toBeNull();
+    view.unmount();
   });
 });
 

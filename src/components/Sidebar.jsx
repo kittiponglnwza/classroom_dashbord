@@ -218,6 +218,7 @@ export default function Sidebar({ onLinkClick = null }) {
               <img
                 src={profile.avatarUrl}
                 alt="Avatar"
+                referrerPolicy="no-referrer"
                 onError={() => setFailedAvatarUrl(profile.avatarUrl)}
                 className="w-full h-full object-cover"
               />

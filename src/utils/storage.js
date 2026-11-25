@@ -15,6 +15,15 @@ const KEYS = STORAGE_CONFIG.keys;
 // expiry never restores a dead session as "logged in".
 const TOKEN_EXPIRY_SKEW_MS = 60 * 1000;
 const TOKEN_EXPIRY_KEY = `${KEYS.accessToken}_expires_at`;
+const TOKEN_VERIFIED_EMAIL_KEY = `${KEYS.accessToken}_verified_email`;
+
+const GLOBAL_DEVICE_KEYS = new Set([
+  'classroom_hub_remember_me',
+  'classroom_hub_cookie_consent',
+  'classroom_hub_language',
+  'classroom_hub_exam_layout',
+  'classroom_hub_schema_version'
+]);
 
 export const saveToken = (token, expiresInSeconds) => {
   if (token) {
@@ -25,6 +34,22 @@ export const saveToken = (token, expiresInSeconds) => {
     } else {
       sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
     }
+  }
+};
+
+export const getVerifiedTokenEmail = () => {
+  if (typeof sessionStorage === 'undefined') return '';
+  const raw = sessionStorage.getItem(TOKEN_VERIFIED_EMAIL_KEY);
+  return raw ? raw.toLowerCase().trim() : '';
+};
+
+export const setVerifiedTokenEmail = (email) => {
+  if (typeof sessionStorage === 'undefined') return;
+  const clean = String(email || '').toLowerCase().trim();
+  if (clean) {
+    sessionStorage.setItem(TOKEN_VERIFIED_EMAIL_KEY, clean);
+  } else {
+    sessionStorage.removeItem(TOKEN_VERIFIED_EMAIL_KEY);
   }
 };
 
@@ -42,6 +67,7 @@ export const getToken = () => {
   if (expiresAt !== null && Date.now() >= expiresAt - TOKEN_EXPIRY_SKEW_MS) {
     sessionStorage.removeItem(KEYS.accessToken);
     sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
+    sessionStorage.removeItem(TOKEN_VERIFIED_EMAIL_KEY);
     return null;
   }
   return token;
@@ -50,6 +76,25 @@ export const getToken = () => {
 export const clearToken = () => {
   sessionStorage.removeItem(KEYS.accessToken);
   sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
+  sessionStorage.removeItem(TOKEN_VERIFIED_EMAIL_KEY);
+};
+
+/**
+ * Purges all user-scoped Classroom Hub caches from localStorage while preserving
+ * non-PII device-level UI preferences (cookie consent, language, remember-me toggle).
+ * Used on shared devices when Remember Me is disabled and no active session exists.
+ */
+export const purgeAllLocalAccountCaches = () => {
+  if (typeof localStorage === 'undefined') return;
+  const keysToDelete = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('classroom_hub_') && !GLOBAL_DEVICE_KEYS.has(k)) {
+      keysToDelete.push(k);
+    }
+  }
+  keysToDelete.forEach((k) => localStorage.removeItem(k));
+  StorageRepository.clearMemoryCache();
 };
 
 /* Active User Email & Remember Me configuration */

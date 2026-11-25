@@ -2,7 +2,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { 
   getToken, saveToken, clearToken, getActiveEmail, setActiveEmail, 
-  getProfile, saveProfile, getRememberMe, setRememberMe, clearAcademicLocalData, resetDatabase
+  getProfile, saveProfile, getRememberMe, setRememberMe, clearAcademicLocalData, resetDatabase,
+  setVerifiedTokenEmail, purgeAllLocalAccountCaches
 } from '../utils/storage';
 import { initGoogleClient } from '../services/googleClassroomClient';
 import { StorageRepository } from '../repositories/StorageRepository';
@@ -56,17 +57,34 @@ export const AuthProvider = ({ children }) => {
   const [rememberedAccount, setRememberedAccount] = useState(null);
   const [rememberMe, setRememberMeState] = useState(() => getRememberMe());
   const [authError, setAuthError] = useState(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const pendingTokenRequestRef = useRef(null);
+  const tokenClientRef = useRef(null);
+  const onTokenSuccessRef = useRef(null);
+  const pendingAccountSwitchRef = useRef(false);
 
   const clearAuthError = useCallback(() => setAuthError(null), []);
 
   const handleRememberMeChange = useCallback((enabled) => {
     const next = Boolean(enabled);
+    const currentEmail = getActiveEmail();
     setRememberMe(next);
     setRememberMeState(next);
     if (!next) {
       setRememberedAccount(null);
-      if (!isLoggedIn) setProfile({});
+      if (!isLoggedIn) {
+        if (currentEmail) {
+          clearAcademicLocalData(currentEmail);
+          resetDatabase(currentEmail);
+        }
+        purgeAllLocalAccountCaches();
+        setActiveEmail('');
+        setProfile({});
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('lastExamSearch');
+          sessionStorage.removeItem('lastExamSearchOwner');
+        }
+      }
     } else {
       const email = getActiveEmail();
       if (email) {
@@ -128,6 +146,7 @@ export const AuthProvider = ({ children }) => {
   // Session expired / could not be refreshed: drop the token but keep the remembered account
   // and cached profile so the user stays in Cached Mode when Remember Me is enabled.
   const expireSession = useCallback(() => {
+    const previousEmail = getActiveEmail();
     clearSessionState();
     if (getRememberMe()) {
       const email = getActiveEmail();
@@ -138,8 +157,17 @@ export const AuthProvider = ({ children }) => {
         setRememberedAccount(null);
       }
     } else {
+      if (previousEmail) {
+        clearAcademicLocalData(previousEmail);
+        resetDatabase(previousEmail);
+      }
+      purgeAllLocalAccountCaches();
       setActiveEmail('');
       setRememberedAccount(null);
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('lastExamSearch');
+        sessionStorage.removeItem('lastExamSearchOwner');
+      }
     }
   }, [clearSessionState]);
 
@@ -167,6 +195,7 @@ export const AuthProvider = ({ children }) => {
     setRememberedAccount(null);
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem('lastExamSearch');
+      sessionStorage.removeItem('lastExamSearchOwner');
     }
   }, [accessToken, clearSessionState]);
 
@@ -198,6 +227,7 @@ export const AuthProvider = ({ children }) => {
     const sessionToken = getToken(); // null when missing or expired
     const activeEmail = getActiveEmail();
     if (sessionToken && activeEmail) {
+      setVerifiedTokenEmail(activeEmail);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAccessToken(sessionToken);
       setIsLoggedIn(true);
@@ -210,64 +240,113 @@ export const AuthProvider = ({ children }) => {
         setRememberedAccount(buildRememberedAccount(activeEmail));
         setProfile(hydrateProfileStudentId(getProfile(activeEmail), activeEmail));
       } else {
+        if (!getRememberMe()) {
+          purgeAllLocalAccountCaches();
+          setActiveEmail('');
+        }
         setRememberedAccount(null);
       }
     }
   }, []);
 
   const initClient = useCallback((lang, onTokenSuccess) => {
-    const checkGisLoaded = setInterval(() => {
-      if (window.google?.accounts?.oauth2) {
-        clearInterval(checkGisLoaded);
-        const client = initGoogleClient(
-          (tokenResponse) => {
-            const token = tokenResponse.access_token;
-            setAuthError(null);
-            setAccessToken(token);
-            saveToken(token, tokenResponse.expires_in);
-            setIsLoggedIn(true);
-            if (settlePendingRequest(null, token)) {
-              logger.info('[Auth] Silent token refresh succeeded.');
-            }
-            if (onTokenSuccess) onTokenSuccess(token);
-          },
-          (err) => {
-            const code = err?.error || err?.type || 'unknown';
-            const error = new Error(`OAuth error: ${code}`);
-            if (settlePendingRequest(error)) {
-              logger.error('[Auth] Silent token refresh failed:', code);
-            } else {
-              logger.error('Google authorization failed:', err);
-              if (code !== 'popup_closed') {
-                setAuthError(error.message);
+    onTokenSuccessRef.current = typeof onTokenSuccess === 'function' ? onTokenSuccess : null;
+    if (tokenClientRef.current) {
+      return () => {};
+    }
+
+    const setupClient = () => {
+      if (tokenClientRef.current) return true;
+      if (!window.google?.accounts?.oauth2) return false;
+      const client = initGoogleClient(
+        (tokenResponse) => {
+          const token = tokenResponse.access_token;
+          const wasSilentRefresh = settlePendingRequest(null, token);
+          if (wasSilentRefresh) {
+            logger.info('[Auth] Silent token refresh succeeded.');
+          } else {
+            // Interactive OAuth grant: keep verified-email unset until ClassroomService.fetchProfile
+            // confirms who owns this token, preventing cross-account Drive/Calendar flushes.
+            setVerifiedTokenEmail('');
+            if (pendingAccountSwitchRef.current) {
+              pendingAccountSwitchRef.current = false;
+              setActiveEmail('');
+              setRememberedAccount(null);
+              setProfile({});
+              StorageRepository.clearMemoryCache();
+              if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.removeItem('lastExamSearch');
+                sessionStorage.removeItem('lastExamSearchOwner');
               }
             }
           }
-        );
-        if (!client) {
-          setAuthError('Google OAuth Client ID is not configured.');
+          setAuthError(null);
+          setIsLoggingIn(false);
+          setAccessToken(token);
+          saveToken(token, tokenResponse.expires_in);
+          setIsLoggedIn(true);
+          if (onTokenSuccessRef.current) onTokenSuccessRef.current(token);
+        },
+        (err) => {
+          pendingAccountSwitchRef.current = false;
+          const code = err?.error || err?.type || 'unknown';
+          const error = new Error(`OAuth error: ${code}`);
+          setIsLoggingIn(false);
+          if (settlePendingRequest(error)) {
+            logger.error('[Auth] Silent token refresh failed:', code);
+          } else {
+            logger.error('Google authorization failed:', err);
+            if (code !== 'popup_closed') {
+              setAuthError(error.message);
+            }
+          }
         }
-        setTokenClient(client);
+      );
+      if (!client) {
+        setAuthError('Google OAuth Client ID is not configured.');
+        return true;
       }
-    }, 400);
+      tokenClientRef.current = client;
+      setTokenClient(client);
+      return true;
+    };
+
+    if (setupClient()) {
+      return () => {};
+    }
+
+    const checkGisLoaded = setInterval(() => {
+      if (setupClient()) {
+        clearInterval(checkGisLoaded);
+      }
+    }, 250);
     return () => clearInterval(checkGisLoaded);
   }, [settlePendingRequest]);
 
   const login = useCallback((options) => {
-    if (!tokenClient) {
+    const client = tokenClientRef.current || tokenClient;
+    if (!client) {
       logger.error('Google OAuth client not initialized.');
       setAuthError('Google Sign-In is still loading or not configured. Please try again in a moment.');
       return;
     }
     setAuthError(null);
+    setIsLoggingIn(true);
     if (pendingTokenRequestRef.current) {
       settlePendingRequest(new Error('Superseded by interactive sign-in'));
     }
     const selectAccount = typeof options === 'object' && options !== null && options.selectAccount === true;
+    pendingAccountSwitchRef.current = selectAccount;
     const hint = (selectAccount || !getRememberMe()) ? '' : (rememberedAccount?.email || getActiveEmail() || '');
     // Returning user: pre-select the remembered account and let Google skip the chooser/consent
     // when the grant already exists. New user or "use another account": show the chooser.
-    tokenClient.requestAccessToken(hint ? { prompt: '', login_hint: hint } : { prompt: 'select_account' });
+    try {
+      client.requestAccessToken(hint ? { prompt: '', login_hint: hint } : { prompt: 'select_account' });
+    } catch (err) {
+      pendingAccountSwitchRef.current = false;
+      setIsLoggingIn(false);
+      setAuthError(err?.message || 'Failed to open Google Sign-In.');
+    }
   }, [tokenClient, rememberedAccount, settlePendingRequest]);
 
   const logout = useCallback(() => {
@@ -287,12 +366,21 @@ export const AuthProvider = ({ children }) => {
   }, [accessToken]);
 
   const updateProfileFromGoogle = useCallback((userProfile) => {
-    const userEmail = userProfile.email;
+    const userEmail = String(userProfile.email || '').toLowerCase().trim();
+    const prevEmail = getActiveEmail();
+    if (prevEmail && prevEmail !== userEmail) {
+      StorageRepository.clearMemoryCache();
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('lastExamSearch');
+        sessionStorage.removeItem('lastExamSearchOwner');
+      }
+    }
     setActiveEmail(userEmail);
+    setVerifiedTokenEmail(userEmail);
     const existingProfile = getProfile(userEmail);
     const rawMerged = existingProfile && existingProfile.isCustomized
       ? { ...userProfile, ...existingProfile, email: userEmail }
-      : userProfile;
+      : { ...userProfile, email: userEmail };
     const mergedProfile = hydrateProfileStudentId(rawMerged, userEmail);
     saveProfile(mergedProfile, userEmail);
     setProfile(mergedProfile);
@@ -305,14 +393,14 @@ export const AuthProvider = ({ children }) => {
   const value = React.useMemo(() => ({
     accessToken, isLoggedIn, isCachedSession, profile, rememberedAccount,
     rememberMe, handleRememberMeChange,
-    authError, clearAuthError, isAuthReady: Boolean(tokenClient),
+    authError, clearAuthError, isAuthReady: Boolean(tokenClient), isLoggingIn,
     login, logout, expireSession,
     handleProfileSave, updateProfileFromGoogle, initClient,
     handleSilentRefresh
   }), [
     accessToken, isLoggedIn, isCachedSession, profile, rememberedAccount,
     rememberMe, handleRememberMeChange,
-    authError, clearAuthError, tokenClient,
+    authError, clearAuthError, tokenClient, isLoggingIn,
     login, logout, expireSession,
     handleProfileSave, updateProfileFromGoogle, initClient,
     handleSilentRefresh

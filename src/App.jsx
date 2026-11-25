@@ -20,7 +20,6 @@ const Academic = lazy(() => import('./pages/Academic'));
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { ToastProvider } from './contexts/ToastContext';
-import { useToast } from './hooks/useToast';
 import { ClassroomProvider } from './contexts/ClassroomContext';
 import { ClassroomUIProvider } from './contexts/ClassroomUIContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -53,13 +52,11 @@ function NotFoundView({ lang }) {
 
 function AppContent() {
   const {
-    isLoggedIn, isCachedSession, login, initClient, rememberedAccount,
-    rememberMe = true, handleRememberMeChange, authError, clearAuthError, isAuthReady = true
+    isLoggedIn, login, initClient, rememberedAccount,
+    rememberMe = true, handleRememberMeChange, authError, isAuthReady = true, isLoggingIn = false
   } = useAuth();
   const { lang, toggleLang } = useSettings();
-  const { addToast } = useToast();
   const [failedLoginAvatar, setFailedLoginAvatar] = useState(null);
-  const hasWorkspaceSession = Boolean(isLoggedIn || isCachedSession || rememberedAccount?.email);
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -71,14 +68,7 @@ function AppContent() {
     return cleanup;
   }, [initClient]);
 
-  useEffect(() => {
-    if (hasWorkspaceSession && authError) {
-      addToast(authError, 'error');
-      clearAuthError?.();
-    }
-  }, [hasWorkspaceSession, authError, addToast, clearAuthError]);
-
-  if (!hasWorkspaceSession) {
+  if (!isLoggedIn) {
     const accountEmail = rememberedAccount?.email || '';
     const accountName = rememberedAccount?.name || (accountEmail ? accountEmail.split('@')[0] : '');
     const accountPicture = rememberedAccount?.picture || '';
@@ -178,8 +168,9 @@ function AppContent() {
             <button
               type="button"
               onClick={() => login()}
-              aria-disabled={!isAuthReady}
-              className="w-full h-11 flex items-center justify-center gap-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-[13px] px-4 rounded-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
+              disabled={isLoggingIn}
+              aria-disabled={!isAuthReady || isLoggingIn}
+              className="w-full h-11 flex items-center justify-center gap-2.5 bg-[var(--primary)] hover:bg-[var(--primary-hover)] disabled:opacity-65 text-white font-medium text-[13px] px-4 rounded-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
             >
               <svg className="w-4 h-4 shrink-0 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -188,9 +179,11 @@ function AppContent() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
               <span>
-                {accountEmail
-                  ? (lang === 'en' ? 'Continue with Google' : 'ดำเนินการต่อด้วย Google')
-                  : t('connectGoogleBtn', lang)}
+                {isLoggingIn
+                  ? (lang === 'en' ? 'Connecting & syncing...' : 'กำลังเข้าสู่ระบบและซิงก์ข้อมูล...')
+                  : accountEmail
+                    ? (lang === 'en' ? 'Continue with Google' : 'ดำเนินการต่อด้วย Google')
+                    : t('connectGoogleBtn', lang)}
               </span>
             </button>
 

@@ -26,7 +26,14 @@ const resolveOwnStudentId = (activeEmail = '', profileStudentId = '') => {
 };
 
 const resolveInitialStudentId = (activeEmail = '', profileStudentId = '') => {
-  return resolveOwnStudentId(activeEmail, profileStudentId) || sessionStorage.getItem('lastExamSearch') || '';
+  const own = resolveOwnStudentId(activeEmail, profileStudentId);
+  if (own) return own;
+  const normalizedEmail = String(activeEmail || '').toLowerCase().trim();
+  const lastOwner = String(sessionStorage.getItem('lastExamSearchOwner') || '').toLowerCase().trim();
+  if (normalizedEmail && lastOwner && lastOwner !== normalizedEmail) {
+    return '';
+  }
+  return sessionStorage.getItem('lastExamSearch') || '';
 };
 
 export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
@@ -170,6 +177,9 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     }
     if (!isOtherStudent) {
       sessionStorage.setItem('lastExamSearch', cleanId);
+      if (activeEmail) {
+        sessionStorage.setItem('lastExamSearchOwner', activeEmail.toLowerCase().trim());
+      }
     }
 
     const requestController = new AbortController();
@@ -225,10 +235,16 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
     abortControllerRef.current = controller;
     let completed = false;
 
+    const isOtherStudent = Boolean(ownStudentId && cleanId !== ownStudentId);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('loading');
     setError(null);
-    sessionStorage.setItem('lastExamSearch', cleanId);
+    if (!isOtherStudent) {
+      sessionStorage.setItem('lastExamSearch', cleanId);
+      if (activeEmail) {
+        sessionStorage.setItem('lastExamSearchOwner', activeEmail.toLowerCase().trim());
+      }
+    }
 
     examRepository.fetchExams(cleanId, lang, controller.signal).then((result) => {
       if (controller.signal.aborted) return;
@@ -243,14 +259,16 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
         setUnlistedInfo(result.data.unlisted);
         setSearchTriggered(true);
         setSciBaseChecked(true);
-        examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
-        notifyExamsUpdated(activeEmail);
         setStatus('success');
 
-        const token = getToken();
-        if (token && activeEmail) {
-          syncManager.queueSync(token, activeEmail);
-          calendarSyncManager.queueSync(token, activeEmail);
+        if (!isOtherStudent && activeEmail) {
+          examRepository.saveToCache(activeEmail, result.data.exams, latestManual, result.data.unlisted);
+          notifyExamsUpdated(activeEmail);
+          const token = getToken();
+          if (token) {
+            syncManager.queueSync(token, activeEmail);
+            calendarSyncManager.queueSync(token, activeEmail);
+          }
         }
       } else {
         if (result.error?.name === 'AbortError') return;
@@ -274,7 +292,7 @@ export const useExamRoom = (activeEmail, lang, profileStudentId = '') => {
         abortControllerRef.current = null;
       }
     };
-  }, [studentId, sciBaseChecked, lang, activeEmail]);
+  }, [studentId, sciBaseChecked, lang, activeEmail, ownStudentId]);
 
   const handleSaveManualExam = useCallback((examData) => {
     let updatedManual = [...manualExamList];

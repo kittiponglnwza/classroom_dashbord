@@ -236,4 +236,31 @@ describe('Chrome Extension Auto-Sync Bridge', () => {
       expect(getAcademicData('s6704062611115@email.kmutnb.ac.th').semesters).toHaveLength(1);
     });
   });
+
+  it('blocks extension snapshot auto-import when logged-in personal email has no configured Student ID yet', async () => {
+    setActiveEmail('personal.account@gmail.com');
+    renderAcademicApp();
+
+    const sharedPcSidHash = hashStudentIdForBridge('6704062611115');
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window,
+        origin: window.location.origin,
+        data: {
+          channel: 'CH_EXTENSION_BRIDGE',
+          source: 'extension',
+          type: 'REG_SNAPSHOT_DATA',
+          status: { connected: true, version: '1.2.2', timetableCount: 1, gradeCount: 1 },
+          payload: {
+            timetable: { text: TIMETABLE_SNAPSHOT, hash: 'tt-shared', studentIdHash: sharedPcSidHash, count: 1 },
+            grade: { text: GRADE_SNAPSHOT, hash: 'gr-shared', studentIdHash: sharedPcSidHash, count: 1 },
+          },
+        },
+      })
+    );
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(getSchedule('personal.account@gmail.com')).toHaveLength(0);
+    expect(getAcademicData('personal.account@gmail.com').semesters).toHaveLength(0);
+  });
 });

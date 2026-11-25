@@ -1,7 +1,7 @@
 import { syncSettingsWithDrive } from './driveSync';
 import { STORAGE_CONFIG } from '../config/storage';
 import { SYNC_CONFIG } from '../config/sync';
-import { getToken, getActiveEmail } from '../utils/storage';
+import { getToken, getActiveEmail, getVerifiedTokenEmail } from '../utils/storage';
 import { logger } from '../utils/logger';
 
 const KEYS = STORAGE_CONFIG.keys;
@@ -67,6 +67,11 @@ class SyncManager {
       } else if (document.visibilityState === 'visible') {
         const email = getActiveEmail();
         const token = getToken();
+        const verifiedEmail = getVerifiedTokenEmail();
+        // Never flush dirty Drive state during an unverified or cross-account OAuth transition
+        if (!verifiedEmail || verifiedEmail !== email) {
+          return;
+        }
         if (email && token && this.isDirty(email) && this.state !== 'uploading') {
           this.executeSync(token, email).catch((err) => {
             logger.debug('[SyncManager] Visibility dirty retry failed:', err?.message || err);

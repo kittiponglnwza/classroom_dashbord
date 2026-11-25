@@ -1,6 +1,7 @@
 import { httpClient } from '../utils/httpClient';
 import { StorageRepository } from '../repositories/StorageRepository';
 import { STORAGE_CONFIG } from '../config/storage';
+import { getActiveEmail } from '../utils/storage';
 import { logger } from '../utils/logger';
 
 const DRIVE_FILES_URL = 'https://www.googleapis.com/drive/v3/files';
@@ -205,11 +206,18 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback, o
   if (!accessToken || !email) return false;
 
   const lowerEmail = email.toLowerCase().trim();
+  const initialActiveEmail = getActiveEmail();
+  const isAccountStillConsistent = () =>
+    initialActiveEmail !== lowerEmail || getActiveEmail() === lowerEmail;
   const timeKey = `classroom_hub_settings_last_updated_${lowerEmail}`;
 
   try {
     logger.info('[Drive Sync] Querying sync file on Google Drive...');
     const files = await findSyncFiles(accessToken);
+    if (!isAccountStillConsistent()) {
+      logger.warn('[Drive Sync] Active account changed during metadata fetch; aborting sync.');
+      return false;
+    }
     const file = files.length > 0 ? files[0] : null;
 
     if (!file) {
@@ -249,6 +257,10 @@ export async function syncSettingsWithDrive(accessToken, email, mergeCallback, o
 
     logger.info('[Drive Sync] Sync file found. Downloading remote state...');
     const remoteData = await downloadSyncFileContent(accessToken, file.id);
+    if (!isAccountStillConsistent()) {
+      logger.warn('[Drive Sync] Active account changed during download; aborting apply/upload.');
+      return false;
+    }
     let remotePayload = remoteData?.payload || null;
     let mergedDuplicateFile = false;
     if (files.length > 1) {

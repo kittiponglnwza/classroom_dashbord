@@ -6,8 +6,9 @@ import {
   syncClassroomAssignments, getToken, getProfile, recordDeletedId, getHiddenCourses,
   getResources, saveResources, saveAssignments, getActiveEmail, setActiveEmail, resetDatabase,
   getSchedule, saveSchedule, getTopics, saveTopics,
-  getAcademicData, saveAcademicData, createDefaultAcademicData
+  getAcademicData, saveAcademicData, createDefaultAcademicData, getVerifiedTokenEmail
 } from '../utils/storage';
+import { StorageRepository } from '../repositories/StorageRepository';
 import { ClassroomService } from '../services/ClassroomService';
 import { syncManager } from '../services/SyncManager';
 import { clearDriveSyncCache } from '../services/driveSync';
@@ -127,7 +128,7 @@ export const ClassroomProvider = ({ children }) => {
 
   // Periodic local academic assistant tick (Morning Briefing at 07:00, Pre-Class reminders, Daily Digest)
   useEffect(() => {
-    if (!hasWorkspaceSession || typeof window === 'undefined') return;
+    if (!isLoggedIn || typeof window === 'undefined') return;
     const runScheduleCheck = () => {
       if (typeof document !== 'undefined' && document.hidden) return;
       const activeEmail = getActiveEmail();
@@ -138,7 +139,7 @@ export const ClassroomProvider = ({ children }) => {
     };
     const intervalId = setInterval(runScheduleCheck, 60000);
     return () => clearInterval(intervalId);
-  }, [hasWorkspaceSession]);
+  }, [isLoggedIn]);
 
   const syncClassroom = useCallback(async (forcedToken = null, signal = undefined) => {
     const tokenToUse = forcedToken || accessToken;
@@ -166,9 +167,10 @@ export const ClassroomProvider = ({ children }) => {
       generation !== sessionGenerationRef.current ||
       syncRunIdRef.current !== runId;
 
+    let userProfile = null;
+    const cachedEmail = getActiveEmail();
     try {
       logger.info('[Sync] Loading profile and classroom updates...');
-      const cachedEmail = getActiveEmail();
       const initialHiddenIds = cachedEmail ? getHiddenCourses(cachedEmail) : [];
       const getLatestToken = () => getToken() || tokenToUse;
 
@@ -180,12 +182,16 @@ export const ClassroomProvider = ({ children }) => {
           : (emailForExam.match(/\d{13}/)?.[0] || null);
         if (!implicitStudentId) return;
         examRepository.fetchExams(implicitStudentId, langRef.current, effectiveSignal).then(result => {
-          if (isStaleRun()) return;
+          if (isStaleRun() || getActiveEmail() !== emailForExam) return;
           if (result.success && ((result.data.exams && result.data.exams.length > 0) || result.data.unlisted)) {
             const currentCache = examRepository.getCachedExams(emailForExam);
             const currentManual = (currentCache.success && currentCache.data) ? (currentCache.data.manualExams || []) : [];
             examRepository.saveToCache(emailForExam, result.data.exams || [], currentManual, result.data.unlisted);
             sessionStorage.setItem('lastExamSearch', implicitStudentId);
+            sessionStorage.setItem('lastExamSearchOwner', emailForExam);
+            if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+              window.dispatchEvent(new CustomEvent('classroom_hub_exams_updated', { detail: { email: emailForExam } }));
+            }
             const latestTok = getLatestToken();
             syncManager.queueSync(latestTok, emailForExam);
             calendarSyncManager.queueSync(latestTok, emailForExam);
@@ -195,60 +201,63 @@ export const ClassroomProvider = ({ children }) => {
         });
       };
 
-      let userProfile;
       let classroomData;
 
-      if (cachedEmail) {
-        triggerExamFetch(cachedEmail);
-        const [profileRes, , classroomRes] = await Promise.all([
-          ClassroomService.fetchProfile(tokenToUse, { signal: effectiveSignal }),
-          syncManager.executeSync(tokenToUse, cachedEmail).catch(err => {
-            logger.warn('[Sync] Pre-sync Drive merge skipped:', err?.message || err);
-            return false;
-          }),
-          ClassroomService.fetchClassroomData(tokenToUse, {
+      // Start Classroom courses/feeds fetch in parallel with fetchProfile for speed when a cached
+      // account exists, BUT strictly defer Drive appDataFolder sync & SciBase exam sync until
+      // fetchProfile verifies the token owner's email (prevents cross-account Drive/Calendar bleed).
+      const profilePromise = ClassroomService.fetchProfile(tokenToUse, { signal: effectiveSignal });
+      const optimisticClassroomPromise = cachedEmail
+        ? ClassroomService.fetchClassroomData(tokenToUse, {
             signal: effectiveSignal,
             getToken: getLatestToken,
             hiddenCourseIds: initialHiddenIds
           })
-        ]);
-        if (isStaleRun()) return false;
-        userProfile = profileRes;
-        classroomData = classroomRes;
-      } else {
-        userProfile = await ClassroomService.fetchProfile(tokenToUse, { signal: effectiveSignal });
-        if (isStaleRun()) return false;
-        const freshEmail = userProfile.email.toLowerCase().trim();
-        setActiveEmail(freshEmail);
-        triggerExamFetch(freshEmail);
-
-        const [, classroomRes] = await Promise.all([
-          syncManager.executeSync(tokenToUse, freshEmail).catch(err => {
-            logger.warn('[Sync] Pre-sync Drive merge skipped:', err?.message || err);
-            return false;
-          }),
-          ClassroomService.fetchClassroomData(tokenToUse, {
-            signal: effectiveSignal,
-            getToken: getLatestToken,
-            hiddenCourseIds: getHiddenCourses(freshEmail)
-          })
-        ]);
-        if (isStaleRun()) return false;
-        classroomData = classroomRes;
+        : null;
+      if (optimisticClassroomPromise) {
+        optimisticClassroomPromise.catch(() => {});
       }
 
-      const userEmail = userProfile.email.toLowerCase().trim();
+      userProfile = await profilePromise;
+      if (isStaleRun()) return false;
+
+      const userEmail = String(userProfile?.email || '').toLowerCase().trim();
+      if (!userEmail) {
+        throw new Error('Google profile did not include a valid email address.');
+      }
+
       if (cachedEmail && userEmail !== cachedEmail) {
+        logger.info('[Sync] Account switch detected; isolating previous cached account state.');
+        clearDriveSyncCache();
+        StorageRepository.clearMemoryCache();
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('lastExamSearch');
+          sessionStorage.removeItem('lastExamSearchOwner');
+        }
         setActiveEmail(userEmail);
-        await syncManager.executeSync(tokenToUse, userEmail).catch(err => {
-          logger.warn('[Sync] Drive sync for switched account skipped:', err?.message || err);
-          return false;
-        });
-        if (isStaleRun()) return false;
-        triggerExamFetch(userEmail);
+        loadLocalData(userEmail);
+        reloadSettings();
+      } else if (!cachedEmail) {
+        setActiveEmail(userEmail);
       }
 
+      // Immediately update verified profile & verified token binding BEFORE running Drive/Calendar sync
       updateProfileFromGoogle(userProfile);
+      triggerExamFetch(userEmail);
+
+      const [, classroomRes] = await Promise.all([
+        syncManager.executeSync(tokenToUse, userEmail).catch(err => {
+          logger.warn('[Sync] Pre-sync Drive merge skipped:', err?.message || err);
+          return false;
+        }),
+        optimisticClassroomPromise || ClassroomService.fetchClassroomData(tokenToUse, {
+          signal: effectiveSignal,
+          getToken: getLatestToken,
+          hiddenCourseIds: getHiddenCourses(userEmail)
+        })
+      ]);
+      if (isStaleRun()) return false;
+      classroomData = classroomRes;
 
       const savedUserLang = localStorage.getItem(`classroom_hub_${userEmail}_language`);
       const canPersistLang = getCookieConsent()?.preferences !== false;
@@ -402,6 +411,18 @@ export const ClassroomProvider = ({ children }) => {
     } catch (e) {
       if (e?.name === 'AbortError' || isStaleRun()) return false;
       logger.error('Failed to sync Google Classroom data', e);
+      // Security guard: if interactive sign-in could not verify who owns the new token while a
+      // previous account was cached, never stay in the workspace exposing the previous user's cache.
+      if (!userProfile && !getVerifiedTokenEmail() && cachedEmail) {
+        expireSession();
+        addToast(
+          langRef.current === 'th'
+            ? 'ไม่สามารถยืนยันบัญชี Google ได้ กรุณาลองเข้าสู่ระบบอีกครั้ง'
+            : 'Could not verify Google account identity. Please sign in again.',
+          'error'
+        );
+        return false;
+      }
       if (e.message === 'UNAUTHORIZED' || e.code === 401) {
         expireSession();
         addToast(langRef.current === 'th' ? 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' : 'Session expired, please login again.', 'error');
@@ -735,7 +756,7 @@ export const ClassroomProvider = ({ children }) => {
       }
 
       if (msg.type === 'REG_SNAPSHOT_DATA') {
-        if (!hasWorkspaceSession) return;
+        if (!isLoggedIn || !hasWorkspaceSession) return;
         const activeEmail = getActiveEmail();
         const storedProfile = activeEmail ? getProfile(activeEmail) : null;
         const cleanProfileId = String(storedProfile?.studentId || '').replace(/[\s-]/g, '').trim();
@@ -747,6 +768,17 @@ export const ClassroomProvider = ({ children }) => {
           msg.payload?.timetable?.studentIdHash,
           msg.payload?.grade?.studentIdHash
         ].filter((h) => typeof h === 'string' && h.trim().length > 0);
+
+        if (incomingSidHashes.length > 0 && !expectedSidHash) {
+          logger.warn('[Extension Bridge] Blocked snapshot import because logged-in account has no verified Student ID.');
+          addToast(
+            langRef.current === 'th'
+              ? 'กรุณาระบุรหัสนักศึกษา 13 หลักในหน้าตั้งค่าก่อนซิงค์จาก Extension เพื่อยืนยันความเป็นเจ้าของบัญชี'
+              : 'Set your 13-digit Student ID in Settings before syncing from Extension to verify account ownership.',
+            'warning'
+          );
+          return;
+        }
 
         if (expectedSidHash && incomingSidHashes.length > 0 && incomingSidHashes.some((h) => h !== expectedSidHash)) {
           logger.warn('[Extension Bridge] Blocked snapshot import due to Student ID hash mismatch.');
@@ -818,7 +850,7 @@ export const ClassroomProvider = ({ children }) => {
     );
 
     return () => window.removeEventListener('message', handleBridgeMessage);
-  }, [hasWorkspaceSession, handleImportRegData, addToast]);
+  }, [hasWorkspaceSession, isLoggedIn, handleImportRegData, addToast]);
 
   const isSyncing = isClassroomFetching;
 
