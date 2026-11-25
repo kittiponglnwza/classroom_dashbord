@@ -23,7 +23,7 @@ import { NOTIFICATION_CONFIG } from '../config/notification';
 import { logger } from '../utils/logger';
 import { getCalendarDaysDiff, parseLocalDateInput } from '../utils/dateUtils';
 import { getHexColor } from '../utils/colors';
-import { DiscordService, DISCORD_COLORS } from './DiscordService';
+import { DiscordService } from './DiscordService';
 import {
   buildEventIdentity,
   NotificationLedger
