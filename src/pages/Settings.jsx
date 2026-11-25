@@ -9,7 +9,6 @@ import {
   LogIn,
   Calendar,
   MessageSquare,
-  Terminal,
   Clock,
   GraduationCap,
   ClipboardList
@@ -29,10 +28,9 @@ import { APP_VERSION, APP_COMMIT, formatAppBuildTime, forceCheckPwaUpdate } from
 import PageHeader from '../components/PageHeader';
 import DiscordAssistantPanel from '../components/DiscordAssistantPanel';
 import KmutnbStudentCard from '../components/settings/KmutnbStudentCard';
-import CloudScriptPanel from '../components/settings/CloudScriptPanel';
 import DeveloperShowcase, { GithubMark } from '../components/settings/DeveloperShowcase';
 
-const VALID_TABS = new Set(['account', 'calendar', 'discord', 'cloud', 'about']);
+const VALID_TABS = new Set(['account', 'calendar', 'discord', 'about']);
 
 const InputField = ({
   label,
@@ -325,13 +323,6 @@ export default function Settings() {
       dotClass: webhookValidation.valid
         ? (alertSettings.discordEnabled ? 'bg-[var(--success)]' : 'bg-[var(--text-muted)]')
         : null
-    },
-    {
-      id: 'cloud',
-      icon: Terminal,
-      en: '24/7 Cloud Script',
-      th: 'สคริปต์ 24 ชม.',
-      meta: '24/7'
     },
     {
       id: 'about',
@@ -709,26 +700,15 @@ export default function Settings() {
               currentAssignments={currentAssignments}
               currentSchedule={currentSchedule}
               currentResources={currentResources}
+              generatedAppsScript={generatedAppsScript}
               handleToggleSetting={handleToggleSetting}
               handleUpdateSetting={handleUpdateSetting}
               handleTimeChange={handleTimeChange}
               refreshNotificationData={refreshNotificationData}
-              onOpenCloudScript={() => selectCategory('cloud')}
             />
           )}
 
-          {/* 4. 24/7 Google Apps Script */}
-          {activeTab === 'cloud' && (
-            <CloudScriptPanel
-              lang={lang}
-              hiddenCourseCount={hiddenCourseIds.length}
-              embedWebhookInScript={Boolean(alertSettings.embedWebhookInScript)}
-              onToggleEmbedWebhook={() => handleToggleSetting?.('embedWebhookInScript')}
-              generatedAppsScript={generatedAppsScript}
-            />
-          )}
-
-          {/* 5. Developer & App Showcase */}
+          {/* 4. Developer & App Showcase */}
           {activeTab === 'about' && (
             <DeveloperShowcase
               devInfo={devInfo}

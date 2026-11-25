@@ -10,7 +10,8 @@ import {
   Sliders,
   AlertCircle,
   History,
-  ArrowRight
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { DiscordService } from '../services/DiscordService';
 import {
@@ -27,6 +28,7 @@ import { syncManager } from '../services/SyncManager';
 import { NotificationLedger } from '../services/notifications/NotificationLedger';
 import DiscordWebhookInput from './DiscordWebhookInput';
 import DiscordLivePreview from './settings/DiscordLivePreview';
+import CloudScriptPanel from './settings/CloudScriptPanel';
 
 const SECTION_TABS = [
   { id: 'schedule', previewMode: 'morning', icon: Calendar, en: 'Schedule', th: 'ตารางเรียน' },
@@ -104,11 +106,11 @@ export default function DiscordAssistantPanel({
   currentAssignments = [],
   currentSchedule = [],
   currentResources = [],
+  generatedAppsScript = '',
   handleToggleSetting,
   handleUpdateSetting,
   handleTimeChange,
-  refreshNotificationData,
-  onOpenCloudScript
+  refreshNotificationData
 }) {
   const isTh = lang === 'th';
   const webhookFieldId = useId();
@@ -117,6 +119,7 @@ export default function DiscordAssistantPanel({
   const [busyAction, setBusyAction] = useState('');
   const [feedback, setFeedback] = useState({ text: '', type: '' });
   const [showRecentHistory, setShowRecentHistory] = useState(false);
+  const [showCloudSetup, setShowCloudSetup] = useState(false);
   const [examCacheTick, setExamCacheTick] = useState(0);
   const timersRef = useRef([]);
 
@@ -847,13 +850,49 @@ export default function DiscordAssistantPanel({
                     </div>
                   )}
                 </div>
+
+                {/* Quiet Optional 24/7 Cloud Script Disclosure (Tucked inside Advanced only) */}
+                <div className="py-3 space-y-3">
+                  <button
+                    type="button"
+                    data-testid="toggle-optional-cloud-script"
+                    onClick={() => setShowCloudSetup((prev) => !prev)}
+                    className="w-full flex items-center justify-between gap-3 py-1 text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Terminal size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                      <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-heading)] transition-colors truncate">
+                        {isTh
+                          ? 'ตัวเลือกเสริม: ตั้งค่าสคริปต์รันบนคลาวด์ตอนปิดคอม (24/7 Apps Script)'
+                          : 'Optional: 24/7 Google Apps Script setup (when PC is off)'}
+                      </span>
+                    </div>
+                    {showCloudSetup || alertSettings.deliveryAuthority === 'apps_script' ? (
+                      <ChevronUp size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                    ) : (
+                      <ChevronDown size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                    )}
+                  </button>
+
+                  {(showCloudSetup || alertSettings.deliveryAuthority === 'apps_script') && (
+                    <div className="pt-1">
+                      <CloudScriptPanel
+                        lang={lang}
+                        hiddenCourseCount={hiddenCourseIds.length}
+                        embedWebhookInScript={Boolean(alertSettings.embedWebhookInScript)}
+                        onToggleEmbedWebhook={() => handleToggleSetting?.('embedWebhookInScript')}
+                        generatedAppsScript={generatedAppsScript}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right: Live Discord Embed Preview + Cloud Script Link */}
-        <div className="space-y-3">
+        {/* Right: Live Discord Embed Preview (Clean, zero Cloud Script clutter) */}
+        <div>
           <DiscordLivePreview
             lang={lang}
             selectedMode={previewMode}
@@ -874,33 +913,6 @@ export default function DiscordAssistantPanel({
               )
             }
           />
-
-          {onOpenCloudScript && (
-            <button
-              type="button"
-              onClick={onOpenCloudScript}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] text-left transition-colors cursor-pointer group"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Terminal size={15} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-medium text-[var(--text-primary)] truncate">
-                    {isTh ? 'ต้องการให้แจ้งเตือนทำงาน 24 ชม. แม้ปิดคอม?' : 'Need 24/7 alerts while your PC is off?'}
-                  </div>
-                  <div className="text-[11px] text-[var(--text-muted)] truncate">
-                    {isTh
-                      ? `เปิดหน้าสคริปต์ Google Cloud (ซ่อน ${hiddenCourseIds.length} วิชา)`
-                      : `Configure 24/7 Cloud Script (${hiddenCourseIds.length} hidden)`}
-                  </div>
-                </div>
-              </div>
-              <ArrowRight
-                size={14}
-                strokeWidth={1.5}
-                className="text-[var(--text-muted)] group-hover:text-[var(--text-heading)] group-hover:translate-x-0.5 transition-[color,transform] shrink-0"
-              />
-            </button>
-          )}
         </div>
       </div>
     </section>

@@ -990,8 +990,10 @@ describe('Gauntlet Regression Protections', () => {
       expect(webhookSpy.mock.calls[0][0]).toBe(validWebhook);
       expect(getNotificationHistory(email).some(h => h.type === 'test_discord')).toBe(true);
 
-      // Switch to dedicated 24/7 Cloud Script category (no raw code textarea dumped on screen; copies cleanly to clipboard)
-      fireEvent.click(screen.getByTestId('settings-nav-cloud'));
+      // 24/7 Cloud Script is hidden from top-level tabs and tucked inside Discord -> Advanced
+      expect(screen.queryByTestId('settings-nav-cloud')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /Advanced|ขั้นสูง/i }));
+      fireEvent.click(screen.getByTestId('toggle-optional-cloud-script'));
       expect(screen.queryByRole('textbox', { name: /Generated Google Apps Script Code/i })).not.toBeInTheDocument();
 
       let copiedScriptText = '';

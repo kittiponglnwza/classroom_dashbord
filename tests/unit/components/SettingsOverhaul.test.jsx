@@ -96,11 +96,13 @@ describe('Modular Settings UI Overhaul (Student Pass, Live Discord Preview, Clou
     fireEvent.click(screen.getByTestId('preview-mode-assignment'));
     expect(screen.getByTestId('discord-live-embed-card').textContent).toContain('Distributed Consensus Lab');
 
-    // Jump from Discord Assistant shortcut straight to 24/7 Cloud Script category (no raw code box)
-    fireEvent.click(screen.getByText(/ต้องการให้แจ้งเตือนทำงาน 24 ชม\./i));
-    expect(screen.getByTestId('settings-nav-cloud')).toHaveAttribute('aria-current', 'page');
+    // 24/7 Cloud Script is hidden from main tabs and main Discord view; tucked inside Advanced
+    expect(screen.queryByTestId('settings-nav-cloud')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('copy-apps-script-btn')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /ขั้นสูง/i }));
+    fireEvent.click(screen.getByTestId('toggle-optional-cloud-script'));
     expect(screen.getByTestId('copy-apps-script-btn')).toBeInTheDocument();
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
   it('deep-links via ?tab=about and renders the GitHub Developer & Repository Showcase', () => {
