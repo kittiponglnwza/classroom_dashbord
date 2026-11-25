@@ -476,7 +476,7 @@ export default function DiscordAssistantPanel({
             })}
           </div>
 
-          <div className="pt-2 divide-y divide-[var(--border)]">
+          <div className="pt-2 divide-y divide-[var(--border)] lg:min-h-[388px]">
             {activeSection === 'schedule' && (
               <>
                 <div className="py-2 space-y-1">

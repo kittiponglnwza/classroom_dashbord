@@ -382,10 +382,10 @@ export default function Settings() {
                 data-testid={`settings-nav-${cat.id}`}
                 aria-current={active ? 'page' : undefined}
                 onClick={() => selectCategory(cat.id)}
-                className={`px-3.5 py-2.5 -mb-px border-b-2 flex items-center gap-2 text-[13px] transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
+                className={`px-3.5 py-2.5 -mb-px border-b-2 flex items-center gap-2 text-[13px] font-medium transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
                   active
-                    ? 'border-[var(--text-heading)] text-[var(--text-heading)] font-medium'
-                    : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-normal'
+                    ? 'border-[var(--text-heading)] text-[var(--text-heading)]'
+                    : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <Icon
@@ -407,8 +407,8 @@ export default function Settings() {
         </nav>
       </div>
 
-      {/* Focused Full-Width Category Content */}
-      <div className="min-w-0 animate-fade-in">
+      {/* Focused Full-Width Category Content (Locked min-height prevents footer jump across tabs) */}
+      <div className="min-w-0 lg:min-h-[540px]">
           {/* 1. Account & KMUTNB Student Pass */}
           {activeTab === 'account' && (
             <div className="grid grid-cols-1 xl:grid-cols-[430px_minmax(0,1fr)] gap-8 items-start">
@@ -715,40 +715,36 @@ export default function Settings() {
               lang={lang}
               appVersion={APP_VERSION}
               appCommit={APP_COMMIT}
-              formattedBuildTime={formatAppBuildTime(lang)}
-              onCheckUpdates={forceCheckPwaUpdate}
             />
           )}
       </div>
 
-      {/* Quiet Bottom Version Bar (shown on tabs 1–4; About tab renders its own full release row) */}
-      {activeTab !== 'about' && (
-        <div
-          data-testid="settings-version-badge"
-          className="pt-4 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)]"
-        >
-          <div className="flex items-center gap-2 font-mono tabular-nums">
-            <span className="text-[var(--text-secondary)]">
-              Classroom Hub v{APP_VERSION}{APP_COMMIT ? ` (${APP_COMMIT})` : ''}
-            </span>
-            <span>·</span>
-            <span>
-              {lang === 'th' ? 'อัปเดต ' : 'Updated '}
-              {formatAppBuildTime(lang)}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={forceCheckPwaUpdate}
-            title={lang === 'th' ? 'เช็กและดึงอัปเดตเวอร์ชันล่าสุด' : 'Check and reload latest update'}
-            className="h-8 inline-flex items-center gap-1.5 px-3 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer"
-          >
-            <RefreshCw size={12} strokeWidth={1.5} />
-            <span>{lang === 'th' ? 'เช็กอัปเดต' : 'Check for updates'}</span>
-          </button>
+      {/* Unified Rock-Steady Bottom Version Bar across all 4 tabs */}
+      <div
+        data-testid="settings-version-badge"
+        className="pt-4 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)]"
+      >
+        <div className="flex items-center gap-2 font-mono tabular-nums">
+          <span className="text-[var(--text-secondary)]">
+            Classroom Hub v{APP_VERSION}{APP_COMMIT ? ` (${APP_COMMIT})` : ''}
+          </span>
+          <span>·</span>
+          <span>
+            {lang === 'th' ? 'อัปเดต ' : 'Updated '}
+            {formatAppBuildTime(lang)}
+          </span>
         </div>
-      )}
+
+        <button
+          type="button"
+          onClick={forceCheckPwaUpdate}
+          title={lang === 'th' ? 'เช็กและดึงอัปเดตเวอร์ชันล่าสุด' : 'Check and reload latest update'}
+          className="h-8 inline-flex items-center gap-1.5 px-3 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer"
+        >
+          <RefreshCw size={12} strokeWidth={1.5} />
+          <span>{lang === 'th' ? 'เช็กอัปเดต' : 'Check for updates'}</span>
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   ExternalLink,
-  RefreshCw,
   Mail,
   Copy,
   Check,
@@ -46,7 +45,7 @@ const InstagramMark = ({ size = 15, className = '' }) => (
   </svg>
 );
 
-// Deterministic contribution-matrix pattern (24 weeks x 5 rows) for calm GitHub craft identity
+// Deterministic contribution-matrix pattern (24 weeks x 5 rows)
 const CONTRIB_LEVELS = [
   [0, 1, 2, 0, 1, 3, 2, 1, 0, 2, 3, 4, 2, 1, 0, 1, 2, 3, 2, 4, 3, 2, 3, 4],
   [1, 2, 1, 1, 2, 2, 3, 2, 1, 3, 2, 3, 1, 2, 2, 3, 1, 2, 4, 3, 2, 4, 3, 2],
@@ -67,10 +66,9 @@ export default function DeveloperShowcase({
   devInfo,
   lang = 'en',
   appVersion = '',
-  appCommit = '',
-  formattedBuildTime = '',
-  onCheckUpdates
+  appCommit = ''
 }) {
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const isTh = lang === 'th';
 
@@ -110,201 +108,189 @@ export default function DeveloperShowcase({
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Featured GitHub Creator & Repository Card */}
-      <div className="rounded-2xl bg-[#141821] border border-[var(--border-strong)] overflow-hidden shadow-[inset_0_1px_0_rgba(238,240,245,0.06)]">
-        {/* Top Repository Bar */}
-        <div className="px-5 py-3 bg-[#10131B] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2 font-mono text-[var(--text-secondary)] min-w-0">
-            <GithubMark size={14} className="text-[var(--text-muted)] shrink-0" />
-            <span className="truncate">{devInfo.nickname}</span>
-            <span className="text-[var(--text-muted)]">/</span>
-            <span className="text-[var(--text-heading)] font-medium truncate">Classroom-Hub</span>
-          </div>
+    <div className="rounded-2xl bg-[#141821] border border-[var(--border-strong)] overflow-hidden shadow-[inset_0_1px_0_rgba(238,240,245,0.06)]">
+      {/* Top Repository Bar */}
+      <div className="px-5 py-3 bg-[#10131B] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 font-mono text-[var(--text-secondary)] min-w-0">
+          <GithubMark size={14} className="text-[var(--text-muted)] shrink-0" />
+          <span className="truncate">{devInfo.nickname}</span>
+          <span className="text-[var(--text-muted)]">/</span>
+          <span className="text-[var(--text-heading)] font-medium truncate">Classroom-Hub</span>
+        </div>
 
-          <div className="flex items-center gap-2 font-mono tabular-nums text-[11px] text-[var(--text-muted)]">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
-              <span>v{appVersion}</span>
+        <div className="flex items-center gap-2 font-mono tabular-nums text-[11px] text-[var(--text-muted)]">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
+            <span>v{appVersion}</span>
+          </span>
+          {appCommit && (
+            <span className="px-2 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)]">
+              #{appCommit}
             </span>
-            {appCommit && (
-              <span className="px-2 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)]">
-                #{appCommit}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Main Creator Profile Split */}
-        <div className="p-5 sm:p-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-6 items-center">
-          <div className="space-y-4 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="relative w-15 h-15 rounded-2xl bg-[#10131B] border border-[var(--border-strong)] flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(238,240,245,0.08)]">
-                <span className="text-base font-mono font-semibold tracking-tight text-[var(--text-heading)]">
-                  KT
-                </span>
-                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#141821] border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-secondary)]">
-                  <GithubMark size={11} />
-                </span>
-              </div>
-
-              <div className="min-w-0 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg font-medium text-[var(--text-heading)] tracking-[-0.01em]">
-                    {devInfo.name}
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-md bg-[var(--surface-elevated)] border border-[var(--border)] text-[11px] font-medium text-[var(--text-secondary)]">
-                    {isTh ? `นักพัฒนา · ${devInfo.university}` : `Creator · ${devInfo.university}`}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)] font-mono">
-                  <span>@{devInfo.nickname}</span>
-                  <span>·</span>
-                  <a
-                    href={`mailto:${devInfo.email}`}
-                    className="hover:text-[var(--text-primary)] transition-colors truncate"
-                  >
-                    {devInfo.email}
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed max-w-2xl">
-              {isTh
-                ? 'ออกแบบและพัฒนา Classroom Hub เพื่อรวมงานเรียน ตารางสอน ผังที่นั่งสอบ และระบบแจ้งเตือนอัตโนมัติของนักศึกษา มจพ. ให้ทำงานร่วมกันในพื้นที่เดียว'
-                : 'Designed and engineered Classroom Hub to unify Google Classroom coursework, KMUTNB timetables, exam seating, and automated study alerts in one calm workspace'}
-            </p>
-
-            {/* Intentional High-Craft Action Row (Off-white GitHub CTA — never clashes with form buttons) */}
-            <div className="flex flex-wrap items-center gap-2.5 pt-1">
-              <a
-                href={devInfo.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-9 inline-flex items-center justify-center gap-2 bg-[#EEF0F5] hover:bg-white text-[#0C0F16] px-4 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
-              >
-                <GithubMark size={14} />
-                <span>{isTh ? 'ดูโปรไฟล์ GitHub' : 'GitHub Profile'}</span>
-                <ExternalLink size={12} strokeWidth={1.6} />
-              </a>
-
-              <a
-                href={devInfo.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-9 inline-flex items-center justify-center gap-2 bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3.5 rounded-lg text-xs font-medium text-[var(--text-primary)] transition-colors whitespace-nowrap"
-              >
-                <InstagramMark size={14} className="text-[var(--text-secondary)]" />
-                <span>Instagram</span>
-              </a>
-
-              <button
-                type="button"
-                onClick={handleCopyEmail}
-                className="h-9 inline-flex items-center justify-center gap-1.5 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer whitespace-nowrap"
-              >
-                {copiedEmail ? (
-                  <Check size={13} strokeWidth={1.5} className="text-[var(--success)]" />
-                ) : (
-                  <Copy size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
-                )}
-                <span>
-                  {copiedEmail
-                    ? (isTh ? 'คัดลอกอีเมลแล้ว' : 'Email copied')
-                    : (isTh ? 'คัดลอกอีเมล' : 'Copy email')}
-                </span>
-              </button>
-
-              <a
-                href={`mailto:${devInfo.email}`}
-                aria-label="Send email"
-                title={devInfo.email}
-                className="h-9 w-9 inline-flex items-center justify-center rounded-lg bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                <Mail size={14} strokeWidth={1.5} />
-              </a>
-            </div>
-          </div>
-
-          {/* Right: GitHub Contribution Pulse Artifact */}
-          <div className="rounded-xl bg-[#10131B] border border-[var(--border)] p-4 space-y-3">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-[var(--text-secondary)] font-medium">
-                {isTh ? 'จังหวะการพัฒนาโปรเจกต์' : 'Active build cadence'}
-              </span>
-              <span className="font-mono text-[var(--success)] tabular-nums">
-                {appCommit ? `HEAD · ${appCommit}` : 'main'}
-              </span>
-            </div>
-
-            <div
-              aria-hidden="true"
-              className="grid grid-rows-5 grid-flow-col gap-[3px] justify-between py-1"
-            >
-              {CONTRIB_LEVELS[0].map((_, colIdx) =>
-                CONTRIB_LEVELS.map((row, rowIdx) => (
-                  <span
-                    key={`${colIdx}-${rowIdx}`}
-                    className={`w-[7px] h-[7px] rounded-[2px] ${LEVEL_COLORS[row[colIdx]]}`}
-                  />
-                ))
-              )}
-            </div>
-
-            <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)] pt-1 border-t border-[var(--border-subtle)]">
-              <span>KMUTNB Open Workspace</span>
-              <div className="flex items-center gap-1">
-                {LEVEL_COLORS.map((cls, i) => (
-                  <span key={i} className={`w-2 h-2 rounded-[2px] ${cls}`} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Architecture Stack Strip */}
-        <div className="border-t border-[var(--border)] bg-[#11151E] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
-          {modules.map((mod) => {
-            const Icon = mod.icon;
-            return (
-              <div key={mod.title} className="p-4 space-y-1">
-                <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-primary)]">
-                  <Icon size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-                  <span className="truncate">{mod.title}</span>
-                </div>
-                <p className="text-[11px] text-[var(--text-muted)] leading-snug">
-                  {mod.desc}
-                </p>
-              </div>
-            );
-          })}
+          )}
         </div>
       </div>
 
-      {/* Release & Update Row */}
-      <div
-        data-testid="settings-version-badge"
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 border-t border-[var(--border)] text-xs"
-      >
-        <div className="space-y-0.5">
-          <div className="font-medium text-[var(--text-primary)]">
-            {isTh ? 'เวอร์ชันและการอัปเดตแอปพลิเคชัน' : 'Application release & PWA cache'}
+      {/* Main Creator Profile Split */}
+      <div className="p-5 sm:p-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-6 items-center">
+        <div className="space-y-4 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            {/* Bundled Self-Hosted Developer GitHub Portrait (CSP-safe, instant load) */}
+            <div className="relative w-18 h-18 shrink-0">
+              <div className="w-full h-full rounded-2xl overflow-hidden bg-[#10131B] border border-[var(--border-strong)] flex items-center justify-center">
+                {!avatarFailed ? (
+                  <img
+                    src="/dev-kittipong.jpg"
+                    alt={devInfo.name}
+                    onError={() => setAvatarFailed(true)}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-base font-mono font-semibold text-[var(--text-heading)]">
+                    KT
+                  </span>
+                )}
+              </div>
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#141821] border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-heading)]"
+              >
+                <GithubMark size={11} />
+              </span>
+            </div>
+
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-lg font-medium text-[var(--text-heading)] tracking-[-0.01em]">
+                  {devInfo.name}
+                </h3>
+                <span className="px-2 py-0.5 rounded-md bg-[var(--surface-elevated)] border border-[var(--border)] text-[11px] font-medium text-[var(--text-secondary)]">
+                  {isTh ? `ผู้พัฒนาหลัก · ${devInfo.university}` : `Creator · ${devInfo.university}`}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-[var(--text-muted)] font-mono">
+                <span className="text-[var(--text-secondary)]">@{devInfo.nickname}</span>
+                <span>·</span>
+                <a
+                  href={`mailto:${devInfo.email}`}
+                  className="hover:text-[var(--text-primary)] transition-colors truncate"
+                >
+                  {devInfo.email}
+                </a>
+              </div>
+            </div>
           </div>
-          <div className="text-[11px] font-mono tabular-nums text-[var(--text-muted)]">
-            Classroom Hub v{appVersion}{appCommit ? ` (${appCommit})` : ''} · {isTh ? 'อัปเดต ' : 'Updated '}{formattedBuildTime}
+
+          <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed max-w-2xl">
+            {isTh
+              ? 'ออกแบบและพัฒนา Classroom Hub เพื่อรวมงานเรียน ตารางสอน ผังที่นั่งสอบ และระบบแจ้งเตือนอัตโนมัติของนักศึกษา มจพ. ให้ทำงานร่วมกันในพื้นที่เดียว'
+              : 'Designed and engineered Classroom Hub to unify Google Classroom coursework, KMUTNB timetables, exam seating, and automated study alerts in one calm workspace'}
+          </p>
+
+          {/* Action Row */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <a
+              href={devInfo.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-9 inline-flex items-center justify-center gap-2 bg-[#EEF0F5] hover:bg-white text-[#0C0F16] px-4 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+            >
+              <GithubMark size={14} />
+              <span>{isTh ? 'ดูโปรไฟล์ GitHub' : 'GitHub Profile'}</span>
+              <ExternalLink size={12} strokeWidth={1.6} />
+            </a>
+
+            <a
+              href={devInfo.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-9 inline-flex items-center justify-center gap-2 bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3.5 rounded-lg text-xs font-medium text-[var(--text-primary)] transition-colors whitespace-nowrap"
+            >
+              <InstagramMark size={14} className="text-[var(--text-secondary)]" />
+              <span>Instagram</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={handleCopyEmail}
+              className="h-9 min-w-[116px] inline-flex items-center justify-center gap-1.5 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer whitespace-nowrap"
+            >
+              {copiedEmail ? (
+                <Check size={13} strokeWidth={1.5} className="text-[var(--success)]" />
+              ) : (
+                <Copy size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+              )}
+              <span>
+                {copiedEmail
+                  ? (isTh ? 'คัดลอกแล้ว' : 'Email copied')
+                  : (isTh ? 'คัดลอกอีเมล' : 'Copy email')}
+              </span>
+            </button>
+
+            <a
+              href={`mailto:${devInfo.email}`}
+              aria-label="Send email"
+              title={devInfo.email}
+              className="h-9 w-9 inline-flex items-center justify-center rounded-lg bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              <Mail size={14} strokeWidth={1.5} />
+            </a>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onCheckUpdates}
-          className="h-9 self-start sm:self-auto inline-flex items-center gap-2 px-3.5 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium text-[var(--text-primary)] transition-colors cursor-pointer"
-        >
-          <RefreshCw size={14} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-          <span>{isTh ? 'เช็กอัปเดตล่าสุด' : 'Check for updates'}</span>
-        </button>
+        {/* Right: GitHub Contribution Pulse Artifact */}
+        <div className="rounded-xl bg-[#10131B] border border-[var(--border)] p-4 space-y-3">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-[var(--text-secondary)] font-medium">
+              {isTh ? 'จังหวะการพัฒนาโปรเจกต์' : 'Active build cadence'}
+            </span>
+            <span className="font-mono text-[var(--success)] tabular-nums">
+              {appCommit ? `HEAD · ${appCommit}` : 'main'}
+            </span>
+          </div>
+
+          <div
+            aria-hidden="true"
+            className="grid grid-rows-5 grid-flow-col gap-[3px] justify-between py-1"
+          >
+            {CONTRIB_LEVELS[0].map((_, colIdx) =>
+              CONTRIB_LEVELS.map((row, rowIdx) => (
+                <span
+                  key={`${colIdx}-${rowIdx}`}
+                  className={`w-[7px] h-[7px] rounded-[2px] ${LEVEL_COLORS[row[colIdx]]}`}
+                />
+              ))
+            )}
+          </div>
+
+          <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)] pt-1 border-t border-[var(--border-subtle)]">
+            <span>KMUTNB Open Workspace</span>
+            <div className="flex items-center gap-1">
+              {LEVEL_COLORS.map((cls, i) => (
+                <span key={i} className={`w-2 h-2 rounded-[2px] ${cls}`} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Architecture Stack Strip */}
+      <div className="border-t border-[var(--border)] bg-[#11151E] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
+        {modules.map((mod) => {
+          const Icon = mod.icon;
+          return (
+            <div key={mod.title} className="p-4 space-y-1">
+              <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-primary)]">
+                <Icon size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+                <span className="truncate">{mod.title}</span>
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] leading-snug">
+                {mod.desc}
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

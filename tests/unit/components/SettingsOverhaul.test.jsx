@@ -113,6 +113,7 @@ describe('Modular Settings UI Overhaul (Student Pass, Live Discord Preview, Clou
     expect(screen.getByText('Kittipong Teerasee')).toBeInTheDocument();
     expect(screen.getByText('@kittiponglnwza')).toBeInTheDocument();
     expect(screen.getByText('Classroom-Hub')).toBeInTheDocument();
+    expect(screen.getByAltText('Kittipong Teerasee')).toHaveAttribute('src', '/dev-kittipong.jpg');
 
     const ghLink = screen.getByRole('link', { name: /GitHub Profile/i });
     expect(ghLink).toHaveAttribute('href', 'https://github.com/kittiponglnwza');
