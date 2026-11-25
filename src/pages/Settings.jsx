@@ -384,8 +384,8 @@ export default function Settings() {
         </form>
       </div>
 
-      {/* 2. Balanced Two-Column Grid: Discord Integration (Left) + Calendar & Developer (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      {/* 2. Notification setup, calendar maintenance, and developer details */}
+      <div className="space-y-5">
         <DiscordAssistantPanel
           lang={lang}
           activeUserEmail={activeUserEmail}
@@ -403,50 +403,51 @@ export default function Settings() {
           refreshNotificationData={refreshNotificationData}
         />
 
-        {/* Right: Calendar Sync & Compact Developer Card */}
-        <div className="lg:col-span-5 flex flex-col justify-between gap-5">
-          {/* Google Calendar Sync Maintenance Card */}
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
-                <RefreshCw className="text-[var(--primary-bright)]" size={14} strokeWidth={1.5} />
+        {/* Google Calendar Sync Maintenance Card */}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                  <RefreshCw className="text-[var(--primary-bright)]" size={14} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-[var(--text-heading)]">
+                    {lang === 'en' ? 'Google Calendar Sync' : 'ซิงก์ปฏิทิน Google Calendar'}
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    {lang === 'en' ? 'Sync events or clean duplicates' : 'อัปเดตตารางหรือล้างรายการซ้ำ'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-[var(--text-heading)]">
-                  {lang === 'en' ? 'Google Calendar Sync' : 'ซิงก์ปฏิทิน Google Calendar'}
-                </h3>
-                <p className="text-[11px] text-[var(--text-muted)]">
-                  {lang === 'en' ? 'Sync events or clean duplicates' : 'อัปเดตตารางหรือล้างรายการซ้ำ'}
+
+              {cachedMode && !resetMessage && (
+                <p className="text-[11px] text-amber-300/90">
+                  {lang === 'en'
+                    ? 'Connect Google above to sync or reset Google Calendar.'
+                    : 'กดเชื่อมต่อ Google ด้านบนก่อนซิงก์หรือล้างปฏิทิน'}
                 </p>
-              </div>
+              )}
+
+              {resetMessage && (
+                <p
+                  className={`text-xs font-medium ${
+                    resetMessage.includes('Error') || resetMessage.includes('ข้อผิดพลาด')
+                      ? 'text-rose-300'
+                      : 'text-emerald-300'
+                  }`}
+                >
+                  {resetMessage}
+                </p>
+              )}
             </div>
 
-            {cachedMode && !resetMessage && (
-              <p className="text-[11px] text-amber-300/90">
-                {lang === 'en'
-                  ? 'Connect Google above to sync or reset Google Calendar.'
-                  : 'กดเชื่อมต่อ Google ด้านบนก่อนซิงก์หรือล้างปฏิทิน'}
-              </p>
-            )}
-
-            {resetMessage && (
-              <p
-                className={`text-xs font-medium ${
-                  resetMessage.includes('Error') || resetMessage.includes('ข้อผิดพลาด')
-                    ? 'text-rose-300'
-                    : 'text-emerald-300'
-                }`}
-              >
-                {resetMessage}
-              </p>
-            )}
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="flex flex-col gap-2 sm:flex-row sm:shrink-0">
               <button
                 type="button"
                 onClick={handleSyncCalendarNow}
                 disabled={!isLoggedIn || calendarSyncState === 'syncing' || isResettingCalendar}
-                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5 sm:min-w-36"
               >
                 {calendarSyncState === 'syncing' && !isResettingCalendar && <RefreshCw size={12} strokeWidth={1.5} className="animate-spin" />}
                 <span className="truncate">
@@ -459,36 +460,36 @@ export default function Settings() {
                 type="button"
                 onClick={handleResetCalendar}
                 disabled={!isLoggedIn || isResettingCalendar || calendarSyncState === 'syncing'}
-                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
+                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5 sm:min-w-36"
               >
                 {isResettingCalendar && <RefreshCw size={12} strokeWidth={1.5} className="animate-spin" />}
                 <span className="truncate">{lang === 'en' ? 'Reset Calendar' : 'ล้างแล้วลงใหม่'}</span>
               </button>
             </div>
           </div>
+        </div>
 
-          {/* Compact Developer Card */}
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
-                  <Code size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-medium text-[var(--text-heading)] text-xs truncate">{devInfo.name}</h4>
-                  <p className="text-[11px] text-[var(--text-muted)] truncate">
-                    @{devInfo.nickname} • {devInfo.university} • <a href={`mailto:${devInfo.email}`} className="hover:text-[var(--text-primary)] transition-colors">{devInfo.email}</a>
-                  </p>
-                </div>
+        {/* Developer Card */}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                <Code size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-medium text-[var(--text-heading)] text-xs truncate">{devInfo.name}</h4>
+                <p className="text-[11px] text-[var(--text-muted)] truncate">
+                  @{devInfo.nickname} • {devInfo.university} • <a href={`mailto:${devInfo.email}`} className="hover:text-[var(--text-primary)] transition-colors">{devInfo.email}</a>
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-0.5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:shrink-0">
               <a
                 href={devInfo.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-lg transition-colors text-xs font-medium text-[var(--text-primary)]"
+                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-lg transition-colors text-xs font-medium text-[var(--text-primary)] sm:min-w-36"
               >
                 <GithubIcon size={13} />
                 <span>GitHub</span>
@@ -498,7 +499,7 @@ export default function Settings() {
                 href={devInfo.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-lg transition-colors text-xs font-medium text-[var(--text-primary)]"
+                className="flex items-center justify-center gap-2 bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] py-2 px-3 rounded-lg transition-colors text-xs font-medium text-[var(--text-primary)] sm:min-w-36"
               >
                 <InstagramIcon size={13} />
                 <span>Instagram</span>
