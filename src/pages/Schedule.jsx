@@ -504,15 +504,15 @@ function WeeklyGrid({
                               onClickBlock(entry, weekDates[day].dateStr);
                             }
                           }}
-                          className="absolute rounded-lg overflow-hidden cursor-pointer transition-opacity hover:opacity-90 flex flex-col justify-center px-2.5 py-1.5"
+                          className="absolute rounded-lg overflow-hidden cursor-pointer transition-[filter] hover:brightness-115 flex flex-col justify-center px-2.5 py-1.5"
                           style={{
                             left: `calc(${left}% + 2px)`,
                             width: `calc(${width}% - 4px)`,
                             top: `${topPct}%`,
                             height: `${heightPct}%`,
-                            backgroundColor: `${accentHex}16`,
-                            border: `1px solid ${accentHex}40`,
-                            borderLeft: `3px solid ${accentHex}`,
+                            backgroundColor: `${accentHex}2A`,
+                            border: `1px solid ${accentHex}A6`,
+                            borderLeft: `4px solid ${accentHex}`,
                             zIndex: isAssign ? 20 : isExam ? 15 : 10,
                           }}
                         >
@@ -531,7 +531,7 @@ function WeeklyGrid({
                               {entry.title || entry.courseCode}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] mt-0.5 truncate font-mono tabular-nums">
+                          <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]/80 mt-0.5 truncate font-mono tabular-nums">
                             <span className="shrink-0">
                               {isAssign ? `${entry.endTime}` : `${entry.startTime}–${entry.endTime}`}
                             </span>
@@ -666,7 +666,7 @@ function DailyList({ schedule, lang, todayKey, selectedDay, setSelectedDay, week
                 </div>
 
                 {/* Vertical Color Marker */}
-                <div className="w-0.5 self-stretch rounded-full shrink-0" style={{ backgroundColor: accentHex }} />
+                <div className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: accentHex }} />
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
