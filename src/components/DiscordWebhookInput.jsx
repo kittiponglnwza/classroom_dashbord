@@ -53,7 +53,7 @@ export default function DiscordWebhookInput({
         compact ? 'px-2.5 py-1.5' : 'px-3 py-2'
       } ${
         validation.valid
-          ? 'border-[var(--border)] focus-within:border-[#5865F2]/80 focus-within:ring-2 focus-within:ring-[#5865F2]/30'
+          ? 'border-[var(--border)] focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary)]/30'
           : trimmed
             ? 'border-rose-500/45 focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-500/25'
             : 'border-[var(--border)] focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary)]/30'

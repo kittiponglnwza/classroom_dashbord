@@ -1,23 +1,19 @@
 import { useState, useEffect, useRef, useId } from 'react';
 import {
   GraduationCap, Code, CheckCircle2, Settings2,
-  RefreshCw, MessageSquare, Copy, Check, ExternalLink, Terminal, LogOut, LogIn, Send
+  RefreshCw, LogOut, LogIn
 } from 'lucide-react';
 import { t } from '../utils/i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
-import { syncManager } from '../services/SyncManager';
-import { DiscordService } from '../services/DiscordService';
-import { triggerTestDiscord, triggerManualDiscordDigest } from '../utils/notifications';
-import { getAppsScriptTemplate } from '../utils/appsScriptTemplate';
-import { getHiddenCourses, getAssignments } from '../utils/storage';
+import { getHiddenCourses, getAssignments, getSchedule, getResources } from '../utils/storage';
 import { examRepository } from '../repositories/examRepository';
 import { decodeKmutnbStudentId } from '../utils/kmutnbStudentId';
 import { APP_VERSION, APP_COMMIT, formatAppBuildTime, forceCheckPwaUpdate } from '../config/version';
 import PageHeader from '../components/PageHeader';
-import DiscordWebhookInput from '../components/DiscordWebhookInput';
+import DiscordAssistantPanel from '../components/DiscordAssistantPanel';
 
 const GithubIcon = ({ size = 15, className = '' }) => (
   <svg height={size} width={size} viewBox="0 0 16 16" version="1.1" fill="currentColor" className={className} aria-hidden="true">
@@ -65,7 +61,16 @@ const resolveDisplayStudentId = (p) => {
 };
 
 export default function Settings() {
-  const { lang, alertSettings = {}, handleToggleSetting, handleUpdateSetting, refreshNotificationData } = useSettings();
+  const {
+    lang,
+    alertSettings = {},
+    discordTelemetry = null,
+    historyLogs = [],
+    handleToggleSetting,
+    handleUpdateSetting,
+    handleTimeChange,
+    refreshNotificationData
+  } = useSettings();
   const { profile, isLoggedIn, isCachedSession = false, rememberedAccount = null, handleProfileSave, login, logout, accessToken } = useAuth();
   const classroom = useClassroom();
   const cachedMode = Boolean(!isLoggedIn && (isCachedSession || rememberedAccount?.email));
@@ -82,12 +87,6 @@ export default function Settings() {
   const [isResettingCalendar, setIsResettingCalendar] = useState(false);
   const [calendarSyncState, setCalendarSyncState] = useState(calendarSyncManager.state);
   const [resetMessage, setResetMessage] = useState('');
-  const [discordTestSending, setDiscordTestSending] = useState(false);
-  const [discordDigestSending, setDiscordDigestSending] = useState(false);
-  const [discordFeedback, setDiscordFeedback] = useState({ text: '', type: '' });
-  const [showScriptPreview, setShowScriptPreview] = useState(false);
-  const [copiedScript, setCopiedScript] = useState(false);
-  const webhookFieldId = useId();
   const timersRef = useRef([]);
 
   useEffect(() => {
@@ -199,105 +198,8 @@ export default function Settings() {
   const decodedKmutnb = decodeKmutnbStudentId(studentId || resolveDisplayStudentId(profile));
   const hiddenCourseIds = getHiddenCourses(activeUserEmail);
   const currentAssignments = classroom?.assignments || getAssignments(activeUserEmail);
-  const webhookValidation = DiscordService.validateWebhookUrl(alertSettings.discordWebhookUrl || '');
-
-  const generatedAppsScript = getAppsScriptTemplate(hiddenCourseIds, {
-    discordWebhookUrl: alertSettings.discordWebhookUrl || '',
-    enableDiscord: true,
-    enableEmail: false,
-    notifyNewPosts: true
-  });
-
-  const handleTestDiscordWebhook = async () => {
-    setDiscordFeedback({ text: '', type: '' });
-    if (!webhookValidation.valid) {
-      setDiscordFeedback({
-        text: lang === 'en'
-          ? 'Please enter a valid Discord Webhook URL.'
-          : 'กรุณาใส่ลิงก์ Discord Webhook ที่ถูกต้อง',
-        type: 'error'
-      });
-      return;
-    }
-    setDiscordTestSending(true);
-    try {
-      await triggerTestDiscord(activeUserEmail, webhookValidation.url);
-      refreshNotificationData?.();
-      if (accessToken && activeUserEmail) {
-        syncManager.queueSync(accessToken, activeUserEmail);
-      }
-      setDiscordFeedback({
-        text: lang === 'en'
-          ? 'Test message delivered to Discord successfully'
-          : 'ส่งข้อความทดสอบเข้า Discord สำเร็จแล้ว',
-        type: 'success'
-      });
-    } catch (err) {
-      setDiscordFeedback({
-        text: (lang === 'en' ? 'Failed: ' : 'ส่งไม่สำเร็จ: ') + err.message,
-        type: 'error'
-      });
-    } finally {
-      setDiscordTestSending(false);
-    }
-  };
-
-  const handleSendDiscordDigest = async () => {
-    setDiscordFeedback({ text: '', type: '' });
-    if (!webhookValidation.valid) {
-      setDiscordFeedback({
-        text: lang === 'en'
-          ? 'Please enter a valid Discord Webhook URL first.'
-          : 'กรุณาใส่ลิงก์ Discord Webhook ที่ถูกต้องก่อน',
-        type: 'error'
-      });
-      return;
-    }
-    setDiscordDigestSending(true);
-    try {
-      await triggerManualDiscordDigest(activeUserEmail, currentAssignments, webhookValidation.url);
-      refreshNotificationData?.();
-      if (accessToken && activeUserEmail) {
-        syncManager.queueSync(accessToken, activeUserEmail);
-      }
-      setDiscordFeedback({
-        text: lang === 'en'
-          ? 'Pending assignments & exam digest sent to Discord'
-          : 'ส่งสรุปงานค้างและตารางสอบเข้า Discord เรียบร้อยแล้ว',
-        type: 'success'
-      });
-    } catch (err) {
-      setDiscordFeedback({
-        text: (lang === 'en' ? 'Failed: ' : 'เกิดข้อผิดพลาด: ') + err.message,
-        type: 'error'
-      });
-    } finally {
-      setDiscordDigestSending(false);
-    }
-  };
-
-  const handleCopyAppsScript = async () => {
-    try {
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-        await navigator.clipboard.writeText(generatedAppsScript);
-      } else {
-        const tempArea = document.createElement('textarea');
-        tempArea.value = generatedAppsScript;
-        document.body.appendChild(tempArea);
-        tempArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempArea);
-      }
-      setCopiedScript(true);
-      const id = setTimeout(() => setCopiedScript(false), 3000);
-      timersRef.current.push(id);
-    } catch {
-      setDiscordFeedback({
-        text: lang === 'en' ? 'Could not copy automatically. Open preview below.' : 'ไม่สามารถคัดลอกอัตโนมัติได้ กรุณากดดูโค้ดด้านล่าง',
-        type: 'error'
-      });
-    }
-  };
+  const currentSchedule = classroom?.schedule || getSchedule(activeUserEmail);
+  const currentResources = classroom?.resources || getResources(activeUserEmail);
 
   return (
     <div className="space-y-6 pb-6">
@@ -484,185 +386,22 @@ export default function Settings() {
 
       {/* 2. Balanced Two-Column Grid: Discord Integration (Left) + Calendar & Developer (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left: Compact Discord Webhook & 24/7 Cloud Script */}
-        <div className="lg:col-span-7 bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 flex flex-col justify-between space-y-4">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center shrink-0">
-                  <MessageSquare className="text-[var(--primary-bright)]" size={14} strokeWidth={1.5} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-medium text-[var(--text-heading)] truncate">
-                    {lang === 'en' ? 'Discord Notifications' : 'แจ้งเตือน Discord'}
-                  </h3>
-                  <p className="text-[11px] text-[var(--text-muted)] truncate">
-                    {lang === 'en' ? 'Webhook alerts & 24/7 cloud script' : 'ยิงแจ้งเตือนเข้าแชท & รันอัตโนมัติ 24 ชม.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 shrink-0">
-                <span
-                  data-testid="discord-webhook-status"
-                  className={`text-[11px] px-2.5 py-0.5 rounded-lg font-medium ${
-                    webhookValidation.valid
-                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/25'
-                      : (alertSettings.discordWebhookUrl || '').trim()
-                        ? 'bg-rose-500/10 text-rose-300 border border-rose-500/25'
-                        : 'bg-[var(--app-bg)] text-[var(--text-muted)] border border-[var(--border)]'
-                  }`}
-                >
-                  {webhookValidation.valid
-                    ? (lang === 'en' ? 'Webhook Ready' : 'พร้อมใช้งาน')
-                    : (alertSettings.discordWebhookUrl || '').trim()
-                      ? (lang === 'en' ? 'Invalid URL' : 'ลิงก์ไม่ถูกต้อง')
-                      : (lang === 'en' ? 'Not Configured' : 'ยังไม่ตั้งค่า')}
-                </span>
-
-                <label className="relative inline-flex items-center cursor-pointer select-none" title={lang === 'en' ? 'Auto-send on web sync' : 'ส่งอัตโนมัติเมื่อซิงก์เว็บ'}>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(alertSettings.discordEnabled)}
-                    onChange={() => handleToggleSetting?.('discordEnabled')}
-                    aria-label={lang === 'en' ? 'Auto-send alerts to Discord when syncing on web' : 'ส่งแจ้งเตือนเข้า Discord อัตโนมัติ'}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-[var(--border)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--text-heading)] after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:bg-[var(--primary)]" />
-                </label>
-              </div>
-            </div>
-
-            {discordFeedback.text && (
-              <div
-                role={discordFeedback.type === 'error' ? 'alert' : 'status'}
-                className={`px-3 py-2 rounded-lg border text-xs flex items-center justify-between ${
-                  discordFeedback.type === 'error'
-                    ? 'bg-rose-500/10 border-rose-500/25 text-rose-300'
-                    : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
-                }`}
-              >
-                <span>{discordFeedback.text}</span>
-                <button
-                  type="button"
-                  onClick={() => setDiscordFeedback({ text: '', type: '' })}
-                  className="text-sm font-medium ml-2 hover:opacity-75 cursor-pointer"
-                  aria-label="Dismiss"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label htmlFor={webhookFieldId} className="block text-[11px] font-medium text-[var(--text-secondary)]">
-                {lang === 'en' ? 'Webhook URL' : 'ลิงก์ Discord Webhook'}
-              </label>
-              <DiscordWebhookInput
-                id={webhookFieldId}
-                value={alertSettings.discordWebhookUrl || ''}
-                onChange={(nextVal) => handleUpdateSetting?.('discordWebhookUrl', nextVal)}
-                lang={lang}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button
-                type="button"
-                disabled={discordTestSending || discordDigestSending || !webhookValidation.valid}
-                onClick={handleTestDiscordWebhook}
-                className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
-              >
-                {discordTestSending ? <RefreshCw size={13} strokeWidth={1.5} className="animate-spin" /> : <MessageSquare size={13} strokeWidth={1.5} className="text-[var(--primary-bright)]" />}
-                <span>
-                  {discordTestSending
-                    ? (lang === 'en' ? 'Testing...' : 'กำลังทดสอบ...')
-                    : (lang === 'en' ? 'Test Discord Webhook' : 'ยิงข้อความทดสอบเข้า Discord')}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                disabled={discordDigestSending || discordTestSending || !webhookValidation.valid}
-                onClick={handleSendDiscordDigest}
-                className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-3.5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-45 flex items-center justify-center gap-1.5"
-              >
-                {discordDigestSending ? <RefreshCw size={13} strokeWidth={1.5} className="animate-spin" /> : <Send size={13} strokeWidth={1.5} className="text-[var(--text-secondary)]" />}
-                <span>
-                  {discordDigestSending
-                    ? (lang === 'en' ? 'Sending...' : 'กำลังส่ง...')
-                    : (lang === 'en' ? 'Send Task & Exam Digest Now' : 'ส่งสรุปงาน + ตารางสอบ')}
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* Sleek 1-Line 24/7 Apps Script Bar */}
-          <div className="pt-3 border-t border-[var(--border)] space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-                <Terminal size={13} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-                <span>
-                  {lang === 'en'
-                    ? `24/7 Cloud Script (${hiddenCourseIds.length} hidden excluded)`
-                    : `สคริปต์ 24 ชม. (ตัดวิชาที่ซ่อน ${hiddenCourseIds.length} วิชา)`}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleCopyAppsScript}
-                  className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5"
-                >
-                  {copiedScript ? <Check size={12} strokeWidth={1.5} className="text-emerald-400" /> : <Copy size={12} strokeWidth={1.5} className="text-[var(--text-muted)]" />}
-                  <span>
-                    {copiedScript
-                      ? (lang === 'en' ? 'Copied' : 'คัดลอกแล้ว')
-                      : (lang === 'en' ? 'Copy Script' : 'คัดลอกโค้ด')}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowScriptPreview(prev => !prev)}
-                  className="bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] border border-[var(--border)] px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
-                >
-                  {showScriptPreview
-                    ? (lang === 'en' ? 'Hide Code' : 'ซ่อนโค้ด')
-                    : (lang === 'en' ? 'View Code & Debug Guide' : 'ดูโค้ดและวิธีตั้งค่า')}
-                </button>
-
-                <a
-                  href="https://script.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Open script.google.com"
-                  className="p-1.5 rounded-lg bg-[var(--app-bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors"
-                >
-                  <ExternalLink size={12} strokeWidth={1.5} />
-                </a>
-              </div>
-            </div>
-
-            {showScriptPreview && (
-              <div className="space-y-2 pt-1">
-                <div className="bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-2.5 text-[11px] text-[var(--text-muted)] space-y-1">
-                  <div><code className="text-[var(--text-primary)]">testDiscordWebhook()</code> — {lang === 'en' ? 'Send test message from Google Cloud' : 'ทดสอบยิงเข้า Discord'}</div>
-                  <div><code className="text-[var(--text-primary)]">debugDryRun()</code> — {lang === 'en' ? 'Preview tasks in log without sending' : 'เช็กงานใน Log โดยไม่ส่งจริง'}</div>
-                  <div><code className="text-[var(--text-primary)]">sendClassroomDigest()</code> — {lang === 'en' ? 'Attach to hourly Time-driven Trigger' : 'ใช้ตั้งทริกเกอร์รายชั่วโมง'}</div>
-                </div>
-                <textarea
-                  readOnly
-                  aria-label={lang === 'en' ? 'Generated Google Apps Script Code' : 'โค้ด Google Apps Script'}
-                  value={generatedAppsScript}
-                  rows={6}
-                  className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-2.5 text-[11px] font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                />
-              </div>
-            )}
-          </div>
-        </div>
+        <DiscordAssistantPanel
+          lang={lang}
+          activeUserEmail={activeUserEmail}
+          accessToken={accessToken}
+          alertSettings={alertSettings}
+          discordTelemetry={discordTelemetry}
+          historyLogs={historyLogs}
+          hiddenCourseIds={hiddenCourseIds}
+          currentAssignments={currentAssignments}
+          currentSchedule={currentSchedule}
+          currentResources={currentResources}
+          handleToggleSetting={handleToggleSetting}
+          handleUpdateSetting={handleUpdateSetting}
+          handleTimeChange={handleTimeChange}
+          refreshNotificationData={refreshNotificationData}
+        />
 
         {/* Right: Calendar Sync & Compact Developer Card */}
         <div className="lg:col-span-5 flex flex-col justify-between gap-5">

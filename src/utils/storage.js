@@ -2,6 +2,7 @@ import { initialAssignments, initialCourses, defaultProfile } from '../data/mock
 import { StorageRepository } from '../repositories/StorageRepository';
 import { STORAGE_CONFIG } from '../config/storage';
 import { DEFAULT_CURRICULUM_CATEGORIES } from './academicUtils';
+import { migrateAlertSettings } from '../services/notifications/notificationSchema';
 
 const KEYS = STORAGE_CONFIG.keys;
 
@@ -412,6 +413,9 @@ export const resetDatabase = (email) => {
     StorageRepository.remove('classroom_hub_alert_settings', userEmail);
     StorageRepository.remove('classroom_hub_sunday_digest_time', userEmail);
     StorageRepository.remove('classroom_hub_sent_notifications', userEmail);
+    StorageRepository.remove('classroom_hub_notification_ledger', userEmail);
+    StorageRepository.remove('classroom_hub_notification_snapshot', userEmail);
+    StorageRepository.remove('classroom_hub_discord_telemetry', userEmail);
     StorageRepository.remove('classroom_hub_daily_email_limit', userEmail);
     StorageRepository.remove('classroom_hub_notification_history', userEmail);
     
@@ -473,31 +477,6 @@ export const setEnableEmailAlerts = (enabled, email) => {
   StorageRepository.set('classroom_hub_enable_email_alerts', enabled, email);
 };
 
-export const getAlertSettings = (email) => {
-  const key = 'classroom_hub_alert_settings';
-  const stored = StorageRepository.get(key, email, true);
-  const defaults = {
-    due3Days: true,
-    due1Day: true,
-    dueToday: true,
-    overdue1Day: true,
-    newPosts: true,
-    sundayDigest: true,
-    includeExams: true,
-    calendarReminderEnabled: true,
-    calendarReminderValue: 10,
-    calendarReminderUnit: 'minutes',
-    discordEnabled: false,
-    discordWebhookUrl: ''
-  };
-  if (!stored) return defaults;
-  return { ...defaults, ...stored };
-};
-
-export const saveAlertSettings = (settings, email) => {
-  StorageRepository.set('classroom_hub_alert_settings', settings, email);
-};
-
 export const getSundayDigestTime = (email) => {
   const key = 'classroom_hub_sunday_digest_time';
   return StorageRepository.get(key, email, true) || '18:00';
@@ -505,6 +484,26 @@ export const getSundayDigestTime = (email) => {
 
 export const setSundayDigestTime = (time, email) => {
   StorageRepository.set('classroom_hub_sunday_digest_time', time, email);
+  const stored = StorageRepository.get('classroom_hub_alert_settings', email, true);
+  if (stored && typeof stored === 'object') {
+    StorageRepository.set('classroom_hub_alert_settings', { ...stored, weeklyDigestTime: time }, email);
+  }
+};
+
+export const getAlertSettings = (email) => {
+  const key = 'classroom_hub_alert_settings';
+  const stored = StorageRepository.get(key, email, true);
+  const sundayTime = getSundayDigestTime(email);
+  return migrateAlertSettings(stored, sundayTime);
+};
+
+export const saveAlertSettings = (settings, email) => {
+  const sundayTime = settings?.weeklyDigestTime || getSundayDigestTime(email);
+  const normalized = migrateAlertSettings(settings, sundayTime);
+  StorageRepository.set('classroom_hub_alert_settings', normalized, email);
+  if (settings?.weeklyDigestTime && settings.weeklyDigestTime !== getSundayDigestTime(email)) {
+    StorageRepository.set('classroom_hub_sunday_digest_time', normalized.weeklyDigestTime, email);
+  }
 };
 
 export const getSentNotifications = (email) => {

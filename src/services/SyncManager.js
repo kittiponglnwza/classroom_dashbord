@@ -312,6 +312,7 @@ class SyncManager {
       const isAcademic = fullKey.startsWith(KEYS.academic);
       const isDeletedIds = fullKey.startsWith('classroom_hub_deleted_ids');
       const isSentNotifications = fullKey.startsWith('classroom_hub_sent_notifications');
+      const isNotificationLedger = fullKey.startsWith('classroom_hub_notification_ledger');
       const isNotificationHistory = fullKey.startsWith('classroom_hub_notification_history');
       const isDailyEmailLimit = fullKey.startsWith('classroom_hub_daily_email_limit');
 
@@ -392,6 +393,11 @@ class SyncManager {
           const remoteParsed = JSON.parse(remoteStr);
           const mergedArr = this.mergeSentNotifications(localParsed.data || [], remoteParsed.data || []);
           merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedArr);
+        } else if (isNotificationLedger) {
+          const localParsed = JSON.parse(localStr);
+          const remoteParsed = JSON.parse(remoteStr);
+          const mergedObj = this.mergeNotificationLedger(localParsed.data || {}, remoteParsed.data || {});
+          merged[fullKey] = resolveCollectionResult(localStr, remoteStr, localParsed, remoteParsed, mergedObj);
         } else if (isNotificationHistory) {
           const localParsed = JSON.parse(localStr);
           const remoteParsed = JSON.parse(remoteStr);
@@ -544,6 +550,50 @@ class SyncManager {
       }
     });
     return Array.from(map.values());
+  }
+
+  mergeNotificationLedger(localObj = {}, remoteObj = {}) {
+    const statusPrecedence = {
+      DELIVERED: 5,
+      AMBIGUOUS_TIMEOUT: 4,
+      FAILED_PERMANENT: 3,
+      FAILED_RETRYABLE: 2,
+      CLAIMED: 1
+    };
+    const merged = {};
+    const keys = new Set([
+      ...Object.keys(remoteObj && typeof remoteObj === 'object' ? remoteObj : {}),
+      ...Object.keys(localObj && typeof localObj === 'object' ? localObj : {})
+    ]);
+
+    keys.forEach(eventKey => {
+      const a = localObj?.[eventKey];
+      const b = remoteObj?.[eventKey];
+      if (!a && b) {
+        merged[eventKey] = b;
+        return;
+      }
+      if (a && !b) {
+        merged[eventKey] = a;
+        return;
+      }
+      if (!a || !b) return;
+
+      const rankA = statusPrecedence[a.status] || 0;
+      const rankB = statusPrecedence[b.status] || 0;
+      let winner;
+      if (rankA !== rankB) {
+        winner = rankA > rankB ? { ...b, ...a } : { ...a, ...b };
+      } else {
+        const timeA = new Date(a.updatedAt || a.deliveredAt || a.lastAttemptAt || 0).getTime() || 0;
+        const timeB = new Date(b.updatedAt || b.deliveredAt || b.lastAttemptAt || 0).getTime() || 0;
+        winner = timeB > timeA ? { ...a, ...b } : { ...b, ...a };
+      }
+      winner.attemptCount = Math.max(Number(a.attemptCount) || 0, Number(b.attemptCount) || 0);
+      merged[eventKey] = winner;
+    });
+
+    return merged;
   }
 
   mergeNotificationHistory(localList, remoteList) {

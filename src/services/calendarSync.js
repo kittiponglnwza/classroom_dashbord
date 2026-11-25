@@ -191,7 +191,17 @@ function buildRecurringClassEvent(entry, allExams = []) {
     start: { dateTime: `${anchorDate}T${startTime}:00`, timeZone: TIMEZONE },
     end: { dateTime: `${anchorDate}T${endTime}:00`, timeZone: TIMEZONE },
     recurrence,
-    extendedProperties: { private: { chSource: SOURCE_TAG, chType: 'schedule', chId: String(entry.id) } }
+    extendedProperties: {
+      private: {
+        chSource: SOURCE_TAG,
+        chType: 'schedule',
+        chId: String(entry.id),
+        chCode: String(entry.courseCode || '').slice(0, 64),
+        chRoom: String(entry.room || '').slice(0, 120),
+        chStart: startTime,
+        chEnd: endTime
+      }
+    }
   };
 }
 
@@ -207,7 +217,19 @@ function buildOneOffTimedEvent(entry, typeLabel) {
     description: [entry.courseCode, entry.notes].filter(Boolean).join('\n'),
     start: { dateTime: `${entry.date}T${startTime}:00`, timeZone: TIMEZONE },
     end: { dateTime: `${entry.date}T${endTime}:00`, timeZone: TIMEZONE },
-    extendedProperties: { private: { chSource: SOURCE_TAG, chType: typeLabel, chId: String(entry.id) } }
+    extendedProperties: {
+      private: {
+        chSource: SOURCE_TAG,
+        chType: typeLabel,
+        chId: String(entry.id),
+        chCode: String(entry.courseCode || '').slice(0, 64),
+        chRoom: String(entry.rawRoom ?? entry.room ?? '').slice(0, 120),
+        chSeat: String(entry.seat || '').slice(0, 120),
+        chExamType: String(entry.examType || '').slice(0, 32),
+        chStart: startTime,
+        chEnd: endTime
+      }
+    }
   };
 }
 
@@ -286,6 +308,9 @@ function normalizeExamEntry(ex) {
     date: dateVal,
     startTime,
     endTime,
+    rawRoom: ex.room || '',
+    seat: ex.seat || '',
+    examType: ex.examType || '',
     room: ex.room ? `${ex.room}${ex.seat ? ` (${ex.seat})` : ''}` : '',
     notes: ex.seat ? `Seat/Row: ${ex.seat}` : ''
   };

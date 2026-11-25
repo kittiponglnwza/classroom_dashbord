@@ -48,13 +48,18 @@ Because the app runs in your browser without a backend server, in-app notificati
   - Open the bell icon and switch to **Settings**.
   - Toggle reminders for 3 days before due date, 1 day before, due today, 1 day overdue, new posts digest, and Sunday weekly summary.
   - Gmail sends up to 10 emails per day per account. You can test delivery or send a summary immediately from the same menu.
-- **Discord Webhook (Settings page or Bell icon)**:
-  - Paste your Discord channel webhook URL into the **Discord Notifications** section and turn on auto-send.
-  - You can test the webhook or push a pending task and exam summary anytime.
+- **Discord Academic Assistant (Settings page or Bell icon)**:
+  - Paste your Discord channel webhook URL into the **Discord Academic Assistant** panel and turn on auto-send.
+  - Configure granular alerts across four tabs:
+    - **Schedule & Briefing**: Daily **07:00 Morning Briefing** (classes, due tasks, upcoming exams) and optional **Before-class reminders** (15–60 min + final 5 min).
+    - **Assignments & Activity**: 7-day, 3-day, 1-day, due-today, and overdue catch-up reminders, deadline-change/removal alerts, plus new assignments, announcements, and learning materials.
+    - **Exams & Digests**: Automatic **7d / 3d / 1d / Exam Day** countdowns with merged SciBase/Reg/manual seating, plus optional Daily and Weekly Academic Reports.
+    - **Advanced**: Automated delivery authority (`Browser workspace sync` vs `24/7 Google Apps Script only` to prevent duplicate alerts), timezone (`Asia/Bangkok`), minimum priority (`P0–P3`), max retries, and **Quiet Hours**.
+  - Use the live preview buttons (**Briefing Preview**, **Assignment Preview**, **Exam Preview**, **Weekly Preview**) and the **Delivery Telemetry** strip in Settings to verify formatting and check the last delivery or error status.
 - **24/7 Cloud Script (Settings page)**:
-  - If you want alerts while your browser is closed, copy the generated Google Apps Script from Settings and paste it into [script.google.com](https://script.google.com).
-  - Add the **Google Classroom API** service in Apps Script and set an hourly time-driven trigger on `sendClassroomDigest`.
-  - Note that the generated script sends to Discord by default (`ENABLE_EMAIL: false`); edit `ENABLE_EMAIL` to `true` in the script if you also want 24/7 Gmail alerts. Do not share the copied script publicly, because it contains your Discord webhook URL.
+  - For alerts while your browser is closed, copy the generated Google Apps Script from Settings into [script.google.com](https://script.google.com).
+  - Under **Services (+)**, enable **Google Classroom API** (required) and **Google Calendar API** (recommended so Morning Briefings and Exam Countdowns stay synchronized automatically whenever your calendar syncs).
+  - Under **Project Settings > Script Properties**, add `DISCORD_WEBHOOK_URL` with your Discord webhook URL (keeping secrets out of `Code.gs`), set a Time-driven trigger on `sendClassroomDigest` (every hour or every 15 minutes), and switch **Automated delivery authority** in web Settings to **24/7 Google Apps Script only** so browser sync does not duplicate cloud notifications.
 
 ## 7. Cloud Sync Across Devices
 

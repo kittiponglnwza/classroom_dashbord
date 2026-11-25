@@ -125,6 +125,21 @@ export const ClassroomProvider = ({ children }) => {
   // Handle Background Polling
   useBackgroundSync(isLoggedIn, accessToken);
 
+  // Periodic local academic assistant tick (Morning Briefing at 07:00, Pre-Class reminders, Daily Digest)
+  useEffect(() => {
+    if (!hasWorkspaceSession || typeof window === 'undefined') return;
+    const runScheduleCheck = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      const activeEmail = getActiveEmail();
+      if (!activeEmail || !getLastSync(activeEmail)) return;
+      NotificationService.evaluateScheduleTick(activeEmail).catch((err) => {
+        logger.debug('[Notify] Schedule tick skipped:', err?.message || err);
+      });
+    };
+    const intervalId = setInterval(runScheduleCheck, 60000);
+    return () => clearInterval(intervalId);
+  }, [hasWorkspaceSession]);
+
   const syncClassroom = useCallback(async (forcedToken = null, signal = undefined) => {
     const tokenToUse = forcedToken || accessToken;
     const currentLang = langRef.current;
@@ -362,7 +377,14 @@ export const ClassroomProvider = ({ children }) => {
           await NotificationService.evaluateNotifications(
             freshToken, userEmail, syncedAssigns, 
             classroomData.courses, freshResources,
-            { prevLastSync: lastSync }
+            {
+              prevLastSync: lastSync,
+              allowMorningBriefing: Boolean(lastSync),
+              allowScheduleAlerts: true,
+              authoritativeSync: !hasAnyPartialFailure,
+              failedCourseIds: classroomData.failedCourseIds || [],
+              schedule: scheduleRef.current
+            }
           );
         } catch (err) {
           logger.error('Error processing digest alerts during sync:', err);

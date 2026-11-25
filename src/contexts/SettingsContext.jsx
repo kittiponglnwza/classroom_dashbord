@@ -11,6 +11,7 @@ import { useAuth } from './AuthContext';
 import { syncManager } from '../services/SyncManager';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { NotificationService } from '../services/NotificationService';
+import { NotificationLedger } from '../services/notifications/NotificationLedger';
 import { getCookieConsent } from '../utils/cookieConsent';
 
 export const SettingsContext = createContext(null);
@@ -56,6 +57,7 @@ export const SettingsProvider = ({ children }) => {
   const [sundayTime, setSundayTimeState] = useState('18:00');
   const [historyLogs, setHistoryLogs] = useState([]);
   const [dailyLimit, setDailyLimit] = useState({ count: 0 });
+  const [discordTelemetry, setDiscordTelemetry] = useState(() => NotificationLedger.getTelemetry(getActiveEmail()));
 
   useEffect(() => {
     alertSettingsRef.current = alertSettings;
@@ -77,6 +79,7 @@ export const SettingsProvider = ({ children }) => {
       setSundayTimeState('18:00');
       setHistoryLogs([]);
       setDailyLimit({ count: 0 });
+      setDiscordTelemetry(NotificationLedger.getTelemetry(''));
       return;
     }
     const savedUserLang = localStorage.getItem(`classroom_hub_${email}_language`);
@@ -94,6 +97,7 @@ export const SettingsProvider = ({ children }) => {
     setSundayTimeState(getSundayDigestTime(email));
     setHistoryLogs(getNotificationHistory(email));
     setDailyLimit(normalizeTodayLimit(getDailyEmailLimit(email)));
+    setDiscordTelemetry(NotificationLedger.getTelemetry(email));
   }, []);
 
   useEffect(() => {
@@ -178,6 +182,7 @@ export const SettingsProvider = ({ children }) => {
     if (email) {
       setHistoryLogs(getNotificationHistory(email));
       setDailyLimit(normalizeTodayLimit(getDailyEmailLimit(email)));
+      setDiscordTelemetry(NotificationLedger.getTelemetry(email));
     }
   }, [userEmail]);
 
@@ -225,7 +230,7 @@ export const SettingsProvider = ({ children }) => {
     emailAlerts, handleToggleAlerts,
     alertSettings, handleToggleSetting, handleUpdateSetting,
     sundayTime, handleTimeChange,
-    historyLogs, unreadCount, dailyLimit, refreshNotificationData,
+    historyLogs, unreadCount, dailyLimit, discordTelemetry, refreshNotificationData,
     handleMarkNotificationRead, handleMarkAllNotificationsRead,
     reloadSettings
   }), [
@@ -233,7 +238,7 @@ export const SettingsProvider = ({ children }) => {
     emailAlerts, handleToggleAlerts,
     alertSettings, handleToggleSetting, handleUpdateSetting,
     sundayTime, handleTimeChange,
-    historyLogs, unreadCount, dailyLimit, refreshNotificationData,
+    historyLogs, unreadCount, dailyLimit, discordTelemetry, refreshNotificationData,
     handleMarkNotificationRead, handleMarkAllNotificationsRead,
     reloadSettings
   ]);

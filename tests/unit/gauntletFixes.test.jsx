@@ -992,11 +992,17 @@ describe('Gauntlet Regression Protections', () => {
       fireEvent.click(previewBtn);
 
       const codeArea = screen.getByLabelText(/Generated Google Apps Script Code|โค้ด Google Apps Script/i);
-      expect(codeArea.value).toContain(validWebhook);
+      // Security hardening: by default, webhook token stays out of generated Code.gs source (uses Script Properties)
+      expect(codeArea.value).not.toContain(validWebhook);
+      expect(codeArea.value).toContain('DISCORD_WEBHOOK_URL');
       expect(codeArea.value).toContain('"hidden-c1"');
       expect(codeArea.value).toContain('function testDiscordWebhook()');
       expect(codeArea.value).toContain('function debugDryRun()');
       expect(codeArea.value).toContain('function resetSentHistory()');
+
+      // Opt-in toggle explicitly embeds the webhook URL when requested
+      fireEvent.click(screen.getByTestId('embed-webhook-in-script-toggle'));
+      expect(screen.getByLabelText(/Generated Google Apps Script Code|โค้ด Google Apps Script/i).value).toContain(validWebhook);
     });
   });
 });

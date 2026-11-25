@@ -1,9 +1,11 @@
 import { examRepository } from '../repositories/examRepository';
 import { parseExamDate } from '../utils/examDate';
+import { getMergedExams } from '../utils/examMerger';
 import { getCalendarDaysDiff, parseLocalDateInput } from '../utils/dateUtils';
 import { sanitizeExternalUrl } from '../utils/sanitize';
 import { getHexColor } from '../utils/colors';
 import { logger } from '../utils/logger';
+import { NotificationLedger } from './notifications/NotificationLedger';
 
 const ALLOWED_DISCORD_HOSTS = new Set([
   'discord.com',
@@ -220,10 +222,10 @@ export class DiscordService {
     try {
       const cachedRes = examRepository.getCachedExams(emailKey);
       if (!cachedRes.success || !cachedRes.data) return null;
-      const exams = [
-        ...(cachedRes.data.exams || []),
-        ...(cachedRes.data.manualExams || [])
-      ];
+      const exams = getMergedExams(
+        cachedRes.data.exams || [],
+        cachedRes.data.manualExams || []
+      );
       if (exams.length === 0) return null;
 
       const today = new Date();
@@ -344,39 +346,45 @@ export class DiscordService {
       ? parsedDue.toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
       : (task.dueDate || 'No Due Date');
 
-    const safeLink = sanitizeExternalUrl(task.googleLink);
-    const pointsLabel = typeof task.points === 'number' ? `${task.points} pts` : 'Ungraded';
+      const safeLink = sanitizeExternalUrl(task.googleLink);
+      const pointsLabel = typeof task.points === 'number' ? `${task.points} pts` : 'Ungraded';
+      const statusRaw = String(task.submissionState || task.status || 'todo').toLowerCase();
+      const submissionStatus = statusRaw === 'done' || statusRaw === 'turned_in' || statusRaw === 'returned'
+        ? 'Submitted'
+        : isOverdue
+          ? 'Missing / Overdue'
+          : 'Not Submitted';
 
-    return {
-      username: 'Classroom Hub',
-      embeds: [
-        {
-          title: `🔔 ${warningLabel}: ${task.title || 'Assignment'}`,
-          url: safeLink || undefined,
-          description: this.truncate(task.description || 'No description provided.', 600, 'No description provided.'),
-          color,
-          fields: [
-            {
-              name: '📚 Course',
-              value: `${task.courseCode ? `${task.courseCode} • ` : ''}${task.course || 'Course'}`,
-              inline: true
-            },
-            {
-              name: '⏳ Due Date',
-              value: dueStr,
-              inline: true
-            },
-            {
-              name: '🏆 Points',
-              value: pointsLabel,
-              inline: true
-            }
-          ],
-          footer: { text: 'Classroom Hub • Deadline Alert' },
-          timestamp: new Date().toISOString()
-        }
-      ]
-    };
+      return {
+        username: 'Classroom Hub',
+        embeds: [
+          {
+            title: `🔔 ${warningLabel}: ${task.title || 'Assignment'}`,
+            url: safeLink || undefined,
+            description: this.truncate(task.description || 'No description provided.', 600, 'No description provided.'),
+            color,
+            fields: [
+              {
+                name: '📚 Course',
+                value: `${task.courseCode ? `${task.courseCode} • ` : ''}${task.course || 'Course'}`,
+                inline: true
+              },
+              {
+                name: '⏳ Due Date',
+                value: dueStr,
+                inline: true
+              },
+              {
+                name: '🏆 Status & Points',
+                value: `${submissionStatus} • ${pointsLabel}`,
+                inline: true
+              }
+            ],
+            footer: { text: 'Classroom Hub • Deadline Alert' },
+            timestamp: new Date().toISOString()
+          }
+        ]
+      };
   }
 
   /**
@@ -481,27 +489,42 @@ export class DiscordService {
         const group = courseGroups[courseName];
         const lines = [];
 
+        const formatLinkedItem = (item, fallbackLabel) => {
+          const safeTitle = this.truncate(item.title, 80, fallbackLabel);
+          const safeLink = sanitizeExternalUrl(item.googleLink);
+          return safeLink ? `• [${safeTitle}](${safeLink})` : `• ${safeTitle}`;
+        };
+
         if (group.assigns.length > 0) {
           lines.push(`**📝 New Assignments (${group.assigns.length})**`);
           group.assigns.slice(0, 5).forEach(a => {
-            lines.push(`• ${this.truncate(a.title, 80, 'Assignment')}`);
+            lines.push(formatLinkedItem(a, 'Assignment'));
           });
+          if (group.assigns.length > 5) {
+            lines.push(`*+${group.assigns.length - 5} more assignment(s)*`);
+          }
         }
 
         const anns = group.resources.filter(r => r.type === 'announcement');
         if (anns.length > 0) {
           lines.push(`**📢 New Announcements (${anns.length})**`);
           anns.slice(0, 5).forEach(r => {
-            lines.push(`• ${this.truncate(r.title, 80, 'Announcement')}`);
+            lines.push(formatLinkedItem(r, 'Announcement'));
           });
+          if (anns.length > 5) {
+            lines.push(`*+${anns.length - 5} more announcement(s)*`);
+          }
         }
 
         const mats = group.resources.filter(r => r.type === 'material');
         if (mats.length > 0) {
           lines.push(`**📂 New Materials (${mats.length})**`);
           mats.slice(0, 5).forEach(r => {
-            lines.push(`• ${this.truncate(r.title, 80, 'Material')}`);
+            lines.push(formatLinkedItem(r, 'Material'));
           });
+          if (mats.length > 5) {
+            lines.push(`*+${mats.length - 5} more material(s)*`);
+          }
         }
 
         return {
@@ -527,11 +550,66 @@ export class DiscordService {
   }
 
   /**
-   * Sends a JSON payload to a validated Discord Webhook URL with timeout and 429 rate-limit retry.
+   * Scrubs any raw Discord webhook token from an error string before logging or persisting.
+   */
+  static scrubSecrets(message = '') {
+    return String(message || '').replace(
+      /https?:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api(?:\/v\d+)?\/webhooks\/\d+\/[A-Za-z0-9._-]+/gi,
+      '[REDACTED_WEBHOOK_URL]'
+    );
+  }
+
+  /**
+   * Extracts Retry-After wait duration in ms from a 429 response (JSON body or Retry-After header).
+   */
+  static async extractRetryAfterMs(response, defaultMs = 1000) {
+    let headerMs = null;
+    try {
+      const rawHeader = response?.headers?.get?.('Retry-After') ?? response?.headers?.get?.('retry-after');
+      if (rawHeader) {
+        const asNum = Number(rawHeader);
+        if (Number.isFinite(asNum) && asNum > 0) {
+          // Discord X-RateLimit / Retry-After header is seconds
+          headerMs = Math.ceil(asNum * 1000);
+        } else {
+          const asDate = Date.parse(rawHeader);
+          if (Number.isFinite(asDate) && asDate > Date.now()) {
+            headerMs = asDate - Date.now();
+          }
+        }
+      }
+    } catch {
+      headerMs = null;
+    }
+
+    try {
+      if (typeof response?.json === 'function') {
+        const rateData = await response.json();
+        if (typeof rateData?.retry_after === 'number' && rateData.retry_after > 0) {
+          return Math.ceil(rateData.retry_after * 1000);
+        }
+      }
+    } catch {
+      // Body may be non-JSON or already consumed; fall back to header/default
+    }
+
+    return headerMs ?? defaultMs;
+  }
+
+  /**
+   * Sends a JSON payload to a validated Discord Webhook URL with timeout, HTTP 429 Retry-After,
+   * bounded exponential backoff for 5xx/network errors, ambiguous-timeout guard, and telemetry.
    *
    * @param {string} webhookUrl
    * @param {object} payload
-   * @param {{ timeoutMs?: number, maxRetryWaitMs?: number }} [options={}]
+   * @param {{
+   *   timeoutMs?: number,
+   *   maxRetryWaitMs?: number,
+   *   maxRetries?: number,
+   *   baseBackoffMs?: number,
+   *   email?: string,
+   *   eventType?: string
+   * }} [options={}]
    */
   static async sendWebhook(webhookUrl, payload, options = {}) {
     const validation = this.validateWebhookUrl(webhookUrl);
@@ -544,8 +622,49 @@ export class DiscordService {
     }
 
     const timeoutMs = options.timeoutMs ?? 10000;
-    const maxRetryWaitMs = options.maxRetryWaitMs ?? 3000;
+    const maxRetryWaitMs = options.maxRetryWaitMs ?? 5000;
+    const maxRetries = Math.min(Math.max(Number(options.maxRetries ?? 2), 0), 5);
+    const baseBackoffMs = Math.max(Number(options.baseBackoffMs ?? 400), 10);
     const safeBody = JSON.stringify(this.sanitizePayload(payload));
+    const telemetryEmail = options.email ? String(options.email).toLowerCase().trim() : '';
+    const eventType = options.eventType || 'discord_webhook';
+
+    const recordSuccess = (status, attempts) => {
+      if (telemetryEmail) {
+        const prev = NotificationLedger.getTelemetry(telemetryEmail);
+        NotificationLedger.recordTelemetry(telemetryEmail, {
+          lastAttemptAt: new Date().toISOString(),
+          lastSuccessAt: new Date().toISOString(),
+          lastSuccessType: eventType,
+          lastStatus: 'delivered',
+          lastErrorMessage: null,
+          consecutiveFailures: 0,
+          totalDelivered: (Number(prev.totalDelivered) || 0) + 1,
+          lastAttempts: attempts
+        });
+      }
+      return { ok: true, status, attempts, recordedTelemetry: true };
+    };
+
+    const recordFailure = (errMessage, statusLabel = 'failed') => {
+      const cleanMsg = this.scrubSecrets(errMessage);
+      if (telemetryEmail) {
+        const prev = NotificationLedger.getTelemetry(telemetryEmail);
+        NotificationLedger.recordTelemetry(telemetryEmail, {
+          lastAttemptAt: new Date().toISOString(),
+          lastErrorAt: new Date().toISOString(),
+          lastErrorMessage: cleanMsg,
+          lastStatus: statusLabel,
+          consecutiveFailures: (Number(prev.consecutiveFailures) || 0) + 1
+        });
+      }
+    };
+
+    const computeBackoff = (attemptIndex) => {
+      const exp = baseBackoffMs * Math.pow(2, attemptIndex);
+      const jitter = Math.floor(Math.random() * Math.min(150, baseBackoffMs));
+      return Math.min(exp + jitter, maxRetryWaitMs);
+    };
 
     const attemptPost = async () => {
       const controller = new AbortController();
@@ -559,59 +678,95 @@ export class DiscordService {
         });
       } catch (err) {
         if (err?.name === 'AbortError') {
-          throw new Error('Discord Webhook request timed out.', { cause: err });
+          const timeoutErr = new Error('Discord Webhook request timed out.', { cause: err });
+          timeoutErr.ambiguousTimeout = true;
+          timeoutErr.retryable = false;
+          throw timeoutErr;
         }
-        throw new Error(`Discord Webhook network error: ${err?.message || 'Failed to fetch'}`, { cause: err });
+        const netErr = new Error(
+          `Discord Webhook network error: ${this.scrubSecrets(err?.message || 'Failed to fetch')}`,
+          { cause: err }
+        );
+        netErr.retryable = true;
+        throw netErr;
       } finally {
         clearTimeout(timer);
       }
     };
 
-    let response = await attemptPost();
-    if (response.ok) {
-      return { ok: true, status: response.status };
-    }
+    let lastResponse = null;
 
-    // Handle 429 Too Many Requests once with bounded wait
-    if (response.status === 429) {
-      let retryAfterMs = 1000;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      let response;
       try {
-        const rateData = await response.json();
-        if (typeof rateData?.retry_after === 'number') {
-          retryAfterMs = Math.ceil(rateData.retry_after * 1000);
+        response = await attemptPost();
+      } catch (err) {
+        if (err.ambiguousTimeout) {
+          // Request left client before abort: Discord may have accepted it. Halt auto-retry.
+          recordFailure(err.message, 'ambiguous');
+          throw err;
         }
-      } catch {
-        const headerRetry = Number(response.headers?.get?.('Retry-After'));
-        if (Number.isFinite(headerRetry) && headerRetry > 0) {
-          retryAfterMs = Math.ceil(headerRetry * 1000);
+        if (attempt < maxRetries && err.retryable) {
+          const waitMs = computeBackoff(attempt);
+          logger.warn(`[Discord] Transient network failure (attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${waitMs}ms...`);
+          recordFailure(err.message, 'retrying');
+          await new Promise(resolve => setTimeout(resolve, waitMs));
+          continue;
         }
+        recordFailure(err.message, 'failed');
+        throw err;
       }
-      const boundedWait = Math.min(Math.max(retryAfterMs, 100), maxRetryWaitMs);
-      logger.warn(`[Discord] Rate limited (429). Retrying after ${boundedWait}ms...`);
-      await new Promise(resolve => setTimeout(resolve, boundedWait));
-      response = await attemptPost();
+
+      lastResponse = response;
       if (response.ok) {
-        return { ok: true, status: response.status };
+        return recordSuccess(response.status, attempt + 1);
       }
+
+      if (response.status === 429 && attempt < maxRetries) {
+        const retryAfterMs = await this.extractRetryAfterMs(response, 1000);
+        const boundedWait = Math.min(Math.max(retryAfterMs, 10), maxRetryWaitMs);
+        logger.warn(`[Discord] Rate limited (429). Retrying after ${boundedWait}ms (attempt ${attempt + 1}/${maxRetries + 1})...`);
+        recordFailure(`HTTP 429 Rate Limited (retrying after ${boundedWait}ms)`, 'retrying');
+        await new Promise(resolve => setTimeout(resolve, boundedWait));
+        continue;
+      }
+
+      if (response.status >= 500 && response.status <= 599 && attempt < maxRetries) {
+        const waitMs = computeBackoff(attempt);
+        logger.warn(`[Discord] Upstream HTTP ${response.status}. Retrying in ${waitMs}ms (attempt ${attempt + 1}/${maxRetries + 1})...`);
+        recordFailure(`HTTP ${response.status} upstream error`, 'retrying');
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+        continue;
+      }
+
+      break;
     }
 
     let detail = '';
     try {
-      const text = await response.text();
-      if (text) {
-        try {
-          const parsed = JSON.parse(text);
-          detail = parsed.message || text;
-        } catch {
-          detail = text;
+      if (typeof lastResponse?.text === 'function') {
+        const text = await lastResponse.text();
+        if (text) {
+          try {
+            const parsed = JSON.parse(text);
+            detail = parsed.message || text;
+          } catch {
+            detail = text;
+          }
         }
       }
     } catch {
       detail = '';
     }
 
-    throw new Error(
-      `Discord Webhook Error (${response.status})${detail ? `: ${this.truncate(detail, 200, '')}` : ''}`
+    const status = lastResponse?.status ?? 0;
+    const finalMsg = this.scrubSecrets(
+      `Discord Webhook Error (${status})${detail ? `: ${this.truncate(detail, 200, '')}` : ''}`
     );
+    const httpErr = new Error(finalMsg);
+    httpErr.status = status;
+    httpErr.retryable = status === 429 || (status >= 500 && status <= 599);
+    recordFailure(finalMsg, 'failed');
+    throw httpErr;
   }
 }

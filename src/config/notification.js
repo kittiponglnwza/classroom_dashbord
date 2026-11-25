@@ -1,15 +1,8 @@
+import { DEFAULT_ALERT_SETTINGS } from '../services/notifications/notificationSchema';
+
 export const NOTIFICATION_CONFIG = {
   maxDailyEmails: 10,
   defaultSundayDigestTime: '18:00',
-  defaultSettings: {
-    due3Days: true,
-    due1Day: true,
-    dueToday: true,
-    overdue1Day: true,
-    newPosts: true,
-    sundayDigest: true,
-    includeExams: true,
-    discordEnabled: false,
-    discordWebhookUrl: ''
-  }
+  defaultMorningBriefingTime: '07:00',
+  defaultSettings: DEFAULT_ALERT_SETTINGS
 };

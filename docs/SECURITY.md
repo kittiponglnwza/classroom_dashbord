@@ -30,8 +30,9 @@ The app uses the Google Identity Services (GIS) Token Client (`window.google.acc
 ## 4. Discord Webhooks and Google Apps Script
 
 - Discord Webhook URLs are never stored in `VITE_*` build-time variables. Each user saves their own URL in Settings or the notification popover, stored per account in `localStorage` and synced privately to their Google Drive `appDataFolder`.
-- `DiscordService.validateWebhookUrl` accepts only `https:` URLs targeting official Discord webhook hosts and valid `/api/webhooks/{id}/{token}` paths. The UI masks tokens via `DiscordService.maskWebhookUrl`.
-- Note that copying the optional 24/7 Google Apps Script from Settings embeds the user's Discord Webhook URL into the generated script text. Treat copied scripts like a secret and do not share them publicly.
+- `DiscordService.validateWebhookUrl` accepts only `https:` URLs targeting official Discord webhook hosts and valid `/api/webhooks/{id}/{token}` paths. The UI masks tokens via `DiscordService.maskWebhookUrl`, and `DiscordService.scrubSecrets` strips any webhook token from error strings and telemetry before logging or persisting.
+- **24/7 Google Apps Script Secret Isolation**: By default, the generated `Code.gs` template in Settings does **not** embed the user's Discord Webhook URL in source code (`embedWebhookInScript: false`). Instead, it reads `DISCORD_WEBHOOK_URL` from Google Apps Script `PropertiesService.getScriptProperties()`. If a user explicitly enables the opt-in embed toggle for one-step pasting, they should treat the copied script as a secret and never share it publicly.
+- **Synced Timetable & Exam Metadata**: Background Apps Script schedule and exam alerts read Classroom Hub events from the user's own Google Calendar (`extendedProperties.private` with `chSource=classroom-hub`) using existing `calendar.events` permissions, avoiding custom external databases or storing student portal credentials/tokens.
 
 ## 5. Content Security Policy and Security Headers
 

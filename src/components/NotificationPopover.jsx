@@ -57,7 +57,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
   const hasWorkspaceSession = Boolean(isLoggedIn || cachedMode);
   const {
     lang, emailAlerts, handleToggleAlerts, alertSettings, handleToggleSetting, handleUpdateSetting,
-    sundayTime, handleTimeChange, historyLogs, unreadCount = 0, dailyLimit, refreshNotificationData,
+    sundayTime, handleTimeChange, historyLogs, unreadCount = 0, dailyLimit, discordTelemetry = null, refreshNotificationData,
     handleMarkNotificationRead, handleMarkAllNotificationsRead
   } = useSettings();
   const classroom = useClassroom();
@@ -426,7 +426,18 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                             {log.title}
                           </button>
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[11px] text-[var(--text-muted)] font-mono tabular-nums">{formattedLogDate}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[11px] text-[var(--text-muted)] font-mono tabular-nums">{formattedLogDate}</span>
+                              {(log.channel === 'discord' || String(log.type || '').includes('discord')) && (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                                  log.status === 'failed' || log.status === 'ambiguous'
+                                    ? 'border-rose-500/30 text-rose-300 bg-rose-500/10'
+                                    : 'border-[var(--border)] text-[var(--text-muted)] bg-[var(--surface)]'
+                                }`}>
+                                  {log.status === 'failed' ? 'Discord error' : log.status === 'ambiguous' ? 'Discord timeout' : 'Discord'}
+                                </span>
+                              )}
+                            </div>
                             {inRouter && targetPath && (
                               <RouterOpenAction
                                 targetPath={targetPath}
@@ -651,7 +662,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
               <div className="space-y-3 bg-[var(--app-bg)]/70 border border-[var(--border)] rounded-lg p-3 text-left">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-[var(--text-heading)] flex items-center gap-1.5">
-                    <MessageSquare size={13} strokeWidth={1.5} className="text-[#5865F2]" />
+                    <MessageSquare size={13} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
                     <span>{lang === 'en' ? 'Discord Webhook Alerts' : 'แจ้งเตือนผ่าน Discord Webhook'}</span>
                   </span>
                   <span className={`text-[11px] px-2 py-0.5 rounded-lg font-medium ${
@@ -674,7 +685,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                     type="checkbox"
                     checked={Boolean(alertSettings.discordEnabled)}
                     onChange={() => handleToggleSetting('discordEnabled')}
-                    className="w-3.5 h-3.5 rounded accent-[#5865F2] cursor-pointer mt-0.5 shrink-0"
+                    className="w-3.5 h-3.5 rounded accent-[var(--primary)] cursor-pointer mt-0.5 shrink-0"
                   />
                   <div className="space-y-0.5">
                     <span className="font-medium text-[var(--text-primary)]">
@@ -682,15 +693,15 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                     </span>
                     <p className="text-[11px] text-[var(--text-muted)] leading-tight">
                       {lang === 'en'
-                        ? 'Send deadline reminders, new posts, and digests directly to your Discord channel.'
-                        : 'ส่งการบ้านใกล้ครบกำหนด ประกาศใหม่ และสรุปงานเข้าห้องแชท Discord ของคุณ'}
+                        ? 'Morning briefing, coursework reminders, exam countdowns, and digests'
+                        : 'สรุปตารางเช้า การบ้านใกล้ส่ง นับถอยหลังวันสอบ และประกาศใหม่'}
                     </p>
                   </div>
                 </label>
 
                 <div className="space-y-1.5">
                   <label htmlFor={discordWebhookInputId} className="block text-[11px] text-[var(--text-secondary)] font-medium">
-                    {lang === 'en' ? 'Discord Webhook URL:' : 'ลิงก์ Discord Webhook:'}
+                    {lang === 'en' ? 'Discord Webhook URL' : 'ลิงก์ Discord Webhook'}
                   </label>
                   <DiscordWebhookInput
                     id={discordWebhookInputId}
@@ -701,12 +712,18 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                   />
                 </div>
 
+                {discordTelemetry?.lastErrorMessage && discordTelemetry.lastStatus !== 'delivered' && (
+                  <p className="text-[11px] text-rose-300 break-words">
+                    {discordTelemetry.lastErrorMessage}
+                  </p>
+                )}
+
                 <div className="pt-2 border-t border-[var(--border)] flex flex-col sm:flex-row gap-2">
                   <button
                     type="button"
                     disabled={discordDigestSending || discordTestSending || !discordCheck.valid}
                     onClick={handleSendDiscordDigestNow}
-                    className="flex-1 bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="flex-1 bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                   >
                     {discordDigestSending ? (
                       <>
@@ -723,7 +740,7 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
                     onClick={handleSendTestDiscord}
                     className="bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)] text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 shrink-0"
                   >
-                    {discordTestSending ? <RefreshCw size={12} strokeWidth={1.5} className="animate-spin text-[#5865F2]" /> : <MessageSquare size={12} strokeWidth={1.5} className="text-[#5865F2]" />}
+                    {discordTestSending ? <RefreshCw size={12} strokeWidth={1.5} className="animate-spin text-[var(--text-secondary)]" /> : <MessageSquare size={12} strokeWidth={1.5} className="text-[var(--text-secondary)]" />}
                     <span>{lang === 'en' ? 'Test Discord' : 'ทดสอบ Discord'}</span>
                   </button>
                 </div>
