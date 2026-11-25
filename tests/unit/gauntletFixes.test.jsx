@@ -990,21 +990,37 @@ describe('Gauntlet Regression Protections', () => {
       expect(webhookSpy.mock.calls[0][0]).toBe(validWebhook);
       expect(getNotificationHistory(email).some(h => h.type === 'test_discord')).toBe(true);
 
-      // Switch to dedicated 24/7 Cloud Script category
+      // Switch to dedicated 24/7 Cloud Script category (no raw code textarea dumped on screen; copies cleanly to clipboard)
       fireEvent.click(screen.getByTestId('settings-nav-cloud'));
+      expect(screen.queryByRole('textbox', { name: /Generated Google Apps Script Code/i })).not.toBeInTheDocument();
 
-      const codeArea = screen.getByLabelText(/Generated Google Apps Script Code|โค้ด Google Apps Script/i);
+      let copiedScriptText = '';
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: vi.fn(async (txt) => {
+            copiedScriptText = txt;
+          })
+        }
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('copy-apps-script-btn'));
+      });
       // Security hardening: by default, webhook token stays out of generated Code.gs source (uses Script Properties)
-      expect(codeArea.value).not.toContain(validWebhook);
-      expect(codeArea.value).toContain('DISCORD_WEBHOOK_URL');
-      expect(codeArea.value).toContain('"hidden-c1"');
-      expect(codeArea.value).toContain('function testDiscordWebhook()');
-      expect(codeArea.value).toContain('function debugDryRun()');
-      expect(codeArea.value).toContain('function resetSentHistory()');
+      expect(copiedScriptText).not.toContain(validWebhook);
+      expect(copiedScriptText).toContain('DISCORD_WEBHOOK_URL');
+      expect(copiedScriptText).toContain('"hidden-c1"');
+      expect(copiedScriptText).toContain('function testDiscordWebhook()');
+      expect(copiedScriptText).toContain('function debugDryRun()');
+      expect(copiedScriptText).toContain('function resetSentHistory()');
 
       // Opt-in toggle explicitly embeds the webhook URL when requested
       fireEvent.click(screen.getByTestId('embed-webhook-in-script-toggle'));
-      expect(screen.getByLabelText(/Generated Google Apps Script Code|โค้ด Google Apps Script/i).value).toContain(validWebhook);
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('copy-apps-script-btn'));
+      });
+      expect(copiedScriptText).toContain(validWebhook);
     });
   });
 });

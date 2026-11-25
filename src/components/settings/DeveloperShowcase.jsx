@@ -71,10 +71,8 @@ export default function DeveloperShowcase({
   formattedBuildTime = '',
   onCheckUpdates
 }) {
-  const [avatarFailed, setAvatarFailed] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const isTh = lang === 'th';
-  const githubAvatarUrl = `https://github.com/${devInfo.nickname}.png?size=160`;
 
   const handleCopyEmail = async () => {
     try {
@@ -141,18 +139,13 @@ export default function DeveloperShowcase({
         <div className="p-5 sm:p-6 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-6 items-center">
           <div className="space-y-4 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[var(--app-bg)] border border-[var(--border-strong)] flex items-center justify-center shrink-0">
-                {!avatarFailed ? (
-                  <img
-                    src={githubAvatarUrl}
-                    alt={devInfo.name}
-                    referrerPolicy="no-referrer"
-                    onError={() => setAvatarFailed(true)}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <GithubMark size={26} className="text-[var(--text-heading)]" />
-                )}
+              <div className="relative w-15 h-15 rounded-2xl bg-[#10131B] border border-[var(--border-strong)] flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(238,240,245,0.08)]">
+                <span className="text-base font-mono font-semibold tracking-tight text-[var(--text-heading)]">
+                  KT
+                </span>
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#141821] border border-[var(--border-strong)] flex items-center justify-center text-[var(--text-secondary)]">
+                  <GithubMark size={11} />
+                </span>
               </div>
 
               <div className="min-w-0 space-y-1">

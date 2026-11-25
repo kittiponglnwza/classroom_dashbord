@@ -368,18 +368,18 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 pb-8">
-      <PageHeader
-        title={t('settingsTitle', lang)}
-        description={t('settingsDesc', lang)}
-        icon={Settings2}
-      />
+      <div className="space-y-3">
+        <PageHeader
+          title={t('settingsTitle', lang)}
+          description={t('settingsDesc', lang)}
+          icon={Settings2}
+          className="border-b-0 pb-1 sm:pb-1"
+        />
 
-      {/* Modular Linear / Raycast Settings Shell */}
-      <div className="grid grid-cols-1 lg:grid-cols-[216px_minmax(0,1fr)] gap-6 lg:gap-10 items-start">
-        {/* Left Category Rail (Desktop) / Scrollable Bar (Mobile) */}
+        {/* Top Horizontal Category Bar (Zero Double Sidebar, Zero Truncation) */}
         <nav
           aria-label={isTh ? 'หมวดหมู่การตั้งค่า' : 'Settings categories'}
-          className="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0 border-b lg:border-b-0 lg:border-r border-[var(--border)] lg:pr-5 select-none"
+          className="flex items-center gap-1 sm:gap-2 overflow-x-auto border-b border-[var(--border)] select-none"
         >
           {categories.map((cat) => {
             const Icon = cat.icon;
@@ -391,23 +391,21 @@ export default function Settings() {
                 data-testid={`settings-nav-${cat.id}`}
                 aria-current={active ? 'page' : undefined}
                 onClick={() => selectCategory(cat.id)}
-                className={`h-9 px-3 rounded-lg flex items-center justify-between gap-2.5 text-[13px] transition-colors cursor-pointer shrink-0 lg:w-full border ${
+                className={`px-3.5 py-2.5 -mb-px border-b-2 flex items-center gap-2 text-[13px] transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
                   active
-                    ? 'bg-[var(--surface-elevated)] text-[var(--text-heading)] border-[var(--border-strong)] shadow-[inset_0_1px_0_rgba(238,240,245,0.06)] font-medium'
-                    : 'bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] border-transparent font-normal'
+                    ? 'border-[var(--text-heading)] text-[var(--text-heading)] font-medium'
+                    : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-normal'
                 }`}
               >
-                <span className="flex items-center gap-2.5 min-w-0">
-                  <Icon
-                    size={16}
-                    strokeWidth={1.5}
-                    className={active ? 'text-[var(--text-heading)] shrink-0' : 'text-[var(--text-muted)] shrink-0'}
-                  />
-                  <span className="truncate">{isTh ? cat.th : cat.en}</span>
-                </span>
+                <Icon
+                  size={15}
+                  strokeWidth={1.5}
+                  className={active ? 'text-[var(--text-heading)] shrink-0' : 'text-[var(--text-muted)] shrink-0'}
+                />
+                <span>{isTh ? cat.th : cat.en}</span>
 
                 {(cat.dotClass || cat.meta) && (
-                  <span className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-mono tabular-nums text-[var(--text-muted)] shrink-0">
+                  <span className="inline-flex items-center gap-1.5 pl-0.5 text-[11px] font-mono tabular-nums text-[var(--text-muted)] shrink-0">
                     {cat.dotClass && <span className={`w-1.5 h-1.5 rounded-full ${cat.dotClass}`} />}
                     {cat.meta && <span>{cat.meta}</span>}
                   </span>
@@ -416,12 +414,13 @@ export default function Settings() {
             );
           })}
         </nav>
+      </div>
 
-        {/* Focused Category Content Pane */}
-        <div className="min-w-0 animate-fade-in">
+      {/* Focused Full-Width Category Content */}
+      <div className="min-w-0 animate-fade-in">
           {/* 1. Account & KMUTNB Student Pass */}
           {activeTab === 'account' && (
-            <div className="grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-8 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-[430px_minmax(0,1fr)] gap-8 items-start">
               <KmutnbStudentCard
                 name={name || profile.name}
                 email={activeUserEmail}
@@ -740,7 +739,6 @@ export default function Settings() {
               onCheckUpdates={forceCheckPwaUpdate}
             />
           )}
-        </div>
       </div>
 
       {/* Quiet Bottom Version Bar (shown on tabs 1–4; About tab renders its own full release row) */}

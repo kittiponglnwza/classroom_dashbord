@@ -67,13 +67,18 @@ describe('Modular Settings UI Overhaul (Student Pass, Live Discord Preview, Clou
     );
   });
 
-  it('renders segmented 13-digit KMUTNB Student Credential card on Account tab and switches cleanly across all 5 categories', () => {
+  it('renders realistic KMUTNB Student ID Card (front + flip to 13-digit back) and switches cleanly across top horizontal tabs', () => {
     localStorage.setItem(`classroom_hub_${EMAIL}_language`, 'th');
     renderSettings('/settings');
 
-    // Account & ID category is active by default and shows segmented ID blocks
+    // Account & ID category is active by default and shows official KMUTNB card front
     expect(screen.getByTestId('settings-nav-account')).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByText('บัตรประจำตัวนักศึกษา · มจพ.')).toBeInTheDocument();
+    expect(screen.getByText('มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ')).toBeInTheDocument();
+    expect(screen.getByText('67-040626-1111-5')).toBeInTheDocument();
+
+    // Flip card to inspect 13-digit segment breakdown on back
+    fireEvent.click(screen.getByTestId('flip-student-card-btn'));
+    expect(screen.getByText('โครงสร้างรหัสนักศึกษา 13 หลัก มจพ.')).toBeInTheDocument();
     expect(screen.getByText('67')).toBeInTheDocument();
     expect(screen.getByText('11115')).toBeInTheDocument();
 
@@ -91,10 +96,11 @@ describe('Modular Settings UI Overhaul (Student Pass, Live Discord Preview, Clou
     fireEvent.click(screen.getByTestId('preview-mode-assignment'));
     expect(screen.getByTestId('discord-live-embed-card').textContent).toContain('Distributed Consensus Lab');
 
-    // Jump from Discord Assistant shortcut straight to 24/7 Cloud Script category
+    // Jump from Discord Assistant shortcut straight to 24/7 Cloud Script category (no raw code box)
     fireEvent.click(screen.getByText(/ต้องการให้แจ้งเตือนทำงาน 24 ชม\./i));
     expect(screen.getByTestId('settings-nav-cloud')).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByText('Code.gs')).toBeInTheDocument();
+    expect(screen.getByTestId('copy-apps-script-btn')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
   it('deep-links via ?tab=about and renders the GitHub Developer & Repository Showcase', () => {
