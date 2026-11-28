@@ -1,15 +1,12 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
-  MessageSquareText,
   X,
+  Minus,
   Send,
   RotateCcw,
-  ClipboardList,
-  Calendar,
-  GraduationCap,
-  Clock,
   AlertCircle,
   Square,
+  ChevronLeft,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -17,14 +14,41 @@ import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { examRepository } from '../repositories/examRepository';
 import { buildWorkspaceSnapshot, sendGeminiMessage } from '../services/api/geminiApi';
-import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
+
+function AssistantAvatar({ size = 'md', showStatus = false }) {
+  const dimClass =
+    size === 'lg'
+      ? 'w-14 h-14'
+      : size === 'sm'
+        ? 'w-7 h-7'
+        : 'w-9 h-9';
+  const imgClass =
+    size === 'lg'
+      ? 'w-8 h-8'
+      : size === 'sm'
+        ? 'w-4 h-4'
+        : 'w-5 h-5';
+
+  return (
+    <div className={`relative ${dimClass} rounded-full bg-[var(--surface-elevated)] border border-[var(--border-strong)] flex items-center justify-center shrink-0 select-none`}>
+      <img src="/Logo.svg" alt="Study Assistant" className={`${imgClass} rounded select-none`} />
+      {showStatus && (
+        <span
+          className={`absolute bottom-0 right-0 ${
+            size === 'lg' ? 'w-3.5 h-3.5' : 'w-2.5 h-2.5'
+          } rounded-full bg-[#31A24C] ring-2 ring-[#12151E]`}
+        />
+      )}
+    </div>
+  );
+}
 
 function renderInlineSegments(text) {
   const parts = String(text || '').split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
   return parts.map((part, idx) => {
     if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
       return (
-        <strong key={idx} className="font-medium text-[var(--text-heading)]">
+        <strong key={idx} className="font-medium text-white">
           {part.slice(2, -2)}
         </strong>
       );
@@ -33,7 +57,7 @@ function renderInlineSegments(text) {
       return (
         <code
           key={idx}
-          className="px-1.5 py-0.5 rounded bg-[var(--app-bg)] border border-[var(--border)] font-mono text-[12px] text-[var(--primary-bright)]"
+          className="px-1.5 py-0.5 rounded-md bg-black/30 border border-white/10 font-mono text-[12px] text-[#7CC4FA]"
         >
           {part.slice(1, -1)}
         </code>
@@ -95,11 +119,11 @@ function FormattedAssistantReply({ content }) {
   flushList();
 
   return (
-    <div className="space-y-2.5 text-[13px] leading-relaxed text-[var(--text-primary)]">
+    <div className="space-y-2 text-[13.5px] leading-[1.48] text-[#EEF0F5]">
       {blocks.map((block) => {
         if (block.type === 'heading') {
           return (
-            <h4 key={block.key} className="text-[13px] font-medium text-[var(--text-heading)] pt-1">
+            <h4 key={block.key} className="text-[13.5px] font-medium text-white pt-0.5">
               {renderInlineSegments(block.text)}
             </h4>
           );
@@ -108,8 +132,8 @@ function FormattedAssistantReply({ content }) {
           const ListTag = block.listType === 'ol' ? 'ol' : 'ul';
           const listClass =
             block.listType === 'ol'
-              ? 'list-decimal pl-5 space-y-1.5 marker:text-[var(--text-muted)] marker:font-mono'
-              : 'list-disc pl-5 space-y-1.5 marker:text-[var(--text-muted)]';
+              ? 'list-decimal pl-4 space-y-1 marker:text-[var(--text-muted)] marker:font-mono'
+              : 'list-disc pl-4 space-y-1 marker:text-[var(--text-muted)]';
           return (
             <ListTag key={block.key} className={listClass}>
               {block.items.map((item, i) => (
@@ -123,6 +147,18 @@ function FormattedAssistantReply({ content }) {
     </div>
   );
 }
+
+const formatChatTime = (timestamp, lang) => {
+  if (!timestamp) return '';
+  try {
+    return new Date(timestamp).toLocaleTimeString(lang === 'en' ? 'en-US' : 'th-TH', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+};
 
 const localizeAssistantError = (error, lang) => {
   const code = error?.code || '';
@@ -162,13 +198,13 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [errorBanner, setErrorBanner] = useState('');
   const [lastInteractionId, setLastInteractionId] = useState(null);
 
   const abortRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const dialogRef = useRef(null);
 
   const activeEmail = (profile?.email || '').toLowerCase().trim();
 
@@ -194,44 +230,36 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
       lang === 'en'
         ? [
             {
-              icon: ClipboardList,
               label: 'Prioritize urgent assignments',
               prompt: 'Summarize my pending and overdue assignments sorted by urgency and tell me what to tackle first today.',
             },
             {
-              icon: Calendar,
               label: 'Plan this week\'s study blocks',
               prompt: 'Look at my weekly class timetable and pending deadlines, then suggest realistic study blocks for this week.',
             },
             {
-              icon: Clock,
               label: 'Today\'s classes & nearest deadlines',
               prompt: 'What classes do I have today, and which assignments are due soonest?',
             },
             {
-              icon: GraduationCap,
               label: 'Build an exam prep checklist',
               prompt: 'Based on my courses and saved exam dates, create a concise exam preparation plan.',
             },
           ]
         : [
             {
-              icon: ClipboardList,
               label: 'จัดลำดับงานด่วนที่ควรทำก่อน',
               prompt: 'ช่วยสรุปงานค้างและงานที่เลยกำหนดส่ง เรียงตามความเร่งด่วน พร้อมแนะนำว่าวันนี้ควรเริ่มทำชิ้นไหนก่อน',
             },
             {
-              icon: Calendar,
               label: 'วางแผนแบ่งเวลาทำงานสัปดาห์นี้',
               prompt: 'ดูตารางเรียนรายสัปดาห์ควบคู่กับเดดไลน์งาน แล้วช่วยจัดตารางแบ่งเวลาเคลียร์งานและทบทวนบทเรียนให้หน่อย',
             },
             {
-              icon: Clock,
               label: 'เช็คตารางเรียนวันนี้และงานใกล้ส่ง',
               prompt: 'วันนี้มีเรียนวิชาอะไรกี่โมงบ้าง และมีงานชิ้นไหนที่ใกล้ถึงกำหนดส่งที่สุด',
             },
             {
-              icon: GraduationCap,
               label: 'วางแผนอ่านหนังสือเตรียมสอบ',
               prompt: 'ช่วยวางแผนอ่านหนังสือเตรียมสอบจากรายวิชาและตารางสอบที่มีอยู่ในระบบแบบกระชับทำตามได้จริง',
             },
@@ -239,20 +267,39 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
     [lang]
   );
 
-  useDialogFocusTrap(isOpen, dialogRef, {
-    onClose,
-    initialFocusRef: inputRef,
-  });
+  const handleCloseDrawer = useCallback(() => {
+    setIsMinimized(false);
+    onClose?.();
+  }, [onClose]);
 
   useEffect(() => {
-    if (isOpen && messagesEndRef.current?.scrollIntoView) {
+    if (!isOpen) return undefined;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleCloseDrawer();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleCloseDrawer]);
+
+  useEffect(() => {
+    if (isOpen && !isMinimized) {
+      const timer = setTimeout(() => inputRef.current?.focus(), 40);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [isOpen, isMinimized]);
+
+  useEffect(() => {
+    if (isOpen && !isMinimized && messagesEndRef.current?.scrollIntoView) {
       const prefersReduced =
         typeof window !== 'undefined' &&
         typeof window.matchMedia === 'function' &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       messagesEndRef.current.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
     }
-  }, [messages, isLoading, isOpen]);
+  }, [messages, isLoading, isOpen, isMinimized]);
 
   useEffect(() => {
     return () => {
@@ -294,10 +341,12 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
         setInputValue('');
       }
 
+      const nowTs = Date.now();
       const userMsg = {
-        id: `u-${Date.now()}`,
+        id: `u-${nowTs}`,
         role: 'user',
         content: textToSend,
+        createdAt: nowTs,
       };
       setMessages((prev) => [...prev, userMsg]);
       setIsLoading(true);
@@ -332,13 +381,15 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
         return;
       }
 
+      const replyTs = Date.now();
       setLastInteractionId(result.data.interactionId || null);
       setMessages((prev) => [
         ...prev,
         {
-          id: `a-${Date.now()}`,
+          id: `a-${replyTs}`,
           role: 'assistant',
           content: result.data.reply,
+          createdAt: replyTs,
         },
       ]);
       setIsLoading(false);
@@ -369,209 +420,323 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  return (
-    <div
-      ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยวางแผนการเรียน'}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
-      }}
-      className="fixed inset-0 z-50 flex justify-end bg-black/55"
-    >
-      <aside className="h-full w-full sm:w-[420px] max-w-full bg-[var(--sidebar-bg)] border-l border-[var(--border-strong)] flex flex-col overflow-hidden animate-fade-in">
-        {/* Drawer Header */}
-        <div className="h-14 sm:h-16 px-4 border-b border-[var(--border)] bg-[var(--topbar-bg)] flex items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--primary-bright)] shrink-0">
-              <MessageSquareText size={16} strokeWidth={1.5} />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-[13px] font-medium text-[var(--text-heading)] truncate">
-                {lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยวางแผนการเรียน'}
-              </h2>
-              <p className="text-[11px] font-mono tabular-nums text-[var(--text-muted)] truncate">
-                {lang === 'en'
-                  ? `${pendingTaskCount} tasks · ${activeScheduleCount} classes · ${cachedExams.length} exams`
-                  : `งานค้าง ${pendingTaskCount} · ตารางเรียน ${activeScheduleCount} · สอบ ${cachedExams.length}`}
-              </p>
-            </div>
-          </div>
+  const summaryStatsText =
+    lang === 'en'
+      ? `${pendingTaskCount} tasks · ${activeScheduleCount} classes · ${cachedExams.length} exams`
+      : `งานค้าง ${pendingTaskCount} · ตารางเรียน ${activeScheduleCount} · สอบ ${cachedExams.length}`;
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            {messages.length > 0 && (
-              <button
-                type="button"
-                onClick={handleResetChat}
-                title={lang === 'en' ? 'New conversation' : 'เริ่มบทสนทนาใหม่'}
-                aria-label={lang === 'en' ? 'New conversation' : 'เริ่มบทสนทนาใหม่'}
-                className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-              >
-                <RotateCcw size={15} strokeWidth={1.5} />
-              </button>
-            )}
+  // Messenger-style Minimized Chat Tab (Desktop)
+  if (isMinimized) {
+    return (
+      <div
+        role="region"
+        aria-label={lang === 'en' ? 'Minimized Study Assistant chat' : 'แชทผู้ช่วยการเรียนที่ย่อไว้'}
+        className="fixed bottom-4 right-6 z-50 w-72 h-12 rounded-full bg-[#161A24] border border-[var(--border-strong)] shadow-[0_10px_32px_rgba(0,0,0,0.55)] px-2.5 flex items-center justify-between gap-2 animate-fade-in"
+      >
+        <button
+          type="button"
+          onClick={() => setIsMinimized(false)}
+          className="flex-1 flex items-center gap-2.5 min-w-0 text-left cursor-pointer focus-visible:outline-none"
+        >
+          <AssistantAvatar size="sm" showStatus />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-[var(--text-heading)] truncate leading-tight">
+              {lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยวางแผนการเรียน'}
+            </p>
+            <p className="text-[11px] text-[var(--text-muted)] truncate leading-tight">
+              {isLoading
+                ? lang === 'en'
+                  ? 'Typing...'
+                  : 'กำลังพิมพ์...'
+                : lang === 'en'
+                  ? 'Active now'
+                  : 'กำลังใช้งาน'}
+            </p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCloseDrawer}
+          aria-label={lang === 'en' ? 'Close Study Assistant' : 'ปิดผู้ช่วยการเรียน'}
+          className="w-7 h-7 rounded-full hover:bg-white/10 text-[var(--text-secondary)] hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+        >
+          <X size={15} strokeWidth={1.75} />
+        </button>
+      </div>
+    );
+  }
+
+  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+
+  return (
+    <section
+      role="dialog"
+      aria-modal="false"
+      aria-label={lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยวางแผนการเรียน'}
+      className="fixed inset-0 sm:inset-auto sm:bottom-4 sm:right-6 z-50 w-full h-dvh sm:w-[380px] sm:h-[560px] sm:max-h-[calc(100dvh-2rem)] bg-[#12151E] sm:rounded-2xl sm:border sm:border-[var(--border-strong)] sm:shadow-[0_16px_48px_rgba(0,0,0,0.65)] flex flex-col overflow-hidden animate-fade-in"
+    >
+      {/* IG DM / Messenger Top Chat Header */}
+      <header className="h-14 px-3 border-b border-white/[0.08] bg-[#161A24] flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={handleCloseDrawer}
+            aria-label={lang === 'en' ? 'Back' : 'ย้อนกลับ'}
+            className="sm:hidden w-9 h-9 -ml-1 rounded-full hover:bg-white/10 flex items-center justify-center text-[var(--text-primary)] cursor-pointer shrink-0"
+          >
+            <ChevronLeft size={20} strokeWidth={1.75} />
+          </button>
+
+          <AssistantAvatar size="md" showStatus />
+
+          <div className="min-w-0">
+            <h2 className="text-[13.5px] font-medium text-white truncate leading-snug">
+              {lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยวางแผนการเรียน'}
+            </h2>
+            <p className="text-[11px] font-mono tabular-nums text-[var(--text-muted)] truncate leading-snug">
+              {summaryStatsText}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          {messages.length > 0 && (
             <button
               type="button"
-              onClick={onClose}
-              aria-label={lang === 'en' ? 'Close Study Assistant' : 'ปิดผู้ช่วยการเรียน'}
-              className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+              onClick={handleResetChat}
+              title={lang === 'en' ? 'Reset chat' : 'ล้างแชทเริ่มใหม่'}
+              aria-label={lang === 'en' ? 'New conversation' : 'เริ่มบทสนทนาใหม่'}
+              className="w-8 h-8 rounded-full hover:bg-white/10 text-[var(--text-secondary)] hover:text-white flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0084FF]"
             >
-              <X size={16} strokeWidth={1.5} />
+              <RotateCcw size={15} strokeWidth={1.75} />
             </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsMinimized(true)}
+            title={lang === 'en' ? 'Minimize' : 'ย่อหน้าต่างแชท'}
+            aria-label={lang === 'en' ? 'Minimize chat' : 'ย่อหน้าต่างแชท'}
+            className="hidden sm:flex w-8 h-8 rounded-full hover:bg-white/10 text-[var(--text-secondary)] hover:text-white items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0084FF]"
+          >
+            <Minus size={16} strokeWidth={1.75} />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCloseDrawer}
+            title={lang === 'en' ? 'Close' : 'ปิดแชท'}
+            aria-label={lang === 'en' ? 'Close Study Assistant' : 'ปิดผู้ช่วยการเรียน'}
+            className="w-8 h-8 rounded-full hover:bg-white/10 text-[var(--text-secondary)] hover:text-white flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0084FF]"
+          >
+            <X size={17} strokeWidth={1.75} />
+          </button>
+        </div>
+      </header>
+
+      {/* IG DM / Messenger Thread Stream */}
+      <div className="flex-1 overflow-y-auto px-3.5 py-4 space-y-3">
+        {/* IG Direct Profile Intro Header */}
+        <div className="flex flex-col items-center text-center pt-2 pb-3 px-3 space-y-2">
+          <AssistantAvatar size="lg" showStatus />
+          <div className="space-y-0.5">
+            <h3 className="text-[15px] font-medium text-white">
+              {lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยวางแผนการเรียน'}
+            </h3>
+            <p className="text-[11.5px] text-[var(--text-muted)]">
+              {lang === 'en' ? 'Classroom Hub · Synced workspace' : 'Classroom Hub · ซิงก์ข้อมูลเรียนอัตโนมัติ'}
+            </p>
           </div>
         </div>
 
-        {/* Conversation Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 ? (
-            <div className="space-y-4 pt-2">
-              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 space-y-1.5">
-                <h3 className="text-[13px] font-medium text-[var(--text-heading)]">
-                  {lang === 'en'
-                    ? 'Ask about deadlines, classes, or exam prep'
-                    : 'ถามเรื่องเดดไลน์ ตารางเรียน หรือแผนเตรียมสอบ'}
-                </h3>
-                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                  {lang === 'en'
-                    ? 'Answers use your synced Classroom assignments, timetable, and exam records.'
-                    : 'อ้างอิงข้อมูลจริงจากงานค้างใน Classroom ตารางสอน และตารางสอบที่ซิงก์ไว้ในแอป'}
-                </p>
-              </div>
+        {!isLoggedIn && (
+          <div className="mx-1 rounded-2xl bg-[#1D2230] border border-white/[0.08] p-3.5 flex items-center justify-between gap-3">
+            <span className="text-xs text-[var(--text-secondary)] leading-snug">
+              {lang === 'en'
+                ? 'Connect Google Classroom to start chatting.'
+                : 'เชื่อมต่อบัญชี Google Classroom เพื่อเริ่มแชท'}
+            </span>
+            <button
+              type="button"
+              onClick={() => login?.()}
+              className="h-8 px-3.5 rounded-full bg-[#0084FF] hover:bg-[#0073E6] text-white text-xs font-medium shrink-0 transition-colors cursor-pointer"
+            >
+              {lang === 'en' ? 'Connect' : 'เชื่อมต่อ'}
+            </button>
+          </div>
+        )}
 
-              {!isLoggedIn && (
-                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 flex items-center justify-between gap-3">
-                  <span className="text-xs text-[var(--text-secondary)]">
-                    {lang === 'en'
-                      ? 'Sign in with Google to verify your session.'
-                      : 'เข้าสู่ระบบด้วย Google เพื่อเริ่มถามผู้ช่วย AI'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => login?.()}
-                    className="min-h-11 sm:min-h-0 sm:h-8 px-3 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-medium shrink-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
-                  >
-                    {lang === 'en' ? 'Connect' : 'เชื่อมต่อ'}
-                  </button>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-[var(--text-muted)] px-0.5">
-                  {lang === 'en' ? 'Suggested prompts' : 'คำถามแนะนำ'}
-                </p>
-                <div className="space-y-2">
-                  {starterPrompts.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.label}
-                        type="button"
-                        disabled={isLoading}
-                        onClick={() => handleSend(item.prompt)}
-                        className="w-full text-left p-3 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] hover:border-[var(--border-strong)] transition-colors flex items-center gap-3 cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                      >
-                        <div className="w-7 h-7 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] shrink-0">
-                          <Icon size={15} strokeWidth={1.5} />
-                        </div>
-                        <span className="text-xs font-medium text-[var(--text-primary)] leading-snug">
-                          {item.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+        {/* Icebreaker Pills (IG DM Quick Replies when empty) */}
+        {messages.length === 0 && (
+          <div className="pt-2 space-y-2">
+            <p className="text-[11px] text-center text-[var(--text-muted)]">
+              {lang === 'en' ? 'Tap a topic to start' : 'เลือกหัวข้อเพื่อเริ่มคุย หรือพิมพ์ถามด้านล่าง'}
+            </p>
+            <div className="flex flex-col items-end gap-1.5 pt-1">
+              {starterPrompts.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => handleSend(item.prompt)}
+                  className="max-w-[88%] text-left px-3.5 py-2 rounded-[18px] bg-[#1D2230] hover:bg-[#262D3F] border border-white/[0.09] hover:border-[#0084FF]/50 text-[12.5px] text-[#E6EAF2] transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0084FF]"
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {messages.map((msg) =>
-                msg.role === 'user' ? (
-                  <div key={msg.id} className="flex justify-end">
-                    <div className="max-w-[85%] rounded-xl px-3.5 py-2.5 bg-[var(--primary)] text-white text-[13px] leading-relaxed whitespace-pre-wrap break-words">
+          </div>
+        )}
+
+        {/* Chat Bubbles */}
+        {messages.length > 0 && (
+          <div className="space-y-1.5">
+            {messages.map((msg, idx) => {
+              const prevRole = idx > 0 ? messages[idx - 1].role : null;
+              const nextRole = idx < messages.length - 1 ? messages[idx + 1].role : null;
+              const isFirstInGroup = prevRole !== msg.role;
+              const isLastInGroup = nextRole !== msg.role;
+
+              if (msg.role === 'user') {
+                const userRadius =
+                  !isFirstInGroup && !isLastInGroup
+                    ? 'rounded-[20px] rounded-tr-[5px] rounded-br-[5px]'
+                    : !isFirstInGroup && isLastInGroup
+                      ? 'rounded-[20px] rounded-tr-[5px] rounded-br-[6px]'
+                      : isFirstInGroup && !isLastInGroup
+                        ? 'rounded-[20px] rounded-br-[5px]'
+                        : 'rounded-[20px] rounded-br-[5px]';
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col items-end ${isFirstInGroup && idx > 0 ? 'pt-2' : ''}`}
+                  >
+                    <div
+                      className={`max-w-[78%] px-3.5 py-2 bg-[#0084FF] text-white text-[13.5px] leading-[1.45] whitespace-pre-wrap break-words ${userRadius}`}
+                    >
                       {msg.content}
                     </div>
+                    {msg.id === lastMessage?.id && !isLoading && (
+                      <span className="text-[10.5px] text-[var(--text-muted)] mt-1 pr-1 select-none">
+                        {lang === 'en' ? 'Sent' : 'ส่งแล้ว'}
+                        {msg.createdAt ? ` · ${formatChatTime(msg.createdAt, lang)}` : ''}
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  <div key={msg.id} className="flex justify-start">
-                    <div className="w-full rounded-xl p-3.5 bg-[var(--surface)] border border-[var(--border)] break-words">
+                );
+              }
+
+              const assistantRadius =
+                !isFirstInGroup && !isLastInGroup
+                  ? 'rounded-[20px] rounded-tl-[5px] rounded-bl-[5px]'
+                  : !isFirstInGroup && isLastInGroup
+                    ? 'rounded-[20px] rounded-tl-[5px] rounded-bl-[6px]'
+                    : isFirstInGroup && !isLastInGroup
+                      ? 'rounded-[20px] rounded-bl-[5px]'
+                      : 'rounded-[20px] rounded-bl-[5px]';
+
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex items-end gap-2 ${isFirstInGroup && idx > 0 ? 'pt-2' : ''}`}
+                >
+                  {isLastInGroup && !isLoading ? (
+                    <AssistantAvatar size="sm" />
+                  ) : (
+                    <div className="w-7 shrink-0" aria-hidden="true" />
+                  )}
+
+                  <div className="max-w-[84%] flex flex-col items-start">
+                    <div
+                      className={`px-3.5 py-2.5 bg-[#222736] border border-white/[0.07] break-words ${assistantRadius}`}
+                    >
                       <FormattedAssistantReply content={msg.content} />
                     </div>
+                    {isLastInGroup && msg.createdAt && (
+                      <span className="text-[10.5px] text-[var(--text-muted)] mt-1 pl-1 select-none">
+                        {formatChatTime(msg.createdAt, lang)}
+                      </span>
+                    )}
                   </div>
-                )
-              )}
-
-              {isLoading && (
-                <div className="flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-secondary)]">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-3.5 h-3.5 rounded-full border-2 border-[var(--border-strong)] border-t-[var(--primary-bright)] animate-spin shrink-0" />
-                    <span>{lang === 'en' ? 'Thinking...' : 'กำลังวิเคราะห์ข้อมูลตารางเรียนและงาน...'}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleStopRequest}
-                    className="inline-flex items-center gap-1 min-h-9 px-2 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-heading)] cursor-pointer transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                  >
-                    <Square size={12} strokeWidth={1.5} />
-                    <span>{lang === 'en' ? 'Stop' : 'หยุด'}</span>
-                  </button>
                 </div>
-              )}
-            </div>
-          )}
+              );
+            })}
 
-          {errorBanner && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 rounded-xl border border-rose-500/35 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-300"
-            >
-              <AlertCircle size={15} strokeWidth={1.5} className="shrink-0 mt-0.5 text-rose-400" />
-              <span className="leading-relaxed">{errorBanner}</span>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Composer Footer */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
-          className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-[var(--border)] bg-[var(--topbar-bg)] shrink-0"
-        >
-          <div className="flex items-end gap-2 bg-[var(--surface)] border border-[var(--border)] focus-within:border-[var(--border-strong)] rounded-xl p-2 transition-colors">
-            <textarea
-              ref={inputRef}
-              rows={1}
-              aria-label={
-                lang === 'en'
-                  ? 'Ask Study Assistant'
-                  : 'พิมพ์คำถามถึงผู้ช่วยวางแผนการเรียน'
-              }
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDownInput}
-              placeholder={
-                lang === 'en'
-                  ? 'Ask about your coursework or schedule'
-                  : 'ถามเกี่ยวกับการบ้าน ตารางเรียน หรือวันสอบ'
-              }
-              maxLength={4000}
-              className="flex-1 max-h-28 min-h-[32px] bg-transparent text-base sm:text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none px-1.5 py-1 focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={!inputValue.trim() || isLoading}
-              aria-label={lang === 'en' ? 'Send message' : 'ส่งข้อความ'}
-              className="w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] disabled:opacity-40 text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
-            >
-              <Send size={15} strokeWidth={1.5} />
-            </button>
+            {/* IG / Messenger 3-Dot Typing Bubble */}
+            {isLoading && (
+              <div className="flex items-end gap-2 pt-1">
+                <AssistantAvatar size="sm" />
+                <div className="px-4 py-3 rounded-[20px] rounded-bl-[5px] bg-[#222736] border border-white/[0.07] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#9AA3B5] dm-typing-dot" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#9AA3B5] dm-typing-dot" style={{ animationDelay: '160ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#9AA3B5] dm-typing-dot" style={{ animationDelay: '320ms' }} />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleStopRequest}
+                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-[11px] font-medium text-[var(--text-secondary)] hover:text-white cursor-pointer transition-colors"
+                >
+                  <Square size={10} strokeWidth={2} />
+                  <span>{lang === 'en' ? 'Stop' : 'หยุด'}</span>
+                </button>
+              </div>
+            )}
           </div>
-        </form>
-      </aside>
-    </div>
+        )}
+
+        {errorBanner && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-2xl border border-rose-500/35 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-300"
+          >
+            <AlertCircle size={15} strokeWidth={1.5} className="shrink-0 mt-0.5 text-rose-400" />
+            <span className="leading-relaxed">{errorBanner}</span>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* IG DM / Messenger Rounded-Pill Composer Bar */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSend();
+        }}
+        className="px-3 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] bg-[#12151E] border-t border-white/[0.07] shrink-0"
+      >
+        <div className="flex items-end gap-2 rounded-[24px] bg-[#1E2330] border border-white/[0.10] focus-within:border-white/[0.22] pl-3.5 pr-1.5 py-1.5 transition-colors">
+          <textarea
+            ref={inputRef}
+            rows={1}
+            aria-label={
+              lang === 'en'
+                ? 'Ask Study Assistant'
+                : 'พิมพ์คำถามถึงผู้ช่วยวางแผนการเรียน'
+            }
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDownInput}
+            placeholder={
+              lang === 'en'
+                ? 'Message...'
+                : 'ถามเกี่ยวกับการบ้าน ตารางเรียน หรือวันสอบ'
+            }
+            maxLength={4000}
+            className="flex-1 max-h-28 min-h-[28px] bg-transparent text-base sm:text-[13.5px] text-white placeholder:text-[var(--text-muted)] resize-none py-1 focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={!inputValue.trim() || isLoading}
+            aria-label={lang === 'en' ? 'Send message' : 'ส่งข้อความ'}
+            className="w-8 h-8 rounded-full bg-[#0084FF] hover:bg-[#0073E6] disabled:opacity-35 text-white flex items-center justify-center shrink-0 transition-all duration-150 active:scale-95 cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          >
+            <Send size={14} strokeWidth={2} className="translate-x-[0.5px]" />
+          </button>
+        </div>
+      </form>
+    </section>
   );
 }

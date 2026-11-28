@@ -207,4 +207,21 @@ describe('Study Assistant Drawer & Gemini Frontend Service', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
+
+  it('minimizes into a Messenger-style bottom chat bar and restores active conversation', () => {
+    renderWithLayout('th');
+    fireEvent.click(screen.getByTestId('floating-assistant-trigger'));
+
+    expect(screen.getByRole('dialog', { name: 'ผู้ช่วยวางแผนการเรียน' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'ย่อหน้าต่างแชท' }));
+    expect(screen.queryByRole('dialog', { name: 'ผู้ช่วยวางแผนการเรียน' })).not.toBeInTheDocument();
+
+    const minimizedBar = screen.getByRole('region', { name: 'แชทผู้ช่วยการเรียนที่ย่อไว้' });
+    expect(minimizedBar).toBeInTheDocument();
+
+    // Click minimized tab to restore full chat popup
+    fireEvent.click(minimizedBar.querySelector('button'));
+    expect(screen.getByRole('dialog', { name: 'ผู้ช่วยวางแผนการเรียน' })).toBeInTheDocument();
+  });
 });

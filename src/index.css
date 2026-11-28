@@ -124,6 +124,21 @@
   }
 }
 
+@keyframes dmTypingDot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.dm-typing-dot {
+  animation: dmTypingDot 1.2s infinite ease-in-out;
+}
+
 select option {
   background-color: var(--surface) !important;
   color: var(--text-primary) !important;

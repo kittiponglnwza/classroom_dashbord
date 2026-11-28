@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import HeaderBar from './HeaderBar';
 import MobileBottomNav from './MobileBottomNav';
 import AiAssistantDrawer from './AiAssistantDrawer';
-import { X, MessageSquareText } from 'lucide-react';
+import { X, MessageCircle } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 
@@ -100,12 +100,15 @@ export default function Layout({ children }) {
           type="button"
           data-testid="floating-assistant-trigger"
           onClick={() => setAssistantOpen(true)}
-          aria-label={lang === 'en' ? 'Open Study Assistant drawer' : 'เปิดแผงผู้ช่วยวางแผนการเรียน'}
-          className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 min-h-11 md:min-h-10 px-3.5 rounded-xl bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border-strong)] text-[var(--text-heading)] flex items-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          aria-label={lang === 'en' ? 'Open Study Assistant chat' : 'เปิดแชทผู้ช่วยวางแผนการเรียน'}
+          className="fixed bottom-20 md:bottom-5 right-4 md:right-6 z-40 h-12 pl-2 pr-4 rounded-full bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border-strong)] shadow-[0_8px_28px_rgba(0,0,0,0.45)] text-[var(--text-heading)] flex items-center gap-2.5 transition-all duration-150 active:scale-[0.97] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0084FF]"
         >
-          <MessageSquareText size={16} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
-          <span className="text-xs font-medium">
-            {lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยเรียน'}
+          <span className="relative w-8 h-8 rounded-full bg-[#0084FF] text-white flex items-center justify-center shrink-0">
+            <MessageCircle size={17} strokeWidth={1.75} />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#31A24C] ring-2 ring-[var(--surface-elevated)]" />
+          </span>
+          <span className="text-[13px] font-medium tracking-[-0.01em]">
+            {lang === 'en' ? 'Messages' : 'แชทผู้ช่วย'}
           </span>
         </button>
       )}
