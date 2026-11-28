@@ -1012,6 +1012,93 @@ export class NotificationService {
           );
         }
       }
+
+      // Optional background rollover evaluation (midnight assignment deadlines, exam countdowns, and weekly digest)
+      if (context.includeDeadlinesAndWeekly) {
+        const deletedTaskIds = (getDeletedIds(toEmail) || [])
+          .filter((d) => d.entityType === 'assignments')
+          .map((d) => d.id);
+
+        const assignCandidates = evaluateAssignmentCandidates({
+          assignments,
+          hiddenCourseIds,
+          deletedTaskIds,
+          alertSettings,
+          prevSnapshot: null,
+          authoritativeSync: false,
+          now
+        });
+        for (const cand of assignCandidates) {
+          await this.dispatchDiscordCandidate(
+            toEmail,
+            alertSettings.discordWebhookUrl,
+            cand,
+            alertSettings,
+            now
+          );
+        }
+
+        const { candidates: examCandidates } = evaluateExamCandidates({
+          exams,
+          manualExams,
+          alertSettings,
+          prevSnapshot: null,
+          explicitExamSync: false,
+          now
+        });
+        for (const examCand of examCandidates) {
+          await this.dispatchDiscordCandidate(
+            toEmail,
+            alertSettings.discordWebhookUrl,
+            examCand,
+            alertSettings,
+            now
+          );
+        }
+
+        if (alertSettings.sundayDigest) {
+          const targetTimeStr = alertSettings.weeklyDigestTime || getSundayDigestTime(toEmail);
+          const windowState = isWeeklyDigestWindowDue({
+            now,
+            targetDayKey: alertSettings.weeklyDigestDay || 'sun',
+            targetTimeStr,
+            timeZone: alertSettings.timezone,
+            prevLastSync: null
+          });
+          if (windowState.due && windowState.anchorDateStr) {
+            const anchorStamp = windowState.anchorDateStr;
+            const weeklyData = buildWeeklyDigestData({
+              assignments,
+              resources,
+              schedule,
+              exams,
+              manualExams,
+              hiddenCourseIds,
+              alertSettings,
+              now
+            });
+            if (weeklyData.hasContent) {
+              await this.dispatchDiscordCandidate(
+                toEmail,
+                alertSettings.discordWebhookUrl,
+                {
+                  eventKey: buildEventIdentity('digest', 'weekly', 'summary', anchorStamp),
+                  eventType: 'digest',
+                  sourceId: 'sunday_digest_overall',
+                  stage: 'weekly',
+                  legacyDiscordType: `discord_sunday_digest_${anchorStamp}`,
+                  priority: PRIORITY.P3_DIGEST,
+                  payload: weeklyData.payload,
+                  historyTitle: `Sent Weekly Academic Report to Discord (${weeklyData.pendingTasks.length} pending, ${weeklyData.upcomingExams.length} exams)`,
+                  targetPath: '/dashboard'
+                },
+                alertSettings,
+                now
+              );
+            }
+          }
+        }
+      }
     });
   }
 

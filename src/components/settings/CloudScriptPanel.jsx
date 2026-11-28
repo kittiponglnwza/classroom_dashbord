@@ -6,6 +6,8 @@ export default function CloudScriptPanel({
   hiddenCourseCount = 0,
   embedWebhookInScript = false,
   onToggleEmbedWebhook,
+  deliveryAuthority = 'browser',
+  onSelectAuthority,
   generatedAppsScript = ''
 }) {
   const [copied, setCopied] = useState(false);
@@ -39,24 +41,24 @@ export default function CloudScriptPanel({
   const steps = [
     {
       num: '01',
-      title: isTh ? 'สร้างโปรเจกต์และวางสคริปต์' : 'Create project & paste script',
+      title: isTh ? 'คัดลอกและวางสคริปต์ใน Code.gs' : 'Copy & paste into Code.gs',
       desc: isTh
-        ? 'กดคัดลอกสคริปต์ด้านบน เปิด script.google.com สร้าง New Project แล้ววางทับลงในไฟล์ Code.gs'
-        : 'Copy the script above, open script.google.com, create a New Project, and paste into Code.gs'
+        ? 'ติ๊กช่อง "ฝังลิงก์ Discord Webhook" ด้านบนเพื่อให้พร้อมใช้ทันที กดคัดลอก แล้วนำไปวางทับใน Code.gs บน script.google.com'
+        : 'Check "Embed Discord Webhook URL" above for zero-config setup, copy the script, and paste into Code.gs on script.google.com'
     },
     {
       num: '02',
-      title: isTh ? 'เปิด Services และตั้งค่า Webhook' : 'Enable Services & Webhook property',
+      title: isTh ? 'เพิ่ม Google Classroom & Calendar API' : 'Add Classroom & Calendar Services',
       desc: isTh
-        ? 'กด Services (+) เพิ่ม Google Classroom API และ Google Calendar API จากนั้นใส่ DISCORD_WEBHOOK_URL ใน Project Settings'
-        : 'Add Google Classroom API & Google Calendar API under Services (+), then save DISCORD_WEBHOOK_URL in Script Properties'
+        ? 'กด Services (+) แถบซ้าย เพิ่ม Google Classroom API (จำเป็น) และ Google Calendar API (เพื่อซิงก์ตารางเรียน/สอบสด)'
+        : 'Click Services (+) on the left sidebar and add Google Classroom API (required) plus Google Calendar API'
     },
     {
       num: '03',
-      title: isTh ? 'ตั้งเวลาทำงานอัตโนมัติ (Trigger)' : 'Add time-driven trigger',
+      title: isTh ? 'กด Run ฟังก์ชัน install24x7Trigger ครั้งเดียวจบ' : 'Run install24x7Trigger once',
       desc: isTh
-        ? 'ไปที่เมนู Triggers เลือกฟังก์ชัน sendClassroomDigest ให้รันอัตโนมัติทุก 15 นาที หรือทุก 1 ชั่วโมง'
-        : 'Open Triggers and schedule sendClassroomDigest to run automatically every 15 or 60 minutes'
+        ? 'เลือกฟังก์ชัน install24x7Trigger ด้านบนแล้วกด Run 1 ครั้ง ระบบจะสร้าง Trigger รันอัตโนมัติทุก 15 นาทีตลอด 24 ชม. และยิงข้อความยืนยันเข้า Discord ทันที'
+        : 'Select install24x7Trigger in the toolbar and click Run once — it automatically schedules 15-minute 24/7 runs and confirms in Discord'
     }
   ];
 
@@ -140,10 +142,34 @@ export default function CloudScriptPanel({
           {!embedWebhookInScript && (
             <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--success)] shrink-0">
               <ShieldCheck size={13} strokeWidth={1.5} />
-              <span>{isTh ? 'โหมดปลอดภัย: แยกโทเคนไว้ใน Properties' : 'Safe mode: secret isolated'}</span>
+              <span>{isTh ? 'โหมดปลอดภัย: ต้องตั้ง DISCORD_WEBHOOK_URL ใน Script Properties' : 'Safe mode: set DISCORD_WEBHOOK_URL in Script Properties'}</span>
             </span>
           )}
         </div>
+
+        {onSelectAuthority && (
+          <div className="pt-3 border-t border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <span className="text-[var(--text-secondary)]">
+              {deliveryAuthority === 'apps_script'
+                ? (isTh
+                    ? 'เปิดโหมด 24/7 Cloud เป็นตัวหลักแล้ว — หน้าเว็บจะไม่ยิงข้อความซ้ำตอนคุณกดเข้าเว็บ'
+                    : '24/7 Cloud is set as primary authority — opening the web app will not double-send alerts')
+                : (isTh
+                    ? 'หลังกด Run install24x7Trigger สำเร็จ แนะนำให้สลับเป็นโหมด 24/7 Cloud เพื่อป้องกันหน้าเว็บส่งข้อความซ้ำ'
+                    : 'Once install24x7Trigger is active, switch to 24/7 Cloud authority so opening the web app never double-sends')}
+            </span>
+            <button
+              type="button"
+              data-testid="quick-switch-cloud-authority-btn"
+              onClick={() => onSelectAuthority(deliveryAuthority === 'apps_script' ? 'browser' : 'apps_script')}
+              className="h-8 px-3 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium text-[var(--text-primary)] transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+            >
+              {deliveryAuthority === 'apps_script'
+                ? (isTh ? 'สลับกลับเป็นโหมดหน้าเว็บ' : 'Switch back to Browser mode')
+                : (isTh ? 'ใช้ 24/7 Cloud เป็นตัวส่งหลัก' : 'Set 24/7 Cloud as Primary')}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Clean 3-Step Setup Guide */}

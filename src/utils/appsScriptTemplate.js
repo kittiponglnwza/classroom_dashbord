@@ -82,6 +82,13 @@ export function getAppsScriptTemplate(hiddenCourseIds = [], options = {}) {
 
   const enableMorningBriefing = options?.morningBriefingEnabled !== undefined ? Boolean(options.morningBriefingEnabled) : false;
   const morningBriefingTime = normalizeClockStr(options?.morningBriefingTime, '07:00');
+  const morningBriefingFreeDays =
+    options?.morningBriefingSendOnFreeDays !== undefined ? Boolean(options.morningBriefingSendOnFreeDays) : true;
+
+  const enableClassReminder = options?.classReminderEnabled !== undefined ? Boolean(options.classReminderEnabled) : false;
+  const classReminderLeadMinutes = Math.min(Math.max(Number(options?.classReminderLeadMinutes ?? 30) || 30, 5), 120);
+  const classReminderFinal5m = options?.classReminderFinal5m !== undefined ? Boolean(options.classReminderFinal5m) : false;
+
   const enableExamCountdown = options?.examCountdownEnabled !== undefined ? Boolean(options.examCountdownEnabled) : false;
   const examStages = {
     d7: options?.exam7Days !== undefined ? Boolean(options.exam7Days) : true,
@@ -89,13 +96,24 @@ export function getAppsScriptTemplate(hiddenCourseIds = [], options = {}) {
     d1: options?.exam1Day !== undefined ? Boolean(options.exam1Day) : true,
     d0: options?.examToday !== undefined ? Boolean(options.examToday) : true
   };
+
+  const enableDailyDigest = options?.dailyDigestEnabled !== undefined ? Boolean(options.dailyDigestEnabled) : false;
+  const dailyDigestTime = normalizeClockStr(options?.dailyDigestTime, '20:00');
   const enableWeeklyDigest = options?.sundayDigest !== undefined ? Boolean(options.sundayDigest) : false;
+  const validWeekdays = new Set(['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']);
+  const weeklyDigestDay = validWeekdays.has(String(options?.weeklyDigestDay || '').toLowerCase())
+    ? String(options.weeklyDigestDay).toLowerCase()
+    : 'sun';
   const weeklyDigestTime = normalizeClockStr(options?.weeklyDigestTime, '18:00');
 
   const quietHoursEnabled = Boolean(options?.quietHoursEnabled ?? false);
   const quietHoursStart = normalizeClockStr(options?.quietHoursStart, '22:00');
   const quietHoursEnd = normalizeClockStr(options?.quietHoursEnd, '06:30');
   const quietHoursAllowCritical = options?.quietHoursAllowCritical !== undefined ? Boolean(options.quietHoursAllowCritical) : true;
+  const validPriorities = new Set(['P0', 'P1', 'P2', 'P3']);
+  const minPriority = validPriorities.has(String(options?.minPriority || '').toUpperCase())
+    ? String(options.minPriority).toUpperCase()
+    : 'P3';
 
   const timeZone = normalizeTimezone(options?.timezone, DEFAULT_TIMEZONE);
   const maxRetries = Math.min(Math.max(Number(options?.maxRetries ?? 2), 1), 4);
@@ -109,19 +127,18 @@ export function getAppsScriptTemplate(hiddenCourseIds = [], options = {}) {
  * Classroom Hub: 24/7 Personal Academic Assistant (Google Apps Script)
  * ============================================================================
  *
- * Setup Instructions:
- * 1. Open https://script.google.com -> click "New Project" and paste this file into Code.gs.
+ * Quick 24/7 Setup Instructions:
+ * 1. Open https://script.google.com -> click "New Project" and paste this file into Code.gs (Save Ctrl+S).
  * 2. Left sidebar "Services (+)" -> Add "Google Classroom API" (required)
  *    and "Google Calendar API" (recommended for live Timetable & Exam Seating sync).
- * 3. Secure Webhook Setup (Recommended):
+ * 3. If you did NOT embed the Webhook URL when copying:
  *    Open Project Settings (gear icon) -> Script Properties -> Add property:
  *      Property: DISCORD_WEBHOOK_URL
  *      Value:    https://discord.com/api/webhooks/<ID>/<TOKEN>
- *    (Alternatively, run setupDiscordWebhook("https://discord.com/...") once, then clear the string.)
- * 4. Test with "testDiscordWebhook" or "debugDryRun" in the toolbar.
- * 5. Left sidebar "Triggers" (alarm icon) -> "+ Add Trigger":
- *    - Function: sendClassroomDigest
- *    - Event source: Time-driven -> Hour timer -> Every hour (or Every 15 minutes)
+ * 4. One-Click 24/7 Activation:
+ *    Select "install24x7Trigger" in the top toolbar dropdown and click "Run" ONCE!
+ *    (Grant Google permission when prompted -> it automatically creates a 15-minute 24/7 trigger
+ *    and sends an instant confirmation message to your Discord channel.)
  */
 
 var CONFIG = {
@@ -139,14 +156,22 @@ var CONFIG = {
   OVERDUE_ENABLED: ${JSON.stringify(overdueEnabled)},
   ENABLE_MORNING_BRIEFING: ${JSON.stringify(enableMorningBriefing)},
   MORNING_BRIEFING_TIME: ${JSON.stringify(morningBriefingTime)},
+  MORNING_BRIEFING_FREE_DAYS: ${JSON.stringify(morningBriefingFreeDays)},
+  ENABLE_CLASS_REMINDER: ${JSON.stringify(enableClassReminder)},
+  CLASS_REMINDER_LEAD_MINUTES: ${JSON.stringify(classReminderLeadMinutes)},
+  CLASS_REMINDER_FINAL_5M: ${JSON.stringify(classReminderFinal5m)},
   ENABLE_EXAM_COUNTDOWN: ${JSON.stringify(enableExamCountdown)},
   EXAM_STAGES: ${JSON.stringify(examStages)},
+  ENABLE_DAILY_DIGEST: ${JSON.stringify(enableDailyDigest)},
+  DAILY_DIGEST_TIME: ${JSON.stringify(dailyDigestTime)},
   ENABLE_WEEKLY_DIGEST: ${JSON.stringify(enableWeeklyDigest)},
+  WEEKLY_DIGEST_DAY: ${JSON.stringify(weeklyDigestDay)},
   WEEKLY_DIGEST_TIME: ${JSON.stringify(weeklyDigestTime)},
   QUIET_HOURS_ENABLED: ${JSON.stringify(quietHoursEnabled)},
   QUIET_HOURS_START: ${JSON.stringify(quietHoursStart)},
   QUIET_HOURS_END: ${JSON.stringify(quietHoursEnd)},
   QUIET_HOURS_ALLOW_CRITICAL: ${JSON.stringify(quietHoursAllowCritical)},
+  MIN_PRIORITY: ${JSON.stringify(minPriority)},
   HIDDEN_COURSE_IDS: ${hiddenArrayStr},
   DASHBOARD_URL: ${JSON.stringify(safeDashboardUrl)},
   AVATAR_URL: ${JSON.stringify(safeAvatarUrl)},
@@ -269,6 +294,26 @@ function isQuietHoursBlocked_(now, isCritical) {
   return curM >= startM || curM < endM;
 }
 
+function getWeekdayKeyInTz_(dateObj, tz) {
+  var validDays = { sun: 1, mon: 1, tue: 1, wed: 1, thu: 1, fri: 1, sat: 1 };
+  try {
+    var s = String(Utilities.formatDate(dateObj, tz || CONFIG.TIMEZONE, 'EEE') || '')
+      .toLowerCase()
+      .slice(0, 3);
+    if (validDays[s]) return s;
+  } catch (e) {}
+  var dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  var bkk = new Date(dateObj.getTime() + 7 * 60 * 60 * 1000);
+  return dayNames[bkk.getUTCDay()];
+}
+
+function isPriorityAllowedInScript_(priority) {
+  var ranks = { P0: 0, P1: 1, P2: 2, P3: 3 };
+  var pRank = ranks[priority] !== undefined ? ranks[priority] : 2;
+  var minRank = ranks[CONFIG.MIN_PRIORITY] !== undefined ? ranks[CONFIG.MIN_PRIORITY] : 3;
+  return pRank <= minRank;
+}
+
 /**
  * Multi-chunk PropertiesService ledger (avoids 9KB single-property quota limit)
  * while maintaining seamless read compatibility with legacy STORAGE_KEY_V2.
@@ -380,12 +425,31 @@ function postDiscordWebhookWithRetry(webhookUrl, payload) {
 
 /**
  * Reads synced Schedule & Exam events from Google Calendar (pushed by Classroom Hub web sync)
- * or falls back cleanly to CONFIG.FALLBACK_SNAPSHOT when Calendar service is not enabled.
+ * and falls back per-feed to CONFIG.FALLBACK_SNAPSHOT when Calendar service is disabled or has
+ * not synced Classroom Hub events yet (fixes empty-Calendar shadowing bug).
  */
 function readHubAcademicCalendar_(now) {
   var todayIso = formatIsoDateInTz_(now, CONFIG.TIMEZONE);
-  var todayClasses = [];
-  var upcomingExams = [];
+  var todayKey = getWeekdayKeyInTz_(now, CONFIG.TIMEZONE);
+
+  var snap = CONFIG.FALLBACK_SNAPSHOT || { schedule: [], exams: [] };
+  var snapClasses = [];
+  var schedList = snap.schedule || [];
+  for (var s = 0; s < schedList.length; s++) {
+    var entry = schedList[s];
+    if (entry.endDate && todayIso > entry.endDate) continue;
+    if ((entry.date && entry.date === todayIso) || (!entry.date && entry.day === todayKey)) {
+      snapClasses.push(entry);
+    }
+  }
+
+  var snapExams = [];
+  var examList = snap.exams || [];
+  for (var x = 0; x < examList.length; x++) {
+    if (examList[x].dateIso && examList[x].dateIso >= todayIso) {
+      snapExams.push(examList[x]);
+    }
+  }
 
   if (typeof Calendar !== 'undefined' && Calendar.Events && typeof Calendar.Events.list === 'function') {
     try {
@@ -400,6 +464,11 @@ function readHubAcademicCalendar_(now) {
         maxResults: 250
       });
       var items = (calRes && calRes.items) ? calRes.items : [];
+      var calTodayClasses = [];
+      var calUpcomingExams = [];
+      var hasSyncedSchedule = false;
+      var hasSyncedExams = false;
+
       for (var i = 0; i < items.length; i++) {
         var ev = items[i];
         if (!ev || ev.status === 'cancelled' || !ev.start || !ev.start.dateTime) continue;
@@ -407,56 +476,126 @@ function readHubAcademicCalendar_(now) {
         var evStart = new Date(ev.start.dateTime);
         var evIso = formatIsoDateInTz_(evStart, CONFIG.TIMEZONE);
 
-        if (priv.chType === 'schedule' && evIso === todayIso) {
-          todayClasses.push({
-            title: ev.summary || 'Class',
-            courseCode: priv.chCode || '',
-            startTime: priv.chStart || Utilities.formatDate(evStart, CONFIG.TIMEZONE, 'HH:mm'),
-            endTime: priv.chEnd || '',
-            room: priv.chRoom || ev.location || ''
-          });
-        } else if (priv.chType === 'exam' && evIso >= todayIso) {
-          upcomingExams.push({
-            id: priv.chId || ev.id,
-            subject: ev.summary || 'Examination',
-            courseCode: priv.chCode || '',
-            dateIso: evIso,
-            dateLabel: evIso,
-            time: (priv.chStart && priv.chEnd) ? (priv.chStart + ' - ' + priv.chEnd) : '',
-            room: priv.chRoom || ev.location || '',
-            seat: priv.chSeat || ''
-          });
+        if (priv.chType === 'schedule') {
+          hasSyncedSchedule = true;
+          if (evIso === todayIso) {
+            calTodayClasses.push({
+              id: priv.chId || ev.id,
+              title: ev.summary || 'Class',
+              courseCode: priv.chCode || '',
+              startTime: priv.chStart || Utilities.formatDate(evStart, CONFIG.TIMEZONE, 'HH:mm'),
+              endTime: priv.chEnd || '',
+              room: priv.chRoom || ev.location || ''
+            });
+          }
+        } else if (priv.chType === 'exam') {
+          hasSyncedExams = true;
+          if (evIso >= todayIso) {
+            calUpcomingExams.push({
+              id: priv.chId || ev.id,
+              subject: ev.summary || 'Examination',
+              courseCode: priv.chCode || '',
+              dateIso: evIso,
+              dateLabel: evIso,
+              time: (priv.chStart && priv.chEnd) ? (priv.chStart + ' - ' + priv.chEnd) : '',
+              room: priv.chRoom || ev.location || '',
+              seat: priv.chSeat || ''
+            });
+          }
         }
       }
-      return { todayClasses: todayClasses, upcomingExams: upcomingExams, source: 'calendar_api' };
+
+      return {
+        todayClasses: hasSyncedSchedule ? calTodayClasses : snapClasses,
+        upcomingExams: hasSyncedExams ? calUpcomingExams : snapExams,
+        source: (hasSyncedSchedule || hasSyncedExams) ? 'calendar_api' : 'snapshot'
+      };
     } catch (calErr) {
       Logger.log('[INFO] Calendar API unavailable, using fallback snapshot: ' + calErr.toString());
     }
   }
 
-  // Fallback to sanitized snapshot embedded at script generation time
-  var snap = CONFIG.FALLBACK_SNAPSHOT || { schedule: [], exams: [] };
-  var dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  var bkk = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-  var todayKey = dayNames[bkk.getUTCDay()];
+  return { todayClasses: snapClasses, upcomingExams: snapExams, source: 'snapshot' };
+}
 
-  var schedList = snap.schedule || [];
-  for (var s = 0; s < schedList.length; s++) {
-    var entry = schedList[s];
-    if (entry.endDate && todayIso > entry.endDate) continue;
-    if ((entry.date && entry.date === todayIso) || (!entry.date && entry.day === todayKey)) {
-      todayClasses.push(entry);
-    }
+/**
+ * One-Click 24/7 Trigger Installer:
+ * Select "install24x7Trigger" in the Apps Script toolbar and click "Run" ONCE.
+ * Automatically removes duplicate triggers, schedules sendClassroomDigest every 15 minutes 24/7,
+ * verifies your Discord Webhook, and posts a live activation message to Discord.
+ */
+function install24x7Trigger() {
+  Logger.log('=== [Classroom Hub: install24x7Trigger] ===');
+  var webhookUrl = resolveDiscordWebhookUrl();
+  if (!isValidDiscordWebhook(webhookUrl)) {
+    Logger.log('[ERROR] Discord Webhook URL is not configured yet!');
+    Logger.log('-> Option A (Easiest): On Classroom Hub web Settings, check "Embed Discord Webhook URL" and re-copy this script.');
+    Logger.log('-> Option B: In Apps Script Project Settings (gear icon) -> Script Properties -> add DISCORD_WEBHOOK_URL.');
+    return false;
   }
 
-  var examList = snap.exams || [];
-  for (var x = 0; x < examList.length; x++) {
-    if (examList[x].dateIso && examList[x].dateIso >= todayIso) {
-      upcomingExams.push(examList[x]);
+  var triggerCreated = false;
+  if (typeof ScriptApp !== 'undefined' && ScriptApp && typeof ScriptApp.newTrigger === 'function') {
+    var existing = ScriptApp.getProjectTriggers ? ScriptApp.getProjectTriggers() : [];
+    var removedCount = 0;
+    for (var i = 0; i < existing.length; i++) {
+      if (existing[i].getHandlerFunction && existing[i].getHandlerFunction() === 'sendClassroomDigest') {
+        ScriptApp.deleteTrigger(existing[i]);
+        removedCount++;
+      }
     }
+    ScriptApp.newTrigger('sendClassroomDigest').timeBased().everyMinutes(15).create();
+    triggerCreated = true;
+    Logger.log('[OK] Installed 24/7 Time-Driven Trigger (every 15 minutes). Cleaned ' + removedCount + ' old trigger(s).');
+  } else {
+    Logger.log('[WARN] ScriptApp trigger API unavailable in this environment.');
   }
 
-  return { todayClasses: todayClasses, upcomingExams: upcomingExams, source: 'snapshot' };
+  var nowStr = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'dd MMM yyyy HH:mm:ss');
+  postDiscordWebhookWithRetry(webhookUrl, {
+    username: 'Classroom Hub (24/7 Cloud)',
+    avatar_url: CONFIG.AVATAR_URL,
+    embeds: [{
+      title: '24/7 Cloud Assistant Activated',
+      description: 'Google Apps Script is now scheduled to check your Google Classroom, timetable, and exam countdowns **every 15 minutes — 24 hours a day**, even when your browser and PC are off.',
+      url: CONFIG.DASHBOARD_URL,
+      color: 5163440,
+      fields: [
+        {
+          name: 'Active 24/7 Schedule',
+          value: '• Morning Briefing: **' + (CONFIG.ENABLE_MORNING_BRIEFING ? CONFIG.MORNING_BRIEFING_TIME : 'Disabled') + '**\\n' +
+                 '• Pre-Class Alert: **' + (CONFIG.ENABLE_CLASS_REMINDER ? (CONFIG.CLASS_REMINDER_LEAD_MINUTES + 'm before class') : 'Disabled') + '**\\n' +
+                 '• Deadlines & New Posts: **Every 15 min**\\n' +
+                 '• Weekly Report: **' + (CONFIG.ENABLE_WEEKLY_DIGEST ? (CONFIG.WEEKLY_DIGEST_DAY.toUpperCase() + ' ' + CONFIG.WEEKLY_DIGEST_TIME) : 'Disabled') + '**',
+          inline: false
+        },
+        {
+          name: 'Activated At',
+          value: nowStr + ' (' + CONFIG.TIMEZONE + ')',
+          inline: false
+        }
+      ],
+      footer: { text: 'Classroom Hub • Tip: Set web Delivery Authority to "24/7 Google Apps Script only" to avoid duplicates' },
+      timestamp: new Date().toISOString()
+    }]
+  });
+
+  sendClassroomDigest();
+  return triggerCreated;
+}
+
+function uninstall24x7Trigger() {
+  if (typeof ScriptApp === 'undefined' || !ScriptApp || typeof ScriptApp.getProjectTriggers !== 'function') return 0;
+  var existing = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  for (var i = 0; i < existing.length; i++) {
+    if (existing[i].getHandlerFunction && existing[i].getHandlerFunction() === 'sendClassroomDigest') {
+      ScriptApp.deleteTrigger(existing[i]);
+      removed++;
+    }
+  }
+  Logger.log('[OK] Removed ' + removed + ' sendClassroomDigest trigger(s).');
+  return removed;
 }
 
 function testDiscordWebhook() {
@@ -557,6 +696,7 @@ function collectClassroomAlerts(opts) {
   } while (coursePageToken);
 
   var pendingAssignments = [];
+  var openTasksList = [];
   var newActivity = [];
   var allOpenCourseworkCount = 0;
   var activeCourseCount = 0;
@@ -606,7 +746,12 @@ function collectClassroomAlerts(opts) {
       var work = courseWorks[j];
 
       // Check new assignment creation (last 24h)
-      if (CONFIG.NOTIFY_NEW_POSTS && CONFIG.NOTIFY_NEW_ASSIGNMENTS && work.creationTime) {
+      if (
+        CONFIG.NOTIFY_NEW_POSTS &&
+        CONFIG.NOTIFY_NEW_ASSIGNMENTS &&
+        isPriorityAllowedInScript_('P2') &&
+        work.creationTime
+      ) {
         var cwCreatedMs = new Date(work.creationTime).getTime();
         var newCwKey = 'assignment:' + work.id + ':new';
         if (cwCreatedMs >= recentPostCutoffMs && !sentV2Map[newCwKey]) {
@@ -621,7 +766,26 @@ function collectClassroomAlerts(opts) {
         }
       }
 
-      if (!work.dueDate) continue;
+      if (!work.dueDate) {
+        if (courseSubMap !== null) {
+          var noDueState = courseSubMap[work.id];
+          if (noDueState !== 'TURNED_IN' && noDueState !== 'RETURNED') {
+            allOpenCourseworkCount++;
+            if (openTasksList.length < 40) {
+              openTasksList.push({
+                id: work.id,
+                title: work.title || 'Untitled Assignment',
+                courseName: course.name || 'Course',
+                dueIso: '',
+                dueDateLabel: 'No due date',
+                diffDays: null,
+                link: sanitizeSafeUrl(work.alternateLink)
+              });
+            }
+          }
+        }
+        continue;
+      }
 
       var dueYear = work.dueDate.year;
       var dueMonth = work.dueDate.month - 1;
@@ -641,23 +805,29 @@ function collectClassroomAlerts(opts) {
       var bucket = null;
       var daysLeftLabel = '';
       var isCritical = false;
+      var bucketPriority = 'P2';
 
       if (diffDays === 7 && CONFIG.DUE_7_DAYS) {
         bucket = 'due_7d';
         daysLeftLabel = 'Due in 7 days';
+        bucketPriority = 'P2';
       } else if (diffDays === 3 && CONFIG.DUE_3_DAYS) {
         bucket = 'due_3d';
         daysLeftLabel = 'Due in 3 days';
+        bucketPriority = 'P1';
       } else if (diffDays === 1 && CONFIG.DUE_1_DAY) {
         bucket = 'due_1d';
         daysLeftLabel = 'Due tomorrow';
+        bucketPriority = 'P1';
       } else if (diffDays === 0 && CONFIG.DUE_TODAY) {
         bucket = 'due_today';
         daysLeftLabel = 'Due today';
         isCritical = true;
+        bucketPriority = 'P0';
       } else if (diffDays < 0 && diffDays >= -30 && CONFIG.OVERDUE_ENABLED) {
         bucket = 'overdue';
         daysLeftLabel = 'Overdue (' + Math.abs(diffDays) + 'd)';
+        bucketPriority = 'P1';
       }
 
       // Check submission state before alerting
@@ -665,7 +835,7 @@ function collectClassroomAlerts(opts) {
       if (courseSubMap !== null) {
         var cachedState = courseSubMap[work.id];
         if (cachedState === 'TURNED_IN' || cachedState === 'RETURNED') isDone = true;
-      } else if (bucket) {
+      } else if (bucket || CONFIG.ENABLE_MORNING_BRIEFING || CONFIG.ENABLE_DAILY_DIGEST || CONFIG.ENABLE_WEEKLY_DIGEST) {
         try {
           var subRes = Classroom.Courses.CourseWork.StudentSubmissions.list(course.id, work.id, { userId: 'me' });
           var subs = subRes.studentSubmissions || [];
@@ -679,9 +849,20 @@ function collectClassroomAlerts(opts) {
 
       if (!isDone && diffDays >= -30) {
         allOpenCourseworkCount++;
+        if (openTasksList.length < 40) {
+          openTasksList.push({
+            id: work.id,
+            title: work.title || 'Untitled Assignment',
+            courseName: course.name || 'Course',
+            dueIso: dueIso,
+            dueDateLabel: Utilities.formatDate(dueDate, CONFIG.TIMEZONE, 'dd MMM HH:mm'),
+            diffDays: diffDays,
+            link: sanitizeSafeUrl(work.alternateLink)
+          });
+        }
       }
 
-      if (!bucket || isDone) continue;
+      if (!bucket || isDone || !isPriorityAllowedInScript_(bucketPriority)) continue;
 
       // Key includes dueIso so extended deadlines re-arm cleanly while static deadlines never repeat
       var dedupKey = 'assignment:' + work.id + ':' + bucket + ':' + dueIso;
@@ -709,7 +890,12 @@ function collectClassroomAlerts(opts) {
     }
 
     // Scan Recent Announcements (Last 24 hours)
-    if (CONFIG.NOTIFY_NEW_POSTS && CONFIG.NOTIFY_NEW_ANNOUNCEMENTS && !isQuietHoursBlocked_(now, false)) {
+    if (
+      CONFIG.NOTIFY_NEW_POSTS &&
+      CONFIG.NOTIFY_NEW_ANNOUNCEMENTS &&
+      isPriorityAllowedInScript_('P2') &&
+      !isQuietHoursBlocked_(now, false)
+    ) {
       try {
         var annRes = Classroom.Courses.Announcements.list(course.id, { pageSize: 10 });
         var anns = annRes.announcements || [];
@@ -736,6 +922,7 @@ function collectClassroomAlerts(opts) {
     if (
       CONFIG.NOTIFY_NEW_POSTS &&
       CONFIG.NOTIFY_NEW_MATERIALS &&
+      isPriorityAllowedInScript_('P2') &&
       !isQuietHoursBlocked_(now, false) &&
       Classroom.Courses.CourseWorkMaterials &&
       typeof Classroom.Courses.CourseWorkMaterials.list === 'function'
@@ -763,8 +950,9 @@ function collectClassroomAlerts(opts) {
     }
   }
 
-  // Scan Calendar / Snapshot for Exam Countdowns & Morning Briefing
+  // Scan Calendar / Snapshot for Exam Countdowns, Pre-Class Reminders & Morning Briefing
   var calData = readHubAcademicCalendar_(now);
+  var nowMinsInCollect = getMinutesOfDayInTz_(now, CONFIG.TIMEZONE);
   var examAlerts = [];
   if (CONFIG.ENABLE_EXAM_COUNTDOWN) {
     for (var eIdx = 0; eIdx < calData.upcomingExams.length; eIdx++) {
@@ -772,11 +960,12 @@ function collectClassroomAlerts(opts) {
       var eDiff = diffIsoDays_(ex.dateIso, todayIso);
       if (eDiff === null || eDiff < 0) continue;
       var eStage = null;
-      if (eDiff === 7 && CONFIG.EXAM_STAGES.d7) eStage = 'exam_7d';
-      else if (eDiff === 3 && CONFIG.EXAM_STAGES.d3) eStage = 'exam_3d';
-      else if (eDiff === 1 && CONFIG.EXAM_STAGES.d1) eStage = 'exam_1d';
-      else if (eDiff === 0 && CONFIG.EXAM_STAGES.d0) eStage = 'exam_today';
-      if (!eStage) continue;
+      var ePrio = 'P2';
+      if (eDiff === 7 && CONFIG.EXAM_STAGES.d7) { eStage = 'exam_7d'; ePrio = 'P2'; }
+      else if (eDiff === 3 && CONFIG.EXAM_STAGES.d3) { eStage = 'exam_3d'; ePrio = 'P1'; }
+      else if (eDiff === 1 && CONFIG.EXAM_STAGES.d1) { eStage = 'exam_1d'; ePrio = 'P1'; }
+      else if (eDiff === 0 && CONFIG.EXAM_STAGES.d0) { eStage = 'exam_today'; ePrio = 'P0'; }
+      if (!eStage || !isPriorityAllowedInScript_(ePrio)) continue;
 
       var examKey = 'exam:' + (ex.courseCode || ex.id) + ':' + eStage + ':' + ex.dateIso;
       if (sentV2Map[examKey]) continue;
@@ -790,15 +979,66 @@ function collectClassroomAlerts(opts) {
     }
   }
 
+  var classAlerts = [];
+  if (CONFIG.ENABLE_CLASS_REMINDER) {
+    var leadMins = Number(CONFIG.CLASS_REMINDER_LEAD_MINUTES) || 30;
+    for (var cIdx = 0; cIdx < calData.todayClasses.length; cIdx++) {
+      var clsItem = calData.todayClasses[cIdx];
+      if (!clsItem || !clsItem.startTime) continue;
+      var startM = parseClockMins_(clsItem.startTime, -1);
+      if (startM < 0) continue;
+      var minsUntil = startM - nowMinsInCollect;
+      var clsId = clsItem.id || clsItem.courseCode || clsItem.title || 'class';
+
+      if (
+        minsUntil > 0 &&
+        minsUntil <= leadMins &&
+        !(CONFIG.CLASS_REMINDER_FINAL_5M && minsUntil <= 5 && leadMins > 5) &&
+        isPriorityAllowedInScript_('P1') &&
+        !isQuietHoursBlocked_(now, false)
+      ) {
+        var leadKey = 'class_reminder:' + clsId + ':lead_' + leadMins + 'm:' + todayIso + '_' + clsItem.startTime;
+        if (!sentV2Map[leadKey]) {
+          classAlerts.push({
+            dedupKey: leadKey,
+            minsUntil: minsUntil,
+            isFinal5m: false,
+            cls: clsItem
+          });
+        }
+      }
+
+      if (
+        CONFIG.CLASS_REMINDER_FINAL_5M &&
+        minsUntil > 0 &&
+        minsUntil <= 5 &&
+        isPriorityAllowedInScript_('P0') &&
+        !isQuietHoursBlocked_(now, true)
+      ) {
+        var finalKey = 'class_reminder:' + clsId + ':lead_5m:' + todayIso + '_' + clsItem.startTime;
+        if (!sentV2Map[finalKey]) {
+          classAlerts.push({
+            dedupKey: finalKey,
+            minsUntil: minsUntil,
+            isFinal5m: true,
+            cls: clsItem
+          });
+        }
+      }
+    }
+  }
+
   return {
     now: now,
     todayIso: todayIso,
     activeCourseCount: activeCourseCount,
     skippedCourseCount: skippedCourseCount,
     allOpenCourseworkCount: allOpenCourseworkCount,
+    openTasksList: openTasksList,
     pendingAssignments: pendingAssignments,
     newActivity: newActivity,
     examAlerts: examAlerts,
+    classAlerts: classAlerts,
     todayClasses: calData.todayClasses,
     upcomingExams: calData.upcomingExams,
     sentTodayKey: sentTodayKey,
@@ -831,21 +1071,58 @@ function sendClassroomDigest() {
     var pendingAssignments = scan.pendingAssignments;
     var newActivity = scan.newActivity;
     var examAlerts = scan.examAlerts;
+    var classAlerts = scan.classAlerts || [];
+    var openTasksList = scan.openTasksList || [];
     var sentV2 = scan.sentV2Map || {};
     var nowMins = getMinutesOfDayInTz_(scan.now, CONFIG.TIMEZONE);
+    var todayWeekday = getWeekdayKeyInTz_(scan.now, CONFIG.TIMEZONE);
+
     var briefingMins = parseClockMins_(CONFIG.MORNING_BRIEFING_TIME, 7 * 60);
     var briefingKey = 'briefing:morning:daily:' + scan.todayIso;
+    var hasMorningContent =
+      scan.todayClasses.length > 0 ||
+      scan.allOpenCourseworkCount > 0 ||
+      scan.upcomingExams.length > 0;
+    var allowMorningToday =
+      scan.todayClasses.length > 0 ||
+      (CONFIG.MORNING_BRIEFING_FREE_DAYS !== false && hasMorningContent);
     var shouldSendMorningBriefing =
       CONFIG.ENABLE_MORNING_BRIEFING &&
+      isPriorityAllowedInScript_('P3') &&
+      allowMorningToday &&
       nowMins >= briefingMins &&
       !sentV2[briefingKey] &&
       !isQuietHoursBlocked_(scan.now, false);
+
+    var dailyMins = parseClockMins_(CONFIG.DAILY_DIGEST_TIME, 20 * 60);
+    var dailyKey = 'digest:daily:summary:' + scan.todayIso;
+    var shouldSendDailyDigest =
+      CONFIG.ENABLE_DAILY_DIGEST &&
+      isPriorityAllowedInScript_('P3') &&
+      nowMins >= dailyMins &&
+      !sentV2[dailyKey] &&
+      !isQuietHoursBlocked_(scan.now, false) &&
+      (scan.allOpenCourseworkCount > 0 || scan.upcomingExams.length > 0);
+
+    var weeklyMins = parseClockMins_(CONFIG.WEEKLY_DIGEST_TIME, 18 * 60);
+    var weeklyKey = 'digest:weekly:summary:' + scan.todayIso;
+    var shouldSendWeeklyDigest =
+      CONFIG.ENABLE_WEEKLY_DIGEST &&
+      isPriorityAllowedInScript_('P3') &&
+      todayWeekday === CONFIG.WEEKLY_DIGEST_DAY &&
+      nowMins >= weeklyMins &&
+      !sentV2[weeklyKey] &&
+      !isQuietHoursBlocked_(scan.now, false) &&
+      (scan.allOpenCourseworkCount > 0 || scan.upcomingExams.length > 0 || scan.todayClasses.length > 0);
 
     if (
       pendingAssignments.length === 0 &&
       newActivity.length === 0 &&
       examAlerts.length === 0 &&
-      !shouldSendMorningBriefing
+      classAlerts.length === 0 &&
+      !shouldSendMorningBriefing &&
+      !shouldSendDailyDigest &&
+      !shouldSendWeeklyDigest
     ) {
       Logger.log('No new pending notifications due on this tick.');
       return;
@@ -864,19 +1141,65 @@ function sendClassroomDigest() {
           var cls = scan.todayClasses[cIdx];
           classLines.push('• \\x60' + (cls.startTime || '--:--') + '-' + (cls.endTime || '--:--') + '\\x60 **' + cls.title + '**' + (cls.room ? ' — \\x60' + cls.room + '\\x60' : ''));
         }
+        var mbFields = [
+          {
+            name: "Today's Schedule",
+            value: classLines.length > 0 ? classLines.join('\\n') : 'No scheduled classes today.',
+            inline: false
+          }
+        ];
+        if (openTasksList.length > 0) {
+          var dueSoonLines = [];
+          for (var otIdx = 0; otIdx < openTasksList.length && dueSoonLines.length < 6; otIdx++) {
+            var ot = openTasksList[otIdx];
+            if (ot.diffDays !== null && ot.diffDays <= 7) {
+              var otLink = ot.link ? '[' + truncateText(ot.title, 55, 'Task') + '](' + ot.link + ')' : ('**' + truncateText(ot.title, 55, 'Task') + '**');
+              dueSoonLines.push('• ' + otLink + ' (' + truncateText(ot.courseName, 30, 'Course') + ') — \\x60' + ot.dueDateLabel + '\\x60');
+            }
+          }
+          if (dueSoonLines.length > 0) {
+            mbFields.push({
+              name: 'Due Soon & Overdue Tasks',
+              value: truncateText(dueSoonLines.join('\\n'), 1000, '-'),
+              inline: false
+            });
+          }
+        }
+        if (scan.upcomingExams.length > 0) {
+          var mbExamLines = [];
+          for (var meIdx = 0; meIdx < Math.min(scan.upcomingExams.length, 4); meIdx++) {
+            var mex = scan.upcomingExams[meIdx];
+            mbExamLines.push('• **' + truncateText(mex.subject, 55, 'Exam') + '** — \\x60' + mex.dateIso + '\\x60' + (mex.room ? ' (' + mex.room + ')' : ''));
+          }
+          mbFields.push({
+            name: 'Upcoming Examinations',
+            value: truncateText(mbExamLines.join('\\n'), 1000, '-'),
+            inline: false
+          });
+        }
         embeds.push({
           title: 'Morning Briefing — ' + scan.todayIso,
           url: CONFIG.DASHBOARD_URL,
           description: '**' + scan.todayClasses.length + '** classes today  •  **' + scan.allOpenCourseworkCount + '** open tasks  •  **' + scan.upcomingExams.length + '** upcoming exams',
           color: 5030794,
-          fields: [
-            {
-              name: "Today's Schedule",
-              value: classLines.length > 0 ? classLines.join('\\n') : 'No scheduled classes today.',
-              inline: false
-            }
-          ],
+          fields: mbFields,
           footer: { text: 'Classroom Hub • Morning Briefing • ' + CONFIG.TIMEZONE },
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      for (var caIdx = 0; caIdx < Math.min(classAlerts.length, 5); caIdx++) {
+        var ca = classAlerts[caIdx];
+        embeds.push({
+          title: 'Class in ' + ca.minsUntil + ' min — ' + truncateText(ca.cls.title, 180, 'Class'),
+          url: CONFIG.DASHBOARD_URL,
+          color: ca.isFinal5m ? 15026253 : 15051067,
+          fields: [
+            { name: 'Time', value: '\\x60' + (ca.cls.startTime || '--:--') + (ca.cls.endTime ? ' - ' + ca.cls.endTime : '') + '\\x60', inline: true },
+            { name: 'Room', value: ca.cls.room || 'TBA', inline: true },
+            { name: 'Course Code', value: ca.cls.courseCode || '-', inline: true }
+          ],
+          footer: { text: 'Classroom Hub • 24/7 Pre-Class Reminder' },
           timestamp: new Date().toISOString()
         });
       }
@@ -944,6 +1267,55 @@ function sendClassroomDigest() {
         });
       }
 
+      if (shouldSendDailyDigest || shouldSendWeeklyDigest) {
+        var sumLines = [];
+        for (var stIdx = 0; stIdx < Math.min(openTasksList.length, 10); stIdx++) {
+          var st = openTasksList[stIdx];
+          var stLink = st.link ? '[' + truncateText(st.title, 55, 'Task') + '](' + st.link + ')' : ('**' + truncateText(st.title, 55, 'Task') + '**');
+          sumLines.push('• ' + stLink + ' (' + truncateText(st.courseName, 30, 'Course') + ') — \\x60' + st.dueDateLabel + '\\x60');
+        }
+        var digestFields = [
+          {
+            name: 'Unfinished Coursework (' + scan.allOpenCourseworkCount + ')',
+            value: sumLines.length > 0 ? truncateText(sumLines.join('\\n'), 1000, '-') : 'All caught up — no pending coursework!',
+            inline: false
+          }
+        ];
+        if (scan.upcomingExams.length > 0) {
+          var wExamLines = [];
+          for (var weIdx = 0; weIdx < Math.min(scan.upcomingExams.length, 5); weIdx++) {
+            var wex = scan.upcomingExams[weIdx];
+            wExamLines.push('• **' + truncateText(wex.subject, 55, 'Exam') + '** — \\x60' + wex.dateIso + '\\x60' + (wex.room ? ' | Room: ' + wex.room : '') + (wex.seat ? ' | Seat: ' + wex.seat : ''));
+          }
+          digestFields.push({
+            name: 'Upcoming Examinations (' + scan.upcomingExams.length + ')',
+            value: truncateText(wExamLines.join('\\n'), 1000, '-'),
+            inline: false
+          });
+        }
+        if (shouldSendDailyDigest) {
+          embeds.push({
+            title: 'Daily Academic Summary — ' + scan.todayIso,
+            url: CONFIG.DASHBOARD_URL,
+            color: 5793266,
+            fields: digestFields,
+            footer: { text: 'Classroom Hub • Daily Digest • ' + CONFIG.TIMEZONE },
+            timestamp: new Date().toISOString()
+          });
+        }
+        if (shouldSendWeeklyDigest) {
+          embeds.push({
+            title: 'Weekly Academic Report',
+            description: '**' + scan.allOpenCourseworkCount + '** open coursework item(s)  •  **' + scan.upcomingExams.length + '** upcoming exam(s)',
+            url: CONFIG.DASHBOARD_URL,
+            color: 5793266,
+            fields: digestFields,
+            footer: { text: 'Classroom Hub • 24/7 Weekly Academic Report • ' + CONFIG.TIMEZONE },
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
       // Batch in groups of <=10 embeds to respect Discord API limits
       var allDiscordOk = true;
       for (var b = 0; b < embeds.length; b += 10) {
@@ -961,6 +1333,9 @@ function sendClassroomDigest() {
       if (allDiscordOk) {
         deliveredAny = true;
         if (shouldSendMorningBriefing) deliveredKeys.push(briefingKey);
+        if (shouldSendDailyDigest) deliveredKeys.push(dailyKey);
+        if (shouldSendWeeklyDigest) deliveredKeys.push(weeklyKey);
+        for (var ck = 0; ck < classAlerts.length; ck++) deliveredKeys.push(classAlerts[ck].dedupKey);
         for (var m = 0; m < pendingAssignments.length; m++) deliveredKeys.push(pendingAssignments[m].dedupKey);
         for (var p = 0; p < newActivity.length; p++) deliveredKeys.push(newActivity[p].dedupKey);
         for (var x = 0; x < examAlerts.length; x++) deliveredKeys.push(examAlerts[x].dedupKey);

@@ -836,5 +836,190 @@ describe('Classroom Hub — Personal Academic Assistant Notification Overhaul (2
       expect(webhookSpy).toHaveBeenCalledTimes(3);
       expect(webhookSpy.mock.calls[2][1].embeds[0].title).toContain('Class in 4 min');
     });
+
+    it('delivers midnight deadline rollovers, exam countdowns, and weekly digests via background schedule ticks', async () => {
+      const webhookSpy = vi.spyOn(DiscordService, 'sendWebhook').mockResolvedValue({ ok: true, status: 204 });
+
+      saveAlertSettings(
+        {
+          discordEnabled: true,
+          discordWebhookUrl: VALID_WEBHOOK,
+          morningBriefingEnabled: false,
+          dueToday: true,
+          examCountdownEnabled: true,
+          examToday: true,
+          sundayDigest: true,
+          weeklyDigestDay: 'sun',
+          weeklyDigestTime: '18:00'
+        },
+        email
+      );
+
+      examRepository.saveToCache(
+        email,
+        [{ id: 'ex-roll', courseCode: 'CS900', courseName: 'Distributed Cloud', date: '2026-11-29', rawIsoDate: '2026-11-29', time: '13:00-16:00', room: '78-401', seat: 'B4' }],
+        [],
+        null
+      );
+
+      await NotificationService.evaluateScheduleTick(email, {
+        now: new Date('2026-11-29T18:05:00+07:00'),
+        includeDeadlinesAndWeekly: true,
+        schedule: [],
+        assignments: [
+          { id: 'hw-roll', title: 'Sunday Midnight Homework', course: 'Distributed Cloud', status: 'todo', dueDate: '2026-11-29' }
+        ],
+        resources: []
+      });
+
+      // Fires Due Today reminder + Exam Today countdown + Weekly Academic Report without needing a full Classroom reload
+      expect(webhookSpy).toHaveBeenCalledTimes(3);
+      const titles = webhookSpy.mock.calls.map((c) => c[1].embeds[0].title);
+      expect(titles.some((t) => t.includes('Sunday Midnight Homework'))).toBe(true);
+      expect(titles.some((t) => t.includes('Distributed Cloud'))).toBe(true);
+      expect(titles.some((t) => t.includes('Weekly Academic Report'))).toBe(true);
+    });
+
+    it('installs 15m trigger via install24x7Trigger and delivers pre-class, daily, and weekly alerts in Apps Script even when Calendar has 0 synced events', () => {
+      const script = getAppsScriptTemplate([], {
+        discordWebhookUrl: VALID_WEBHOOK,
+        embedWebhook: true,
+        morningBriefingEnabled: true,
+        morningBriefingTime: '07:00',
+        classReminderEnabled: true,
+        classReminderLeadMinutes: 30,
+        dailyDigestEnabled: true,
+        dailyDigestTime: '18:00',
+        sundayDigest: true,
+        weeklyDigestDay: 'sun',
+        weeklyDigestTime: '18:00',
+        schedule: [
+          { id: 'sun-cls', title: 'Cloud Systems', courseCode: 'CS777', day: 'sun', startTime: '19:00', endTime: '21:00', room: '81-601' }
+        ],
+        mergedExams: [
+          { id: 'ex-snap', courseCode: 'CS777', courseName: 'Cloud Systems', date: '2026-12-05', rawIsoDate: '2026-12-05', time: '09:00-12:00', room: '81-601', seat: 'A1' }
+        ]
+      });
+
+      const propStore = {};
+      const fetchCalls = [];
+      let deletedTriggers = 0;
+      let createdEveryMins = null;
+
+      const runner = new Function(
+        'Logger',
+        'Session',
+        'PropertiesService',
+        'Utilities',
+        'UrlFetchApp',
+        'MailApp',
+        'Classroom',
+        'Calendar',
+        'ScriptApp',
+        `${script}\nreturn { install24x7Trigger, uninstall24x7Trigger };`
+      )(
+        { log: () => {} },
+        { getActiveUser: () => ({ getEmail: () => email }) },
+        {
+          getScriptProperties: () => ({
+            getProperty: (k) => propStore[k] || null,
+            setProperty: (k, v) => { propStore[k] = String(v); },
+            deleteProperty: (k) => { delete propStore[k]; }
+          })
+        },
+        {
+          formatDate: (_d, _tz, pat) => {
+            if (pat === 'yyyy-MM-dd') return '2026-11-29';
+            if (pat === 'HH:mm') return '18:35'; // 25m before 19:00 class, and past 07:00 & 18:00!
+            if (pat === 'EEE') return 'Sun';
+            return '29 Nov 18:35';
+          },
+          sleep: () => {}
+        },
+        {
+          fetch: (url, opts) => {
+            fetchCalls.push({ url, payload: JSON.parse(opts.payload) });
+            return { getResponseCode: () => 204, getContentText: () => '' };
+          }
+        },
+        { sendEmail: () => {} },
+        {
+          Courses: {
+            list: () => ({ courses: [{ id: 'c1', name: 'Cloud Systems' }] }),
+            CourseWork: {
+              list: () => ({
+                courseWork: [
+                  { id: 'cw-open', title: ' Raft Project', alternateLink: 'https://classroom.google.com/c/1/a/9' }
+                ]
+              }),
+              StudentSubmissions: {
+                list: () => ({
+                  studentSubmissions: [{ courseWorkId: 'cw-open', state: 'CREATED' }]
+                })
+              }
+            },
+            Announcements: { list: () => ({ announcements: [] }) }
+          }
+        },
+        // Calendar service enabled in GAS, but 0 events synced yet -> must fallback to FALLBACK_SNAPSHOT!
+        {
+          Events: {
+            list: () => ({ items: [] })
+          }
+        },
+        {
+          getProjectTriggers: () => [
+            { getHandlerFunction: () => 'sendClassroomDigest' }
+          ],
+          deleteTrigger: () => { deletedTriggers++; },
+          newTrigger: () => ({
+            timeBased: () => ({
+              everyMinutes: (mins) => ({
+                create: () => { createdEveryMins = mins; }
+              })
+            })
+          })
+        }
+      );
+
+      expect(runner.install24x7Trigger()).toBe(true);
+      expect(deletedTriggers).toBe(1);
+      expect(createdEveryMins).toBe(15);
+      // 1 activation confirmation call + 1 initial digest call
+      expect(fetchCalls.length).toBeGreaterThanOrEqual(2);
+      const allPayloads = JSON.stringify(fetchCalls.map((f) => f.payload));
+      expect(allPayloads).toContain('24/7 Cloud Assistant Activated');
+      expect(allPayloads).toContain('Morning Briefing');
+      expect(allPayloads).toContain('Class in 25 min');
+      expect(allPayloads).toContain('Daily Academic Summary');
+      expect(allPayloads).toContain('Weekly Academic Report');
+      expect(allPayloads).toContain('Cloud Systems');
+
+      expect(runner.uninstall24x7Trigger()).toBe(1);
+    });
+
+    it('lets users jump directly to 24/7 Cloud setup and switch delivery authority in one click', () => {
+      setActiveEmail(email);
+      saveToken('tok-jump', 3600);
+      saveProfile({ name: 'TopZ', email }, email);
+
+      render(
+        <MemoryRouter initialEntries={['/settings?tab=discord']}>
+          <AuthProvider>
+            <SettingsProvider>
+              <ClassroomContext.Provider value={{ assignments: [], schedule: [], resources: [] }}>
+                <Settings />
+              </ClassroomContext.Provider>
+            </SettingsProvider>
+          </AuthProvider>
+        </MemoryRouter>
+      );
+
+      fireEvent.click(screen.getByTestId('jump-to-24x7-cloud-btn'));
+      expect(screen.getByTestId('copy-apps-script-btn')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('quick-switch-cloud-authority-btn'));
+      expect(getAlertSettings(email).deliveryAuthority).toBe('apps_script');
+    });
   });
 });

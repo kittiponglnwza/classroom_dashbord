@@ -414,6 +414,42 @@ export default function DiscordAssistantPanel({
             </button>
           </div>
 
+          {/* Explicit Runtime Mode Indicator: Browser-open vs True 24/7 Cloud */}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] px-3 py-2 text-xs">
+            {alertSettings.deliveryAuthority === 'apps_script' ? (
+              <span className="inline-flex items-center gap-2 text-emerald-300">
+                <Terminal size={13} strokeWidth={1.6} className="shrink-0" />
+                <span>
+                  {isTh
+                    ? 'โหมดทำงาน 24 ชม. ผ่าน Google Apps Script (ปิดการยิงอัตโนมัติซ้ำจากหน้าเว็บแล้ว)'
+                    : '24/7 Google Apps Script mode active (duplicate browser auto-sends paused)'}
+                </span>
+              </span>
+            ) : (
+              <span className="text-[var(--text-secondary)] leading-relaxed">
+                {isTh
+                  ? 'โหมดปัจจุบัน: แจ้งเตือนขณะเปิดเบราว์เซอร์ (รองรับแท็บเบื้องหลัง) — หากต้องการให้แจ้งเตือนตลอด 24 ชม. ตอนปิดเว็บหรือปิดคอม ต้องเปิดสคริปต์ 24/7 บน Google Cloud'
+                  : 'Current mode: Runs while browser is open (including background tabs) — enable the free 24/7 Cloud Script for alerts when your PC/browser is closed'}
+              </span>
+            )}
+
+            <button
+              type="button"
+              data-testid="jump-to-24x7-cloud-btn"
+              onClick={() => {
+                setActiveSection('advanced');
+                setShowCloudSetup(true);
+              }}
+              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--primary-bright)] hover:underline shrink-0 cursor-pointer"
+            >
+              <span>
+                {alertSettings.deliveryAuthority === 'apps_script'
+                  ? (isTh ? 'จัดการสคริปต์ 24 ชม. →' : 'Manage 24/7 Script →')
+                  : (isTh ? 'ตั้งค่าแจ้งเตือน 24 ชม. →' : 'Set up 24/7 Cloud →')}
+              </span>
+            </button>
+          </div>
+
           {telemetry?.lastErrorMessage && telemetry.lastStatus !== 'delivered' && (
             <div className="flex items-start gap-2 rounded-lg bg-rose-500/10 border border-rose-500/25 px-3 py-2 text-xs text-rose-300">
               <AlertCircle size={14} strokeWidth={1.5} className="shrink-0 mt-0.5" />
@@ -881,6 +917,8 @@ export default function DiscordAssistantPanel({
                         hiddenCourseCount={hiddenCourseIds.length}
                         embedWebhookInScript={Boolean(alertSettings.embedWebhookInScript)}
                         onToggleEmbedWebhook={() => handleToggleSetting?.('embedWebhookInScript')}
+                        deliveryAuthority={alertSettings.deliveryAuthority || 'browser'}
+                        onSelectAuthority={(val) => handleUpdateSetting?.('deliveryAuthority', val)}
                         generatedAppsScript={generatedAppsScript}
                       />
                     </div>

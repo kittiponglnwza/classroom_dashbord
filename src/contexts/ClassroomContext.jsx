@@ -126,23 +126,43 @@ export const ClassroomProvider = ({ children }) => {
   // Handle Background Polling
   useBackgroundSync(isLoggedIn, accessToken);
 
-  // Periodic local academic assistant tick (Morning Briefing at 07:00, Pre-Class reminders, Daily Digest)
+  // Periodic local academic assistant tick (Morning Briefing, Pre-Class reminders, Daily/Weekly Digests, & Midnight Deadlines)
+  // Runs even when the tab is in the background (`document.hidden`) or in Remember-Me cached workspace mode.
   useEffect(() => {
-    if (!isLoggedIn || typeof window === 'undefined') return;
+    if (!hasWorkspaceSession || typeof window === 'undefined') return;
     const runScheduleCheck = () => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      const activeEmail = getActiveEmail();
+      const activeEmail = getActiveEmail() || rememberedAccount?.email || '';
       if (!activeEmail || !getLastSync(activeEmail)) return;
-      NotificationService.evaluateScheduleTick(activeEmail).catch((err) => {
+      NotificationService.evaluateScheduleTick(activeEmail, {
+        includeDeadlinesAndWeekly: true
+      }).catch((err) => {
         logger.debug('[Notify] Schedule tick skipped:', err?.message || err);
       });
     };
+    const initialTimerId = setTimeout(runScheduleCheck, 1500);
     const intervalId = setInterval(runScheduleCheck, 60000);
-    return () => clearInterval(intervalId);
-  }, [isLoggedIn]);
+    const handleWakeCheck = () => {
+      if (typeof document === 'undefined' || !document.hidden) {
+        runScheduleCheck();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleWakeCheck);
+    }
+    window.addEventListener('online', runScheduleCheck);
+    return () => {
+      clearTimeout(initialTimerId);
+      clearInterval(intervalId);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleWakeCheck);
+      }
+      window.removeEventListener('online', runScheduleCheck);
+    };
+  }, [hasWorkspaceSession, rememberedAccount?.email]);
 
-  const syncClassroom = useCallback(async (forcedToken = null, signal = undefined) => {
-    const tokenToUse = forcedToken || accessToken;
+  const syncClassroom = useCallback(async (forcedToken = null, signal = undefined, syncOptions = {}) => {
+    const isSilentSync = Boolean(syncOptions?.silent);
+    const tokenToUse = forcedToken || getToken() || accessToken;
     const currentLang = langRef.current;
     if (!tokenToUse) return false;
     const active = activeSyncRef.current;
@@ -161,7 +181,9 @@ export const ClassroomProvider = ({ children }) => {
     }
     const effectiveSignal = runController.signal;
     activeSyncRef.current = { id: runId, signal: effectiveSignal, controller: runController, generation };
-    setIsClassroomFetching(true);
+    if (!isSilentSync) {
+      setIsClassroomFetching(true);
+    }
     const isStaleRun = () =>
       effectiveSignal.aborted ||
       generation !== sessionGenerationRef.current ||
@@ -365,12 +387,14 @@ export const ClassroomProvider = ({ children }) => {
       setLastSync(now, userEmail);
       setLastSyncTime(now);
 
-      addToast(
-        hasAnyPartialFailure
-          ? (effectiveLang === 'th' ? 'ซิงค์สำเร็จบางส่วน (บางวิชาใช้ข้อมูลแคช)' : 'Synced partially (some courses used cached data)')
-          : (effectiveLang === 'th' ? 'ซิงค์ข้อมูลสำเร็จ' : 'Sync completed successfully'),
-        hasAnyPartialFailure ? 'warning' : 'success'
-      );
+      if (!isSilentSync) {
+        addToast(
+          hasAnyPartialFailure
+            ? (effectiveLang === 'th' ? 'ซิงค์สำเร็จบางส่วน (บางวิชาใช้ข้อมูลแคช)' : 'Synced partially (some courses used cached data)')
+            : (effectiveLang === 'th' ? 'ซิงค์ข้อมูลสำเร็จ' : 'Sync completed successfully'),
+          hasAnyPartialFailure ? 'warning' : 'success'
+        );
+      }
 
       // Run notifications, calendar sync, and Drive push asynchronously without blocking the Sync button
       void (async () => {
@@ -425,11 +449,15 @@ export const ClassroomProvider = ({ children }) => {
       }
       if (e.message === 'UNAUTHORIZED' || e.code === 401) {
         expireSession();
-        addToast(langRef.current === 'th' ? 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' : 'Session expired, please login again.', 'error');
-      } else if (e.name === 'NetworkError' || e.message?.toLowerCase().includes('network') || !navigator.onLine) {
-        addToast(langRef.current === 'th' ? 'เครือข่ายมีปัญหา กรุณาตรวจสอบการเชื่อมต่อ' : 'Network issue. Please check your connection.', 'warning');
-      } else {
-        addToast(e.message || (langRef.current === 'th' ? 'การซิงค์ล้มเหลว' : 'Sync failed'), 'error');
+        if (!isSilentSync) {
+          addToast(langRef.current === 'th' ? 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่' : 'Session expired, please login again.', 'error');
+        }
+      } else if (!isSilentSync) {
+        if (e.name === 'NetworkError' || e.message?.toLowerCase().includes('network') || !navigator.onLine) {
+          addToast(langRef.current === 'th' ? 'เครือข่ายมีปัญหา กรุณาตรวจสอบการเชื่อมต่อ' : 'Network issue. Please check your connection.', 'warning');
+        } else {
+          addToast(e.message || (langRef.current === 'th' ? 'การซิงค์ล้มเหลว' : 'Sync failed'), 'error');
+        }
       }
       return false;
     } finally {
@@ -875,6 +903,47 @@ export const ClassroomProvider = ({ children }) => {
       if (!completed) {
         autoSyncedRef.current = false;
       }
+    };
+  }, [isLoggedIn, accessToken, syncClassroom]);
+
+  // Periodic 15-minute silent Google Classroom sync so new assignments/announcements fire alerts while open
+  useEffect(() => {
+    if (!isLoggedIn || typeof window === 'undefined') return;
+    const BACKGROUND_CLASSROOM_POLL_MS = 15 * 60 * 1000;
+
+    const maybeBackgroundClassroomSync = () => {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+      const liveTok = getToken();
+      if (typeof document !== 'undefined' && document.hidden && !liveTok) return;
+      const activeEmail = getActiveEmail();
+      if (!activeEmail) return;
+      const lastSyncIso = getLastSync(activeEmail);
+      const lastSyncMs = lastSyncIso ? new Date(lastSyncIso).getTime() : 0;
+      if (Number.isFinite(lastSyncMs) && Date.now() - lastSyncMs < BACKGROUND_CLASSROOM_POLL_MS - 5000) {
+        return;
+      }
+      syncClassroom(liveTok || accessToken, undefined, { silent: true }).catch((err) => {
+        logger.debug('[Sync] Background Classroom refresh skipped:', err?.message || err);
+      });
+    };
+
+    const intervalId = setInterval(maybeBackgroundClassroomSync, BACKGROUND_CLASSROOM_POLL_MS);
+    const handleForegroundRefresh = () => {
+      if (typeof document === 'undefined' || !document.hidden) {
+        maybeBackgroundClassroomSync();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleForegroundRefresh);
+    }
+    window.addEventListener('online', handleForegroundRefresh);
+
+    return () => {
+      clearInterval(intervalId);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleForegroundRefresh);
+      }
+      window.removeEventListener('online', handleForegroundRefresh);
     };
   }, [isLoggedIn, accessToken, syncClassroom]);
 
