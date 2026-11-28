@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Link, useInRouterContext } from 'react-router-dom';
-import { Menu, Bell, RefreshCw, Globe, Download, HelpCircle } from 'lucide-react';
+import { Menu, Bell, RefreshCw, Globe, Download, HelpCircle, MessageSquareText } from 'lucide-react';
 import { t } from '../utils/i18n';
 import NotificationPopover from './NotificationPopover';
 import QuickGuideModal from './QuickGuideModal';
@@ -26,7 +26,7 @@ function SafeLink({ to, className, children }) {
   );
 }
 
-export default function HeaderBar({ setMobileMenuOpen }) {
+export default function HeaderBar({ setMobileMenuOpen, onOpenAssistant }) {
   const { isLoggedIn, isCachedSession = false, rememberedAccount = null, profile = {}, login } = useAuth() || {};
   const { lang, toggleLang, unreadCount = 0 } = useSettings();
   const { isSyncing, lastSyncTime, syncClassroom } = useClassroom();
@@ -126,6 +126,21 @@ export default function HeaderBar({ setMobileMenuOpen }) {
           <Globe size={15} strokeWidth={1.5} className="text-[var(--text-muted)]" />
           <span>{lang === 'en' ? 'EN' : 'TH'}</span>
         </button>
+
+        {onOpenAssistant && (
+          <button
+            type="button"
+            onClick={onOpenAssistant}
+            aria-label={lang === 'en' ? 'Open Study Assistant' : 'เปิดผู้ช่วยวางแผนการเรียน'}
+            title={lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยวางแผนการเรียน'}
+            className="h-9 px-2.5 flex items-center justify-center gap-1.5 rounded-lg transition-colors border bg-[var(--surface)] hover:bg-[var(--surface-hover)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          >
+            <MessageSquareText size={15} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
+            <span className="hidden lg:inline text-xs font-medium text-[var(--text-primary)]">
+              {lang === 'en' ? 'Assistant' : 'ผู้ช่วยเรียน'}
+            </span>
+          </button>
+        )}
 
         <button
           type="button"

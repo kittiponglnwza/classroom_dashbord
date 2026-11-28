@@ -2,10 +2,14 @@ import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import HeaderBar from './HeaderBar';
 import MobileBottomNav from './MobileBottomNav';
-import { X } from 'lucide-react';
+import AiAssistantDrawer from './AiAssistantDrawer';
+import { X, MessageSquareText } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 
 export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const { lang = 'th' } = useSettings() || {};
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -49,7 +53,10 @@ export default function Layout({ children }) {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <HeaderBar setMobileMenuOpen={setMobileMenuOpen} />
+        <HeaderBar
+          setMobileMenuOpen={setMobileMenuOpen}
+          onOpenAssistant={() => setAssistantOpen(true)}
+        />
 
         <main className="main-scroll-container flex-1 overflow-y-auto overflow-x-hidden bg-[var(--app-bg)] px-4 pt-4 pb-24 sm:px-6 sm:py-6 lg:px-8 lg:py-8 md:pb-8">
           <div className="max-w-[var(--page-max-width)] mx-auto w-full">
@@ -57,6 +64,26 @@ export default function Layout({ children }) {
           </div>
         </main>
       </div>
+
+      {!assistantOpen && (
+        <button
+          type="button"
+          data-testid="floating-assistant-trigger"
+          onClick={() => setAssistantOpen(true)}
+          aria-label={lang === 'en' ? 'Open Study Assistant drawer' : 'เปิดแผงผู้ช่วยวางแผนการเรียน'}
+          className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 h-10 px-3.5 rounded-xl bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border-strong)] text-[var(--text-heading)] flex items-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+        >
+          <MessageSquareText size={16} strokeWidth={1.5} className="text-[var(--primary-bright)] shrink-0" />
+          <span className="text-xs font-medium">
+            {lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยเรียน'}
+          </span>
+        </button>
+      )}
+
+      <AiAssistantDrawer
+        isOpen={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+      />
 
       <MobileBottomNav onOpenMenu={() => setMobileMenuOpen(true)} />
     </div>

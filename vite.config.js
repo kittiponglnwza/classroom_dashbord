@@ -1,7 +1,48 @@
 import { execSync } from 'node:child_process'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+
+const createGeminiDevPlugin = (env) => ({
+  name: 'classroom-hub-gemini-dev-api',
+  configureServer(server) {
+    let handlerPromise = null
+    server.middlewares.use('/api/gemini', async (req, res, next) => {
+      if (req.url && req.url !== '/' && !req.url.startsWith('?')) {
+        return next()
+      }
+      try {
+        if (!handlerPromise) {
+          handlerPromise = import('./api/gemini.js').then((mod) =>
+            mod.createGeminiHandler({ env: { ...process.env, ...env } })
+          )
+        }
+        const handler = await handlerPromise
+        const vercelLikeRes = {
+          setHeader: (name, value) => res.setHeader(name, value),
+          status(code) {
+            res.statusCode = code
+            return vercelLikeRes
+          },
+          json(payload) {
+            if (!res.headersSent) {
+              res.setHeader('Content-Type', 'application/json; charset=utf-8')
+            }
+            res.end(JSON.stringify(payload))
+            return vercelLikeRes
+          },
+          send(payload) {
+            res.end(payload)
+            return vercelLikeRes
+          },
+        }
+        await handler(req, vercelLikeRes)
+      } catch (err) {
+        next(err)
+      }
+    })
+  },
+})
 
 const resolveGitCommit = () => {
   try {
@@ -18,7 +59,9 @@ const APP_COMMIT = resolveGitCommit()
 const APP_BUILD_TIME = new Date().toISOString()
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  return {
   build: {
     rolldownOptions: {
       output: {
@@ -50,6 +93,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    createGeminiDevPlugin(env),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
@@ -114,5 +158,6 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/exam-room/, '/examroom/datatrain.php')
       }
     }
+  }
   }
 })

@@ -19,7 +19,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['api/**/*.js', 'tests/unit/apiExamRoom.test.js'],
+    files: ['api/**/*.js', 'vite.config.js', 'tests/unit/apiExamRoom.test.js', 'tests/unit/apiGemini.test.js'],
     languageOptions: {
       globals: globals.node,
     },
