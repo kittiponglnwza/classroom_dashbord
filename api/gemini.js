@@ -1,18 +1,27 @@
 import { createHash } from 'node:crypto';
-import { GoogleGenAI } from '@google/genai';
 
+const GEMINI_INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1/interactions';
+const GEMINI_API_REVISION = '2026-05-20';
 const GOOGLE_TOKENINFO_URL = 'https://oauth2.googleapis.com/tokeninfo';
 const CLASSROOM_READONLY_SCOPE = 'https://www.googleapis.com/auth/classroom.courses.readonly';
 const DEFAULT_ALLOWED_ORIGINS = ['https://classrooms-hub.vercel.app'];
 
-const DEFAULT_MODEL = 'gemini-4-hydrogen';
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
+const FALLBACK_MODEL_CHAIN = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemma-4-26b-a4b-it',
+  'gemini-4-hydrogen',
+];
 const ALLOWED_MODELS = new Set([
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
   'gemini-4-hydrogen',
   'gemini-4-argon',
   'gemini-4-neon',
   'gemini-4-carbon',
-  'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
+  'gemma-4-31b-it',
+  'gemma-4-26b-a4b-it',
 ]);
 
 const MINUTE_SECONDS = 60;
@@ -25,12 +34,13 @@ const IP_RPM_LIMIT = 30;
 const TOKEN_CACHE_MAX_ENTRIES = 200;
 const TOKEN_CACHE_MAX_TTL_MS = 60 * 1000;
 const TOKENINFO_TIMEOUT_MS = 5000;
+const GEMINI_TIMEOUT_MS = 35000;
 const REDIS_TIMEOUT_MS = 1500;
 
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_MESSAGE_CHARS = 4000;
 const MAX_OUTPUT_TOKENS = 2048;
-const INTERACTION_ID_PATTERN = /^[A-Za-z0-9._:-]{1,200}$/;
+const INTERACTION_ID_PATTERN = /^[A-Za-z0-9._:=-]{1,512}$/;
 
 const getHeader = (req, name) => {
   const headers = req?.headers;
@@ -546,6 +556,68 @@ export const buildSystemInstruction = (ctx) => {
   return lines.join('\n');
 };
 
+export const extractOutputText = (interaction) => {
+  if (typeof interaction?.output_text === 'string' && interaction.output_text.trim()) {
+    return interaction.output_text.trim();
+  }
+  const steps = Array.isArray(interaction?.steps) ? interaction.steps : [];
+  const trailingParts = [];
+  for (let i = steps.length - 1; i >= 0; i -= 1) {
+    const step = steps[i];
+    if (step?.type !== 'model_output') {
+      if (trailingParts.length > 0) break;
+      continue;
+    }
+    const content = Array.isArray(step.content) ? step.content : [];
+    const stepText = content
+      .filter((part) => part?.type === 'text' && typeof part.text === 'string')
+      .map((part) => part.text)
+      .join('');
+    if (stepText) {
+      trailingParts.unshift(stepText);
+    }
+  }
+  return trailingParts.join('').trim();
+};
+
+const createRestInteractionsClient = (fetchImpl, apiKey) => ({
+  interactions: {
+    async create(payload) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+      try {
+        const res = await fetchImpl(GEMINI_INTERACTIONS_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'x-goog-api-key': apiKey,
+            'api-revision': GEMINI_API_REVISION,
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          const message = data?.error?.message || data?.message || `Gemini API error (${res.status})`;
+          const err = new Error(message);
+          err.status = res.status;
+          err.code = data?.error?.code || '';
+          throw err;
+        }
+
+        return {
+          ...data,
+          output_text: extractOutputText(data),
+        };
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    },
+  },
+});
+
 const isInvalidPreviousInteractionError = (error) => {
   const status = Number(error?.status || error?.statusCode || 0);
   const msg = String(error?.message || '').toLowerCase();
@@ -561,6 +633,15 @@ const resolvePositiveInt = (rawValue, fallback) => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 };
 
+const resolveModelChain = (env) => {
+  const configured = String(env?.GEMINI_MODEL || '').trim();
+  if (configured && ALLOWED_MODELS.has(configured)) {
+    const rest = FALLBACK_MODEL_CHAIN.filter((m) => m !== configured);
+    return [configured, ...rest];
+  }
+  return [...FALLBACK_MODEL_CHAIN];
+};
+
 const sendJson = (res, status, payload) => {
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -571,7 +652,7 @@ export function createGeminiHandler(deps = {}) {
   const fetchImpl = deps.fetchImpl || globalThis.fetch;
   const env = deps.env || process.env;
   const nowFn = deps.nowFn || (() => Date.now());
-  const createGenAIClient = deps.createGenAIClient || ((apiKey) => new GoogleGenAI({ apiKey }));
+  const createGenAIClient = deps.createGenAIClient || ((apiKey) => createRestInteractionsClient(fetchImpl, apiKey));
 
   const allowedOrigins = buildAllowedOrigins(env);
   const preAuthIpLimit = createInMemoryLimiter(nowFn);
@@ -670,16 +751,15 @@ export function createGeminiHandler(deps = {}) {
       return sendJson(res, 429, { error: 'Network rate limit exceeded. Please try again shortly.' });
     }
 
-    const configuredModel = String(env?.GEMINI_MODEL || '').trim();
-    const selectedModel = ALLOWED_MODELS.has(configuredModel) ? configuredModel : DEFAULT_MODEL;
+    const modelCandidates = resolveModelChain(env);
     const sanitizedContext = sanitizeWorkspaceContext(bodyResult.data.context);
     const systemInstruction = buildSystemInstruction(sanitizedContext);
 
     try {
       const client = createGenAIClient(apiKey);
-      const runInteraction = (prevId) =>
+      const runWithModel = (modelName, prevId) =>
         client.interactions.create({
-          model: selectedModel,
+          model: modelName,
           input: rawMessage,
           system_instruction: systemInstruction,
           generation_config: {
@@ -688,18 +768,42 @@ export function createGeminiHandler(deps = {}) {
           ...(prevId ? { previous_interaction_id: prevId } : {}),
         });
 
-      let interaction;
-      try {
-        interaction = await runInteraction(previousInteractionId);
-      } catch (err) {
-        if (previousInteractionId && isInvalidPreviousInteractionError(err)) {
-          interaction = await runInteraction('');
-        } else {
+      let interaction = null;
+      let usedModel = modelCandidates[0] || DEFAULT_MODEL;
+      let lastError = null;
+
+      for (let idx = 0; idx < modelCandidates.length; idx += 1) {
+        const candidateModel = modelCandidates[idx];
+        // Only send previous_interaction_id on the primary model; if falling back to another model on 429, start clean turn
+        const prevIdForAttempt = idx === 0 ? previousInteractionId : '';
+        try {
+          try {
+            interaction = await runWithModel(candidateModel, prevIdForAttempt);
+          } catch (err) {
+            if (prevIdForAttempt && isInvalidPreviousInteractionError(err)) {
+              interaction = await runWithModel(candidateModel, '');
+            } else {
+              throw err;
+            }
+          }
+          usedModel = candidateModel;
+          lastError = null;
+          break;
+        } catch (err) {
+          lastError = err;
+          const status = Number(err?.status || err?.statusCode || 0);
+          if (status === 429 && idx < modelCandidates.length - 1) {
+            continue;
+          }
           throw err;
         }
       }
 
-      const replyText = String(interaction?.output_text || '').trim();
+      if (!interaction && lastError) {
+        throw lastError;
+      }
+
+      const replyText = extractOutputText(interaction);
       if (!replyText) {
         return sendJson(res, 502, { error: 'Gemini returned an empty response. Please try rephrasing your question.' });
       }
@@ -707,7 +811,7 @@ export function createGeminiHandler(deps = {}) {
       return sendJson(res, 200, {
         reply: replyText,
         interactionId: interaction?.id || null,
-        model: selectedModel,
+        model: usedModel,
         remainingDaily: dailyCheck.remaining,
       });
     } catch (error) {
@@ -716,6 +820,12 @@ export function createGeminiHandler(deps = {}) {
         return sendJson(res, 429, {
           error: 'Shared Gemini API quota is temporarily busy. Please try again in a minute.',
           code: 'UPSTREAM_QUOTA_EXCEEDED',
+        });
+      }
+      if (upstreamStatus === 401 || upstreamStatus === 403) {
+        return sendJson(res, 502, {
+          error: 'Server Gemini API key was rejected by Google AI Studio.',
+          code: 'INVALID_GEMINI_KEY',
         });
       }
       if (error?.name === 'AbortError' || upstreamStatus === 504) {

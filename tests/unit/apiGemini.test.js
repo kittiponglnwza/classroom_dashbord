@@ -201,15 +201,47 @@ describe('Vercel Serverless /api/gemini endpoint', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.reply).toContain('Lab 3: Digital Logic');
     expect(res.body.interactionId).toBe('inter_abc123');
-    expect(res.body.model).toBe('gemini-4-hydrogen');
+    expect(res.body.model).toBe('gemini-3.5-flash-lite');
 
     expect(interactionsCreate).toHaveBeenCalledTimes(1);
     const callArg = interactionsCreate.mock.calls[0][0];
-    expect(callArg.model).toBe('gemini-4-hydrogen');
+    expect(callArg.model).toBe('gemini-3.5-flash-lite');
     expect(callArg.input).toBe('ช่วยสรุปงานด่วนให้หน่อย');
     expect(callArg.system_instruction).toContain('Lab 3: Digital Logic');
     expect(callArg.system_instruction).toContain('78-401');
     expect(callArg.system_instruction).toContain('78-502');
+  });
+
+  it('automatically falls back to secondary model when primary model hits 429 Free Tier quota', async () => {
+    const interactionsCreate = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('Rate limit exceeded'), { status: 429 }))
+      .mockResolvedValueOnce({
+        id: 'inter_fallback_ok',
+        steps: [{ type: 'model_output', content: [{ type: 'text', text: 'ตอบจากโมเดลสำรองสำเร็จ' }] }],
+      });
+
+    const handler = createGeminiHandler({
+      fetchImpl: createValidTokenFetch(),
+      env: {
+        GEMINI_API_KEY: 'test-key',
+        GEMINI_MODEL: 'gemini-4-hydrogen',
+        VITE_GOOGLE_CLIENT_ID: CLIENT_ID,
+      },
+      createGenAIClient: () => ({
+        interactions: { create: interactionsCreate },
+      }),
+    });
+
+    const res = createMockRes();
+    await handler(createReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.reply).toBe('ตอบจากโมเดลสำรองสำเร็จ');
+    expect(res.body.model).toBe('gemini-3.5-flash-lite');
+    expect(interactionsCreate).toHaveBeenCalledTimes(2);
+    expect(interactionsCreate.mock.calls[0][0].model).toBe('gemini-4-hydrogen');
+    expect(interactionsCreate.mock.calls[1][0].model).toBe('gemini-3.5-flash-lite');
   });
 
   it('retries cleanly without previous_interaction_id when an expired interaction ID returns 404', async () => {
