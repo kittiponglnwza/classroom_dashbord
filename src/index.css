@@ -26,12 +26,13 @@
   --text-heading: #F3F5F8;
   --text-primary: #DFE4ED;
   --text-secondary: #A1AAB9;
-  --text-muted: #7F899B;
+  --text-muted: #8E98AA;
 
   --success: #4CC38A;
   --info: #60A5FA;
   --warning: #E5A93B;
-  --danger: #E5484D;
+  --danger: #DC2626;
+  --danger-text: #F87171;
   --purple: #A78BFA;
 
   /* Shared Page Identity & Layout Tokens */
@@ -65,6 +66,16 @@
 
   .font-mono {
     font-variant-numeric: tabular-nums;
+  }
+
+  button,
+  a,
+  summary,
+  select,
+  input,
+  textarea,
+  [role="button"] {
+    touch-action: manipulation;
   }
 }
 
@@ -116,4 +127,31 @@
 select option {
   background-color: var(--surface) !important;
   color: var(--text-primary) !important;
+}
+
+/* Prevent iOS Safari auto-zoom on coarse-pointer mobile devices when focusing inputs */
+@media (max-width: 639px) and (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Respect user reduced-motion preferences across animations and transitions */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

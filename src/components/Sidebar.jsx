@@ -66,7 +66,7 @@ export default function Sidebar({ onLinkClick = null }) {
 
   return (
     <aside
-      className={`bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] relative h-full min-h-0 select-none ${
+      className={`bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col relative h-full min-h-0 select-none ${
         isCollapsed ? 'w-18' : 'w-60 lg:w-64'
       }`}
     >
@@ -76,6 +76,8 @@ export default function Sidebar({ onLinkClick = null }) {
             <img
               src="/Logo.svg"
               alt="Classroom Hub Logo"
+              width={32}
+              height={32}
               className="w-8 h-8 rounded-lg shrink-0 select-none"
             />
             <div className="flex flex-col items-start min-w-0">
@@ -92,52 +94,61 @@ export default function Sidebar({ onLinkClick = null }) {
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden md:flex w-7 h-7 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors items-center justify-center cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          aria-expanded={!isCollapsed}
+          className="hidden md:flex w-8 h-8 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors items-center justify-center cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
         >
-          {isCollapsed ? <ChevronRight size={14} strokeWidth={1.5} /> : <ChevronLeft size={14} strokeWidth={1.5} />}
+          {isCollapsed ? <ChevronRight aria-hidden="true" size={14} strokeWidth={1.5} /> : <ChevronLeft aria-hidden="true" size={14} strokeWidth={1.5} />}
         </button>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4">
         <nav aria-label="Main Navigation" className="space-y-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.path}
-              end={item.end}
-              title={isCollapsed ? t(item.key, lang) : undefined}
-              onClick={onLinkClick}
-              className={({ isActive }) => {
-                const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
-                return `flex items-center h-9 ${isCollapsed ? 'justify-center px-2' : 'justify-between px-3'} rounded-lg text-sm font-normal transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
-                  active ? activeNavClass : inactiveNavClass
-                }`;
-              }}
-            >
-              {({ isActive }) => {
-                const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
-                return (
-                  <>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-4 flex items-center justify-center shrink-0">
-                        <item.icon
-                          size={16}
-                          strokeWidth={1.5}
-                          className={active ? 'text-[var(--primary-bright)]' : 'text-[var(--text-muted)]'}
-                        />
-                      </span>
-                      {!isCollapsed && <span className="truncate">{t(item.key, lang)}</span>}
-                    </div>
-                    {!isCollapsed && item.count !== null && item.count > 0 && (
-                      <span className="text-xs font-mono text-[var(--text-muted)] tabular-nums shrink-0">
-                        {item.count}
-                      </span>
-                    )}
-                  </>
-                );
-              }}
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            const collapsedLabel =
+              item.count !== null && item.count > 0
+                ? `${t(item.key, lang)} (${item.count})`
+                : t(item.key, lang);
+            return (
+              <NavLink
+                key={item.name}
+                to={item.path}
+                end={item.end}
+                title={isCollapsed ? collapsedLabel : undefined}
+                aria-label={isCollapsed ? collapsedLabel : undefined}
+                onClick={onLinkClick}
+                className={({ isActive }) => {
+                  const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
+                  return `flex items-center ${isMobileDrawer ? 'min-h-11' : 'h-9'} ${isCollapsed ? 'justify-center px-2' : 'justify-between px-3'} rounded-lg text-sm font-normal transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+                    active ? activeNavClass : inactiveNavClass
+                  }`;
+                }}
+              >
+                {({ isActive }) => {
+                  const active = item.path === '/courses' ? (isActive && !selectedCourseParam) : isActive;
+                  return (
+                    <>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-4 flex items-center justify-center shrink-0">
+                          <item.icon
+                            aria-hidden="true"
+                            size={16}
+                            strokeWidth={1.5}
+                            className={active ? 'text-[var(--primary-bright)]' : 'text-[var(--text-muted)]'}
+                          />
+                        </span>
+                        {!isCollapsed && <span className="truncate">{t(item.key, lang)}</span>}
+                      </div>
+                      {!isCollapsed && item.count !== null && item.count > 0 && (
+                        <span className="text-xs font-mono text-[var(--text-muted)] tabular-nums shrink-0">
+                          {item.count}
+                        </span>
+                      )}
+                    </>
+                  );
+                }}
+              </NavLink>
+            );
+          })}
         </nav>
 
         {!isCollapsed && visibleCourses.length > 0 && (
@@ -154,12 +165,12 @@ export default function Sidebar({ onLinkClick = null }) {
                     key={course.id}
                     to={`/courses?selected=${encodeURIComponent(course.name)}`}
                     onClick={onLinkClick}
-                    className={`flex items-center justify-between h-8 px-3 rounded-lg text-[13px] transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+                    className={`flex items-center justify-between ${isMobileDrawer ? 'min-h-11' : 'h-8'} px-3 rounded-lg text-[13px] transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
                       isCourseActive ? activeNavClass : inactiveNavClass
                     }`}
                   >
                     <div className="flex items-center gap-3 overflow-hidden">
-                      <span className="w-4 flex items-center justify-center shrink-0">
+                      <span aria-hidden="true" className="w-4 flex items-center justify-center shrink-0">
                         <span className={`w-2 h-2 rounded-full ${getCourseDotClass(course.color)}`} />
                       </span>
                       <span className="truncate">{course.name}</span>
@@ -181,9 +192,10 @@ export default function Sidebar({ onLinkClick = null }) {
         <NavLink
           to="/exam-room"
           title={isCollapsed ? t('examRoom', lang) : undefined}
+          aria-label={isCollapsed ? t('examRoom', lang) : undefined}
           onClick={onLinkClick}
           className={({ isActive }) =>
-            `flex items-center h-9 ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} rounded-lg text-sm font-normal transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
+            `flex items-center ${isMobileDrawer ? 'min-h-11' : 'h-9'} ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-3'} rounded-lg text-sm font-normal transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
               isActive ? activeNavClass : inactiveNavClass
             }`
           }
@@ -192,6 +204,7 @@ export default function Sidebar({ onLinkClick = null }) {
             <>
               <span className="w-4 flex items-center justify-center shrink-0">
                 <ClipboardCheck
+                  aria-hidden="true"
                   size={16}
                   strokeWidth={1.5}
                   className={isActive ? 'text-[var(--primary-bright)]' : 'text-[var(--text-muted)]'}
@@ -205,6 +218,8 @@ export default function Sidebar({ onLinkClick = null }) {
 
       <NavLink
         to="/settings"
+        title={isCollapsed ? `${profile.name || 'Student'} — ${t('settings', lang)}` : undefined}
+        aria-label={isCollapsed ? `${profile.name || 'Student'} — ${t('settings', lang)}` : undefined}
         onClick={onLinkClick}
         className={({ isActive }) =>
           `py-3 border-t border-[var(--border)] shrink-0 overflow-hidden flex items-center hover:bg-[var(--surface)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
@@ -218,12 +233,14 @@ export default function Sidebar({ onLinkClick = null }) {
               <img
                 src={profile.avatarUrl}
                 alt="Avatar"
+                width={32}
+                height={32}
                 referrerPolicy="no-referrer"
                 onError={() => setFailedAvatarUrl(profile.avatarUrl)}
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-[var(--text-primary)] text-xs font-medium">
+              <span aria-hidden={isCollapsed ? 'true' : undefined} className="text-[var(--text-primary)] text-xs font-medium">
                 {profile.name ? profile.name.charAt(0).toUpperCase() : 'S'}
               </span>
             )}
@@ -240,7 +257,7 @@ export default function Sidebar({ onLinkClick = null }) {
           )}
         </div>
         {!isCollapsed && (
-          <Settings size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0 ml-2" />
+          <Settings aria-hidden="true" size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0 ml-2" />
         )}
       </NavLink>
     </aside>

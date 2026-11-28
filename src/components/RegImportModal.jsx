@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   X, Upload, ClipboardPaste, Bookmark, ShieldCheck, CheckCircle2,
   AlertCircle, CalendarDays, ClipboardCheck, GraduationCap, ExternalLink,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { parseKmutnbRegInput, buildKmutnbRegBookmarklet } from '../services/parsers/kmutnbRegParser';
 import { useClassroom } from '../contexts/ClassroomContext';
+import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 
 const DAY_LABELS = {
   mon: { th: 'จ.', en: 'Mon' },
@@ -35,15 +36,9 @@ export default function RegImportModal({
   const [importGrades, setImportGrades] = useState(true);
   const [copiedBookmarklet, setCopiedBookmarklet] = useState(false);
   const fileInputRef = useRef(null);
+  const dialogRef = useRef(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e) => {
-      if (e.key === 'Escape') onClose?.();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
+  useDialogFocusTrap(isOpen, dialogRef, { onClose });
 
   const parsed = useMemo(() => {
     if (!rawText.trim()) return null;
@@ -115,6 +110,7 @@ export default function RegImportModal({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 overflow-y-auto"
       role="dialog"
       aria-modal="true"
@@ -143,7 +139,7 @@ export default function RegImportModal({
             type="button"
             onClick={onClose}
             aria-label={isTh ? 'ปิดหน้าต่าง' : 'Close'}
-            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer shrink-0"
+            className="w-11 h-11 sm:w-9 sm:h-9 -mr-2 sm:mr-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
             <X size={18} strokeWidth={1.5} />
           </button>
@@ -278,7 +274,7 @@ export default function RegImportModal({
                     ? 'วางข้อความจากหน้า ตารางเรียน/สอบ หรือ ผลการศึกษา ของ reg.kmutnb.ac.th ที่นี่ (วางต่อกันทั้ง 2 หน้าได้เลย)...'
                     : 'Paste text copied from reg.kmutnb.ac.th timetable or grade report here...'
                 }
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] resize-y"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3 text-base sm:text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] resize-y"
               />
             </div>
           )}

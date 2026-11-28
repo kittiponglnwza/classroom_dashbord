@@ -1,8 +1,9 @@
-import { useState, useEffect, useId } from 'react';
+import { useState, useId, useRef } from 'react';
 import { ClipboardCheck, X } from 'lucide-react';
 import { t } from '../../utils/i18n';
 import { parseLocalDateInput } from '../../utils/dateUtils';
 import { resolveExamIsoDate } from '../../utils/courseEndDate';
+import { useDialogFocusTrap } from '../../hooks/useDialogFocusTrap';
 
 const formatDisplayDate = (isoDateStr, lang) => {
   if (!isoDateStr) return '';
@@ -56,15 +57,13 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
   const dateId = useId();
   const roomId = useId();
   const seatId = useId();
+  const dialogRef = useRef(null);
+  const nameInputRef = useRef(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onCancel();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onCancel]);
+  useDialogFocusTrap(isOpen, dialogRef, {
+    onClose: onCancel,
+    initialFocusRef: nameInputRef,
+  });
 
   if (!isOpen) return null;
 
@@ -100,6 +99,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in"
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="exam-manual-title"
@@ -114,7 +114,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
             type="button"
             onClick={onCancel}
             aria-label="Close modal"
-            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-heading)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+            className="w-11 h-11 sm:w-9 sm:h-9 -mr-2 sm:mr-0 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-heading)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
             <X size={16} strokeWidth={1.5} />
           </button>
@@ -130,12 +130,13 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="e.g. 40613502"
                 value={formCode}
                 onChange={(e) => setFormCode(e.target.value)}
-                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 sm:h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-base sm:text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div className="col-span-2">
               <label htmlFor={nameId} className="block text-xs font-medium text-[var(--text-primary)] mb-1">{t('courseNameLabel', lang)} *</label>
               <input
+                ref={nameInputRef}
                 id={nameId}
                 type="text"
                 required
@@ -143,7 +144,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="e.g. COMPUTER NETWORK"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 sm:h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-base sm:text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
           </div>
@@ -157,7 +158,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 required
                 value={formDate}
                 onChange={(e) => setFormDate(e.target.value)}
-                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer"
+                className="w-full min-h-11 sm:min-h-0 sm:h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-base sm:text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer"
               />
             </div>
             <div>
@@ -169,7 +170,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                   required
                   value={startTime}
                   onChange={(e) => { setStartTime(e.target.value); setTimeError(''); }}
-                  className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-2.5 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  className="w-full min-h-11 sm:min-h-0 sm:h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-2.5 text-base sm:text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 />
                 <span className="text-[var(--text-muted)]">-</span>
                 <input
@@ -178,7 +179,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                   required
                   value={endTime}
                   onChange={(e) => { setEndTime(e.target.value); setTimeError(''); }}
-                  className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-2.5 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  className="w-full min-h-11 sm:min-h-0 sm:h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-2.5 text-base sm:text-xs font-mono text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 />
               </div>
               {timeError && <p role="alert" className="text-[11px] text-rose-400 mt-1">{timeError}</p>}
@@ -194,7 +195,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="e.g. 81-506"
                 value={formRoom}
                 onChange={(e) => setFormRoom(e.target.value)}
-                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 sm:h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-base sm:text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div>
@@ -205,7 +206,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
                 placeholder="e.g. Row 5, Seat 20"
                 value={formSeat}
                 onChange={(e) => setFormSeat(e.target.value)}
-                className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 sm:h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 text-base sm:text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
           </div>
@@ -214,7 +215,7 @@ export default function ExamManualModal({ isOpen, initialData, onSave, onCancel,
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 h-9 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+              className="px-4 min-h-11 sm:min-h-0 sm:h-9 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             >
               {t('cancelBtn', lang)}
             </button>

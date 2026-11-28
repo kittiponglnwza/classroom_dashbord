@@ -12,6 +12,7 @@ import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ToastContext } from '../contexts/ToastContext';
 import { useExams } from '../hooks/useExams';
+import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
 import { getToken } from '../utils/storage';
 import { parseExamDate } from '../utils/examDate';
@@ -356,11 +357,11 @@ function WeeklyGrid({
   }, [schedule, weekDates]);
 
   const handleRowClick = useCallback((day, e) => {
-    if (e.target.closest('[data-schedule-block]')) return;
+    if (e.target.closest?.('[data-schedule-block]')) return;
     const rect = e.currentTarget.getBoundingClientRect();
     let startTime = '09:00';
     let endTime = '10:00';
-    if (rect && rect.width > 0 && Number.isFinite(e.clientX)) {
+    if (rect && rect.width > 0 && e.detail > 0 && Number.isFinite(e.clientX)) {
       const x = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
       const minutes = startHour * 60 + (x / rect.width) * (totalHours * 60);
       const rounded = Math.min(22 * 60 + 30, Math.max(startHour * 60, Math.round(minutes / 30) * 30));
@@ -430,22 +431,26 @@ function WeeklyGrid({
 
                   {/* Interactive Timeline Track */}
                   <div
-                    className={`relative cursor-pointer transition-colors ${
+                    className={`relative transition-colors ${
                       isToday ? 'bg-[var(--primary)]/[0.04] hover:bg-[var(--primary)]/[0.07]' : 'bg-[var(--app-bg)] hover:bg-[var(--surface)]'
                     }`}
-                    onClick={(e) => handleRowClick(day, e)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${t(DAY_KEYS[day], lang)} timetable row - add class`}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onClickEmpty(day, '09:00', '10:00', weekDates[day].dateStr);
-                      }
-                    }}
                   >
+                    <button
+                      type="button"
+                      onClick={(e) => handleRowClick(day, e)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onClickEmpty(day, '09:00', '10:00', weekDates[day].dateStr);
+                        }
+                      }}
+                      aria-label={`${t(DAY_KEYS[day], lang)} timetable row - add class`}
+                      className="absolute inset-0 z-0 w-full h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--primary)]"
+                    />
+
                     {/* Hourly vertical gridlines */}
                     <div
+                      aria-hidden="true"
                       className="absolute inset-0 grid pointer-events-none"
                       style={{ gridTemplateColumns: `repeat(${totalHours}, minmax(0, 1fr))` }}
                     >
@@ -487,24 +492,17 @@ function WeeklyGrid({
                       ].filter(Boolean).join(' • ');
 
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={entry.id}
                           data-schedule-block
                           title={tooltipText}
+                          aria-label={tooltipText}
                           onClick={(e) => {
                             e.stopPropagation();
                             onClickBlock(entry, weekDates[day].dateStr);
                           }}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onClickBlock(entry, weekDates[day].dateStr);
-                            }
-                          }}
-                          className="absolute rounded-lg overflow-hidden cursor-pointer transition-[filter] hover:brightness-115 flex flex-col justify-center px-2.5 py-1.5"
+                          className="absolute rounded-lg overflow-hidden cursor-pointer transition-[filter] hover:brightness-115 flex flex-col justify-center px-2.5 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
                           style={{
                             left: `calc(${left}% + 2px)`,
                             width: `calc(${width}% - 4px)`,
@@ -542,7 +540,7 @@ function WeeklyGrid({
                               </>
                             )}
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
 
@@ -758,15 +756,9 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
   const [userClearedEndDate, setUserClearedEndDate] = useState(Boolean(entry?.noAutoEndDate));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [timeError, setTimeError] = useState('');
+  const dialogRef = useRef(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
+  useDialogFocusTrap(isOpen, dialogRef, { onClose });
 
   const update = (key, value) => setFormData((prev) => ({ ...prev, [key]: value }));
 
@@ -880,6 +872,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 overflow-y-auto"
       role="dialog"
       aria-modal="true"
@@ -897,22 +890,23 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
             type="button"
             onClick={onClose}
             aria-label={t('cancelBtn', lang)}
-            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer"
+            className="w-11 h-11 sm:w-9 sm:h-9 -mr-2 sm:mr-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
-            <X size={16} strokeWidth={1.5} />
+            <X aria-hidden="true" size={16} strokeWidth={1.5} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {visibleCourses.length > 0 && (
             <div>
-              <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
+              <label htmlFor={`${titleId}-course`} className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
                 {t('selectCourse', lang)}
               </label>
               <select
+                id={`${titleId}-course`}
                 value={formData.courseId || '__custom__'}
                 onChange={handleCourseSelect}
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               >
                 <option value="__custom__">{t('customEntry', lang)}</option>
                 {visibleCourses.map((c) => (
@@ -934,7 +928,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 value={formData.title}
                 onChange={(e) => update('title', e.target.value)}
                 placeholder={lang === 'th' ? 'เช่น Data Structure' : 'e.g. Data Structure'}
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-heading)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div>
@@ -947,7 +941,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 value={formData.courseCode}
                 onChange={(e) => update('courseCode', e.target.value)}
                 placeholder="040613..."
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] placeholder-[var(--text-muted)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-heading)] placeholder-[var(--text-muted)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
           </div>
@@ -959,7 +953,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 <button
                   type="button"
                   onClick={() => handleTypeChange('recurring')}
-                  className={`py-1.5 rounded-md text-[11px] font-medium cursor-pointer transition-colors ${
+                  className={`min-h-10 sm:min-h-0 py-1.5 rounded-md text-[11px] font-medium cursor-pointer transition-colors ${
                     classType === 'recurring' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'
                   }`}
                 >
@@ -968,7 +962,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 <button
                   type="button"
                   onClick={() => handleTypeChange('one-off')}
-                  className={`py-1.5 rounded-md text-[11px] font-medium cursor-pointer transition-colors ${
+                  className={`min-h-10 sm:min-h-0 py-1.5 rounded-md text-[11px] font-medium cursor-pointer transition-colors ${
                     classType === 'one-off' ? 'bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'
                   }`}
                 >
@@ -986,7 +980,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   id={dayId}
                   value={formData.day}
                   onChange={(e) => update('day', e.target.value)}
-                  className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-heading)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 >
                   {DAYS.map((d) => (
                     <option key={d} value={d}>{t(DAY_KEYS[d], lang)}</option>
@@ -1003,7 +997,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   type="date"
                   value={formData.date}
                   onChange={(e) => handleDateChange(e.target.value)}
-                  className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-heading)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 />
               </div>
             )}
@@ -1023,7 +1017,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   setTimeError('');
                   update('startTime', e.target.value);
                 }}
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-heading)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div>
@@ -1039,7 +1033,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   setTimeError('');
                   update('endTime', e.target.value);
                 }}
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-heading)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
           </div>
@@ -1055,7 +1049,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                   setTimeError('');
                   update('endTime', addHoursToTime(formData.startTime, hrs));
                 }}
-                className="px-2 py-0.5 rounded-md bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary)] font-mono tabular-nums cursor-pointer transition-colors"
+                className="px-2.5 min-h-9 sm:min-h-0 sm:py-0.5 rounded-md bg-[var(--app-bg)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary)] font-mono tabular-nums cursor-pointer transition-colors"
               >
                 +{hrs}h
               </button>
@@ -1094,7 +1088,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => handleEndDateChange(e.target.value)}
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-heading)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
               <p className="text-[11px] text-[var(--text-muted)] mt-1">
                 {autoEndInfo.source === 'course-exam' && autoEndInfo.examDate
@@ -1144,7 +1138,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                 value={formData.room}
                 onChange={(e) => update('room', e.target.value)}
                 placeholder="78-621"
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-heading)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-heading)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               />
             </div>
             <div>
@@ -1156,7 +1150,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
                     type="button"
                     onClick={() => update('color', c)}
                     aria-label={`Select color ${c}`}
-                    className={`w-6 h-6 rounded-full cursor-pointer transition-opacity ${
+                    className={`w-7 h-7 sm:w-6 sm:h-6 rounded-full cursor-pointer transition-opacity ${
                       formData.color === c ? 'ring-2 ring-[var(--text-heading)] ring-offset-2 ring-offset-[var(--surface)] opacity-100' : 'opacity-70 hover:opacity-100'
                     }`}
                     style={{ backgroundColor: c }}
@@ -1176,7 +1170,7 @@ function ScheduleModal({ isOpen, entry, visibleCourses, schedule, allExams = [],
               value={formData.notes}
               onChange={(e) => update('notes', e.target.value)}
               placeholder={lang === 'th' ? 'ชื่ออาจารย์ / หมายเหตุเพิ่มเติม...' : 'Instructor or notes...'}
-              className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+              className="w-full min-h-11 sm:min-h-0 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-base sm:text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             />
           </div>
 

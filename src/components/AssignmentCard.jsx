@@ -156,27 +156,28 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
                 handleTogglePin(id);
               }}
               aria-label={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin' : 'ปักหมุด')}
+              aria-pressed={isPinned}
               title={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin to top' : 'ปักหมุดไว้บนสุด')}
-              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+              className={`w-9 h-9 sm:w-auto sm:h-auto sm:p-1.5 flex items-center justify-center rounded-lg border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
                 isPinned
                   ? 'text-amber-400 bg-amber-500/12 border-amber-500/30'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--app-bg)] border-[var(--border)]'
               }`}
             >
-              <Pin size={14} strokeWidth={1.5} className={isPinned ? 'fill-amber-400/25' : ''} />
+              <Pin aria-hidden="true" size={14} strokeWidth={1.5} className={isPinned ? 'fill-amber-400/25' : ''} />
             </button>
           )}
 
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 bg-[var(--app-bg)] border border-[var(--border)] px-2.5 h-8 rounded-lg shrink-0"
+            className="flex items-center gap-1.5 bg-[var(--app-bg)] border border-[var(--border)] px-2.5 min-h-9 sm:min-h-0 sm:h-8 rounded-lg shrink-0"
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
+            <span aria-hidden="true" className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
             <select
               aria-label={`${title} status`}
               value={status}
               onChange={(e) => onStatusChange(id, e.target.value)}
-              className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer select-none ${getStatusTextColor()}`}
+              className={`text-base sm:text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer select-none ${getStatusTextColor()}`}
             >
               <option value="todo">{t('todo', lang)}</option>
               <option value="doing">{t('doing', lang)}</option>
@@ -189,9 +190,10 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
             type="button"
             onClick={() => setIsListExpanded(true)}
             aria-label={lang === 'en' ? 'Expand details' : 'ดูรายละเอียด'}
-            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+            aria-expanded={false}
+            className="w-9 h-9 sm:w-auto sm:h-auto sm:p-1.5 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
-            <ChevronDown size={16} strokeWidth={1.5} />
+            <ChevronDown aria-hidden="true" size={16} strokeWidth={1.5} />
           </button>
         </div>
       </div>
@@ -210,10 +212,12 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
           <button
             type="button"
             onClick={() => setIsListExpanded(false)}
-            className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors cursor-pointer"
+            aria-label={lang === 'en' ? 'Collapse details' : 'ย่อรายละเอียด'}
+            aria-expanded={true}
+            className="w-9 h-9 sm:w-auto sm:h-auto sm:p-1 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             title={lang === 'en' ? 'Collapse' : 'ย่อ'}
           >
-            <ChevronUp size={16} strokeWidth={1.5} />
+            <ChevronUp aria-hidden="true" size={16} strokeWidth={1.5} />
           </button>
         </div>
       )}
@@ -221,7 +225,7 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${getCourseDotClass(courseColor)}`} />
+            <span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${getCourseDotClass(courseColor)}`} />
             <span className="text-xs font-normal text-[var(--text-secondary)] truncate" title={course}>
               {course}
             </span>
@@ -236,24 +240,25 @@ const AssignmentCard = React.memo(function AssignmentCard({ assignment, onStatus
                   handleTogglePin(id);
                 }}
                 aria-label={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin' : 'ปักหมุด')}
+                aria-pressed={isPinned}
                 title={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin to top' : 'ปักหมุดไว้บนสุด')}
-                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                className={`w-9 h-9 sm:w-auto sm:h-auto sm:p-1.5 flex items-center justify-center rounded-lg border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
                   isPinned
                     ? 'text-amber-400 bg-amber-500/12 border-amber-500/30'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--app-bg)] border-[var(--border)]'
                 }`}
               >
-                <Pin size={14} strokeWidth={1.5} className={isPinned ? 'fill-amber-400/25' : ''} />
+                <Pin aria-hidden="true" size={14} strokeWidth={1.5} className={isPinned ? 'fill-amber-400/25' : ''} />
               </button>
             )}
 
-            <div className="flex items-center gap-1.5 bg-[var(--app-bg)] border border-[var(--border)] px-2.5 h-7 rounded-lg hover:border-[var(--border-strong)] transition-colors shrink-0">
-              <span className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
+            <div className="flex items-center gap-1.5 bg-[var(--app-bg)] border border-[var(--border)] px-2.5 min-h-9 sm:min-h-0 sm:h-7 rounded-lg hover:border-[var(--border-strong)] transition-colors shrink-0">
+              <span aria-hidden="true" className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor()} shrink-0`} />
               <select
                 aria-label={`${title} status`}
                 value={status}
                 onChange={(e) => onStatusChange(id, e.target.value)}
-                className={`text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer pr-1 select-none ${getStatusTextColor()}`}
+                className={`text-base sm:text-xs font-medium bg-transparent border-0 p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer pr-1 select-none ${getStatusTextColor()}`}
               >
                 <option value="todo">{t('todo', lang)}</option>
                 <option value="doing">{t('doing', lang)}</option>

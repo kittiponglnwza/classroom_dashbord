@@ -41,7 +41,7 @@ export default function TaskFilters({
     <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3">
       {/* Search */}
       <div className="relative flex-1 w-full lg:max-w-sm">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--text-muted)]">
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--text-muted)] pointer-events-none">
           <Search size={15} strokeWidth={1.5} />
         </span>
         <input
@@ -50,7 +50,7 @@ export default function TaskFilters({
           placeholder={t('searchPlaceholder', lang)}
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          className="w-full h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg pl-9 pr-8 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
+          className="w-full min-h-11 sm:min-h-0 sm:h-9 bg-[var(--app-bg)] border border-[var(--border)] rounded-lg pl-9 pr-10 text-base sm:text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
         />
         {localSearch && (
           <button
@@ -61,22 +61,22 @@ export default function TaskFilters({
               setSearchQuery('');
             }}
             aria-label="Clear search"
-            className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-[var(--text-muted)] hover:text-[var(--text-heading)] cursor-pointer"
+            className="absolute inset-y-0 right-0 w-10 sm:w-8 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-heading)] cursor-pointer rounded-r-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
-            <X size={14} strokeWidth={1.5} />
+            <X aria-hidden="true" size={14} strokeWidth={1.5} />
           </button>
         )}
       </div>
 
       {/* Filters and Sorting */}
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 min-w-0">
-        <div className={`flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] min-w-0 ${viewType === 'kanban' ? 'col-span-2 sm:col-span-1' : ''}`}>
-          <Filter size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+        <div className={`flex items-center gap-1.5 px-3 min-h-11 sm:min-h-0 sm:h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] min-w-0 ${viewType === 'kanban' ? 'col-span-2 sm:col-span-1' : ''}`}>
+          <Filter aria-hidden="true" size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
           <select
             aria-label={t('allSubjects', lang)}
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="bg-transparent text-xs font-medium text-[var(--text-primary)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] cursor-pointer pr-1 rounded w-full min-w-0 truncate"
+            className="bg-transparent text-base sm:text-xs font-medium text-[var(--text-primary)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] cursor-pointer pr-1 rounded w-full min-w-0 truncate"
           >
             <option value="all">{t('allSubjects', lang)}</option>
             {visibleCourses.map(c => (
@@ -86,12 +86,12 @@ export default function TaskFilters({
         </div>
 
         {viewType !== 'kanban' && (
-          <div className="flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] min-w-0">
+          <div className="flex items-center gap-1.5 px-3 min-h-11 sm:min-h-0 sm:h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] min-w-0">
             <select
               aria-label={t('allStatuses', lang)}
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-transparent text-xs font-medium text-[var(--text-primary)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] cursor-pointer rounded w-full min-w-0"
+              className="bg-transparent text-base sm:text-xs font-medium text-[var(--text-primary)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] cursor-pointer rounded w-full min-w-0"
             >
               <option value="all">{t('allStatuses', lang)}</option>
               <option value="todo">{t('todo', lang)}</option>
@@ -102,13 +102,13 @@ export default function TaskFilters({
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 px-3 h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] min-w-0">
-          <ArrowUpDown size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+        <div className="flex items-center gap-1.5 px-3 min-h-11 sm:min-h-0 sm:h-9 rounded-lg bg-[var(--app-bg)] border border-[var(--border)] min-w-0">
+          <ArrowUpDown aria-hidden="true" size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
           <select
             aria-label="Sort assignments"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-transparent text-xs font-medium text-[var(--text-primary)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] cursor-pointer rounded w-full min-w-0"
+            className="bg-transparent text-base sm:text-xs font-medium text-[var(--text-primary)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)] cursor-pointer rounded w-full min-w-0"
           >
             <option value="due-asc">{t('sortByDueAsc', lang)}</option>
             <option value="due-desc">{t('sortByDueDesc', lang)}</option>

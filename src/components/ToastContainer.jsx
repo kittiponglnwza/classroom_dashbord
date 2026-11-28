@@ -27,9 +27,9 @@ export default function ToastContainer({ toasts, removeToast }) {
             type="button"
             onClick={() => removeToast(toast.id)}
             aria-label="Dismiss notification"
-            className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-heading)] transition-colors p-0.5 cursor-pointer rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--primary)]"
+            className="shrink-0 w-9 h-9 -mr-1.5 -mt-1.5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-heading)] transition-colors cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
-            <X size={15} strokeWidth={1.5} />
+            <X aria-hidden="true" size={15} strokeWidth={1.5} />
           </button>
         </div>
       ))}

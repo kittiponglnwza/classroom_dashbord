@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   GraduationCap, Eye, EyeOff, Upload, CalendarDays, CheckCircle2,
@@ -9,6 +9,7 @@ import {
 import { useSettings } from '../contexts/SettingsContext';
 import { useClassroom } from '../contexts/ClassroomContext';
 import { useToast } from '../hooks/useToast';
+import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 import RegImportModal from '../components/RegImportModal';
 import PageHeader from '../components/PageHeader';
 import { t } from '../utils/i18n';
@@ -128,31 +129,38 @@ function GpaTrendChart({ gradedSemesters, blur, isTh }) {
     ? `${gpaPath} L ${gpaPoints[gpaPoints.length - 1].x.toFixed(1)} ${yAt(0).toFixed(1)} L ${gpaPoints[0].x.toFixed(1)} ${yAt(0).toFixed(1)} Z`
     : '';
 
+  const latestIdx = gpaPoints.length - 1;
+  const chartSummaryLabel = latestIdx >= 0
+    ? isTh
+      ? `กราฟแนวโน้มเกรด (GPA Trend Chart): ${gpaPoints.length} เทอม ล่าสุดเทอม ${gpaPoints[latestIdx].label} GPA ${formatGpa(gpaPoints[latestIdx].val)} และ GPAX สะสม ${formatGpa(gpaxPoints[latestIdx].val)}`
+      : `GPA Trend Chart: ${gpaPoints.length} semesters, latest ${gpaPoints[latestIdx].label} Term GPA ${formatGpa(gpaPoints[latestIdx].val)}, Cumulative GPAX ${formatGpa(gpaxPoints[latestIdx].val)}`
+    : 'GPA Trend Chart';
+
   return (
     <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-medium text-[var(--text-heading)] flex items-center gap-2">
-          <TrendingUp size={16} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
+          <TrendingUp aria-hidden="true" size={16} strokeWidth={1.5} className="text-[var(--primary-bright)]" />
           <span>{isTh ? 'แนวโน้มเกรดรายเทอม (GPA & GPAX)' : 'Semester GPA & GPAX Trend'}</span>
         </h3>
         <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
           <span className="inline-flex items-center gap-2">
-            <span className="w-3 h-0.5 bg-[var(--primary-bright)] inline-block rounded" />
+            <span aria-hidden="true" className="w-3 h-0.5 bg-[var(--primary-bright)] inline-block rounded" />
             <span>GPA {isTh ? 'รายเทอม' : 'Term'}</span>
           </span>
           <span className="inline-flex items-center gap-2">
-            <span className="w-3 h-0.5 border-t border-dashed border-[var(--text-secondary)] inline-block" />
+            <span aria-hidden="true" className="w-3 h-0.5 border-t border-dashed border-[var(--text-secondary)] inline-block" />
             <span>GPAX {isTh ? 'สะสม' : 'Cumulative'}</span>
           </span>
           <span className="inline-flex items-center gap-2">
-            <span className="w-3 h-0.5 border-t border-dotted border-amber-400/70 inline-block" />
+            <span aria-hidden="true" className="w-3 h-0.5 border-t border-dotted border-amber-400/70 inline-block" />
             <span className="font-mono">{isTh ? 'เกณฑ์ 2.00' : 'Min 2.00'}</span>
           </span>
         </div>
       </div>
 
       <div className={`w-full overflow-x-auto transition-[filter,opacity] duration-200 ${blur ? 'blur-sm select-none pointer-events-none' : ''}`}>
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[440px] h-auto" role="img" aria-label="GPA Trend Chart">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[440px] h-auto" role="img" aria-label={chartSummaryLabel}>
           <defs>
             <linearGradient id="gpaAreaFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.16" />
@@ -181,7 +189,7 @@ function GpaTrendChart({ gradedSemesters, blur, isTh }) {
                   textAnchor="end"
                   fontSize="11"
                   fontFamily="'IBM Plex Mono', monospace"
-                  fill={isMinLine ? '#E5A93B' : '#7F899B'}
+                  fill={isMinLine ? '#E5A93B' : '#8E98AA'}
                 >
                   {tick.toFixed(1)}
                 </text>
@@ -202,34 +210,47 @@ function GpaTrendChart({ gradedSemesters, blur, isTh }) {
             <path d={gpaPath} fill="none" stroke="#60A5FA" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" />
           )}
 
-          {/* Data points & mono labels */}
-          {gpaPoints.map((p, idx) => (
-            <g key={p.label}>
-              <circle cx={gpaxPoints[idx].x} cy={gpaxPoints[idx].y} r={3} fill="#A1AAB9" stroke="#171B24" strokeWidth={1.5} />
-              <circle cx={p.x} cy={p.y} r={4} fill="#60A5FA" stroke="#171B24" strokeWidth={1.5} />
-              <text
-                x={p.x}
-                y={Math.max(14, p.y - 10)}
-                textAnchor="middle"
-                fontSize="11"
-                fontWeight="500"
-                fontFamily="'IBM Plex Mono', monospace"
-                fill="#F3F5F8"
+          {/* Data points, keyboard-reachable point summaries & mono labels */}
+          {gpaPoints.map((p, idx) => {
+            const pointSummary = isTh
+              ? `เทอม ${p.label}: GPA รายเทอม ${formatGpa(p.val)}, GPAX สะสม ${formatGpa(gpaxPoints[idx].val)}`
+              : `Term ${p.label}: Term GPA ${formatGpa(p.val)}, Cumulative GPAX ${formatGpa(gpaxPoints[idx].val)}`;
+            return (
+              <g
+                key={p.label}
+                tabIndex={blur ? undefined : 0}
+                role="group"
+                aria-label={pointSummary}
+                className="focus:outline-none"
               >
-                {formatGpa(p.val)}
-              </text>
-              <text
-                x={p.x}
-                y={height - 10}
-                textAnchor="middle"
-                fontSize="11"
-                fontFamily="'IBM Plex Mono', monospace"
-                fill="#7F899B"
-              >
-                {p.label}
-              </text>
-            </g>
-          ))}
+                <title>{pointSummary}</title>
+                <circle cx={p.x} cy={p.y} r={14} fill="transparent" />
+                <circle cx={gpaxPoints[idx].x} cy={gpaxPoints[idx].y} r={3.5} fill="#A1AAB9" stroke="#171B24" strokeWidth={1.5} />
+                <circle cx={p.x} cy={p.y} r={4.5} fill="#60A5FA" stroke="#171B24" strokeWidth={1.5} />
+                <text
+                  x={p.x}
+                  y={Math.max(14, p.y - 10)}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fontWeight="500"
+                  fontFamily="'IBM Plex Mono', monospace"
+                  fill="#F3F5F8"
+                >
+                  {formatGpa(p.val)}
+                </text>
+                <text
+                  x={p.x}
+                  y={height - 10}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fontFamily="'IBM Plex Mono', monospace"
+                  fill="#8E98AA"
+                >
+                  {p.label}
+                </text>
+              </g>
+            );
+          })}
         </svg>
       </div>
     </div>
@@ -242,15 +263,9 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
     (curriculum || []).map((c) => ({ ...c }))
   );
   const [targetMinGpax, setTargetMinGpax] = useState(() => String(minGpax ?? 2.0));
+  const dialogRef = useRef(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
+  useDialogFocusTrap(isOpen, dialogRef, { onClose });
 
   if (!isOpen) return null;
 
@@ -303,6 +318,7 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 overflow-y-auto"
       role="dialog"
       aria-modal="true"
@@ -328,7 +344,8 @@ function CurriculumEditorModal({ isOpen, curriculum, minGpax, isTh, onSave, onCl
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer"
+            aria-label={isTh ? 'ปิดหน้าต่างตั้งค่าเกณฑ์จบ' : 'Close graduation criteria modal'}
+            className="w-11 h-11 sm:w-9 sm:h-9 -mr-2 sm:mr-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
             <X size={16} strokeWidth={1.5} />
           </button>

@@ -72,6 +72,8 @@ describe('Mobile Responsive Navigation & Schedule Defaults', () => {
       </MemoryRouter>
     );
 
+    expect(screen.getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main-content');
+
     const bottomNav = screen.getByRole('navigation', { name: 'Mobile Bottom Navigation' });
     expect(bottomNav).toBeInTheDocument();
     expect(bottomNav).toHaveTextContent('Home');
@@ -79,8 +81,14 @@ describe('Mobile Responsive Navigation & Schedule Defaults', () => {
     expect(bottomNav).toHaveTextContent('Schedule');
     expect(bottomNav).toHaveTextContent('Courses');
 
-    fireEvent.click(screen.getByRole('button', { name: 'More navigation' }));
+    const moreBtn = screen.getByRole('button', { name: 'More navigation' });
+    moreBtn.focus();
+    fireEvent.click(moreBtn);
     expect(screen.getByRole('dialog', { name: 'Mobile Navigation' })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Mobile Navigation' })).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(moreBtn);
   });
 
   it('defaults Schedule to mobile-friendly Daily View on phone screens (< 768px) and still allows switching to Week view', () => {

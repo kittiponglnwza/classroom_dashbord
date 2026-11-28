@@ -17,6 +17,7 @@ import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { examRepository } from '../repositories/examRepository';
 import { buildWorkspaceSnapshot, sendGeminiMessage } from '../services/api/geminiApi';
+import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 
 function renderInlineSegments(text) {
   const parts = String(text || '').split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
@@ -167,6 +168,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
   const abortRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const dialogRef = useRef(null);
 
   const activeEmail = (profile?.email || '').toLowerCase().trim();
 
@@ -237,26 +239,18 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
     [lang]
   );
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        onClose?.();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 60);
-    }
-  }, [isOpen]);
+  useDialogFocusTrap(isOpen, dialogRef, {
+    onClose,
+    initialFocusRef: inputRef,
+  });
 
   useEffect(() => {
     if (isOpen && messagesEndRef.current?.scrollIntoView) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      const prefersReduced =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      messagesEndRef.current.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth' });
     }
   }, [messages, isLoading, isOpen]);
 
@@ -365,6 +359,9 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
 
   const handleKeyDownInput = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.nativeEvent?.isComposing || e.isComposing || e.keyCode === 229) {
+        return;
+      }
       e.preventDefault();
       handleSend();
     }
@@ -374,6 +371,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยวางแผนการเรียน'}
@@ -408,7 +406,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
                 onClick={handleResetChat}
                 title={lang === 'en' ? 'New conversation' : 'เริ่มบทสนทนาใหม่'}
                 aria-label={lang === 'en' ? 'New conversation' : 'เริ่มบทสนทนาใหม่'}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
               >
                 <RotateCcw size={15} strokeWidth={1.5} />
               </button>
@@ -417,7 +415,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
               type="button"
               onClick={onClose}
               aria-label={lang === 'en' ? 'Close Study Assistant' : 'ปิดผู้ช่วยการเรียน'}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+              className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             >
               <X size={16} strokeWidth={1.5} />
             </button>
@@ -451,7 +449,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
                   <button
                     type="button"
                     onClick={() => login?.()}
-                    className="h-8 px-3 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-medium shrink-0 transition-colors cursor-pointer"
+                    className="min-h-11 sm:min-h-0 sm:h-8 px-3 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-medium shrink-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
                   >
                     {lang === 'en' ? 'Connect' : 'เชื่อมต่อ'}
                   </button>
@@ -512,7 +510,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
                   <button
                     type="button"
                     onClick={handleStopRequest}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-heading)] cursor-pointer transition-colors"
+                    className="inline-flex items-center gap-1 min-h-9 px-2 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-heading)] cursor-pointer transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                   >
                     <Square size={12} strokeWidth={1.5} />
                     <span>{lang === 'en' ? 'Stop' : 'หยุด'}</span>
@@ -541,12 +539,17 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
             e.preventDefault();
             handleSend();
           }}
-          className="p-3 border-t border-[var(--border)] bg-[var(--topbar-bg)] shrink-0"
+          className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t border-[var(--border)] bg-[var(--topbar-bg)] shrink-0"
         >
           <div className="flex items-end gap-2 bg-[var(--surface)] border border-[var(--border)] focus-within:border-[var(--border-strong)] rounded-xl p-2 transition-colors">
             <textarea
               ref={inputRef}
               rows={1}
+              aria-label={
+                lang === 'en'
+                  ? 'Ask Study Assistant'
+                  : 'พิมพ์คำถามถึงผู้ช่วยวางแผนการเรียน'
+              }
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDownInput}
@@ -556,13 +559,13 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
                   : 'ถามเกี่ยวกับการบ้าน ตารางเรียน หรือวันสอบ'
               }
               maxLength={4000}
-              className="flex-1 max-h-28 min-h-[28px] bg-transparent text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none px-1.5 py-1 focus:outline-none"
+              className="flex-1 max-h-28 min-h-[32px] bg-transparent text-base sm:text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none px-1.5 py-1 focus:outline-none"
             />
             <button
               type="submit"
               disabled={!inputValue.trim() || isLoading}
               aria-label={lang === 'en' ? 'Send message' : 'ส่งข้อความ'}
-              className="w-8 h-8 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] disabled:opacity-40 text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
+              className="w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] disabled:opacity-40 text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
             >
               <Send size={15} strokeWidth={1.5} />
             </button>

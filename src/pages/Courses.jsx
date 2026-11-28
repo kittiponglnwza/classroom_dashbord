@@ -64,31 +64,28 @@ function ResourceCard({
 
   if (viewMode === 'list' && !isListExpanded) {
     return (
-      <div
-        onClick={() => setIsListExpanded(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setIsListExpanded(true);
-          }
-        }}
-        className="group bg-[var(--surface)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer transition-colors"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[var(--app-bg)] border border-[var(--border)]">
-            {resourceType.icon}
+      <div className="group bg-[var(--surface)] hover:bg-[var(--surface-elevated)] border border-[var(--border)] rounded-xl px-4 py-2.5 flex items-center justify-between gap-2.5 transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsListExpanded(true)}
+          aria-expanded={false}
+          className="flex-1 min-w-0 flex items-center justify-between gap-3 py-0.5 text-left cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[var(--app-bg)] border border-[var(--border)]">
+              {resourceType.icon}
+            </div>
+            <span className="text-sm font-medium text-[var(--text-heading)] truncate group-hover:text-[var(--primary-bright)] transition-colors">
+              {title}
+            </span>
           </div>
-          <span className="text-sm font-medium text-[var(--text-heading)] truncate group-hover:text-[var(--primary-bright)] transition-colors">
-            {title}
-          </span>
-        </div>
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="hidden sm:flex items-center gap-1.5 text-[var(--text-muted)] font-mono tabular-nums">
-            <Calendar size={13} strokeWidth={1.5} />
+          <div className="hidden sm:flex items-center gap-1.5 text-[var(--text-muted)] font-mono tabular-nums shrink-0">
+            <Calendar aria-hidden="true" size={13} strokeWidth={1.5} />
             <span className="text-xs">{formattedDate}</span>
           </div>
+        </button>
+
+        <div className="flex items-center gap-1.5 shrink-0">
           {onTogglePin && (
             <button
               type="button"
@@ -97,19 +94,26 @@ function ResourceCard({
                 onTogglePin(id);
               }}
               aria-label={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin' : 'ปักหมุด')}
+              aria-pressed={isPinned}
               title={isPinned ? (lang === 'en' ? 'Unpin' : 'เลิกปักหมุด') : (lang === 'en' ? 'Pin to top' : 'ปักหมุดไว้บนสุด')}
-              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+              className={`w-9 h-9 sm:w-auto sm:h-auto sm:p-1.5 flex items-center justify-center rounded-lg border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] ${
                 isPinned
                   ? 'text-amber-400 bg-amber-500/12 border-amber-500/30'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--app-bg)] border-[var(--border)]'
               }`}
             >
-              <Pin size={14} strokeWidth={1.5} className={isPinned ? 'fill-amber-400/25' : ''} />
+              <Pin aria-hidden="true" size={14} strokeWidth={1.5} className={isPinned ? 'fill-amber-400/25' : ''} />
             </button>
           )}
-          <div className="p-1 rounded-md text-[var(--text-muted)] group-hover:text-[var(--text-heading)] transition-colors">
-            <ChevronDown size={15} strokeWidth={1.5} />
-          </div>
+          <button
+            type="button"
+            onClick={() => setIsListExpanded(true)}
+            aria-label={lang === 'en' ? 'Expand post' : 'ดูรายละเอียดประกาศ'}
+            aria-expanded={false}
+            className="w-9 h-9 sm:w-auto sm:h-auto sm:p-1 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:text-[var(--text-heading)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+          >
+            <ChevronDown aria-hidden="true" size={15} strokeWidth={1.5} />
+          </button>
         </div>
       </div>
     );
@@ -265,60 +269,59 @@ function ResourceCard({
 function CourseRow({ course, activeCount, totalAssignments, totalResources, isHidden, onSelect, onToggleVisibility, lang }) {
   return (
     <div
-      onClick={onSelect}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      className={`flex items-center gap-4 px-4 py-3.5 bg-[var(--surface)] border border-[var(--border)] rounded-xl cursor-pointer transition-colors hover:border-[var(--border-strong)] group ${
+      className={`flex items-center gap-3 sm:gap-4 px-4 py-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl transition-colors hover:border-[var(--border-strong)] group ${
         isHidden ? 'opacity-60' : ''
       }`}
     >
-      <div className={`w-2 h-2 rounded-full shrink-0 ${getCourseDotClass(course.color)}`} />
+      <button
+        type="button"
+        onClick={onSelect}
+        className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 text-left cursor-pointer rounded-lg py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+      >
+        <div aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${getCourseDotClass(course.color)}`} />
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono text-[var(--text-muted)]">{course.code}</span>
-          {activeCount > 0 && !isHidden && (
-            <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-amber-500/12 text-amber-400 border border-amber-500/25 tabular-nums">
-              {activeCount} {lang === 'en' ? 'active' : 'งานค้าง'}
-            </span>
-          )}
-          {isHidden && (
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[var(--app-bg)] text-[var(--text-muted)] border border-[var(--border)]">
-              {t('hiddenLabel', lang)}
-            </span>
-          )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">{course.code}</span>
+            {activeCount > 0 && !isHidden && (
+              <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-amber-500/12 text-amber-400 border border-amber-500/25 tabular-nums">
+                {activeCount} {lang === 'en' ? 'active' : 'งานค้าง'}
+              </span>
+            )}
+            {isHidden && (
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[var(--app-bg)] text-[var(--text-muted)] border border-[var(--border)]">
+                {t('hiddenLabel', lang)}
+              </span>
+            )}
+          </div>
+          <p className="text-sm font-medium text-[var(--text-heading)] truncate group-hover:text-[var(--primary-bright)] transition-colors">
+            {course.name}
+          </p>
         </div>
-        <p className="text-sm font-medium text-[var(--text-heading)] truncate group-hover:text-[var(--primary-bright)] transition-colors">
-          {course.name}
-        </p>
-      </div>
 
-      <div className="hidden sm:flex items-center gap-4 text-xs text-[var(--text-secondary)] font-mono tabular-nums shrink-0">
-        <span className="flex items-center gap-1.5"><BookOpen size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {totalAssignments}</span>
-        <span className="flex items-center gap-1.5"><FileText size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {totalResources}</span>
-      </div>
+        <div className="hidden sm:flex items-center gap-4 text-xs text-[var(--text-secondary)] font-mono tabular-nums shrink-0">
+          <span className="flex items-center gap-1.5"><BookOpen aria-hidden="true" size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {totalAssignments}</span>
+          <span className="flex items-center gap-1.5"><FileText aria-hidden="true" size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {totalResources}</span>
+        </div>
 
-      <div className="hidden md:flex items-center gap-1.5 text-xs text-[var(--text-secondary)] shrink-0 max-w-[160px]">
-        <User size={13} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-        <span className="truncate">{course.instructor}</span>
-      </div>
+        <div className="hidden md:flex items-center gap-1.5 text-xs text-[var(--text-secondary)] shrink-0 max-w-[160px]">
+          <User aria-hidden="true" size={13} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+          <span className="truncate">{course.instructor}</span>
+        </div>
+      </button>
 
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onToggleVisibility(course.id); }}
-          className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+          aria-label={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
+          aria-pressed={isHidden}
+          className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
         >
-          {isHidden ? <EyeOff size={15} strokeWidth={1.5} className="text-rose-400" /> : <Eye size={15} strokeWidth={1.5} />}
+          {isHidden ? <EyeOff aria-hidden="true" size={15} strokeWidth={1.5} className="text-rose-400" /> : <Eye aria-hidden="true" size={15} strokeWidth={1.5} />}
         </button>
-        <ChevronRight size={15} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--primary-bright)] transition-colors" />
+        <ChevronRight aria-hidden="true" size={15} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--primary-bright)] transition-colors pointer-events-none" />
       </div>
     </div>
   );
@@ -490,23 +493,18 @@ export default function Courses() {
     return (
       <div
         key={course.id}
-        onClick={() => handleSelectCourse(course.name)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleSelectCourse(course.name);
-          }
-        }}
-        className={`bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-xl relative overflow-hidden flex flex-col justify-between group cursor-pointer transition-colors ${
+        className={`bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-strong)] rounded-xl relative overflow-hidden flex flex-col justify-between group transition-colors ${
           isHidden ? 'opacity-60' : ''
         }`}
       >
-        <div className="p-4 sm:p-5 flex-1 space-y-3">
+        <button
+          type="button"
+          onClick={() => handleSelectCourse(course.name)}
+          className="p-4 sm:p-5 flex-1 space-y-3 text-left w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--primary)]"
+        >
           <div className="flex items-center justify-between gap-2 text-xs font-medium text-[var(--text-muted)]">
             <span className="inline-flex items-center gap-2 font-mono text-[11px]">
-              <span className={`w-2 h-2 rounded-full shrink-0 ${getCourseDotClass(course.color)}`} />
+              <span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${getCourseDotClass(course.color)}`} />
               <span>{course.code || 'COURSE'}</span>
             </span>
             <div>
@@ -527,16 +525,16 @@ export default function Courses() {
               {course.name}
             </h3>
             <div className="flex items-center gap-2.5 text-xs text-[var(--text-secondary)] font-mono tabular-nums">
-              <span className="flex items-center gap-1"><BookOpen size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
-              <span className="text-[var(--text-muted)]">•</span>
-              <span className="flex items-center gap-1"><FileText size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {t('postsMaterialsCount', lang, { count: totalResources })}</span>
+              <span className="flex items-center gap-1"><BookOpen aria-hidden="true" size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {t('assignmentsCountShort', lang, { count: totalAssignments })}</span>
+              <span aria-hidden="true" className="text-[var(--text-muted)]">•</span>
+              <span className="flex items-center gap-1"><FileText aria-hidden="true" size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" /> {t('postsMaterialsCount', lang, { count: totalResources })}</span>
             </div>
           </div>
-        </div>
+        </button>
 
         <div className="px-4 sm:px-5 py-3 border-t border-[var(--border)] bg-[var(--app-bg)] flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] min-w-0">
-            <User size={13} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+            <User aria-hidden="true" size={13} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
             <span className="truncate">{course.instructor}</span>
           </div>
 
@@ -546,10 +544,12 @@ export default function Courses() {
               e.stopPropagation();
               handleToggleCourseVisibility(course.id);
             }}
-            className="p-2 sm:p-1.5 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer shrink-0"
+            aria-label={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
+            aria-pressed={isHidden}
+            className="w-11 h-11 sm:w-8 sm:h-8 -my-1.5 sm:my-0 flex items-center justify-center rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             title={isHidden ? t('showInDashboard', lang) : t('hideFromDashboard', lang)}
           >
-            {isHidden ? <EyeOff size={15} strokeWidth={1.5} className="text-rose-400" /> : <Eye size={15} strokeWidth={1.5} />}
+            {isHidden ? <EyeOff aria-hidden="true" size={15} strokeWidth={1.5} className="text-rose-400" /> : <Eye aria-hidden="true" size={15} strokeWidth={1.5} />}
           </button>
         </div>
       </div>

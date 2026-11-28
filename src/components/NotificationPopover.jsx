@@ -10,6 +10,7 @@ import { DiscordService } from '../services/DiscordService';
 import { syncManager } from '../services/SyncManager';
 import { calendarSyncManager } from '../services/CalendarSyncManager';
 import DiscordWebhookInput from './DiscordWebhookInput';
+import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 
 function resolveNotificationTarget(log, assignments = []) {
   if (log.targetPath) return log.targetPath;
@@ -86,6 +87,10 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
     });
   }, []);
 
+  useDialogFocusTrap(isNotificationsOpen, popoverRef, {
+    onClose: () => setIsNotificationsOpen(false),
+  });
+
   useEffect(() => {
     if (!isNotificationsOpen) return;
     function handleClickOutside(event) {
@@ -98,16 +103,9 @@ export default function NotificationPopover({ isNotificationsOpen, setIsNotifica
         setIsNotificationsOpen(false);
       }
     }
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        setIsNotificationsOpen(false);
-      }
-    }
     document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isNotificationsOpen, setIsNotificationsOpen, bellButtonRef]);
 

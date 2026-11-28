@@ -177,4 +177,34 @@ describe('Study Assistant Drawer & Gemini Frontend Service', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('GEMINI_API_KEY');
     });
   });
+
+  it('ignores Enter while IME composition is active (isComposing / keyCode 229) and submits on plain Enter', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          reply: 'รับทราบครับ',
+          interactionId: 'inter_ime_1',
+          model: 'gemini-4-hydrogen',
+        }),
+    });
+    globalThis.fetch = fetchMock;
+
+    renderWithLayout('th');
+    fireEvent.click(screen.getByTestId('floating-assistant-trigger'));
+
+    const input = screen.getByPlaceholderText('ถามเกี่ยวกับการบ้าน ตารางเรียน หรือวันสอบ');
+    fireEvent.change(input, { target: { value: 'ตารางสอบ' } });
+
+    // Simulate IME confirmation Enter — must NOT submit prematurely
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true, keyCode: 229 });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Plain Enter after composition finishes — submits normally
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: false });
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
 });

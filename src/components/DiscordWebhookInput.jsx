@@ -104,7 +104,7 @@ export default function DiscordWebhookInput({
           className={
             showMaskedSummary
               ? 'sr-only'
-              : 'w-full bg-transparent text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none py-0.5'
+              : 'w-full bg-transparent text-base sm:text-xs font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none py-0.5'
           }
         />
       </div>

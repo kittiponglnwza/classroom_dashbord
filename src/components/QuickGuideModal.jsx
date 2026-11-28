@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useInRouterContext } from 'react-router-dom';
 import {
   X, HelpCircle, BookOpen, CalendarDays, GraduationCap,
   Bell, Puzzle, Download, ShieldCheck, ArrowRight, PlayCircle
 } from 'lucide-react';
+import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 
 function SafeGuideLink({ to, onNavigate, className, children }) {
   const inRouter = useInRouterContext();
@@ -27,16 +28,10 @@ function SafeGuideLink({ to, onNavigate, className, children }) {
  */
 export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
   const [activeTab, setActiveTab] = useState('start');
+  const dialogRef = useRef(null);
   const isTh = lang === 'th';
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose?.();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  useDialogFocusTrap(isOpen, dialogRef, { onClose });
 
   if (!isOpen) return null;
 
@@ -53,6 +48,7 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-guide-title"
@@ -82,7 +78,7 @@ export default function QuickGuideModal({ isOpen, onClose, lang = 'th' }) {
             type="button"
             onClick={onClose}
             aria-label={isTh ? 'ปิดคู่มือ' : 'Close guide'}
-            className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer shrink-0"
+            className="w-11 h-11 sm:w-9 sm:h-9 -mr-2 sm:mr-0 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
             <X size={18} />
           </button>

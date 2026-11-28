@@ -85,6 +85,10 @@ describe('Sidebar responsive and overflow layout', () => {
     expect(aside).toHaveClass('h-full', 'min-h-0', 'w-18');
     expect(aside).not.toHaveClass('h-screen');
     expect(screen.queryByText('Classroom Hub')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Assignments (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Exam Seating' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Somchai — Settings/i })).toBeInTheDocument();
 
     act(() => {
       mockMatchMedia(1180); // iPad landscape / desktop (>= 1024px)

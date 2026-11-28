@@ -1,6 +1,7 @@
-import { useState, useEffect, useId } from 'react';
+import { useState, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { t } from '../utils/i18n';
+import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 
 export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang, onAddAssignment }) {
   const [newTitle, setNewTitle] = useState('');
@@ -8,6 +9,8 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
   const [newDueDate, setNewDueDate] = useState('');
   const [newPoints, setNewPoints] = useState(100);
   const [newDescription, setNewDescription] = useState('');
+  const dialogRef = useRef(null);
+  const titleInputRef = useRef(null);
 
   const titleId = useId();
   const courseId = useId();
@@ -17,23 +20,6 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
 
   const selectedCourse = newCourse || visibleCourses[0]?.name || 'General';
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e) => {
-      if (e.key === 'Escape') {
-        setNewTitle('');
-        setNewDueDate('');
-        setNewPoints(100);
-        setNewDescription('');
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   const handleCloseReset = () => {
     setNewTitle('');
     setNewDueDate('');
@@ -41,6 +27,13 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
     setNewDescription('');
     onClose();
   };
+
+  useDialogFocusTrap(isOpen, dialogRef, {
+    onClose: handleCloseReset,
+    initialFocusRef: titleInputRef,
+  });
+
+  if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -72,6 +65,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in"
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-task-title"
@@ -85,7 +79,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
             type="button"
             onClick={handleCloseReset}
             aria-label="Close modal"
-            className="p-1.5 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-heading)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+            className="w-11 h-11 sm:w-9 sm:h-9 -mr-2 sm:mr-0 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-heading)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
           >
             <X size={18} strokeWidth={1.5} />
           </button>
@@ -97,6 +91,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               {lang === 'en' ? 'Task Title *' : 'ชื่องาน *'}
             </label>
             <input
+              ref={titleInputRef}
               id={titleId}
               type="text"
               required
@@ -104,7 +99,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder={lang === 'en' ? 'e.g. Read Chapter 4 & Summarize' : 'เช่น อ่านบทที่ 4 และสรุปเนื้อหา'}
-              className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
+              className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-base sm:text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
             />
           </div>
 
@@ -117,7 +112,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
                 id={courseId}
                 value={selectedCourse}
                 onChange={(e) => setNewCourse(e.target.value)}
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer transition-colors"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-base sm:text-sm text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer transition-colors"
               >
                 {visibleCourses.length === 0 && (
                   <option value="General">General</option>
@@ -138,7 +133,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
                 required
                 value={newDueDate}
                 onChange={(e) => setNewDueDate(e.target.value)}
-                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-sm text-[var(--text-primary)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer transition-colors"
+                className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-base sm:text-sm text-[var(--text-primary)] font-mono focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] cursor-pointer transition-colors"
               />
             </div>
           </div>
@@ -154,7 +149,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               max="1000"
               value={newPoints}
               onChange={(e) => setNewPoints(e.target.value)}
-              className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-sm text-[var(--text-primary)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
+              className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg px-3.5 py-2.5 text-base sm:text-sm text-[var(--text-primary)] font-mono tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors"
             />
           </div>
 
@@ -168,7 +163,7 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
               placeholder={lang === 'en' ? 'Add details, links, or notes...' : 'ใส่รายละเอียด ลิงก์อ้างอิง หรือบันทึกเพิ่มเติม...'}
-              className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors resize-none"
+              className="w-full bg-[var(--app-bg)] border border-[var(--border)] rounded-lg p-3.5 text-base sm:text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] transition-colors resize-none"
             />
           </div>
 
@@ -176,13 +171,13 @@ export default function CreateTaskModal({ isOpen, onClose, visibleCourses, lang,
             <button
               type="button"
               onClick={handleCloseReset}
-              className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+              className="px-4 min-h-11 sm:min-h-9 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-heading)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             >
               {lang === 'en' ? 'Cancel' : 'ยกเลิก'}
             </button>
             <button
               type="submit"
-              className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-5 py-2.5 rounded-lg transition-colors cursor-pointer"
+              className="bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white font-medium text-xs px-5 min-h-11 sm:min-h-9 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-bright)]"
             >
               {lang === 'en' ? 'Create Task' : 'บันทึกงาน'}
             </button>
