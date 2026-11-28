@@ -312,4 +312,77 @@ describe('Vercel Serverless /api/gemini endpoint', () => {
     expect(r3.body.code).toBe('USER_RPM_LIMIT');
     expect(Number(r3.headers['retry-after'])).toBeGreaterThan(0);
   });
+
+  it('includes Classroom attachment filenames in system_instruction and sends multimodal user_input steps for attached PDF/image files', async () => {
+    const interactionsCreate = vi.fn(async () => ({
+      id: 'inter_multimodal_1',
+      output_text: 'ในไฟล์ Lab3_Sheet.pdf ให้ต่อวงจร Adder 4-bit ครับ',
+    }));
+
+    const handler = createGeminiHandler({
+      fetchImpl: createValidTokenFetch(),
+      env: { GEMINI_API_KEY: 'test-key', VITE_GOOGLE_CLIENT_ID: CLIENT_ID },
+      createGenAIClient: () => ({
+        interactions: { create: interactionsCreate },
+      }),
+    });
+
+    const tinyBase64 = 'JVBERi0xLjQK';
+    const res = createMockRes();
+    await handler(
+      createReq({
+        body: {
+          message: 'สรุปโจทย์ในไฟล์นี้ให้หน่อย',
+          files: [
+            {
+              name: 'Lab3_Sheet.pdf',
+              mimeType: 'application/pdf',
+              data: tinyBase64,
+            },
+          ],
+          context: {
+            lang: 'th',
+            assignments: [
+              {
+                title: 'Lab 3: Digital Logic',
+                course: 'Computer Hardware',
+                dueDate: '2026-11-29',
+                status: 'todo',
+                attachments: [{ name: 'Lab3_Sheet.pdf', size: 'Google Drive File' }],
+              },
+            ],
+            resources: [
+              {
+                title: 'Week 5 Lecture Slides',
+                course: 'Computer Hardware',
+                type: 'material',
+                attachments: [{ name: 'Week5_Adder.pdf', size: 'Google Drive File' }],
+              },
+            ],
+          },
+        },
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.reply).toContain('Adder 4-bit');
+
+    const callArg = interactionsCreate.mock.calls[0][0];
+    expect(callArg.system_instruction).toContain('Lab3_Sheet.pdf (Google Drive File)');
+    expect(callArg.system_instruction).toContain('Week5_Adder.pdf (Google Drive File)');
+    expect(Array.isArray(callArg.input)).toBe(true);
+    expect(callArg.input[0].type).toBe('user_input');
+    expect(callArg.input[0].content).toEqual([
+      {
+        type: 'document',
+        mime_type: 'application/pdf',
+        data: tinyBase64,
+      },
+      {
+        type: 'text',
+        text: 'สรุปโจทย์ในไฟล์นี้ให้หน่อย',
+      },
+    ]);
+  });
 });

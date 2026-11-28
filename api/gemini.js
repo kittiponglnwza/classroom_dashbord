@@ -37,10 +37,25 @@ const TOKENINFO_TIMEOUT_MS = 5000;
 const GEMINI_TIMEOUT_MS = 35000;
 const REDIS_TIMEOUT_MS = 1500;
 
-const MAX_BODY_BYTES = 64 * 1024;
+const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_MESSAGE_CHARS = 4000;
+const MAX_FILES_PER_MESSAGE = 3;
+const MAX_SINGLE_FILE_BASE64_CHARS = 3_000_000;
+const MAX_TOTAL_FILES_BASE64_CHARS = 3_800_000;
 const MAX_OUTPUT_TOKENS = 2048;
 const INTERACTION_ID_PATTERN = /^[A-Za-z0-9._:=-]{1,512}$/;
+
+const SUPPORTED_IMAGE_MIMES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+]);
+
+const SUPPORTED_DOCUMENT_MIMES = new Set([
+  'application/pdf',
+  'text/csv',
+]);
 
 const getHeader = (req, name) => {
   const headers = req?.headers;
@@ -423,6 +438,81 @@ const cleanText = (val, maxLen = 160) =>
     .trim()
     .slice(0, maxLen);
 
+const sanitizeAttachmentList = (rawList, maxItems = 6) => {
+  if (!Array.isArray(rawList)) return [];
+  return rawList
+    .slice(0, maxItems)
+    .map((att) => ({
+      name: cleanText(att?.name, 100),
+      type: cleanText(att?.type || att?.size, 40),
+      link: cleanText(att?.link || att?.url, 200),
+    }))
+    .filter((att) => att.name);
+};
+
+export const validateAndNormalizeFiles = (rawFiles) => {
+  if (rawFiles === undefined || rawFiles === null) {
+    return { ok: true, files: [] };
+  }
+  if (!Array.isArray(rawFiles)) {
+    return { ok: false, status: 400, error: 'Files field must be an array.' };
+  }
+  if (rawFiles.length > MAX_FILES_PER_MESSAGE) {
+    return { ok: false, status: 400, error: `You can attach up to ${MAX_FILES_PER_MESSAGE} files per message.` };
+  }
+
+  const normalized = [];
+  let totalBase64Chars = 0;
+
+  for (const item of rawFiles) {
+    if (!item || typeof item !== 'object') {
+      return { ok: false, status: 400, error: 'Invalid file attachment entry.' };
+    }
+    const name = cleanText(item.name || 'attachment', 120);
+    const mimeType = String(item.mimeType || item.mime_type || '').trim().toLowerCase();
+    const isImage = SUPPORTED_IMAGE_MIMES.has(mimeType);
+    const isDocument = SUPPORTED_DOCUMENT_MIMES.has(mimeType);
+
+    if (!isImage && !isDocument) {
+      return {
+        ok: false,
+        status: 400,
+        error: `Unsupported file type (${mimeType || 'unknown'}). Allowed: PNG, JPG, WEBP, GIF, PDF, CSV.`,
+      };
+    }
+
+    const rawData = String(item.data || '').trim();
+    const strippedData = rawData.includes(';base64,')
+      ? rawData.slice(rawData.indexOf(';base64,') + 8).trim()
+      : rawData;
+
+    if (!strippedData) {
+      return { ok: false, status: 400, error: `Attached file "${name}" is empty.` };
+    }
+    if (strippedData.length > MAX_SINGLE_FILE_BASE64_CHARS) {
+      return { ok: false, status: 413, error: `Attached file "${name}" exceeds the 2.2 MB size limit.` };
+    }
+    if (!/^[A-Za-z0-9+/=\s]+$/.test(strippedData)) {
+      return { ok: false, status: 400, error: `Attached file "${name}" is not valid base64.` };
+    }
+
+    const cleanBase64 = strippedData.replace(/\s+/g, '');
+    totalBase64Chars += cleanBase64.length;
+    if (totalBase64Chars > MAX_TOTAL_FILES_BASE64_CHARS) {
+      return { ok: false, status: 413, error: 'Combined attached files exceed the maximum size limit.' };
+    }
+
+    normalized.push({
+      name,
+      kind: isImage ? 'image' : 'document',
+      mimeType,
+      data: cleanBase64,
+    });
+  }
+
+  return { ok: true, files: normalized };
+};
+
 const sanitizeWorkspaceContext = (rawContext) => {
   if (!rawContext || typeof rawContext !== 'object') {
     return {
@@ -430,6 +520,7 @@ const sanitizeWorkspaceContext = (rawContext) => {
       studentName: '',
       currentLocalTime: '',
       assignments: [],
+      resources: [],
       schedule: [],
       exams: [],
       courses: [],
@@ -449,7 +540,19 @@ const sanitizeWorkspaceContext = (rawContext) => {
         status: cleanText(item?.status, 20),
         points: Number.isFinite(Number(item?.points)) ? Number(item.points) : null,
         description: cleanText(item?.description, 180),
+        attachments: sanitizeAttachmentList(item?.attachments, 6),
       })).filter((a) => a.title)
+    : [];
+
+  const resources = Array.isArray(rawContext.resources)
+    ? rawContext.resources.slice(0, 12).map((resItem) => ({
+        title: cleanText(resItem?.title, 140),
+        course: cleanText(resItem?.course, 100),
+        courseCode: cleanText(resItem?.courseCode, 30),
+        type: cleanText(resItem?.type, 24),
+        description: cleanText(resItem?.description, 140),
+        attachments: sanitizeAttachmentList(resItem?.attachments, 4),
+      })).filter((r) => r.title || r.description || r.attachments.length > 0)
     : [];
 
   const schedule = Array.isArray(rawContext.schedule)
@@ -486,6 +589,7 @@ const sanitizeWorkspaceContext = (rawContext) => {
     studentName,
     currentLocalTime,
     assignments,
+    resources,
     schedule,
     exams,
     courses,
@@ -499,8 +603,9 @@ export const buildSystemInstruction = (ctx) => {
       ? 'Respond clearly and concisely in English unless the student writes in Thai.'
       : 'ตอบกลับเป็นภาษาไทยที่กระชับ อ่านง่าย เป็นธรรมชาติ ยกเว้นผู้ใช้ถามเป็นภาษาอังกฤษ',
     'Rules:',
-    '- Ground all answers strictly in the live workspace snapshot below when answering about the student\'s assignments, deadlines, timetable, courses, or exams.',
+    '- Ground all answers strictly in the live workspace snapshot below when answering about the student\'s assignments, attachment filenames, deadlines, timetable, courses, or exams.',
     '- Never invent due dates, course codes, exam rooms, or seat numbers that are not present in the snapshot.',
+    '- You can see the filenames and types of files attached to each Google Classroom assignment and course material. If the student wants you to read the full content inside a specific PDF or image from Classroom, tell them the attachment filename and mention they can attach the PDF/image (or paste a screenshot with Ctrl+V) directly in this chat.',
     '- When prioritizing tasks, put overdue items first, then nearest deadlines, then unscheduled coursework.',
     '- Format lists cleanly with short bullet points and bold key titles/dates. Avoid filler introductions.',
   ];
@@ -525,10 +630,28 @@ export const buildSystemInstruction = (ctx) => {
       const dueTag = a.dueDate || 'No due date';
       const ptsTag = a.points ? `, ${a.points} pts` : '';
       const descTag = a.description ? ` — ${a.description}` : '';
-      lines.push(`- [${a.status || 'todo'}] ${a.title} (${courseTag}, Due: ${dueTag}${ptsTag})${descTag}`);
+      const filesTag =
+        Array.isArray(a.attachments) && a.attachments.length > 0
+          ? ` [Files: ${a.attachments.map((att) => (att.type ? `${att.name} (${att.type})` : att.name)).join(', ')}]`
+          : '';
+      lines.push(`- [${a.status || 'todo'}] ${a.title} (${courseTag}, Due: ${dueTag}${ptsTag})${descTag}${filesTag}`);
     }
   } else {
     lines.push('Active/Pending Assignments: None pending right now.');
+  }
+
+  if (Array.isArray(ctx.resources) && ctx.resources.length > 0) {
+    lines.push(`Recent Classroom Materials & Announcements (${ctx.resources.length}):`);
+    for (const r of ctx.resources) {
+      const courseTag = r.courseCode || r.course || 'Course';
+      const titleTag = r.title || r.type || 'Material';
+      const descTag = r.description ? ` — ${r.description}` : '';
+      const filesTag =
+        Array.isArray(r.attachments) && r.attachments.length > 0
+          ? ` [Files: ${r.attachments.map((att) => (att.type ? `${att.name} (${att.type})` : att.name)).join(', ')}]`
+          : '';
+      lines.push(`- [${r.type || 'material'}] ${titleTag} (${courseTag})${descTag}${filesTag}`);
+    }
   }
 
   if (ctx.schedule.length > 0) {
@@ -709,9 +832,15 @@ export function createGeminiHandler(deps = {}) {
       return sendJson(res, bodyResult.status, { error: bodyResult.error });
     }
 
+    const filesResult = validateAndNormalizeFiles(bodyResult.data.files);
+    if (!filesResult.ok) {
+      return sendJson(res, filesResult.status, { error: filesResult.error });
+    }
+    const attachedFiles = filesResult.files;
+
     const rawMessage = typeof bodyResult.data.message === 'string' ? bodyResult.data.message.trim() : '';
-    if (!rawMessage) {
-      return sendJson(res, 400, { error: 'Message is required.' });
+    if (!rawMessage && attachedFiles.length === 0) {
+      return sendJson(res, 400, { error: 'Message or file attachment is required.' });
     }
     if (rawMessage.length > MAX_MESSAGE_CHARS) {
       return sendJson(res, 400, { error: `Message must not exceed ${MAX_MESSAGE_CHARS} characters.` });
@@ -755,12 +884,38 @@ export function createGeminiHandler(deps = {}) {
     const sanitizedContext = sanitizeWorkspaceContext(bodyResult.data.context);
     const systemInstruction = buildSystemInstruction(sanitizedContext);
 
+    const effectivePrompt =
+      rawMessage ||
+      (sanitizedContext.lang === 'en'
+        ? 'Please read and explain or summarize the attached file(s).'
+        : 'ช่วยอ่านและสรุปหรืออธิบายเนื้อหาในไฟล์ที่แนบมานี้ให้หน่อย');
+
+    const interactionInput =
+      attachedFiles.length > 0
+        ? [
+            {
+              type: 'user_input',
+              content: [
+                ...attachedFiles.map((fileItem) => ({
+                  type: fileItem.kind,
+                  mime_type: fileItem.mimeType,
+                  data: fileItem.data,
+                })),
+                {
+                  type: 'text',
+                  text: effectivePrompt,
+                },
+              ],
+            },
+          ]
+        : effectivePrompt;
+
     try {
       const client = createGenAIClient(apiKey);
       const runWithModel = (modelName, prevId) =>
         client.interactions.create({
           model: modelName,
-          input: rawMessage,
+          input: interactionInput,
           system_instruction: systemInstruction,
           generation_config: {
             max_output_tokens: MAX_OUTPUT_TOKENS,

@@ -22,13 +22,27 @@ const stripText = (value, maxLen = 180) =>
     .trim()
     .slice(0, maxLen);
 
+const mapAttachmentsSnapshot = (rawList, maxItems = 6) => {
+  if (!Array.isArray(rawList)) return [];
+  return rawList
+    .slice(0, maxItems)
+    .map((att) => ({
+      name: stripText(att?.name, 100),
+      type: stripText(att?.size || att?.type, 40),
+      link: stripText(att?.link || att?.url, 200),
+    }))
+    .filter((att) => att.name);
+};
+
 /**
  * Builds a bounded, sanitized snapshot of the student's current workspace
- * (pending assignments, courses, timetable, and saved exams) for `/api/gemini`.
+ * (pending assignments with attachment filenames, course materials/announcements,
+ * courses, timetable, and saved exams) for `/api/gemini`.
  */
 export const buildWorkspaceSnapshot = ({
   assignments = [],
   courses = [],
+  resources = [],
   schedule = [],
   exams = [],
   profile = {},
@@ -57,6 +71,23 @@ export const buildWorkspaceSnapshot = ({
       status: stripText(item.status || 'todo', 20),
       points: Number.isFinite(Number(item.points)) ? Number(item.points) : null,
       description: stripText(item.description, 180),
+      attachments: mapAttachmentsSnapshot(item.attachments, 6),
+    }));
+
+  const recentResources = (Array.isArray(resources) ? [...resources] : [])
+    .sort((a, b) => {
+      const timeA = a?.creationTime ? new Date(a.creationTime).getTime() : 0;
+      const timeB = b?.creationTime ? new Date(b.creationTime).getTime() : 0;
+      return (Number.isFinite(timeB) ? timeB : 0) - (Number.isFinite(timeA) ? timeA : 0);
+    })
+    .slice(0, 12)
+    .map((item) => ({
+      title: stripText(item?.title, 140),
+      course: stripText(item?.course, 100),
+      courseCode: stripText(item?.courseCode, 30),
+      type: stripText(item?.type || 'material', 24),
+      description: stripText(item?.description, 140),
+      attachments: mapAttachmentsSnapshot(item?.attachments, 4),
     }));
 
   const activeSchedule = (Array.isArray(schedule) ? schedule : [])
@@ -104,6 +135,7 @@ export const buildWorkspaceSnapshot = ({
     studentName: stripText(profile?.name, 80),
     currentLocalTime,
     assignments: pendingAssignments,
+    resources: recentResources,
     schedule: activeSchedule,
     exams: savedExams,
     courses: enrolledCourses,
@@ -117,24 +149,36 @@ const createCodedApiError = (message, status, code = '') => {
 };
 
 /**
- * Sends a chat message to the serverless `/api/gemini` endpoint.
+ * Sends a chat message (with optional image/PDF attachments) to `/api/gemini`.
  * Attaches the user's Google OAuth Bearer token and refreshes once on 401.
  *
  * @param {Object} params
- * @param {string} params.message
+ * @param {string} [params.message]
+ * @param {Array<{name: string, mimeType: string, data: string}>} [params.files]
  * @param {string|null} [params.previousInteractionId]
  * @param {Object} [params.context]
  * @param {AbortSignal} [params.signal]
  */
 export const sendGeminiMessage = async ({
-  message,
+  message = '',
+  files = [],
   previousInteractionId = null,
   context = {},
   signal,
 } = {}) => {
   const cleanMessage = String(message || '').trim();
-  if (!cleanMessage) {
-    return Result.fail(createCodedApiError('Message cannot be empty.', 400, 'EMPTY_MESSAGE'));
+  const safeFiles = Array.isArray(files)
+    ? files
+        .filter((f) => f && f.mimeType && f.data)
+        .map((f) => ({
+          name: String(f.name || 'attachment').slice(0, 120),
+          mimeType: String(f.mimeType),
+          data: String(f.data),
+        }))
+    : [];
+
+  if (!cleanMessage && safeFiles.length === 0) {
+    return Result.fail(createCodedApiError('Message or file attachment is required.', 400, 'EMPTY_MESSAGE'));
   }
 
   const controller = new AbortController();
@@ -158,6 +202,7 @@ export const sendGeminiMessage = async ({
   try {
     const payload = JSON.stringify({
       message: cleanMessage,
+      ...(safeFiles.length > 0 ? { files: safeFiles } : {}),
       ...(previousInteractionId ? { previousInteractionId } : {}),
       context,
     });

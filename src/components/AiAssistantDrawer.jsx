@@ -7,6 +7,8 @@ import {
   AlertCircle,
   Square,
   ChevronLeft,
+  Paperclip,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -14,6 +16,39 @@ import { useClassroom } from '../contexts/ClassroomContext';
 import { useClassroomUI } from '../contexts/ClassroomUIContext';
 import { examRepository } from '../repositories/examRepository';
 import { buildWorkspaceSnapshot, sendGeminiMessage } from '../services/api/geminiApi';
+
+const MAX_ATTACHMENTS = 3;
+const MAX_FILE_BYTES = 2.2 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  'text/csv',
+]);
+
+const readFileAsAttachment = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      const commaIdx = dataUrl.indexOf(',');
+      const base64Data = commaIdx >= 0 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+      const mimeType = String(file.type || '').toLowerCase();
+      resolve({
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: file.name || (mimeType.startsWith('image/') ? 'image.png' : 'document.pdf'),
+        mimeType,
+        sizeBytes: file.size || 0,
+        isImage: mimeType.startsWith('image/'),
+        previewUrl: mimeType.startsWith('image/') ? dataUrl : '',
+        data: base64Data,
+      });
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
 
 function AssistantAvatar({ size = 'md', showStatus = false }) {
   const dimClass =
@@ -193,10 +228,11 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
   const { isLoggedIn = false, profile = {}, login } = useAuth() || {};
   const { lang = 'th' } = useSettings() || {};
   const { schedule = [] } = useClassroom() || {};
-  const { visibleAssignments = [], visibleCourses = [] } = useClassroomUI() || {};
+  const { visibleAssignments = [], visibleCourses = [], visibleResources = [] } = useClassroomUI() || {};
 
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
+  const [pendingFiles, setPendingFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [errorBanner, setErrorBanner] = useState('');
@@ -205,6 +241,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
   const abortRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const activeEmail = (profile?.email || '').toLowerCase().trim();
 
@@ -318,14 +355,103 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
   const handleResetChat = useCallback(() => {
     handleStopRequest();
     setMessages([]);
+    setPendingFiles([]);
     setLastInteractionId(null);
     setErrorBanner('');
   }, [handleStopRequest]);
 
+  const processSelectedFiles = useCallback(
+    async (fileList) => {
+      const rawArray = Array.from(fileList || []);
+      if (rawArray.length === 0) return;
+
+      setErrorBanner('');
+      const availableSlots = MAX_ATTACHMENTS - pendingFiles.length;
+      if (availableSlots <= 0) {
+        setErrorBanner(
+          lang === 'en'
+            ? `You can attach up to ${MAX_ATTACHMENTS} files per message.`
+            : `แนบไฟล์ได้สูงสุด ${MAX_ATTACHMENTS} ไฟล์ต่อข้อความ`
+        );
+        return;
+      }
+
+      const candidates = rawArray.slice(0, availableSlots);
+      const validAdditions = [];
+
+      for (const file of candidates) {
+        const mime = String(file.type || '').toLowerCase();
+        if (!ALLOWED_MIME_TYPES.has(mime)) {
+          setErrorBanner(
+            lang === 'en'
+              ? `Unsupported file "${file.name}". Please attach PNG, JPG, WEBP, GIF, PDF, or CSV.`
+              : `ไม่รองรับไฟล์ "${file.name}" กรุณาแนบรูปภาพ (PNG, JPG, WEBP) หรือไฟล์ PDF / CSV`
+          );
+          continue;
+        }
+        if (file.size > MAX_FILE_BYTES) {
+          setErrorBanner(
+            lang === 'en'
+              ? `File "${file.name}" exceeds the 2.2 MB limit.`
+              : `ไฟล์ "${file.name}" มีขนาดเกิน 2.2 MB กรุณาย่อขนาดไฟล์ก่อนแนบ`
+          );
+          continue;
+        }
+        try {
+          const parsed = await readFileAsAttachment(file);
+          validAdditions.push(parsed);
+        } catch {
+          setErrorBanner(
+            lang === 'en' ? `Could not read file "${file.name}".` : `ไม่สามารถอ่านไฟล์ "${file.name}" ได้`
+          );
+        }
+      }
+
+      if (validAdditions.length > 0) {
+        setPendingFiles((prev) => [...prev, ...validAdditions].slice(0, MAX_ATTACHMENTS));
+      }
+    },
+    [pendingFiles.length, lang]
+  );
+
+  const handleFileInputChange = (e) => {
+    const files = e.target?.files;
+    if (files && files.length > 0) {
+      processSelectedFiles(files);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handlePasteInput = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const pastedFiles = [];
+    for (let i = 0; i < items.length; i += 1) {
+      const item = items[i];
+      if (item.kind === 'file') {
+        const blob = item.getAsFile();
+        if (blob) pastedFiles.push(blob);
+      }
+    }
+    if (pastedFiles.length > 0) {
+      e.preventDefault();
+      processSelectedFiles(pastedFiles);
+    }
+  };
+
+  const handleRemovePendingFile = (id) => {
+    setPendingFiles((prev) => prev.filter((item) => item.id !== id));
+  };
+
   const handleSend = useCallback(
     async (overridePrompt) => {
-      const textToSend = typeof overridePrompt === 'string' ? overridePrompt.trim() : inputValue.trim();
-      if (!textToSend || isLoading) return;
+      const isOverride = typeof overridePrompt === 'string';
+      const textToSend = isOverride ? overridePrompt.trim() : inputValue.trim();
+      const filesToSend = isOverride ? [] : pendingFiles;
+
+      if ((!textToSend && filesToSend.length === 0) || isLoading) return;
 
       if (!isLoggedIn) {
         setErrorBanner(
@@ -337,8 +463,9 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
       }
 
       setErrorBanner('');
-      if (typeof overridePrompt !== 'string') {
+      if (!isOverride) {
         setInputValue('');
+        setPendingFiles([]);
       }
 
       const nowTs = Date.now();
@@ -346,6 +473,12 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
         id: `u-${nowTs}`,
         role: 'user',
         content: textToSend,
+        attachments: filesToSend.map((f) => ({
+          id: f.id,
+          name: f.name,
+          isImage: f.isImage,
+          previewUrl: f.previewUrl,
+        })),
         createdAt: nowTs,
       };
       setMessages((prev) => [...prev, userMsg]);
@@ -357,6 +490,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
       const contextSnapshot = buildWorkspaceSnapshot({
         assignments: visibleAssignments,
         courses: visibleCourses,
+        resources: visibleResources,
         schedule,
         exams: cachedExams,
         profile,
@@ -365,6 +499,11 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
 
       const result = await sendGeminiMessage({
         message: textToSend,
+        files: filesToSend.map((f) => ({
+          name: f.name,
+          mimeType: f.mimeType,
+          data: f.data,
+        })),
         previousInteractionId: lastInteractionId,
         context: contextSnapshot,
         signal: controller.signal,
@@ -396,11 +535,13 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
     },
     [
       inputValue,
+      pendingFiles,
       isLoading,
       isLoggedIn,
       lang,
       visibleAssignments,
       visibleCourses,
+      visibleResources,
       schedule,
       cachedExams,
       profile,
@@ -425,7 +566,6 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
       ? `${pendingTaskCount} tasks · ${activeScheduleCount} classes · ${cachedExams.length} exams`
       : `งานค้าง ${pendingTaskCount} · ตารางเรียน ${activeScheduleCount} · สอบ ${cachedExams.length}`;
 
-  // Messenger-style Minimized Chat Tab (Desktop)
   if (isMinimized) {
     return (
       <div
@@ -468,6 +608,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
   }
 
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  const canSendNow = Boolean(inputValue.trim() || pendingFiles.length > 0) && !isLoading;
 
   return (
     <section
@@ -545,7 +686,9 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
               {lang === 'en' ? 'Study Assistant' : 'ผู้ช่วยวางแผนการเรียน'}
             </h3>
             <p className="text-[11.5px] text-[var(--text-muted)]">
-              {lang === 'en' ? 'Classroom Hub · Synced workspace' : 'Classroom Hub · ซิงก์ข้อมูลเรียนอัตโนมัติ'}
+              {lang === 'en'
+                ? 'Classroom Hub · Reads tasks, schedules & attached PDFs/images'
+                : 'Classroom Hub · รู้ข้อมูลงานค้าง และอ่านรูปโจทย์/ไฟล์ PDF ที่ส่งในแชทได้'}
             </p>
           </div>
         </div>
@@ -571,7 +714,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
         {messages.length === 0 && (
           <div className="pt-2 space-y-2">
             <p className="text-[11px] text-center text-[var(--text-muted)]">
-              {lang === 'en' ? 'Tap a topic to start' : 'เลือกหัวข้อเพื่อเริ่มคุย หรือพิมพ์ถามด้านล่าง'}
+              {lang === 'en' ? 'Tap a topic or attach an assignment PDF/photo' : 'เลือกหัวข้อด้านล่าง หรือแนบรูปโจทย์ / ไฟล์ PDF ถามได้เลย'}
             </p>
             <div className="flex flex-col items-end gap-1.5 pt-1">
               {starterPrompts.map((item) => (
@@ -604,22 +747,46 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
                     ? 'rounded-[20px] rounded-tr-[5px] rounded-br-[5px]'
                     : !isFirstInGroup && isLastInGroup
                       ? 'rounded-[20px] rounded-tr-[5px] rounded-br-[6px]'
-                      : isFirstInGroup && !isLastInGroup
-                        ? 'rounded-[20px] rounded-br-[5px]'
-                        : 'rounded-[20px] rounded-br-[5px]';
+                      : 'rounded-[20px] rounded-br-[5px]';
 
                 return (
                   <div
                     key={msg.id}
-                    className={`flex flex-col items-end ${isFirstInGroup && idx > 0 ? 'pt-2' : ''}`}
+                    className={`flex flex-col items-end space-y-1 ${isFirstInGroup && idx > 0 ? 'pt-2' : ''}`}
                   >
-                    <div
-                      className={`max-w-[78%] px-3.5 py-2 bg-[#0084FF] text-white text-[13.5px] leading-[1.45] whitespace-pre-wrap break-words ${userRadius}`}
-                    >
-                      {msg.content}
-                    </div>
+                    {Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
+                      <div className="flex flex-wrap justify-end gap-1.5 max-w-[80%]">
+                        {msg.attachments.map((att) =>
+                          att.isImage && att.previewUrl ? (
+                            <img
+                              key={att.id}
+                              src={att.previewUrl}
+                              alt={att.name}
+                              className="max-h-36 rounded-2xl border border-white/15 object-cover"
+                            />
+                          ) : (
+                            <div
+                              key={att.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#1D2230] border border-white/15 text-xs text-white"
+                            >
+                              <FileText size={14} strokeWidth={1.75} className="text-[#7CC4FA] shrink-0" />
+                              <span className="truncate max-w-[160px]">{att.name}</span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {msg.content && (
+                      <div
+                        className={`max-w-[78%] px-3.5 py-2 bg-[#0084FF] text-white text-[13.5px] leading-[1.45] whitespace-pre-wrap break-words ${userRadius}`}
+                      >
+                        {msg.content}
+                      </div>
+                    )}
+
                     {msg.id === lastMessage?.id && !isLoading && (
-                      <span className="text-[10.5px] text-[var(--text-muted)] mt-1 pr-1 select-none">
+                      <span className="text-[10.5px] text-[var(--text-muted)] mt-0.5 pr-1 select-none">
                         {lang === 'en' ? 'Sent' : 'ส่งแล้ว'}
                         {msg.createdAt ? ` · ${formatChatTime(msg.createdAt, lang)}` : ''}
                       </span>
@@ -633,9 +800,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
                   ? 'rounded-[20px] rounded-tl-[5px] rounded-bl-[5px]'
                   : !isFirstInGroup && isLastInGroup
                     ? 'rounded-[20px] rounded-tl-[5px] rounded-bl-[6px]'
-                    : isFirstInGroup && !isLastInGroup
-                      ? 'rounded-[20px] rounded-bl-[5px]'
-                      : 'rounded-[20px] rounded-bl-[5px]';
+                    : 'rounded-[20px] rounded-bl-[5px]';
 
               return (
                 <div
@@ -699,15 +864,75 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* IG DM / Messenger Rounded-Pill Composer Bar */}
+      {/* IG DM / Messenger Rounded-Pill Composer Bar with File/Image Attachment */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           handleSend();
         }}
-        className="px-3 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] bg-[#12151E] border-t border-white/[0.07] shrink-0"
+        className="px-3 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] bg-[#12151E] border-t border-white/[0.07] shrink-0 space-y-2"
       >
-        <div className="flex items-end gap-2 rounded-[24px] bg-[#1E2330] border border-white/[0.10] focus-within:border-white/[0.22] pl-3.5 pr-1.5 py-1.5 transition-colors">
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/csv"
+          onChange={handleFileInputChange}
+          className="hidden"
+          data-testid="assistant-file-input"
+        />
+
+        {pendingFiles.length > 0 && (
+          <div
+            data-testid="pending-attachments-tray"
+            className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 px-1"
+          >
+            {pendingFiles.map((item) => (
+              <div
+                key={item.id}
+                className="relative group shrink-0 rounded-xl bg-[#1E2330] border border-white/[0.14] overflow-hidden"
+              >
+                {item.isImage && item.previewUrl ? (
+                  <img
+                    src={item.previewUrl}
+                    alt={item.name}
+                    className="w-14 h-14 object-cover block"
+                  />
+                ) : (
+                  <div className="h-14 px-3 flex items-center gap-2 max-w-[170px]">
+                    <FileText size={16} strokeWidth={1.75} className="text-[#7CC4FA] shrink-0" />
+                    <span className="text-xs text-white truncate">{item.name}</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleRemovePendingFile(item.id)}
+                  aria-label={lang === 'en' ? `Remove ${item.name}` : `ลบไฟล์ ${item.name}`}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/75 hover:bg-black text-white flex items-center justify-center cursor-pointer"
+                >
+                  <X size={12} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-end gap-1.5 rounded-[24px] bg-[#1E2330] border border-white/[0.10] focus-within:border-white/[0.22] pl-2 pr-1.5 py-1.5 transition-colors">
+          <button
+            type="button"
+            disabled={isLoading || pendingFiles.length >= MAX_ATTACHMENTS}
+            onClick={() => fileInputRef.current?.click()}
+            title={
+              lang === 'en'
+                ? 'Attach image or PDF (or paste with Ctrl+V)'
+                : 'แนบรูปภาพหรือไฟล์ PDF (หรือกด Ctrl+V วางรูปแคปหน้าจอ)'
+            }
+            aria-label={lang === 'en' ? 'Attach file or image' : 'แนบรูปภาพหรือไฟล์ PDF'}
+            className="w-8 h-8 rounded-full hover:bg-white/10 disabled:opacity-35 text-[var(--text-secondary)] hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0084FF]"
+          >
+            <Paperclip size={16} strokeWidth={1.75} />
+          </button>
+
           <textarea
             ref={inputRef}
             rows={1}
@@ -719,17 +944,19 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDownInput}
+            onPaste={handlePasteInput}
             placeholder={
               lang === 'en'
-                ? 'Message...'
+                ? 'Message or paste image...'
                 : 'ถามเกี่ยวกับการบ้าน ตารางเรียน หรือวันสอบ'
             }
             maxLength={4000}
             className="flex-1 max-h-28 min-h-[28px] bg-transparent text-base sm:text-[13.5px] text-white placeholder:text-[var(--text-muted)] resize-none py-1 focus:outline-none"
           />
+
           <button
             type="submit"
-            disabled={!inputValue.trim() || isLoading}
+            disabled={!canSendNow}
             aria-label={lang === 'en' ? 'Send message' : 'ส่งข้อความ'}
             className="w-8 h-8 rounded-full bg-[#0084FF] hover:bg-[#0073E6] disabled:opacity-35 text-white flex items-center justify-center shrink-0 transition-all duration-150 active:scale-95 cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >

@@ -42,9 +42,19 @@ const mockUiValue = {
       status: 'todo',
       points: 20,
       description: 'Submit user stories.',
+      attachments: [{ name: 'Sprint1_Template.pdf', size: 'Google Drive File' }],
     },
   ],
-  visibleResources: [],
+  visibleResources: [
+    {
+      id: 'r1',
+      title: 'Scrum Guide',
+      course: 'Software Engineering',
+      courseCode: '010123131',
+      type: 'material',
+      attachments: [{ name: 'Scrum_2026.pdf', size: 'Google Drive File' }],
+    },
+  ],
   hiddenCourseIds: [],
 };
 
@@ -223,5 +233,45 @@ describe('Study Assistant Drawer & Gemini Frontend Service', () => {
     // Click minimized tab to restore full chat popup
     fireEvent.click(minimizedBar.querySelector('button'));
     expect(screen.getByRole('dialog', { name: 'ผู้ช่วยวางแผนการเรียน' })).toBeInTheDocument();
+  });
+
+  it('attaches a PDF file in the chat composer and sends Classroom attachment metadata + base64 file payload', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          reply: 'อ่านไฟล์ Lab_Instruction.pdf เรียบร้อยแล้วครับ',
+          interactionId: 'inter_pdf_1',
+          model: 'gemini-3.5-flash-lite',
+        }),
+    });
+    globalThis.fetch = fetchMock;
+
+    renderWithLayout('th');
+    fireEvent.click(screen.getByTestId('floating-assistant-trigger'));
+
+    const fileInput = screen.getByTestId('assistant-file-input');
+    const pdfFile = new File(['%PDF-1.4 sample'], 'Lab_Instruction.pdf', { type: 'application/pdf' });
+    fireEvent.change(fileInput, { target: { files: [pdfFile] } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('pending-attachments-tray')).toHaveTextContent('Lab_Instruction.pdf');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'ส่งข้อความ' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/อ่านไฟล์ Lab_Instruction.pdf เรียบร้อยแล้วครับ/)).toBeInTheDocument();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, opts] = fetchMock.mock.calls[0];
+    const sentBody = JSON.parse(opts.body);
+    expect(sentBody.files).toHaveLength(1);
+    expect(sentBody.files[0].name).toBe('Lab_Instruction.pdf');
+    expect(sentBody.files[0].mimeType).toBe('application/pdf');
+    expect(sentBody.context.assignments[0].attachments[0].name).toBe('Sprint1_Template.pdf');
+    expect(sentBody.context.resources[0].attachments[0].name).toBe('Scrum_2026.pdf');
   });
 });
